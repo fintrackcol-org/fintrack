@@ -206,7 +206,7 @@ export async function buildBusinessWorkbook(report) {
     const row = list.addRow({
       date: m.date,
       kind: KIND_LABEL[m.kind],
-      category: CATEGORY_LABEL[m.category] ?? m.category,
+      category: m.categoryName ?? CATEGORY_LABEL[m.category] ?? m.category,
       description: m.description,
       amount: signed(m),
       who: who(m),

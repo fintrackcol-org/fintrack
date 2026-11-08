@@ -83,3 +83,30 @@ export function changeText(change, previousLabel) {
   const sign = change > 0 ? '+' : '−';
   return `${sign}${Math.abs(change).toLocaleString('es-CO', { maximumFractionDigits: 1 })} % que ${previousLabel}`;
 }
+
+/**
+ * Nombre de la categoría de un movimiento: la propia del negocio (FT-0058) o una de siempre.
+ * @param {{ category: string, categoryName?: string|null }} movement
+ * @returns {string}
+ */
+export const categoryLabel = (movement) =>
+  movement.categoryName ?? BUSINESS_CATEGORIES[movement.category] ?? BUSINESS_CATEGORIES.otros;
+
+/** Filtro de tipo del historial: todos o uno (FT-0058). */
+export const KIND_FILTERS = [
+  { value: 'all', label: 'Todos' },
+  ...Object.entries(MOVEMENT_KINDS).map(([value, { label }]) => ({ value, label })),
+];
+
+/**
+ * Movimientos del mes filtrados por tipo y por quién los registró (FT-0058).
+ * @template {{ kind: string, registeredBy: { id: string }|null }} T
+ * @param {T[]} movements
+ * @param {{ kind: string, partner: string }} filter `all` en cualquiera de los dos para no filtrar.
+ * @returns {T[]}
+ */
+export function filterMovements(movements, { kind, partner }) {
+  return movements.filter(
+    (m) => (kind === 'all' || m.kind === kind) && (partner === 'all' || m.registeredBy?.id === partner),
+  );
+}

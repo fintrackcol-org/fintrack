@@ -5,6 +5,8 @@ import { CATEGORIES, DEFAULT_CATEGORY, KINDS } from '../services/negocio-panel.l
 const MAX_AMOUNT = 9_999_999_999.99;
 const cents = (n) => Math.round(n * 100) / 100;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Clave de una categoría propia del negocio (FT-0058). */
+export const CUSTOM_CATEGORY_RE = /^c_[a-z0-9]{8}$/;
 
 /**
  * @param {unknown} v
@@ -51,8 +53,9 @@ export function parseNewMovement(body) {
   }
   let category = DEFAULT_CATEGORY[body.kind] ?? 'otros';
   if (body.category !== undefined && body.category !== null && body.category !== '') {
-    if (CATEGORIES.includes(body.category)) category = body.category;
-    else details.push({ field: 'category', problem: `Debe ser: ${CATEGORIES.join(', ')}` });
+    // Las propias del negocio empiezan por "c_"; si existen lo revisa el servicio (FT-0058).
+    if (CATEGORIES.includes(body.category) || CUSTOM_CATEGORY_RE.test(body.category)) category = body.category;
+    else details.push({ field: 'category', problem: `Debe ser: ${CATEGORIES.join(', ')} o una propia del negocio` });
   }
   let date = null;
   if (body.date !== undefined && body.date !== null && body.date !== '') {
@@ -115,4 +118,22 @@ export function parseExport(query) {
     ]);
   }
   return { month, format: query.format };
+}
+
+/**
+ * Valida `POST /businesses/:id/categories` (FT-0058).
+ * @param {unknown} body
+ * @returns {{ name: string }}
+ */
+export function parseCategory(body) {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    throw new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+  }
+  const name = typeof body.name === 'string' ? body.name.trim().replace(/\s+/g, ' ') : '';
+  if (name.length < 1 || name.length > 30) {
+    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
+      { field: 'name', problem: 'Debe tener entre 1 y 30 caracteres' },
+    ]);
+  }
+  return { name };
 }

@@ -2129,6 +2129,14 @@ paths:
                 properties:
                   month: { type: string, example: "2026-11" }
                   canRecord: { type: boolean }
+                  customCategories:
+                    type: array
+                    description: Categorías propias del negocio (FT-0058), en orden alfabético
+                    items:
+                      type: object
+                      properties:
+                        key: { type: string, example: "c_ab12cd34" }
+                        name: { type: string }
                   movements:
                     type: array
                     items: { $ref: "#/components/schemas/BusinessMovement" }
@@ -2431,6 +2439,52 @@ paths:
     delete:
       tags: [Businesses]
       summary: Borra una fecha de impuestos (dueños y editores)
+      responses:
+        "204": { description: Borrada }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: "FORBIDDEN: el lector no borra" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /businesses/{id}/categories:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Businesses]
+      summary: Crea una categoría propia del negocio (dueños y editores)
+      description: >
+        No puede repetir el nombre de una de siempre ni de otra propia (sin importar mayúsculas ni
+        tildes). Máximo 30 por negocio. Se listan en `GET /businesses/{id}/movements`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 30 }
+      responses:
+        "201":
+          description: Categoría creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key: { type: string, example: "c_ab12cd34" }
+                  name: { type: string }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: "FORBIDDEN: el lector no crea" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /businesses/{id}/categories/{key}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: key, in: path, required: true, schema: { type: string } }
+    delete:
+      tags: [Businesses]
+      summary: Borra una categoría propia; sus movimientos pasan a "otros" (dueños y editores)
       responses:
         "204": { description: Borrada }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -3036,7 +3090,8 @@ components:
           type: string
           enum: [sale, otherIncome, cost, fixed, variable, withdrawal]
           description: "withdrawal es un retiro de socio (solo por POST /withdrawals)"
-        category: { type: string, description: "Una de BusinessCategory, o retiros" }
+        category: { type: string, description: "Una de BusinessCategory, retiros o una propia del negocio (c_xxxxxxxx)" }
+        categoryName: { type: string, nullable: true, description: "Nombre de la categoría propia; null en las de siempre" }
         amount: { type: number }
         description: { type: string }
         date: { type: string, format: date }

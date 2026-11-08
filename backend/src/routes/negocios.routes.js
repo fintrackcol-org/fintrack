@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   deleteBusiness,
+  deleteCategory,
   deleteInvitation,
   deleteMovement,
   deletePartner,
@@ -12,6 +13,7 @@ import {
   patchBusiness,
   patchPartner,
   postBusiness,
+  postCategory,
   postCode,
   postInvitation,
   postJoin,
@@ -50,6 +52,8 @@ import { requireAuth } from '../middlewares/auth.middleware.js';
  *   → abono parcial, que crea su movimiento del negocio · deshacerlo.
  * - `GET /:id/tax-dates` · `POST /:id/tax-dates` · `DELETE /:id/tax-dates/:dateId` → fechas de
  *   impuestos (IVA, retención…), con aviso 3 días antes (FT-0058).
+ * - `POST /:id/categories` · `DELETE /:id/categories/:key` → categorías propias del negocio (dueños
+ *   y editores); al borrar una, sus movimientos pasan a "Otros". Se listan en `GET /:id/movements`.
  */
 const router = Router();
 
@@ -79,5 +83,7 @@ router.delete('/:id/accounts/:accountId/payments/:paymentId', deletePayment);
 router.get('/:id/tax-dates', getTaxDates);
 router.post('/:id/tax-dates', postTaxDate);
 router.delete('/:id/tax-dates/:dateId', deleteTaxDate);
+router.post('/:id/categories', postCategory);
+router.delete('/:id/categories/:key', deleteCategory);
 
 export default router;
