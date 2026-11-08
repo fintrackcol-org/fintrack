@@ -335,6 +335,7 @@ test('el programador envía una vez al día y omite a quien no tiene notificacio
   let clock = new Date('2026-10-14T01:00:00Z');
   const scheduler = createReminderScheduler({
     listDueDebts: async () => [],
+    listLiquidityUsers: async () => [],
     listCandidates: async () => [
       { id: 'con-push', times: ['20:00'], timezone: 'America/Bogota', hasSubscription: true },
       { id: 'sin-push', times: ['20:00'], timezone: 'America/Bogota', hasSubscription: false },
@@ -363,6 +364,7 @@ test('un fallo con un usuario no impide avisar a los demás', async () => {
   const errors = [];
   const scheduler = createReminderScheduler({
     listDueDebts: async () => [],
+    listLiquidityUsers: async () => [],
     listCandidates: async () => [
       { id: 'falla', times: ['20:00'], timezone: 'UTC', hasSubscription: true },
       { id: 'bien', times: ['20:00'], timezone: 'UTC', hasSubscription: true },
@@ -384,6 +386,7 @@ test('el programador envía cada hora del usuario por separado, una vez al día 
   let clock = new Date('2026-10-14T13:00:00Z'); // 08:00 en Bogotá
   const scheduler = createReminderScheduler({
     listDueDebts: async () => [],
+    listLiquidityUsers: async () => [],
     listCandidates: async () => [
       { id: 'u1', times: ['08:00', '20:00'], timezone: 'America/Bogota', hasSubscription: true },
     ],

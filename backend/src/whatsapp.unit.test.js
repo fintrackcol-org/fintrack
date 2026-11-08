@@ -53,6 +53,7 @@ function setup(options = {}) {
         return { income: { total: income }, expense: { total: expense, byCategory }, savings: { total: savings } };
       }),
     getPlan: typeof plan === 'function' ? plan : async () => plan,
+    getLiquidity: async () => options.liquidity ?? { ready: false },
     sendText: async (_to, body) => sent.push(body),
     now: () => new Date('2026-11-02T15:00:00Z'),
     dailyMax: 3,
@@ -221,7 +222,8 @@ test('sin movimientos en el mes lo dice en vez de responder ceros', async () => 
 });
 
 test('una pregunta que no sabe responder explica qué puede hacer', async () => {
-  for (const [i, text] of ['Qué puedo gastar hoy', 'me alcanza?'].entries()) {
+  // "¿me alcanza?" ya se entiende (FT-0059): responde el avance y la línea de liquidez.
+  for (const [i, text] of ['Qué puedo gastar hoy', 'qué hora es?'].entries()) {
     const { service, sent, queries } = setup();
     await service.handleMessage(message(text, `m${i}`));
     assert.equal(sent[0], REPLIES.help);
@@ -363,6 +365,19 @@ test('"¿cómo voy?" responde el avance, o invita a configurar Mi plata', async 
     await without.service.handleMessage(message(text, `wamid.${i}`));
     assert.equal(without.sent[0], REPLIES.noPlan, text);
   }
+});
+
+test('"¿me alcanza?" agrega la línea del motor de liquidez (FT-0059)', async () => {
+  const liquidity = {
+    ready: true,
+    risk: 'falta',
+    firstShortfall: { date: '2026-11-20', missing: 300_000, causes: [] },
+    lowest: { date: '2026-11-20', amount: -300_000 },
+    until: '2026-12-17',
+  };
+  const { service, sent } = setup({ plan: GOAL_PLAN, liquidity });
+  await service.handleMessage(message('¿Me alcanza?'));
+  assert.equal(sent[0], `${GOAL_TEXT}\nOjo: el 20 de noviembre te faltan $300.000.`);
 });
 
 test('el analizador: "hice" + monto es lo que ganó; "hice mercado" sigue siendo gasto', () => {
