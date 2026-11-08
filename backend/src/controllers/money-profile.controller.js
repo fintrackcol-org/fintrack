@@ -2,7 +2,8 @@ import { getPlan as buildPlan } from '../services/money-plan.service.js';
 import { getCalendar as buildCalendar } from '../services/payment-calendar.service.js';
 import * as moneyProfile from '../services/money-profile.service.js';
 import { parseMonthQuery } from '../validators/budgets.validator.js';
-import { parseCommitment, parseProfile, parseWelcome } from '../validators/money-profile.validator.js';
+import * as income from '../services/income.service.js';
+import { parseCommitment, parseProfile, parseSources, parseSplitQuery, parseWelcome } from '../validators/money-profile.validator.js';
 
 /**
  * `GET /api/v1/money-profile`: perfil del usuario con sus compromisos.
@@ -84,4 +85,34 @@ export async function putCommitment(req, res) {
 export async function deleteCommitment(req, res) {
   await moneyProfile.removeCommitment(req.userId, req.params.id);
   res.status(204).end();
+}
+
+/**
+ * `GET /api/v1/money-profile/income`: cómo y cuánto le entra la plata al usuario (FT-0060).
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+export async function getIncome(req, res) {
+  res.json(await income.getIncome(req.userId));
+}
+
+/**
+ * `GET /api/v1/money-profile/income/split?amount=`: cómo repartir un ingreso (FT-0060).
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+export async function getSplit(req, res) {
+  res.json(await income.split(req.userId, parseSplitQuery(req.query)));
+}
+
+/**
+ * `PUT /api/v1/money-profile/sources`: reemplaza las fuentes de ingreso (FT-0060).
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+export async function putSources(req, res) {
+  res.json(await income.saveSources(req.userId, parseSources(req.body)));
 }

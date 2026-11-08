@@ -158,3 +158,106 @@ export function parseCommitment(body) {
   throwIfInvalid(details);
   return commitment;
 }
+
+const SOURCE_KINDS = ['sueldo', 'comisiones', 'proyectos', 'diario', 'mesada'];
+const FREQUENCIES = ['mensual', 'quincenal', 'semanal', 'diario', 'irregular'];
+const MAX_SOURCES = 8;
+const MAX_LAST_MONTHS = 6;
+
+/** Nombre por defecto de cada fuente, si el usuario no escribió uno. */
+const DEFAULT_NAMES = {
+  sueldo: 'Sueldo',
+  comisiones: 'Sueldo y comisiones',
+  proyectos: 'Proyectos',
+  diario: 'Trabajo por días',
+  mesada: 'Mesada',
+};
+
+/**
+ * Lee un monto opcional (`null` si no lo dijo).
+ * @param {unknown} value
+ * @param {string} field Nombre del campo para el error.
+ * @param {FieldProblem[]} details
+ * @returns {number|null}
+ */
+function readOptionalAmount(value, field, details) {
+  if (value === null || value === undefined || value === '') return null;
+  const rounded = typeof value === 'number' ? Math.round(value * 100) / 100 : NaN;
+  if (!Number.isFinite(rounded) || rounded < 0 || rounded > MAX_AMOUNT) {
+    details.push({ field, problem: 'Debe ser un número desde 0' });
+    return null;
+  }
+  return rounded;
+}
+
+/**
+ * Valida una fuente de ingreso (FT-0060). Todo menos el tipo es opcional: el usuario responde
+ * "más o menos" y nunca se le bloquea.
+ * @param {unknown} source
+ * @param {FieldProblem[]} details
+ * @param {string} prefix
+ * @returns {import('../services/income.logic.js').IncomeSource}
+ */
+function readSource(source, details, prefix) {
+  const { kind, name, frequency = 'mensual', payDays = [], amount, low, high, lastMonths = [], workDays = null } = isObject(source) ? source : {};
+  if (!SOURCE_KINDS.includes(kind)) details.push({ field: `${prefix}kind`, problem: `Debe ser uno de: ${SOURCE_KINDS.join(', ')}` });
+  if (!FREQUENCIES.includes(frequency)) details.push({ field: `${prefix}frequency`, problem: `Debe ser uno de: ${FREQUENCIES.join(', ')}` });
+  const cleanName = typeof name === 'string' && name.trim() ? name.trim() : DEFAULT_NAMES[kind] ?? 'Ingreso';
+  if (cleanName.length > MAX_NAME_LENGTH) details.push({ field: `${prefix}name`, problem: `Máximo ${MAX_NAME_LENGTH} caracteres` });
+  if (!Array.isArray(payDays) || payDays.length > MAX_PAY_DAYS || !payDays.every(isDayOfMonth)) {
+    details.push({ field: `${prefix}payDays`, problem: `Hasta ${MAX_PAY_DAYS} días entre 1 y 31` });
+  }
+  if (!Array.isArray(lastMonths) || lastMonths.length > MAX_LAST_MONTHS) {
+    details.push({ field: `${prefix}lastMonths`, problem: `Una lista de hasta ${MAX_LAST_MONTHS} montos` });
+  }
+  if (workDays !== null && !(Number.isInteger(workDays) && workDays >= 1 && workDays <= 7)) {
+    details.push({ field: `${prefix}workDays`, problem: 'Debe ser de 1 a 7 días' });
+  }
+  return {
+    kind,
+    name: cleanName,
+    frequency,
+    payDays: Array.isArray(payDays) ? [...new Set(payDays)].sort((a, b) => a - b) : [],
+    amount: readOptionalAmount(amount, `${prefix}amount`, details),
+    low: readOptionalAmount(low, `${prefix}low`, details),
+    high: readOptionalAmount(high, `${prefix}high`, details),
+    lastMonths: Array.isArray(lastMonths)
+      ? lastMonths.map((m, i) => readOptionalAmount(m, `${prefix}lastMonths[${i}]`, details) ?? 0)
+      : [],
+    workDays,
+  };
+}
+
+/**
+ * Valida el cuerpo de `PUT /money-profile/sources`: `{ sources: [...] }`. Una lista vacía borra las fuentes.
+ * @param {unknown} body
+ * @returns {import('../services/income.logic.js').IncomeSource[]}
+ * @throws {AppError} 400 o 422 `VALIDATION_ERROR`.
+ */
+export function parseSources(body) {
+  if (!isObject(body)) throw invalidBody();
+  const { sources } = body;
+  if (!Array.isArray(sources) || sources.length > MAX_SOURCES) {
+    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
+      { field: 'sources', problem: `Debe ser una lista de hasta ${MAX_SOURCES}` },
+    ]);
+  }
+  const details = [];
+  const clean = sources.map((s, i) => readSource(s, details, `sources[${i}].`));
+  throwIfInvalid(details);
+  return clean;
+}
+
+/**
+ * Valida `?amount=` de `GET /money-profile/income/split`.
+ * @param {Record<string, unknown>} query
+ * @returns {number}
+ * @throws {AppError} 422 `VALIDATION_ERROR`.
+ */
+export function parseSplitQuery(query) {
+  const amount = Number(query.amount);
+  if (!Number.isFinite(amount) || amount <= 0 || amount > MAX_AMOUNT) {
+    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [{ field: 'amount', problem: 'Debe ser un número mayor que 0' }]);
+  }
+  return amount;
+}
