@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, FileSpreadsheet, FileText, Loader2, Plus, Trash2, Undo2 } from 'lucide-react';
 import ConfirmButton from '@/components/common/ConfirmButton';
 import Sheet from '@/components/common/Sheet';
+import CategoryIcon from '@/components/categories/CategoryIcon';
 import Panel from '@/components/layout/Panel';
 import BusinessDistribution, { WithdrawalForm } from '@/components/negocios/BusinessDistribution';
 import MovementForm from '@/components/negocios/MovementForm';
@@ -135,7 +136,11 @@ function CashFlow({ weeks }) {
   return (
     <ul className="space-y-3">
       {weeks.map((w) => (
-        <li key={w.label} className="grid grid-cols-[3.5rem_1fr_auto] items-center gap-3 text-sm">
+        // Una semana sin movimientos se atenúa: "$ 0" a todo color parecía un dato importante.
+        <li
+          key={w.label}
+          className={cn('grid grid-cols-[3.5rem_1fr_auto] items-center gap-3 text-sm', w.in === 0 && w.out === 0 && 'opacity-40')}
+        >
           <span className="text-ink/60">{w.label}</span>
           <span className="space-y-1" aria-hidden="true">
             <span className="block h-1.5 rounded-full bg-positive" style={{ width: `${(w.in / max) * 100}%` }} />
@@ -163,6 +168,7 @@ function MovementRow({ movement, onOpen }) {
         onClick={onOpen}
         className="flex w-full items-center gap-3 rounded-2xl border border-ink/10 bg-surface p-4 text-left transition-colors hover:border-ink/20 focus-visible:outline-2 focus-visible:outline-violet"
       >
+        <CategoryIcon category={movement.category} />
         <span className="min-w-0 flex-1">
           <span className="block break-words font-medium">{movement.description}</span>
           <span className="block text-sm text-ink/60">

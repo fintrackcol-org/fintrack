@@ -34,6 +34,13 @@ import {
   TrendingUp,
   UtensilsCrossed,
   Wallet,
+  ArrowUpFromLine,
+  Landmark,
+  Megaphone,
+  Package,
+  Plug,
+  Store,
+  Users,
 } from 'lucide-react';
 
 /**
@@ -57,6 +64,15 @@ const STYLES = {
   freelance: { icon: BriefcaseBusiness, className: 'bg-cyan-500/15 text-cyan-500' },
   inversion_rendimientos: { icon: TrendingUp, className: 'bg-lime-500/15 text-lime-600' },
   otros_ingresos: { icon: Coins, className: 'bg-green-500/15 text-green-500' },
+  // Categorías de los negocios (FT-0017). `transporte` y `otros` se comparten con las personales.
+  ventas: { icon: Store, className: 'bg-emerald-500/15 text-emerald-500' },
+  insumos: { icon: Package, className: 'bg-orange-500/15 text-orange-500' },
+  arriendo: { icon: House, className: 'bg-amber-500/15 text-amber-500' },
+  nomina: { icon: Users, className: 'bg-indigo-500/15 text-indigo-500' },
+  servicios: { icon: Plug, className: 'bg-yellow-500/15 text-yellow-600' },
+  publicidad: { icon: Megaphone, className: 'bg-fuchsia-500/15 text-fuchsia-500' },
+  impuestos: { icon: Landmark, className: 'bg-rose-500/15 text-rose-500' },
+  retiros: { icon: ArrowUpFromLine, className: 'bg-violet-500/15 text-violet-500' },
 };
 
 /** Para transacciones sin clasificar o categorías nuevas que aún no tienen estilo. */
