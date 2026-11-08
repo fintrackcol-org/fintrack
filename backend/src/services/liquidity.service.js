@@ -6,6 +6,8 @@ import { list as listDebts } from './debts.service.js';
 import { todayIso } from './insights.service.js';
 import { addDays, monthlyOutflows, projectLiquidity } from './liquidity.logic.js';
 import { getPlan, isPaymentOf } from './money-plan.service.js';
+import { listSources } from '../repositories/income-sources.repository.js';
+import { expectedIncome } from './income.service.js';
 import { list as listVacas } from './vacas.service.js';
 
 /** Días que se proyectan si no se piden otros. */
@@ -30,16 +32,21 @@ function daysBetween(from, to) {
 /**
  * @param {object} [deps] Dependencias reemplazables en las pruebas.
  * @param {() => Date} [deps.now]
+ * @param {typeof listSources} [deps.listSources] Fuentes de ingreso (FT-0060).
+ * @param {typeof expectedIncome} [deps.expectedIncome] Plata esperada entre dos fechas (FT-0060).
  * @returns {{ getLiquidity: (userId: string, days?: number) => Promise<object> }}
  */
 export function createLiquidityService(deps = {}) {
   const now = deps.now ?? (() => new Date());
+  const listIncomeSources = deps.listSources ?? listSources;
+  const expectedIncomeOf = deps.expectedIncome ?? expectedIncome;
 
   /**
    * Proyección de la plata del usuario (FT-0059). Toma la plata de hoy y el gasto normal de Mi
-   * plata y resta compromisos, tarjetas, vacas y cuentas por pagar con fecha. Es conservadora: no
-   * cuenta ingresos futuros ni lo que le deben. Con fecha fija de pago proyecta hasta la víspera
-   * del próximo pago (después entra plata que no sabemos cuánto es).
+   * plata y resta compromisos, tarjetas, vacas y cuentas por pagar con fecha. Es conservadora: lo
+   * que le deben no cuenta, y lo que espera recibir (fuentes de FT-0060) entra solo con el valor de
+   * un mes flaco. Sin fuentes de ingreso, con fecha fija de pago proyecta hasta la víspera del
+   * próximo pago (después entra plata que no sabemos cuánto es).
    * @param {string} userId
    * @param {number} [requestedDays]
    * @returns {Promise<object>} `{ ready: false }` si Mi plata no está configurada.
@@ -63,7 +70,38 @@ export function createLiquidityService(deps = {}) {
 
     const assumptions = [];
     let horizonDays = Math.min(requestedDays, MAX_DAYS);
-    if (profile?.incomeType === 'fecha_fija' && plan.nextPay) {
+
+    // Ingreso esperado de FT-0060: solo con el valor de un mes flaco y marcado como "esperado".
+    // Si no hay fuentes de ingreso (o no se pudieron leer), el motor sigue en modo conservador.
+    const sources = await listIncomeSources(userId).catch(() => []);
+    let inflows = [];
+    if (sources.length > 0) {
+      const names = new Map(sources.map((s) => [s.id, s.name]));
+      const expected = await expectedIncomeOf(userId, addDays(today, 1), addDays(today, horizonDays)).catch(
+        () => null,
+      );
+      if (expected) {
+        inflows = expected
+          .filter((e) => e.date !== null && e.amount > 0)
+          .map((e) => ({
+            date: e.date,
+            amount: e.amount,
+            kind: 'esperado',
+            name: names.get(e.sourceId) ?? 'Ingreso esperado',
+            id: e.sourceId,
+            sure: e.sure,
+          }));
+        if (expected.some((e) => e.date === null)) {
+          assumptions.push('Lo que te entra sin fecha fija (proyectos, ventas sueltas) no lo contamos.');
+        }
+      }
+    }
+
+    if (inflows.length > 0) {
+      assumptions.push(
+        'Contamos lo que esperas recibir con el valor de un mes flaco: si te entra más, mejor.',
+      );
+    } else if (profile?.incomeType === 'fecha_fija' && plan.nextPay) {
       horizonDays = Math.min(horizonDays, Math.max(1, daysBetween(today, plan.nextPay) - 1));
       assumptions.push(
         `Proyectamos hasta la víspera de tu próximo pago (${plan.nextPay}): no sumamos lo que te van a pagar.`,
@@ -127,6 +165,7 @@ export function createLiquidityService(deps = {}) {
       money: plan.money,
       pace: plan.pace,
       outflows,
+      inflows,
       horizonDays,
     });
     return {

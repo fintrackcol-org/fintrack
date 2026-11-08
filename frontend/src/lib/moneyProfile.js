@@ -1,6 +1,9 @@
 /** Pagos que más se repiten, para no escribirlos en la bienvenida. */
 export const SUGGESTED_COMMITMENTS = ['Arriendo', 'Internet', 'Celular', 'Transporte', 'Universidad', 'Cuota'];
 
+/** FT-0057: aviso junto a cada formulario de saldo, para que nadie lo "arregle" con un ingreso falso. */
+export const NOT_INCOME = 'No la anotes como ingreso: si no, tus reportes dirán que ese mes te entró esa plata.';
+
 /** Días de pago por mes que acepta la API. */
 export const MAX_PAY_DAYS = 4;
 

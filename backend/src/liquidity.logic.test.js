@@ -120,3 +120,28 @@ test('las fechas son días de calendario (sin corrimientos por zona horaria)', (
     ['2026-11-30', '2026-12-01', '2026-12-02'],
   );
 });
+
+test('con el ingreso esperado de FT-0060 el hueco desaparece o se mueve, y no cuenta como causa', () => {
+  // $400.000 el 18 cubren la tarjeta y el internet del 20: el hueco se corre al 23.
+  const moved = projectLiquidity({
+    ...example,
+    inflows: [{ date: '2026-11-18', amount: 400_000, kind: 'esperado', name: 'Sueldo' }],
+  });
+  assert.equal(moved.firstShortfall.date, '2026-11-23');
+  assert.equal(moved.days.find((d) => d.date === '2026-11-18').in, 400_000);
+
+  // Con $2.000.000 el 18 alcanza hasta el final de la proyección.
+  const covered = projectLiquidity({
+    ...example,
+    inflows: [{ date: '2026-11-18', amount: 2_000_000, kind: 'esperado', name: 'Sueldo' }],
+  });
+  assert.equal(covered.firstShortfall, null);
+
+  // Si llega después del 20, el hueco sigue ese día.
+  const late = projectLiquidity({
+    ...example,
+    inflows: [{ date: '2026-11-25', amount: 400_000, kind: 'esperado', name: 'Sueldo' }],
+  });
+  assert.equal(late.firstShortfall.date, '2026-11-20');
+  assert.ok(late.firstShortfall.causes.every((c) => c.kind !== 'esperado'));
+});

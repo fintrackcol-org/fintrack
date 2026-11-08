@@ -1211,6 +1211,119 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /money-profile/income:
+    get:
+      tags: [MoneyProfile]
+      summary: Cómo y cuánto le entra la plata al usuario (FT-0060)
+      description: |
+        Fuentes de ingreso, mes normal y mes flaco. Con al menos 2 meses de ingresos registrados manda la historia
+        (normal = mediana de los últimos 6 meses completos; flaco = el menor de los últimos 3, nunca por debajo de lo
+        fijo); si no, lo que el usuario dijo (`basis: declared`), con lo diario y un solo mes de proyectos × 0,8
+        (`estimated: true`). `ownSalary`: sueldo propio sugerido (flaco − 10 %, a $50.000) solo para ingresos
+        variables sin sueldo fijo. `cushion`: colchón (meta personal "Colchón para meses flacos"); `goal` de 1 mes de
+        pagos + gasto normal (3 si los ingresos son variables). `socialSecurity` (independientes): IBC 40 % del mes
+        normal, mínimo 1 SMMLV; salud 12,5 % y pensión 16 %. Aproximado, no es asesoría tributaria. `workDay`
+        (trabajo por días): meta por día repartida solo en los días que trabaja.
+      responses:
+        "200":
+          description: Resumen de ingresos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sources: { type: array, items: { $ref: "#/components/schemas/IncomeSource" } }
+                  normal: { type: number }
+                  lean: { type: number }
+                  fixed: { type: number }
+                  basis: { type: string, enum: [history, declared, none] }
+                  estimated: { type: boolean }
+                  variable: { type: boolean }
+                  independent: { type: boolean }
+                  ownSalary: { type: number, nullable: true }
+                  cushion:
+                    type: object
+                    properties:
+                      goal: { type: number }
+                      suggestedGoal: { type: number }
+                      saved: { type: number }
+                      metaId: { type: string, nullable: true }
+                  socialSecurity:
+                    type: object
+                    nullable: true
+                    properties:
+                      ibc: { type: number }
+                      health: { type: number }
+                      pension: { type: number }
+                      total: { type: number }
+                      smmlv: { type: number }
+                  workDay:
+                    type: object
+                    nullable: true
+                    properties:
+                      target: { type: number }
+                      earned: { type: number }
+                      daysLeft: { type: integer }
+                      perDay: { type: number }
+                      extraToday: { type: number }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /money-profile/income/split:
+    get:
+      tags: [MoneyProfile]
+      summary: Cómo repartir un ingreso que ya se registró (FT-0060)
+      description: |
+        En orden: pagos del mes que faltan, seguridad social de ese ingreso (independientes: 40 % × 28,5 %), lo que
+        falta del sueldo propio de este mes y el resto al colchón hasta llenarlo; lo demás queda en `free`. La suma
+        es exactamente `amount`. `large`: vale la pena mostrar la tarjeta (más de 2 días de gasto normal y ingresos
+        variables).
+      parameters:
+        - name: amount
+          in: query
+          required: true
+          schema: { type: number, minimum: 0, exclusiveMinimum: true }
+      responses:
+        "200":
+          description: Reparto
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  amount: { type: number }
+                  large: { type: boolean }
+                  ownSalary: { type: number, nullable: true }
+                  commitments: { type: number }
+                  socialSecurity: { type: number }
+                  salary: { type: number }
+                  cushion: { type: number }
+                  free: { type: number }
+                  cushionStatus: { type: object }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /money-profile/sources:
+    put:
+      tags: [MoneyProfile]
+      summary: Reemplaza las fuentes de ingreso (FT-0060)
+      description: |
+        Todo es opcional menos `kind`. Las anteriores se desactivan (los ingresos asociados conservan su fuente).
+        Actualiza `incomeType`/`payDays` del perfil por compatibilidad: `fecha_fija` si alguna fuente fija tiene días.
+        Responde lo mismo que `GET /money-profile/income`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sources]
+              properties:
+                sources: { type: array, maxItems: 8, items: { $ref: "#/components/schemas/IncomeSource" } }
+      responses:
+        "200": { description: Resumen de ingresos nuevo }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
   /money-profile/welcome:
     post:
       tags: [MoneyProfile]
@@ -2802,6 +2915,20 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
 
   schemas:
+    IncomeSource:
+      type: object
+      required: [kind]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        name: { type: string, maxLength: 60, description: "Sin nombre, el del tipo" }
+        kind: { type: string, enum: [sueldo, comisiones, proyectos, diario, mesada] }
+        frequency: { type: string, enum: [mensual, quincenal, semanal, diario, irregular], default: mensual }
+        payDays: { type: array, maxItems: 4, items: { type: integer, minimum: 1, maximum: 31 } }
+        amount: { type: number, nullable: true, description: "Sueldo al mes, mesada por pago, base de comisiones o lo de un día normal" }
+        low: { type: number, nullable: true, description: Comisiones de un mes malo }
+        high: { type: number, nullable: true, description: Comisiones de un mes bueno }
+        lastMonths: { type: array, maxItems: 6, items: { type: number }, description: "Proyectos: últimos meses" }
+        workDays: { type: integer, nullable: true, minimum: 1, maximum: 7 }
     Attachment:
       type: object
       description: Soporte de pago de un movimiento (FT-0044). Nunca incluye dónde está guardado.

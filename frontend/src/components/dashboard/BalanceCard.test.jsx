@@ -16,6 +16,12 @@ describe('BalanceCard: enlace', () => {
   });
 });
 
+describe('BalanceCard: saldo inicial (FT-0057)', () => {
+  it('sin Mi plata, ofrece poner la plata que ya tenía', () => {
+    expect(render({ income: 1, expense: 0, savings: 0, balance: 1 })).toContain('¿Ya tenías plata cuando empezaste?');
+  });
+});
+
 describe('BalanceCard: el ahorro se resta aparte', () => {
   it('con ahorro, dice cuánto se apartó y no lo suma a los gastos', () => {
     const html = render({ income: 3200000, expense: 55600, savings: 200000, balance: 2944400 });

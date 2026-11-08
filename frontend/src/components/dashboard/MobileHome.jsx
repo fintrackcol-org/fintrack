@@ -71,6 +71,7 @@ function SectionTitle({ id, to, children }) {
  *
  * @param {object} props
  * @param {number|null|undefined} props.balance Saldo; `undefined` mientras carga.
+ * @param {boolean} [props.balanceSet] El usuario ya dijo cuánta plata tiene (FT-0057).
  * @param {{ income: number, expense: number }|undefined} props.totals Del mes actual.
  * @param {object[]|undefined} props.budgets
  * @param {object|null|undefined} props.expense Gastos del mes por categoría; `undefined` mientras carga, `null` si no se pudieron traer.
@@ -89,6 +90,7 @@ function SectionTitle({ id, to, children }) {
  */
 export default function MobileHome({
   balance,
+  balanceSet = false,
   totals,
   expense,
   budgets,
@@ -169,6 +171,15 @@ export default function MobileHome({
             </span>
             <ChevronRight className="mb-2 size-6 shrink-0" aria-hidden="true" />
           </Link>
+          {/* FT-0057: quien no anotó la plata que ya tenía ve un saldo que no es el real. */}
+          {balance !== undefined && (
+            <Link
+              to="/app/mi-plata/corregir"
+              className="mt-1 inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-white"
+            >
+              {balanceSet ? '¿No es tu plata real? Corrígela' : '¿Ya tenías plata cuando empezaste? Dinos cuánta tienes hoy'}
+            </Link>
+          )}
         </div>
       </div>
 

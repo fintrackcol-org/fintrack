@@ -454,6 +454,27 @@ ALTER TABLE negocio_movimientos ADD COLUMN IF NOT EXISTS transaccion_id UUID NUL
 -- Metas personales: vacas de una sola persona (ver db/patches/021).
 ALTER TABLE vacas ADD COLUMN IF NOT EXISTS personal BOOLEAN NOT NULL DEFAULT false;
 
+-- Fuentes de ingreso (ver db/patches/023, FT-0060).
+CREATE TABLE IF NOT EXISTS fuentes_ingreso (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  nombre VARCHAR(60) NOT NULL,
+  tipo VARCHAR(12) NOT NULL CHECK (tipo IN ('sueldo','comisiones','proyectos','diario','mesada')),
+  frecuencia VARCHAR(10) NOT NULL CHECK (frecuencia IN ('mensual','quincenal','semanal','diario','irregular')),
+  dias_pago SMALLINT[] NOT NULL DEFAULT '{}',
+  monto_dicho NUMERIC(12,2) NULL CHECK (monto_dicho IS NULL OR monto_dicho >= 0),
+  monto_bajo NUMERIC(12,2) NULL CHECK (monto_bajo IS NULL OR monto_bajo >= 0),
+  monto_alto NUMERIC(12,2) NULL CHECK (monto_alto IS NULL OR monto_alto >= 0),
+  montos_meses NUMERIC(12,2)[] NOT NULL DEFAULT '{}',
+  dias_semana SMALLINT NULL CHECK (dias_semana IS NULL OR dias_semana BETWEEN 1 AND 7),
+  es_fijo BOOLEAN NOT NULL DEFAULT false,
+  activo BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_fuentes_ingreso_usuario ON fuentes_ingreso(usuario_id) WHERE activo;
+ALTER TABLE transacciones ADD COLUMN IF NOT EXISTS fuente_id UUID NULL
+  REFERENCES fuentes_ingreso(id) ON DELETE SET NULL;
+
 -- FT-0058: cuentas por cobrar y por pagar de los negocios, con abonos (ver db/patches/025).
 CREATE TABLE IF NOT EXISTS negocio_cuentas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -121,6 +121,13 @@ export default function BalanceCard({ periodLabel, selected, totals, note, plan 
                 Ahorro: <span className="font-semibold tabular-nums">{money(saved)}</span>
               </p>
             )}
+            {/* FT-0057: sin Mi plata solo se ve el balance del periodo; aquí se ofrece poner la plata real. */}
+            <Link
+              to="/app/mi-plata"
+              className="relative mt-3 block text-sm font-medium text-white underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-white"
+            >
+              ¿Ya tenías plata cuando empezaste? Dinos cuánta tienes hoy y te mostramos tu plata real.
+            </Link>
           </>
         )}
       </div>

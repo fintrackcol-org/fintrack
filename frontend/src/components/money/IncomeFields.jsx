@@ -44,32 +44,41 @@ export default function IncomeFields({ incomeType, payDays, onChange }) {
         })}
       </div>
 
-      {incomeType === 'fecha_fija' && (
-        <fieldset>
-          <legend className="mb-2 text-sm font-medium text-ink/80">¿Qué días te llega? Hasta {MAX_PAY_DAYS}.</legend>
-          <div className="grid grid-cols-7 gap-1.5">
-            {DAYS.map((day) => {
-              const selected = payDays.includes(day);
-              return (
-                <button
-                  key={day}
-                  type="button"
-                  aria-pressed={selected}
-                  aria-label={`Día ${day}`}
-                  onClick={() => onChange({ payDays: togglePayDay(payDays, day) })}
-                  className={cn(
-                    'grid h-10 place-items-center rounded-xl border text-sm font-medium tabular-nums transition-colors',
-                    selected ? 'border-brand bg-brand-soft text-brand' : 'border-ink/12 text-ink/70 hover:border-ink/25',
-                  )}
-                >
-                  {day}
-                </button>
-              );
-            })}
-          </div>
-          <p className="mt-2 text-sm text-ink/60">Si eliges 31, en los meses cortos contamos el último día.</p>
-        </fieldset>
-      )}
+      {incomeType === 'fecha_fija' && <PayDaysField payDays={payDays} onChange={(days) => onChange({ payDays: days })} />}
     </div>
+  );
+}
+
+/**
+ * Días del mes en que le llega la plata (hasta MAX_PAY_DAYS). Lo usan "con fecha fija" y las
+ * fuentes de ingreso de FT-0060.
+ * @param {{ payDays: number[], onChange: (days: number[]) => void, legend?: string }} props
+ */
+export function PayDaysField({ payDays, onChange, legend = `¿Qué días te llega? Hasta ${MAX_PAY_DAYS}.` }) {
+  return (
+    <fieldset>
+      <legend className="mb-2 text-sm font-medium text-ink/80">{legend}</legend>
+      <div className="grid grid-cols-7 gap-1.5">
+        {DAYS.map((day) => {
+          const selected = payDays.includes(day);
+          return (
+            <button
+              key={day}
+              type="button"
+              aria-pressed={selected}
+              aria-label={`Día ${day}`}
+              onClick={() => onChange(togglePayDay(payDays, day))}
+              className={cn(
+                'grid h-10 place-items-center rounded-xl border text-sm font-medium tabular-nums transition-colors',
+                selected ? 'border-brand bg-brand-soft text-brand' : 'border-ink/12 text-ink/70 hover:border-ink/25',
+              )}
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-sm text-ink/60">Si eliges 31, en los meses cortos contamos el último día.</p>
+    </fieldset>
   );
 }

@@ -26,6 +26,11 @@ function DayTooltip({ active, payload, hidden }) {
         {point.end < 0 ? 'Te faltan ' : 'Te quedan '}
         <span className="tabular-nums">{hidden ? '$ •••' : formatMoney(Math.abs(point.end))}</span>
       </p>
+      {point.incomes.map((p) => (
+        <p key={`in-${p.name}`} className="truncate text-xs text-positive">
+          {p.name} (esperado): +{hidden ? '$ •••' : formatMoney(p.amount)}
+        </p>
+      ))}
       {point.payments.map((p) => (
         <p key={p.name} className="truncate text-xs text-ink/60">
           {p.name}: -{hidden ? '$ •••' : formatMoney(p.amount)}

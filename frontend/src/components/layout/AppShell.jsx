@@ -24,6 +24,7 @@ import NotificationBell from '@/components/layout/NotificationBell';
 import { NotificationsProvider } from '@/components/layout/NotificationsProvider';
 import SyncStatus from '@/components/layout/SyncStatus';
 import QuickEntryBar from '@/components/transactions/QuickEntryBar';
+import SplitIncomeSheet from '@/components/money/SplitIncomeSheet';
 import { useAuth } from '@/auth/AuthContext';
 import useOfflineSync from '@/hooks/useOfflineSync';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
@@ -279,6 +280,8 @@ function Shell() {
       </div>
 
       {quickEntry && <QuickEntryBar />}
+      {/* FT-0060: al registrar un ingreso grande, cómo repartirlo. */}
+      <SplitIncomeSheet />
     </div>
   );
 }
