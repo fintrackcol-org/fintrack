@@ -465,6 +465,14 @@ export const MIGRATIONS = [
     ],
   },
   {
+    id: '024_aviso_liquidez',
+    statements: [
+      'ALTER TABLE perfiles_financieros ADD COLUMN IF NOT EXISTS aviso_liquidez_fecha DATE NULL',
+      'ALTER TABLE perfiles_financieros ADD COLUMN IF NOT EXISTS aviso_liquidez_dias SMALLINT NULL',
+      'ALTER TABLE perfiles_financieros ADD COLUMN IF NOT EXISTS aviso_liquidez_monto NUMERIC(12,2) NULL',
+    ],
+  },
+  {
     id: '025_negocio_cuentas',
     statements: [
       `CREATE TABLE IF NOT EXISTS negocio_cuentas (

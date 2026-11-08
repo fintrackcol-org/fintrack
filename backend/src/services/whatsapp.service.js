@@ -6,6 +6,8 @@ import { findUserById } from '../repositories/users.repository.js';
 import * as repo from '../repositories/whatsapp.repository.js';
 import { parseSpokenTransaction } from './entry-parser.js';
 import { todayIso } from './insights.service.js';
+import { liquidityLine } from './liquidity.logic.js';
+import { getLiquidity } from './liquidity.service.js';
 import { getPlan } from './money-plan.service.js';
 import { create as createTransaction, summary as summarizePeriod } from './transactions.service.js';
 import { sendText } from './whatsapp-client.service.js';
@@ -22,7 +24,7 @@ const CODE_RE = /^FT-[A-Z0-9]{8}$/;
 const BALANCE_QUESTION = /(?<!\p{L})(cuanto tengo|cuanta plata tengo|cuanto me queda|saldo|balance)(?!\p{L})/u;
 const EXPENSE_QUESTION = /(?<!\p{L})(cuanto (he gastado|llevo gastado|gaste)|mis gastos|gastos del mes)(?!\p{L})/u;
 const PROGRESS_QUESTION =
-  /(?<!\p{L})(como voy|como vamos|como va mi dia|mi meta|meta de hoy|cuanto puedo gastar|cuanto me falta|cuanto (tengo|debo|necesito) (que )?hacer|avance)(?!\p{L})/u;
+  /(?<!\p{L})(como voy|como vamos|como va mi dia|mi meta|meta de hoy|cuanto puedo gastar|cuanto me falta|cuanto (tengo|debo|necesito) (que )?hacer|me alcanza|avance)(?!\p{L})/u;
 const ANY_QUESTION = /\?|^¿?\s*(cuanto|cuanta|que|como|cual)(?!\p{L})/u;
 
 export const REPLIES = {
@@ -232,6 +234,7 @@ export function createWhatsappService(deps = {}) {
   const categoriesOf = deps.listCategories ?? listCategories;
   const summarize = deps.summarize ?? summarizePeriod;
   const planOf = deps.getPlan ?? getPlan;
+  const liquidityOf = deps.getLiquidity ?? getLiquidity;
   const send = deps.sendText ?? sendText;
   const findUser = deps.findUser ?? findUserById;
   const now = deps.now ?? (() => new Date());
@@ -336,7 +339,31 @@ export function createWhatsappService(deps = {}) {
    * @returns {Promise<string>}
    */
   async function progressReply(userId) {
-    return planProgress(await planOf(userId)) ?? REPLIES.noPlan;
+    const progress = planProgress(await planOf(userId));
+    if (!progress) return REPLIES.noPlan;
+    // El motor de liquidez (FT-0059) agrega una línea; si falla, se responde sin ella.
+    const line = await liquidityOf(userId)
+      .then(liquidityLine)
+      .catch((err) => {
+        console.error(`No se pudo calcular la liquidez por WhatsApp (${err.message})`);
+        return null;
+      });
+    return line ? `${progress}\n${line}` : progress;
+  }
+
+  /**
+   * Envía un aviso por WhatsApp a quien tiene el bot vinculado y habilitado. Meta puede rechazar
+   * mensajes fuera de la ventana de 24 horas: el error se deja al llamador.
+   * @param {string} userId
+   * @param {string} text
+   * @returns {Promise<boolean>} `false` si el usuario no tiene el bot.
+   */
+  async function notify(userId, text) {
+    if (!(await canUse(userId))) return false;
+    const phone = await store.findPhone(userId);
+    if (!phone) return false;
+    await send(phone, text);
+    return true;
   }
 
   /**
@@ -445,7 +472,7 @@ export function createWhatsappService(deps = {}) {
     }
   }
 
-  return { status, createLinkCode, unlink, handleMessage, handleWebhook };
+  return { status, createLinkCode, unlink, handleMessage, handleWebhook, notify };
 }
 
-export const { status, createLinkCode, unlink, handleWebhook } = createWhatsappService();
+export const { status, createLinkCode, unlink, handleWebhook, notify } = createWhatsappService();

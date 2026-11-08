@@ -32,6 +32,7 @@ function setup(card = {}) {
   const scheduler = createReminderScheduler({
     listDueDebts: async () => [],
     businessReminders: NO_BUSINESS_ALERTS,
+    listLiquidityUsers: async () => [],
     listCandidates: async () => [],
     listCardUsers: async () => [{ id: 'u1', timezone: 'America/Bogota', time: '09:00' }],
     listUserCards: async () => cards.map((c) => ({ ...c })),
@@ -85,6 +86,7 @@ test('fuera de la hora del usuario no envía nada', async () => {
   const late = createReminderScheduler({
     listDueDebts: async () => [],
     businessReminders: NO_BUSINESS_ALERTS,
+    listLiquidityUsers: async () => [],
     listCandidates: async () => [],
     listCardUsers: async () => [{ id: 'u1', timezone: 'America/Bogota', time: '20:00' }],
     listUserCards: async () => [CARD],
@@ -103,6 +105,7 @@ test('con cardReminders en false no hay usuarios que avisar', async () => {
   const scheduler = createReminderScheduler({
     listDueDebts: async () => [],
     businessReminders: NO_BUSINESS_ALERTS,
+    listLiquidityUsers: async () => [],
     listCandidates: async () => [],
     listCardUsers: async () => [],
     sendToUser: async (id, p) => sent.push([id, p]),
@@ -137,6 +140,7 @@ test('una cuenta personal que vence mañana avisa una vez, a la hora del usuario
   ];
   const scheduler = createReminderScheduler({
     businessReminders: NO_BUSINESS_ALERTS,
+    listLiquidityUsers: async () => [],
     listCandidates: async () => [],
     listCardUsers: async () => [],
     listDueDebts: async () => due.filter((d) => !marked.includes(d.id)),

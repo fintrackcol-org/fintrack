@@ -18,6 +18,7 @@ const INSIDE_SCREENS = {
   '/app/mi-plata/corregir': 'Mi plata',
   '/app/mes': 'Ingresos y Gastos del inicio',
   '/app/calendario': 'Mi plata',
+  '/app/liquidez': 'tarjeta "Tu plata en los próximos días" del inicio y Calendario',
   '/app/renta': 'Consejos',
   '/app/negocios': 'selector de En grupo',
   '/app/por-confirmar': 'aviso de la campana y Perfil → Pagos con Apple Pay',
