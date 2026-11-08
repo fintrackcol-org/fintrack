@@ -5,6 +5,7 @@ import ConfirmButton from '@/components/common/ConfirmButton';
 import Sheet from '@/components/common/Sheet';
 import BusinessAccounts from '@/components/negocios/BusinessAccounts';
 import BusinessMonth from '@/components/negocios/BusinessMonth';
+import BusinessTaxDates from '@/components/negocios/BusinessTaxDates';
 import Panel from '@/components/layout/Panel';
 import NegocioForm from '@/components/negocios/NegocioForm';
 import NegocioInvitePanel from '@/components/negocios/NegocioInvitePanel';
@@ -171,6 +172,7 @@ export default function NegocioDetail() {
           refreshKey={ledger.month}
           onChanged={() => setLedger((l) => ({ ...l, accounts: l.accounts + 1 }))}
         />
+        <BusinessTaxDates businessId={id} online={online} />
       </div>
 
       <Panel aria-labelledby="partners-title">

@@ -8,6 +8,15 @@ import { list as listCards } from './services/cards.service.js';
 import { todayIso } from './services/insights.service.js';
 import { createReminderScheduler } from './services/reminder-scheduler.service.js';
 
+/** Sin avisos de negocios (FT-0058): estas pruebas no los miran. */
+const NO_BUSINESS_ALERTS = {
+  listAccountAlerts: async () => [],
+  listTaxDateAlerts: async () => [],
+  listRecorders: async () => [],
+  markAccountAlert: async () => {},
+  markTaxDateAlert: async () => {},
+};
+
 // Estas pruebas usan la base de datos real: necesitan el esquema de `db/init/`.
 // Si la tabla `tarjetas` no existe se omiten con un aviso en vez de fallar.
 const { rows } = await pool.query("SELECT to_regclass('public.tarjetas') AS tabla");
@@ -316,6 +325,7 @@ test(
       const sent = [];
       const scheduler = createReminderScheduler({
         listDueDebts: async () => [],
+        businessReminders: NO_BUSINESS_ALERTS,
         listCandidates: async () => [],
         listCardUsers: async () => [
           { id: userId, timezone: 'UTC', time: now.toISOString().slice(11, 16) },

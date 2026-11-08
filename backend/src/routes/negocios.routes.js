@@ -21,9 +21,12 @@ import {
 import {
   deleteAccount,
   deletePayment,
+  deleteTaxDate,
   getAccounts,
+  getTaxDates,
   postAccount,
   postPayment,
+  postTaxDate,
 } from '../controllers/negocio-accounts.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 
@@ -45,6 +48,8 @@ import { requireAuth } from '../middlewares/auth.middleware.js';
  *   cobrar y por pagar · crear (dueños y editores) · borrar (quien la registró o un dueño) (FT-0058).
  * - `POST /:id/accounts/:accountId/payments` · `DELETE /:id/accounts/:accountId/payments/:paymentId`
  *   → abono parcial, que crea su movimiento del negocio · deshacerlo.
+ * - `GET /:id/tax-dates` · `POST /:id/tax-dates` · `DELETE /:id/tax-dates/:dateId` → fechas de
+ *   impuestos (IVA, retención…), con aviso 3 días antes (FT-0058).
  */
 const router = Router();
 
@@ -71,5 +76,8 @@ router.post('/:id/accounts', postAccount);
 router.delete('/:id/accounts/:accountId', deleteAccount);
 router.post('/:id/accounts/:accountId/payments', postPayment);
 router.delete('/:id/accounts/:accountId/payments/:paymentId', deletePayment);
+router.get('/:id/tax-dates', getTaxDates);
+router.post('/:id/tax-dates', postTaxDate);
+router.delete('/:id/tax-dates/:dateId', deleteTaxDate);
 
 export default router;

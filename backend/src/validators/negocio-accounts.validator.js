@@ -85,3 +85,20 @@ export function parsePayment(body) {
   if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
   return { amount, date, movementKind };
 }
+
+/**
+ * Valida `POST /businesses/:id/tax-dates`.
+ * @param {unknown} body
+ * @returns {{ name: string, date: string }}
+ */
+export function parseTaxDate(body) {
+  if (!isObject(body)) throw new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+  const details = [];
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  if (name.length < 1 || name.length > 40) {
+    details.push({ field: 'name', problem: 'Debe tener entre 1 y 40 caracteres' });
+  }
+  if (!isDate(body.date)) details.push({ field: 'date', problem: 'Debe ser una fecha AAAA-MM-DD' });
+  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+  return { name, date: body.date };
+}
