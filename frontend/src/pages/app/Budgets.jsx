@@ -14,6 +14,7 @@ import useMediaQuery from '@/hooks/useMediaQuery';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { createBudget, deleteBudget, listBudgets, updateBudget } from '@/services/budgetService';
+import { scrollBehavior } from '@/lib/pageMotion';
 import { CATEGORIES_CHANGED_EVENT, applyCategoryChange, getCategories } from '@/services/transactionService';
 
 /**
@@ -112,7 +113,7 @@ export default function Budgets() {
   /** Lleva al formulario: arriba en computador, al final de la lista en el celular. */
   const showForm = () => {
     if (mobile) setFormOpen(true);
-    else document.getElementById('form-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else document.getElementById('form-title')?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
   };
 
   const closeForm = () => {

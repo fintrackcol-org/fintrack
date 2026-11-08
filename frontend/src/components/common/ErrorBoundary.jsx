@@ -22,13 +22,18 @@ export const hasChunkFailed = () => chunkFailed;
  * dejar la app en blanco.
  *
  * No atrapa errores en eventos, promesas ni `setTimeout`: esos se manejan con try/catch.
- * Para limpiar el error al navegar, se monta con `key={pathname}`.
+ * Para limpiar el error al navegar recibe `resetKey={pathname}`. No se usa `key`: remontaría toda la
+ * app en cada cambio de página y no habría cómo animar la pantalla que se va (FT-0050).
  */
 export default class ErrorBoundary extends Component {
   state = { error: null };
 
   static getDerivedStateFromError(error) {
     return { error };
+  }
+
+  componentDidUpdate(prev) {
+    if (this.state.error && prev.resetKey !== this.props.resetKey) this.setState({ error: null });
   }
 
   componentDidCatch(error, info) {
@@ -58,7 +63,7 @@ export default class ErrorBoundary extends Component {
           <Button size="lg" onClick={() => window.location.reload()}>
             Reintentar
           </Button>
-          {/* Link (no <a>): navega sin recargar, así funciona sin conexión; el key del boundary lo resetea. */}
+          {/* Link (no <a>): navega sin recargar, así funciona sin conexión; `resetKey` limpia el error. */}
           <Button asChild variant="outline" size="lg">
             <Link to="/">Ir al inicio</Link>
           </Button>
