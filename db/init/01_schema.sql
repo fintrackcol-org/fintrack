@@ -297,6 +297,10 @@ CREATE TABLE perfiles_financieros (
   saldo_at TIMESTAMPTZ NULL,
   saldo_corregido BOOLEAN NOT NULL DEFAULT false, -- false: la plata sale de los movimientos si dan más de 0
   bienvenida_at TIMESTAMPTZ NULL, -- cuándo respondió u omitió la bienvenida: no se vuelve a mostrar
+  -- Último aviso del motor de liquidez (FT-0059): de qué hueco, a cuántos días y cuánto faltaba.
+  aviso_liquidez_fecha DATE NULL,
+  aviso_liquidez_dias SMALLINT NULL,
+  aviso_liquidez_monto NUMERIC(12,2) NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

@@ -133,3 +133,89 @@ export function projectLiquidity({ today, money, pace, outflows, inflows = [], h
 
   return { days, firstShortfall, lowest, risk, safeDailySpend };
 }
+
+/** Días antes del hueco en que se avisa. */
+export const ALERT_DAYS = [7, 3, 1];
+/** Si lo que falta cambia más que esto, se vuelve a avisar aunque ya se haya avisado a esa distancia. */
+export const ALERT_CHANGE = 0.1;
+
+/**
+ * ¿Toca avisar hoy del hueco? Sí, si está exactamente a 7, 3 o 1 días y no se avisó ya de ese
+ * mismo hueco a esa misma distancia, salvo que lo que falta haya cambiado más del 10 %.
+ * @param {{ today: string, shortfall: { date: string, missing: number }|null, last: { date: string, daysBefore: number, missing: number }|null }} data
+ *   `last`: el último aviso enviado, o `null`.
+ * @returns {number|null} A cuántos días está el hueco, o `null` si no toca avisar.
+ */
+export function liquidityAlertDue({ today, shortfall, last }) {
+  if (!shortfall) return null;
+  const daysBefore = Math.round(
+    (Date.parse(`${shortfall.date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000,
+  );
+  if (!ALERT_DAYS.includes(daysBefore)) return null;
+  if (last && last.date === shortfall.date && last.daysBefore === daysBefore) {
+    const change = Math.abs(shortfall.missing - last.missing) / Math.max(last.missing, 1);
+    if (change <= ALERT_CHANGE) return null;
+  }
+  return daysBefore;
+}
+
+const dayMonth = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+const cop = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
+
+/**
+ * "20 de noviembre" a partir de AAAA-MM-DD.
+ * @param {string} date
+ * @returns {string}
+ */
+export function longDay(date) {
+  return dayMonth.format(new Date(`${date}T12:00:00Z`));
+}
+
+/**
+ * "Tarjeta ($250.000) e Internet ($50.000)": las causas del hueco en una frase.
+ * @param {Flow[]} causes
+ * @returns {string}
+ */
+function causesText(causes) {
+  const parts = causes.map((c) => `${c.name} (${cop(c.amount)})`);
+  if (parts.length <= 1) return parts.join('');
+  const lastPart = parts.pop();
+  // "e" antes de palabras que empiezan por el sonido "i" ("e Internet", "e hipoteca").
+  const joiner = /^h?i(?![aeou])/i.test(lastPart) ? ' e ' : ' y ';
+  return `${parts.join(', ')}${joiner}${lastPart}`;
+}
+
+/**
+ * Aviso antes del hueco: "El 20 de noviembre te faltarían $300.000 por: Tarjeta ($250.000) e
+ * Internet ($50.000). Si gastas $28.000 al día, llegas."
+ * @param {{ firstShortfall: { date: string, missing: number, causes: Flow[] }, safeDailySpend: number, pace: number|null }} liquidity
+ * @returns {{ title: string, body: string, url: string }}
+ */
+export function liquidityAlertPayload({ firstShortfall, safeDailySpend, pace }) {
+  const why = firstShortfall.causes.length ? ` por: ${causesText(firstShortfall.causes)}` : '';
+  const reach =
+    pace !== null && safeDailySpend > 0 && safeDailySpend < pace
+      ? ` Si gastas ${cop(safeDailySpend)} al día, llegas.`
+      : '';
+  return {
+    title: 'Ojo con tu plata',
+    body: `El ${longDay(firstShortfall.date)} te faltarían ${cop(firstShortfall.missing)}${why}.${reach}`,
+    url: '/app/liquidez',
+  };
+}
+
+/**
+ * Una línea para el bot: "Hasta el 30 de noviembre vas bien.", "Justo: el 18 de noviembre te
+ * quedan $40.000." u "Ojo: el 20 de noviembre te faltan $300.000."
+ * @param {{ ready: boolean, risk?: string, firstShortfall?: object|null, lowest?: object, until?: string }} liquidity
+ * @returns {string|null} `null` sin Mi plata configurada.
+ */
+export function liquidityLine(liquidity) {
+  if (!liquidity?.ready) return null;
+  const { risk, firstShortfall, lowest, until } = liquidity;
+  if (risk === 'falta') {
+    return `Ojo: el ${longDay(firstShortfall.date)} te faltan ${cop(firstShortfall.missing)}.`;
+  }
+  if (risk === 'riesgo') return `Justo: el ${longDay(lowest.date)} te quedan ${cop(lowest.amount)}.`;
+  return `Hasta el ${longDay(until)} vas bien.`;
+}

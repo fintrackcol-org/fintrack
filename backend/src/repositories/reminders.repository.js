@@ -80,3 +80,40 @@ export async function listCardReminderUsers() {
   );
   return rows;
 }
+
+/**
+ * Usuarios con Mi plata configurada, a quienes el motor de liquidez puede avisar (FT-0059), con
+ * el último aviso que se les envió. `time` es su primera hora de recordatorio, o 09:00.
+ * @returns {Promise<{ id: string, timezone: string, time: string, last: { date: string, daysBefore: number, missing: number }|null }[]>}
+ */
+export async function listLiquidityReminderUsers() {
+  const { rows } = await pool.query(
+    `SELECT u.id, u.timezone,
+            COALESCE(to_char((SELECT min(t) FROM unnest(u.reminder_times) AS t), 'HH24:MI'), '09:00') AS time,
+            to_char(p.aviso_liquidez_fecha, 'YYYY-MM-DD') AS "lastDate",
+            p.aviso_liquidez_dias AS "lastDays",
+            p.aviso_liquidez_monto::float8 AS "lastMissing"
+     FROM usuarios u
+     JOIN perfiles_financieros p ON p.usuario_id = u.id
+     WHERE p.tipo_ingreso IS NOT NULL`,
+  );
+  return rows.map(({ lastDate, lastDays, lastMissing, ...user }) => ({
+    ...user,
+    last: lastDate ? { date: lastDate, daysBefore: lastDays, missing: lastMissing } : null,
+  }));
+}
+
+/**
+ * Guarda el último aviso del motor de liquidez para no repetirlo.
+ * @param {string} userId
+ * @param {{ date: string, daysBefore: number, missing: number }} alert
+ * @returns {Promise<void>}
+ */
+export async function saveLiquidityAlert(userId, { date, daysBefore, missing }) {
+  await pool.query(
+    `UPDATE perfiles_financieros
+     SET aviso_liquidez_fecha = $2, aviso_liquidez_dias = $3, aviso_liquidez_monto = $4
+     WHERE usuario_id = $1`,
+    [userId, date, daysBefore, missing],
+  );
+}

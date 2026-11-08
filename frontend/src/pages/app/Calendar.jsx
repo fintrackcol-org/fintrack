@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleAlert, Loader2 } from 'lucide-react';
 import MonthGrid from '@/components/common/MonthGrid';
 import PageHeader from '@/components/layout/PageHeader';
 import Panel from '@/components/layout/Panel';
@@ -11,7 +11,7 @@ import usePageTitle from '@/hooks/usePageTitle';
 import { dayLabel, monthLabel, shiftMonth } from '@/lib/calendar';
 import { FILTERS, STATUS_TEXT, calendarCells, filterEvents, groupByDate, shortMoney } from '@/lib/paymentCalendar';
 import { cn } from '@/lib/utils';
-import { getPaymentCalendar } from '@/services/moneyProfileService';
+import { getLiquidity, getPaymentCalendar } from '@/services/moneyProfileService';
 
 /** Color de cada tono de la cuadrícula y del saldo. */
 const TONE_CLASS = {
@@ -30,14 +30,18 @@ const RISK_TEXT = {
  * Cuadrícula del mes con el total por pagar de cada día, del color de lo más grave.
  * @param {{ month: string, events: object[], today: string }} props
  */
-function PaymentGrid({ month, events, today }) {
+function PaymentGrid({ month, events, today, shortfallDate }) {
   return (
     <MonthGrid
       label={`Pagos de ${monthLabel(month)}`}
       cells={calendarCells(month, events, today)}
-      renderMark={(cell) =>
-        cell.tone && { text: cell.total > 0 ? shortMoney(cell.total) : '•', className: TONE_CLASS[cell.tone] }
-      }
+      renderMark={(cell) => {
+        // El día en que el motor de liquidez dice que falta plata va en rojo (FT-0059).
+        if (cell.date === shortfallDate) {
+          return { text: cell.total > 0 ? shortMoney(cell.total) : '!', className: TONE_CLASS.negativo };
+        }
+        return cell.tone && { text: cell.total > 0 ? shortMoney(cell.total) : '•', className: TONE_CLASS[cell.tone] };
+      }}
     />
   );
 }
@@ -90,8 +94,12 @@ export default function Calendar() {
   const [month, setMonth] = useState();
   const [filter, setFilter] = useState('todo');
   const calendar = useAsync(() => getPaymentCalendar(month), [month]);
+  // Si falla, el calendario se ve igual, sin la marca del hueco.
+  const liquidity = useAsync(() => getLiquidity().catch(() => null), []);
   const data = calendar.data;
   const shown = data?.month;
+  const shortfall = liquidity.data?.ready ? liquidity.data.firstShortfall : null;
+  const shortfallHere = shortfall && shown && shortfall.date.startsWith(shown) ? shortfall : null;
 
   const events = data ? filterEvents(data.events, filter) : [];
   const unknownAfter = data?.projectedUntil && events.some((e) => e.kind !== 'ingreso' && e.date >= data.projectedUntil);
@@ -169,7 +177,20 @@ export default function Calendar() {
             ))}
           </div>
 
-          <PaymentGrid month={data.month} events={events} today={data.today} />
+          {shortfallHere && (
+            <Link
+              to="/app/liquidez"
+              className="flex items-center gap-2 rounded-2xl bg-negative/10 p-3 text-sm font-medium text-negative"
+            >
+              <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                El {dayLabel(shortfallHere.date)} te faltan {formatMoney(shortfallHere.missing)}. Ver qué pasa
+              </span>
+              <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
+            </Link>
+          )}
+
+          <PaymentGrid month={data.month} events={events} today={data.today} shortfallDate={shortfallHere?.date} />
 
           {events.length === 0 ? (
             <Panel className="text-center">
