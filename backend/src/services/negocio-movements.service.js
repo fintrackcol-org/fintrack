@@ -111,6 +111,33 @@ export async function monthReport(userId, id, month) {
 }
 
 /**
+ * Datos de varios meses para exportar (FT-0058), de `from` a `to` incluidos.
+ * @param {string} userId
+ * @param {string} id
+ * @param {string} from AAAA-MM
+ * @param {string} to AAAA-MM
+ * @returns {Promise<{ business: object, from: string, to: string, months: Array<{ month: string, movements: object[], panel: object }> }>}
+ */
+export async function rangeReport(userId, id, from, to) {
+  const business = await requirePartner(userId, id);
+  const months = [];
+  for (let m = from; m <= to; m = nextMonth(m)) {
+    const { movements, panel } = await loadMonth(business, m);
+    months.push({ month: m, movements, panel });
+  }
+  return { business, from, to, months };
+}
+
+/**
+ * @param {string} month AAAA-MM
+ * @returns {string} El mes siguiente.
+ */
+function nextMonth(month) {
+  const [y, m] = month.split('-').map(Number);
+  return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
+}
+
+/**
  * Registra un movimiento. Si el celular reenvía el mismo `localId`, devuelve el que ya estaba.
  * @param {string} userId
  * @param {string} id

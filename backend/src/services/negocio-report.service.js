@@ -411,3 +411,191 @@ export function buildBusinessPdf(report) {
   doc.end();
   return done;
 }
+
+/* ---------- Varios meses (FT-0058) ---------- */
+
+/**
+ * Totales de varios meses: la suma de cada mes del panel.
+ * @param {Array<{ panel: object }>} months
+ * @returns {{ sale: number, cost: number, variable: number, fixed: number, otherIncome: number, netProfit: number, withdrawal: number }}
+ */
+export function rangeTotals(months) {
+  const keys = ['sale', 'cost', 'variable', 'fixed', 'otherIncome', 'netProfit', 'withdrawal'];
+  const totals = Object.fromEntries(keys.map((k) => [k, 0]));
+  for (const { panel } of months) for (const k of keys) totals[k] += panel[k] ?? 0;
+  for (const k of keys) totals[k] = Math.round(totals[k] * 100) / 100;
+  return totals;
+}
+
+/**
+ * `enero a junio de 2026` o `noviembre de 2025 a febrero de 2026`.
+ * @param {string} from AAAA-MM
+ * @param {string} to AAAA-MM
+ * @returns {string}
+ */
+export function rangeTitle(from, to) {
+  const sameYear = from.slice(0, 4) === to.slice(0, 4);
+  const start = sameYear ? MONTHS[Number(from.slice(5)) - 1] : monthTitle(from);
+  return `${start} a ${monthTitle(to)}`;
+}
+
+/** Columnas del resumen mes a mes: [título, llave del panel]. */
+const RANGE_COLUMNS = [
+  ['Ventas', 'sale'],
+  ['Costo de venta', 'cost'],
+  ['Gastos variables', 'variable'],
+  ['Gastos fijos', 'fixed'],
+  ['Otros ingresos', 'otherIncome'],
+  ['Utilidad neta', 'netProfit'],
+];
+
+/**
+ * Excel de varios meses: resumen mes a mes con el total, y todos los movimientos.
+ * @param {{ business: { name: string, nit: string|null }, from: string, to: string, months: Array<{ month: string, panel: object, movements: object[] }> }} report
+ * @returns {Promise<Buffer>}
+ */
+export async function buildRangeWorkbook(report) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'FinTrack';
+  wb.created = new Date();
+  const { business } = report;
+  const paint = (row) => {
+    row.font = { bold: true, color: { argb: XL.white } };
+    row.eachCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XL.brand } };
+    });
+  };
+
+  const sheet = wb.addWorksheet('Resumen', { views: [{ showGridLines: false }] });
+  sheet.columns = [{ width: 20 }, ...RANGE_COLUMNS.map(() => ({ width: 17 }))];
+  sheet.addRow([business.name]).font = { bold: true, size: 16, color: { argb: XL.brand } };
+  sheet.addRow([
+    `Reporte de ${rangeTitle(report.from, report.to)}${business.nit ? ` · NIT ${business.nit}` : ''}`,
+  ]).font = { color: { argb: XL.muted } };
+  sheet.addRow([]);
+  paint(sheet.addRow(['Mes', ...RANGE_COLUMNS.map(([label]) => label)]));
+  const addMoneyRow = (label, panel) => {
+    const row = sheet.addRow([label, ...RANGE_COLUMNS.map(([, key]) => panel[key] ?? 0)]);
+    for (let i = 2; i <= RANGE_COLUMNS.length + 1; i += 1) row.getCell(i).numFmt = MONEY_FMT;
+    return row;
+  };
+  for (const { month, panel } of report.months) addMoneyRow(monthTitle(month), panel);
+  const total = addMoneyRow('Total', rangeTotals(report.months));
+  total.font = { bold: true };
+  total.eachCell((cell) => {
+    cell.border = { top: { style: 'thin', color: { argb: XL.line } } };
+  });
+
+  const list = wb.addWorksheet('Movimientos', { views: [{ state: 'frozen', ySplit: 1 }] });
+  list.columns = [
+    { header: 'Fecha', key: 'date', width: 12 },
+    { header: 'Tipo', key: 'kind', width: 16 },
+    { header: 'Categoría', key: 'category', width: 14 },
+    { header: 'Descripción', key: 'description', width: 40 },
+    { header: 'Monto', key: 'amount', width: 16 },
+    { header: 'Lo registró', key: 'who', width: 20 },
+  ];
+  paint(list.getRow(1));
+  for (const { movements } of report.months) {
+    for (const m of [...movements].reverse()) {
+      const row = list.addRow({
+        date: m.date,
+        kind: KIND_LABEL[m.kind],
+        category: m.categoryName ?? CATEGORY_LABEL[m.category] ?? m.category,
+        description: m.description,
+        amount: signed(m),
+        who: who(m),
+      });
+      row.getCell('amount').numFmt = MONEY_FMT;
+    }
+  }
+  list.autoFilter = { from: 'A1', to: 'F1' };
+  return Buffer.from(await wb.xlsx.writeBuffer());
+}
+
+/**
+ * PDF de varios meses: el resumen mes a mes con el total. El detalle línea por línea va en el
+ * Excel, que es lo que usa el contador para revisar.
+ * @param {{ business: { name: string, nit: string|null }, from: string, to: string, months: Array<{ month: string, panel: object, movements: object[] }> }} report
+ * @returns {Promise<Buffer>}
+ */
+export function buildRangePdf(report) {
+  const doc = new PDFDocument({
+    size: 'LETTER',
+    margin: 0,
+    info: { Title: `Reporte de ${pdfSafe(report.business.name)}`, Author: 'FinTrack' },
+  });
+  const chunks = [];
+  doc.on('data', (chunk) => chunks.push(chunk));
+  const done = new Promise((resolve, reject) => {
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+  });
+
+  doc.rect(0, 0, PAGE.width, 90).fill(C.brand);
+  doc
+    .font('Helvetica-Bold')
+    .fontSize(20)
+    .fillColor('#ffffff')
+    .text(pdfSafe(report.business.name), MARGIN, 28, { width: CONTENT });
+  doc
+    .font('Helvetica')
+    .fontSize(11)
+    .text(
+      `Reporte de ${rangeTitle(report.from, report.to)}${report.business.nit ? ` · NIT ${pdfSafe(report.business.nit)}` : ''}`,
+      MARGIN,
+      56,
+    );
+  let y = 115;
+  const columns = [
+    { label: 'Mes', width: 120 },
+    { label: 'Ventas', width: 100, value: (p) => p.sale },
+    { label: 'Costos y gastos', width: 110, value: (p) => -(p.cost + p.variable + p.fixed) },
+    { label: 'Otros ingresos', width: 100, value: (p) => p.otherIncome },
+    { label: 'Utilidad neta', width: CONTENT - 430, value: (p) => p.netProfit, colored: true },
+  ];
+  const row = (label, panel, bold = false) => {
+    let x = MARGIN + 6;
+    columns.forEach((col, i) => {
+      const value = i === 0 ? null : col.value(panel);
+      const color = col.colored ? (value < 0 ? C.negative : value > 0 ? C.positive : C.ink) : C.ink;
+      doc
+        .font(bold ? 'Helvetica-Bold' : 'Helvetica')
+        .fontSize(10)
+        .fillColor(color)
+        .text(i === 0 ? label : money(value), x, y, {
+          width: col.width - 8,
+          align: i === 0 ? 'left' : 'right',
+          lineBreak: false,
+        });
+      x += col.width;
+    });
+    y += 18;
+  };
+
+  doc.font('Helvetica-Bold').fontSize(13).fillColor(C.ink).text('Mes a mes', MARGIN, y);
+  y += 24;
+  doc.rect(MARGIN, y - 4, CONTENT, 20).fill(C.brandSoft);
+  let x = MARGIN + 6;
+  doc.font('Helvetica-Bold').fontSize(9).fillColor(C.brand);
+  columns.forEach((col, i) => {
+    doc.text(col.label, x, y, { width: col.width - 8, align: i === 0 ? 'left' : 'right', lineBreak: false });
+    x += col.width;
+  });
+  y += 22;
+  for (const { month, panel } of report.months) row(monthTitle(month), panel);
+  doc.moveTo(MARGIN, y - 2).lineTo(MARGIN + CONTENT, y - 2).lineWidth(0.6).strokeColor(C.line).stroke();
+  y += 4;
+  row('Total', rangeTotals(report.months), true);
+  y += 14;
+  const count = report.months.reduce((n, m) => n + m.movements.length, 0);
+  doc
+    .font('Helvetica')
+    .fontSize(9.5)
+    .fillColor(C.muted)
+    .text(`${count} movimientos en el periodo. El detalle línea por línea está en el Excel.`, MARGIN, y, {
+      width: CONTENT,
+    });
+  doc.end();
+  return done;
+}

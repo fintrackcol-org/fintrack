@@ -94,6 +94,8 @@ export function createApp() {
   app.get('/api/v1/vacas/:id/advice', aiRateLimit);
   // Invitar a un negocio también manda un correo (FT-0016).
   app.post('/api/v1/businesses/:id/invitations', aiRateLimit);
+  // El consejo del mes del negocio puede llamar a la IA (FT-0058).
+  app.get('/api/v1/businesses/:id/advice', aiRateLimit);
   // Limita cuántos códigos para conectar WhatsApp se pueden pedir.
   app.post('/api/v1/whatsapp/link', aiRateLimit);
   // El Atajo del iPhone entra con su propio token: también lleva límite (FT-0047).

@@ -11,6 +11,7 @@
  * Cada cambio se anuncia en `window` con `SYNC_EVENT` para que la interfaz se actualice.
  */
 import { db } from './db';
+import { clearBusinessCache, flushBusinessMovements } from './businessQueue';
 import { clearVacaCache, flushContributions } from './vacaQueue';
 import { clearCardCache } from './cardCache';
 import { apiRequest } from '@/lib/apiRequest';
@@ -274,6 +275,7 @@ export async function clearCachedHistory(userId) {
   await db.transactions.where('userId').equals(userId).delete();
   await db.meta.delete(`lastSyncedAt:${userId}`);
   await clearVacaCache(userId);
+  await clearBusinessCache(userId);
   await clearCardCache(userId);
 }
 
@@ -304,6 +306,8 @@ async function doSync() {
   }
   // Después del lote: los aportes a vacas hechos sin conexión (FT-0014) van por su propia ruta.
   await flushContributions();
+  // Y los movimientos de negocios (FT-0058).
+  await flushBusinessMovements();
 }
 
 /** Envía un lote a `/sync/batch` y aplica la respuesta a la cola y a la copia local. */
