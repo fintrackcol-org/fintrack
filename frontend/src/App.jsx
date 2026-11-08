@@ -19,6 +19,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 const Dashboard = lazy(() => import('@/pages/app/Dashboard'));
 const Welcome = lazy(() => import('@/pages/app/Welcome'));
 const MiPlata = lazy(() => import('@/pages/app/MiPlata'));
+const InstallGuide = lazy(() => import('@/pages/app/InstallGuide'));
 const Calendar = lazy(() => import('@/pages/app/Calendar'));
 const PeriodDetail = lazy(() => import('@/pages/app/PeriodDetail'));
 const Notifications = lazy(() => import('@/pages/app/Notifications'));
@@ -130,6 +131,7 @@ export default function App() {
                 <Route path="/app/transacciones/exportar" element={<Export />} />
                 <Route path="/app/transacciones/:id" element={<TransactionDetail />} />
                 <Route path="/app/cuenta" element={<Account />} />
+                <Route path="/app/instalar" element={<InstallGuide />} />
                 <Route path="/app/mi-plata" element={<MiPlata />} />
                 <Route path="/app/calendario" element={<Calendar />} />
                 <Route path="/app/mes" element={<Navigate to="/app/gastos" replace />} />

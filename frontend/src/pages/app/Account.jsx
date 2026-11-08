@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Crown, Download, Lightbulb, Loader2, LogOut, UserPlus } from 'lucide-react';
+import { Crown, Download, Lightbulb, Loader2, LogOut, Smartphone, UserPlus } from 'lucide-react';
 import CustomCategories from '@/components/account/CustomCategories';
 import DeleteAccount from '@/components/account/DeleteAccount';
 import ProfileCard from '@/components/account/ProfileCard';
@@ -22,6 +22,7 @@ import { getShortcutToken } from '@/services/pendingPaymentService';
 /** Lo que se abre desde Cuenta porque no se usa todos los días. */
 export const LINKS = [
   { to: '/app/transacciones/exportar', label: 'Exportar reportes', detail: 'Excel, PDF o CSV', icon: Download },
+  { to: '/app/instalar', label: 'Instalar la app', detail: 'Android y iPhone', icon: Smartphone },
   { to: '/app/invitar', label: 'Invitar amigos', detail: 'Compárteles la app', icon: UserPlus },
   { to: '/app/planes', label: 'Planes', detail: 'Beta: aún no se cobra', icon: Crown },
   { to: '/app/lo-que-viene', label: 'Lo que viene', detail: 'Vota y pide funciones', icon: Lightbulb },
