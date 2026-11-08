@@ -297,6 +297,10 @@ CREATE TABLE perfiles_financieros (
   saldo_at TIMESTAMPTZ NULL,
   saldo_corregido BOOLEAN NOT NULL DEFAULT false, -- false: la plata sale de los movimientos si dan más de 0
   bienvenida_at TIMESTAMPTZ NULL, -- cuándo respondió u omitió la bienvenida: no se vuelve a mostrar
+  -- Último aviso del motor de liquidez (FT-0059): de qué hueco, a cuántos días y cuánto faltaba.
+  aviso_liquidez_fecha DATE NULL,
+  aviso_liquidez_dias SMALLINT NULL,
+  aviso_liquidez_monto NUMERIC(12,2) NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -470,3 +474,51 @@ CREATE TABLE IF NOT EXISTS fuentes_ingreso (
 CREATE INDEX IF NOT EXISTS idx_fuentes_ingreso_usuario ON fuentes_ingreso(usuario_id) WHERE activo;
 ALTER TABLE transacciones ADD COLUMN IF NOT EXISTS fuente_id UUID NULL
   REFERENCES fuentes_ingreso(id) ON DELETE SET NULL;
+
+-- FT-0058: cuentas por cobrar y por pagar de los negocios, con abonos (ver db/patches/025).
+CREATE TABLE IF NOT EXISTS negocio_cuentas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  negocio_id UUID NOT NULL REFERENCES negocios(id) ON DELETE CASCADE,
+  usuario_id UUID NULL REFERENCES usuarios(id) ON DELETE SET NULL,
+  tipo VARCHAR(6) NOT NULL CHECK (tipo IN ('cobrar', 'pagar')),
+  tercero VARCHAR(80) NOT NULL,
+  descripcion VARCHAR(120) NULL,
+  monto NUMERIC(12,2) NOT NULL CHECK (monto > 0),
+  vence DATE NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_negocio_cuentas_negocio ON negocio_cuentas(negocio_id, vence);
+CREATE TABLE IF NOT EXISTS negocio_abonos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cuenta_id UUID NOT NULL REFERENCES negocio_cuentas(id) ON DELETE CASCADE,
+  usuario_id UUID NULL REFERENCES usuarios(id) ON DELETE SET NULL,
+  monto NUMERIC(12,2) NOT NULL CHECK (monto > 0),
+  fecha DATE NOT NULL,
+  movimiento_id UUID NOT NULL REFERENCES negocio_movimientos(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_negocio_abonos_cuenta ON negocio_abonos(cuenta_id, fecha);
+
+-- FT-0058: avisos del negocio y fechas de impuestos (ver db/patches/026).
+ALTER TABLE negocio_cuentas ADD COLUMN IF NOT EXISTS aviso_previo_at TIMESTAMPTZ NULL;
+ALTER TABLE negocio_cuentas ADD COLUMN IF NOT EXISTS aviso_vencida_at TIMESTAMPTZ NULL;
+CREATE TABLE IF NOT EXISTS negocio_fechas_impuesto (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  negocio_id UUID NOT NULL REFERENCES negocios(id) ON DELETE CASCADE,
+  nombre VARCHAR(40) NOT NULL,
+  fecha DATE NOT NULL,
+  avisada_at TIMESTAMPTZ NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_negocio_fechas_impuesto ON negocio_fechas_impuesto(negocio_id, fecha);
+
+-- FT-0058: categorías propias de cada negocio (ver db/patches/027).
+CREATE TABLE IF NOT EXISTS negocio_categorias (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  negocio_id UUID NOT NULL REFERENCES negocios(id) ON DELETE CASCADE,
+  clave VARCHAR(20) NOT NULL,
+  nombre VARCHAR(30) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_negocio_categorias_clave ON negocio_categorias(negocio_id, clave);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_negocio_categorias_nombre ON negocio_categorias(negocio_id, lower(nombre));

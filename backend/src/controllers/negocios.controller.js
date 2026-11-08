@@ -1,6 +1,7 @@
 import * as movements from '../services/negocio-movements.service.js';
 import * as negocios from '../services/negocios.service.js';
 import {
+  parseCategory,
   parseExport,
   parseMonth,
   parseNewMovement,
@@ -218,4 +219,25 @@ export async function getExport(req, res) {
       'Cache-Control': 'no-store',
     })
     .send(body);
+}
+
+/**
+ * `POST /api/v1/businesses/:id/categories`: categoría propia del negocio (FT-0058).
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+export async function postCategory(req, res) {
+  res.status(201).json(await movements.addCategory(req.userId, req.params.id, parseCategory(req.body)));
+}
+
+/**
+ * `DELETE /api/v1/businesses/:id/categories/:key`: sus movimientos pasan a "Otros".
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+export async function deleteCategory(req, res) {
+  await movements.removeCategory(req.userId, req.params.id, req.params.key);
+  res.status(204).end();
 }

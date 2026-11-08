@@ -3,7 +3,9 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, LogOut, MoreHorizontal, Pencil, Trash2, UserPlus } from 'lucide-react';
 import ConfirmButton from '@/components/common/ConfirmButton';
 import Sheet from '@/components/common/Sheet';
+import BusinessAccounts from '@/components/negocios/BusinessAccounts';
 import BusinessMonth from '@/components/negocios/BusinessMonth';
+import BusinessTaxDates from '@/components/negocios/BusinessTaxDates';
 import Panel from '@/components/layout/Panel';
 import NegocioForm from '@/components/negocios/NegocioForm';
 import NegocioInvitePanel from '@/components/negocios/NegocioInvitePanel';
@@ -44,6 +46,9 @@ export default function NegocioDetail() {
     state?.created ? 'Negocio creado. Invita a tus socios.' : state?.joined ? '¡Ya eres socio del negocio!' : '',
   );
   const [sheet, setSheet] = useState(state?.created ? 'invitar' : null); // 'invitar' | 'opciones' | 'editar'
+  // Las cuentas crean movimientos y el mes puede borrar abonos: cada uno avisa al otro (FT-0058).
+  // `accounts` sube cuando cambian las cuentas (recarga el mes); `month`, cuando se borra un movimiento.
+  const [ledger, setLedger] = useState({ accounts: 0, month: 0 });
   usePageTitle(business?.name ?? 'Negocio');
 
   const load = useCallback(async () => {
@@ -149,14 +154,25 @@ export default function NegocioDetail() {
         {notice}
       </p>
 
-      <div className="mb-8">
+      <div className="mb-8 space-y-4">
         <BusinessMonth
           businessId={id}
           businessName={business.name}
           myRole={business.role}
           myId={business.partners.find((p) => p.isMe)?.userId}
           online={online}
+          refreshKey={ledger.accounts}
+          onChanged={() => setLedger((l) => ({ ...l, month: l.month + 1 }))}
         />
+        <BusinessAccounts
+          businessId={id}
+          myRole={business.role}
+          myId={business.partners.find((p) => p.isMe)?.userId}
+          online={online}
+          refreshKey={ledger.month}
+          onChanged={() => setLedger((l) => ({ ...l, accounts: l.accounts + 1 }))}
+        />
+        <BusinessTaxDates businessId={id} online={online} />
       </div>
 
       <Panel aria-labelledby="partners-title">
