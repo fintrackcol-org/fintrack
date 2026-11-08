@@ -5,6 +5,15 @@ import {
   debtReminderPayload,
 } from './services/reminder-scheduler.service.js';
 
+/** Sin avisos de negocios (FT-0058): estas pruebas no los miran. */
+const NO_BUSINESS_ALERTS = {
+  listAccountAlerts: async () => [],
+  listTaxDateAlerts: async () => [],
+  listRecorders: async () => [],
+  markAccountAlert: async () => {},
+  markTaxDateAlert: async () => {},
+};
+
 const CARD = {
   id: 'c1',
   name: 'Amex Blue ••1234',
@@ -22,6 +31,7 @@ function setup(card = {}) {
   const cards = [{ ...CARD, ...card }];
   const scheduler = createReminderScheduler({
     listDueDebts: async () => [],
+    businessReminders: NO_BUSINESS_ALERTS,
     listLiquidityUsers: async () => [],
     listCandidates: async () => [],
     listCardUsers: async () => [{ id: 'u1', timezone: 'America/Bogota', time: '09:00' }],
@@ -75,6 +85,7 @@ test('fuera de la hora del usuario no envía nada', async () => {
   const { scheduler, sent } = setup();
   const late = createReminderScheduler({
     listDueDebts: async () => [],
+    businessReminders: NO_BUSINESS_ALERTS,
     listLiquidityUsers: async () => [],
     listCandidates: async () => [],
     listCardUsers: async () => [{ id: 'u1', timezone: 'America/Bogota', time: '20:00' }],
@@ -93,6 +104,7 @@ test('con cardReminders en false no hay usuarios que avisar', async () => {
   const sent = [];
   const scheduler = createReminderScheduler({
     listDueDebts: async () => [],
+    businessReminders: NO_BUSINESS_ALERTS,
     listLiquidityUsers: async () => [],
     listCandidates: async () => [],
     listCardUsers: async () => [],
@@ -127,6 +139,7 @@ test('una cuenta personal que vence mañana avisa una vez, a la hora del usuario
     },
   ];
   const scheduler = createReminderScheduler({
+    businessReminders: NO_BUSINESS_ALERTS,
     listLiquidityUsers: async () => [],
     listCandidates: async () => [],
     listCardUsers: async () => [],

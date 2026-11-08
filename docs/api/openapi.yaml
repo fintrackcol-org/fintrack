@@ -2375,6 +2375,68 @@ paths:
         "403": { description: "FORBIDDEN: lector, o editor que no lo registró" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /businesses/{id}/tax-dates:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Businesses]
+      summary: Fechas de impuestos del negocio (todos los socios)
+      description: >
+        IVA, retención en la fuente, ICA… Tres días antes, y hasta el mismo día, se avisa una vez a
+        los dueños y editores por la bandeja y push.
+      responses:
+        "200":
+          description: Fechas, de la más próxima a la más lejana
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [canEdit, items]
+                properties:
+                  canEdit: { type: boolean, description: "false para el lector" }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        date: { type: string, format: date }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Businesses]
+      summary: Agrega una fecha de impuestos (dueños y editores)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, date]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 40, example: "IVA bimestral" }
+                date: { type: string, format: date }
+      responses:
+        "201": { description: Fecha creada }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: "FORBIDDEN: el lector no agrega" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /businesses/{id}/tax-dates/{dateId}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: dateId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [Businesses]
+      summary: Borra una fecha de impuestos (dueños y editores)
+      responses:
+        "204": { description: Borrada }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: "FORBIDDEN: el lector no borra" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /push/vapid-public-key:
     get:
       tags: [Push]

@@ -80,6 +80,13 @@ function setup({ last = null, whatsapp = async () => true } = {}) {
     listDueDebts: async () => [],
     listCandidates: async () => [],
     listCardUsers: async () => [],
+    businessReminders: {
+      listAccountAlerts: async () => [],
+      listTaxDateAlerts: async () => [],
+      listRecorders: async () => [],
+      markAccountAlert: async () => {},
+      markTaxDateAlert: async () => {},
+    },
     listLiquidityUsers: async () => [{ ...user, last: saved.at(-1) ?? user.last }],
     getLiquidity: async () => ({
       ready: true,

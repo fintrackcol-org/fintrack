@@ -14,6 +14,15 @@ import {
   REMINDER_PAYLOAD,
 } from './services/reminder-scheduler.service.js';
 
+/** Sin avisos de negocios (FT-0058): estas pruebas no los miran. */
+const NO_BUSINESS_ALERTS = {
+  listAccountAlerts: async () => [],
+  listTaxDateAlerts: async () => [],
+  listRecorders: async () => [],
+  markAccountAlert: async () => {},
+  markTaxDateAlert: async () => {},
+};
+
 const SUBSCRIPTION = {
   endpoint: 'https://push.example.com/abc',
   keys: { p256dh: 'clave-publica', auth: 'secreto' },
@@ -335,6 +344,7 @@ test('el programador envía una vez al día y omite a quien no tiene notificacio
   let clock = new Date('2026-10-14T01:00:00Z');
   const scheduler = createReminderScheduler({
     listDueDebts: async () => [],
+    businessReminders: NO_BUSINESS_ALERTS,
     listLiquidityUsers: async () => [],
     listCandidates: async () => [
       { id: 'con-push', times: ['20:00'], timezone: 'America/Bogota', hasSubscription: true },
@@ -364,6 +374,7 @@ test('un fallo con un usuario no impide avisar a los demás', async () => {
   const errors = [];
   const scheduler = createReminderScheduler({
     listDueDebts: async () => [],
+    businessReminders: NO_BUSINESS_ALERTS,
     listLiquidityUsers: async () => [],
     listCandidates: async () => [
       { id: 'falla', times: ['20:00'], timezone: 'UTC', hasSubscription: true },
@@ -386,6 +397,7 @@ test('el programador envía cada hora del usuario por separado, una vez al día 
   let clock = new Date('2026-10-14T13:00:00Z'); // 08:00 en Bogotá
   const scheduler = createReminderScheduler({
     listDueDebts: async () => [],
+    businessReminders: NO_BUSINESS_ALERTS,
     listLiquidityUsers: async () => [],
     listCandidates: async () => [
       { id: 'u1', times: ['08:00', '20:00'], timezone: 'America/Bogota', hasSubscription: true },

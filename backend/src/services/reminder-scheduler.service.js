@@ -6,6 +6,8 @@ import {
 } from '../repositories/reminders.repository.js';
 import { updateCard } from '../repositories/cards.repository.js';
 import { listDebtsDueTomorrow, markReminded } from '../repositories/debts.repository.js';
+import * as businessReminders from '../repositories/negocio-reminders.repository.js';
+import { accountAlertPayload, taxDatePayload } from './negocio-accounts.logic.js';
 import { pushService } from './push.service.js';
 import * as cardsService from './cards.service.js';
 import { liquidityAlertDue, liquidityAlertPayload } from './liquidity.logic.js';
@@ -21,6 +23,10 @@ export const REMINDER_PAYLOAD = {
   body: '¿Ya registraste tus gastos de hoy?',
   url: '/app/transacciones',
 };
+
+/** Los avisos de los negocios salen desde esta hora de Colombia (FT-0058). */
+const BUSINESS_TIMEZONE = 'America/Bogota';
+const BUSINESS_HOUR = 8;
 
 /** Días antes del pago en que se avisa. */
 const CARD_REMINDER_DAYS = 3;
@@ -125,6 +131,8 @@ export function checkReminderDue({ time, timezone, now, windowMinutes = 5 }) {
  * @param {typeof getLiquidity} [deps.getLiquidity]
  * @param {typeof saveLiquidityAlert} [deps.saveLiquidityAlert]
  * @param {(userId: string, text: string) => Promise<boolean>} [deps.notifyWhatsapp]
+ * @param {Pick<typeof businessReminders, 'listAccountAlerts'|'listTaxDateAlerts'|'listRecorders'|'markAccountAlert'|'markTaxDateAlert'>} [deps.businessReminders]
+ *   Avisos de los negocios (FT-0058).
  * @param {number} [deps.intervalMs] Cada cuánto revisa (por defecto 1 minuto).
  * @param {number} [deps.windowMinutes] Minutos de tolerancia tras la hora configurada.
  * @returns {{ tick: () => Promise<{ sent: number, skipped: number }>, start: () => void, stop: () => void }}
@@ -143,6 +151,7 @@ export function createReminderScheduler(deps = {}) {
   const liquidityOf = deps.getLiquidity ?? getLiquidity;
   const saveAlert = deps.saveLiquidityAlert ?? saveLiquidityAlert;
   const whatsapp = deps.notifyWhatsapp ?? notifyWhatsapp;
+  const business = deps.businessReminders ?? businessReminders;
   const now = deps.now ?? (() => new Date());
   const log = deps.log ?? console;
   const intervalMs = deps.intervalMs ?? MINUTE_MS;
@@ -259,6 +268,44 @@ export function createReminderScheduler(deps = {}) {
   }
 
   /**
+   * Avisos de los negocios (FT-0058) a sus dueños y editores, desde las 8 a. m. de Colombia:
+   * cuentas que vencen mañana o que ya vencieron, y fechas de impuestos de los próximos 3 días.
+   * Cada aviso queda marcado en su fila, así no se repite aunque el servidor se reinicie.
+   * @param {Date} moment
+   * @returns {Promise<number>} Avisos enviados.
+   */
+  async function businessTick(moment) {
+    const clock = localClock(moment, BUSINESS_TIMEZONE);
+    if (clock.minutes < BUSINESS_HOUR * 60) return 0;
+    const today = clock.localDate;
+    let sent = 0;
+    const notify = async (businessId, payload) => {
+      for (const userId of await business.listRecorders(businessId)) {
+        await sendToUser(userId, payload);
+        sent += 1;
+      }
+    };
+    for (const alert of await business.listAccountAlerts(today)) {
+      try {
+        // Primero se marca: si el envío falla a medias, no se repite a quienes ya les llegó.
+        await business.markAccountAlert(alert.id, alert.stage);
+        await notify(alert.businessId, accountAlertPayload(alert));
+      } catch (err) {
+        log.error(`Error avisando la cuenta ${alert.id} del negocio ${alert.businessId}: ${err.message}`);
+      }
+    }
+    for (const alert of await business.listTaxDateAlerts(today)) {
+      try {
+        await business.markTaxDateAlert(alert.id);
+        await notify(alert.businessId, taxDatePayload(alert, today));
+      } catch (err) {
+        log.error(`Error avisando la fecha ${alert.id} del negocio ${alert.businessId}: ${err.message}`);
+      }
+    }
+    return sent;
+  }
+
+  /**
    * Revisa los recordatorios pendientes ahora mismo.
    * @returns {Promise<{ sent: number, skipped: number }>}
    */
@@ -303,6 +350,7 @@ export function createReminderScheduler(deps = {}) {
     sent += await cardTick(moment);
     sent += await debtTick(moment);
     sent += await liquidityTick(moment);
+    sent += await businessTick(moment);
     return { sent, skipped };
   }
 

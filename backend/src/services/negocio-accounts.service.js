@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import * as repo from '../repositories/negocio-accounts.repository.js';
+import * as taxDates from '../repositories/negocio-reminders.repository.js';
 import { deleteMovement } from '../repositories/negocio-movements.repository.js';
 import {
   ACCOUNT_KIND_TO_DB,
@@ -159,4 +160,42 @@ export async function removePayment(userId, id, accountId, paymentId) {
   }
   await deleteMovement(business.id, payment.movementId);
   return present(await repo.findAccount(business.id, accountId), await today(userId));
+}
+
+/* ---------- Fechas de impuestos (FT-0058) ---------- */
+
+/**
+ * Fechas de impuestos del negocio (IVA, retención…). Se avisa 3 días antes a dueños y editores.
+ * @param {string} userId
+ * @param {string} id
+ * @returns {Promise<{ canEdit: boolean, items: Array<{ id: string, name: string, date: string }> }>}
+ */
+export async function listTaxDates(userId, id) {
+  const business = await requirePartner(userId, id);
+  return { canEdit: business.role !== 'lector', items: await taxDates.listTaxDates(business.id) };
+}
+
+/**
+ * @param {string} userId
+ * @param {string} id
+ * @param {{ name: string, date: string }} input
+ * @returns {Promise<{ id: string, name: string, date: string }>}
+ */
+export async function addTaxDate(userId, id, input) {
+  const business = await requirePartner(userId, id);
+  if (business.role === 'lector') throw readOnly();
+  return taxDates.insertTaxDate(business.id, input);
+}
+
+/**
+ * @param {string} userId
+ * @param {string} id
+ * @param {string} dateId
+ * @returns {Promise<void>}
+ */
+export async function removeTaxDate(userId, id, dateId) {
+  const business = await requirePartner(userId, id);
+  if (business.role === 'lector') throw readOnly();
+  const deleted = UUID_RE.test(dateId) && (await taxDates.deleteTaxDate(business.id, dateId));
+  if (!deleted) throw new AppError(404, 'NOT_FOUND', 'Fecha no encontrada');
 }

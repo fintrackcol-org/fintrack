@@ -46,6 +46,48 @@ export function accountTotals(accounts) {
   return totals;
 }
 
+const cop = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
+const dayMonth = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+const longDay = (date) => dayMonth.format(new Date(`${date}T12:00:00Z`));
+
+/**
+ * Aviso de una cuenta del negocio que vence mañana o que ya venció.
+ * @param {{ businessId: string, businessName: string, kind: 'receivable'|'payable', party: string, remaining: number, stage: 'previo'|'vencida' }} alert
+ * @returns {{ title: string, body: string, url: string }}
+ */
+export function accountAlertPayload({ businessId, businessName, kind, party, remaining, stage }) {
+  const receivable = kind === 'receivable';
+  const body =
+    stage === 'previo'
+      ? receivable
+        ? `Mañana ${party} debe pagarle ${cop(remaining)} a ${businessName}.`
+        : `Mañana vence el pago de ${businessName} a ${party}: ${cop(remaining)}.`
+      : receivable
+        ? `${party} no ha pagado ${cop(remaining)} a ${businessName}: ya venció.`
+        : `Venció el pago de ${businessName} a ${party}: faltan ${cop(remaining)}.`;
+  return {
+    title: receivable ? 'Por cobrar en tu negocio' : 'Por pagar en tu negocio',
+    body,
+    url: `/app/negocios/${businessId}`,
+  };
+}
+
+/**
+ * Aviso de una fecha de impuestos: "El IVA de Arepas vence el 20 de noviembre (en 3 días)."
+ * @param {{ businessId: string, businessName: string, name: string, date: string }} alert
+ * @param {string} today AAAA-MM-DD
+ * @returns {{ title: string, body: string, url: string }}
+ */
+export function taxDatePayload({ businessId, businessName, name, date }, today) {
+  const days = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
+  const when = days <= 0 ? 'hoy' : days === 1 ? 'mañana' : `el ${longDay(date)} (en ${days} días)`;
+  return {
+    title: 'Impuestos de tu negocio',
+    body: `${name} de ${businessName}: vence ${when}.`,
+    url: `/app/negocios/${businessId}`,
+  };
+}
+
 /** Orden de la lista: primero lo vencido, luego lo pendiente por fecha y al final lo pagado. */
 const STATUS_ORDER = { vencida: 0, pendiente: 1, pagada: 2 };
 

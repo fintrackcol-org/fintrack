@@ -265,3 +265,14 @@ export const payAccount = (id, accountId, data) =>
 /** @returns {Promise<BusinessAccount>} */
 export const deleteAccountPayment = (id, accountId, paymentId) =>
   apiRequest(`/businesses/${id}/accounts/${accountId}/payments/${paymentId}`, { method: 'DELETE' });
+
+/* ---------- Fechas de impuestos del negocio (FT-0058) ---------- */
+
+/** @returns {Promise<{ canEdit: boolean, items: Array<{ id: string, name: string, date: string }> }>} */
+export const listTaxDates = (id) => apiRequest(`/businesses/${id}/tax-dates`);
+
+/** @returns {Promise<{ id: string, name: string, date: string }>} */
+export const createTaxDate = (id, data) => apiRequest(`/businesses/${id}/tax-dates`, { method: 'POST', body: data });
+
+/** @returns {Promise<null>} */
+export const deleteTaxDate = (id, dateId) => apiRequest(`/businesses/${id}/tax-dates/${dateId}`, { method: 'DELETE' });

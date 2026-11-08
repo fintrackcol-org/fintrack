@@ -499,6 +499,22 @@ export const MIGRATIONS = [
       'CREATE INDEX IF NOT EXISTS idx_negocio_abonos_cuenta ON negocio_abonos(cuenta_id, fecha)',
     ],
   },
+  {
+    id: '026_avisos_negocio',
+    statements: [
+      'ALTER TABLE negocio_cuentas ADD COLUMN IF NOT EXISTS aviso_previo_at TIMESTAMPTZ NULL',
+      'ALTER TABLE negocio_cuentas ADD COLUMN IF NOT EXISTS aviso_vencida_at TIMESTAMPTZ NULL',
+      `CREATE TABLE IF NOT EXISTS negocio_fechas_impuesto (
+         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         negocio_id UUID NOT NULL REFERENCES negocios(id) ON DELETE CASCADE,
+         nombre VARCHAR(40) NOT NULL,
+         fecha DATE NOT NULL,
+         avisada_at TIMESTAMPTZ NULL,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       )`,
+      'CREATE INDEX IF NOT EXISTS idx_negocio_fechas_impuesto ON negocio_fechas_impuesto(negocio_id, fecha)',
+    ],
+  },
 ];
 
 /**
