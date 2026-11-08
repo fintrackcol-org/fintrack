@@ -8,6 +8,7 @@ import MoneyInput from '@/components/common/MoneyInput';
 import PageHeader from '@/components/layout/PageHeader';
 import Panel from '@/components/layout/Panel';
 import IncomeFields from '@/components/money/IncomeFields';
+import IncomeOverview from '@/components/money/IncomeOverview';
 import MovementList from '@/components/money/MovementList';
 import PendingPayments from '@/components/money/PendingPayments';
 import { formatMoney } from '@/components/transactions/format';
@@ -479,6 +480,7 @@ export default function MiPlata() {
           )
         )}
         <CircleActions label="Acciones de Mi plata" actions={actions} />
+        <IncomeOverview />
         {plan?.pending.length > 0 && <PendingPayments notice pending={plan.pending} />}
         <MovementList names={names} hidden={hidden} />
       </div>
@@ -500,7 +502,7 @@ export default function MiPlata() {
             )}
             {data && (
               <>
-                <IncomeSection profile={data} onSave={save} />
+                <IncomeOverview />
                 {data.money === null && <BalanceSection profile={data} onSave={save} />}
                 <div id="pagos" className="scroll-mt-4">
                   <PaymentsSection commitments={data.commitments} onChanged={profile.reload} />

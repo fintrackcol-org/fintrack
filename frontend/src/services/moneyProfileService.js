@@ -99,3 +99,30 @@ export function getPaymentCalendar(month) {
 export function getLiquidity(days) {
   return apiRequest(days ? `/liquidity?days=${days}` : '/liquidity');
 }
+
+/**
+ * Cómo y cuánto le entra la plata al usuario (FT-0060): fuentes, mes normal y flaco, sueldo propio,
+ * colchón, seguridad social y meta por días. Ver `GET /money-profile/income` en la API.
+ * @returns {Promise<Record<string, any>>}
+ */
+export function getIncome() {
+  return apiRequest('/money-profile/income');
+}
+
+/**
+ * Reemplaza las fuentes de ingreso. Responde el resumen nuevo.
+ * @param {object[]} sources Ver `toApiSources` en `lib/incomeSources.js`.
+ * @returns {Promise<Record<string, any>>}
+ */
+export function saveIncomeSources(sources) {
+  return apiRequest('/money-profile/sources', { method: 'PUT', body: { sources } });
+}
+
+/**
+ * Cómo repartir un ingreso que ya se registró ("Reparte lo que entró").
+ * @param {number} amount
+ * @returns {Promise<Record<string, any>>}
+ */
+export function getIncomeSplit(amount) {
+  return apiRequest(`/money-profile/income/split?amount=${encodeURIComponent(amount)}`);
+}

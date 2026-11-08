@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Plus, X } from 'lucide-react';
 import MoneyInput from '@/components/common/MoneyInput';
-import IncomeFields from '@/components/money/IncomeFields';
+import IncomeSourcesFields from '@/components/money/IncomeSourcesFields';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import usePageTitle from '@/hooks/usePageTitle';
 import { SUGGESTED_COMMITMENTS, balanceProposal, readCommitmentForm, toProfileData } from '@/lib/moneyProfile';
 import { cn } from '@/lib/utils';
-import { finishWelcome, getMoneyProfile } from '@/services/moneyProfileService';
+import { toApiSources } from '@/lib/incomeSources';
+import { finishWelcome, getMoneyProfile, saveIncomeSources } from '@/services/moneyProfileService';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
 const STEPS = 3;
@@ -23,7 +24,8 @@ function WelcomeSteps() {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [income, setIncome] = useState({ incomeType: '', payDays: [] });
+  // FT-0060: fuentes de ingreso elegidas (por tipo). Se puede elegir varias o ninguna.
+  const [sources, setSources] = useState({});
   const [balance, setBalance] = useState('');
   const [items, setItems] = useState([]);
   const [error, setError] = useState('');
@@ -44,6 +46,9 @@ function WelcomeSteps() {
     setError('');
     try {
       await finishWelcome(answers);
+      // Las fuentes también fijan "con fecha fija" o "sin fecha" en el perfil.
+      const list = toApiSources(sources);
+      if (list.length > 0 && Object.keys(answers).length > 0) await saveIncomeSources(list);
       navigate('/app', { replace: true });
     } catch (err) {
       setError(err.message);
@@ -51,21 +56,17 @@ function WelcomeSteps() {
     }
   };
 
-  const profile = () => toProfileData({ ...income, balance });
+  const profile = () => toProfileData({ incomeType: '', payDays: [], balance });
 
-  /** Con fecha fija hacen falta los días; omitir borra esa respuesta a medias. */
+  /** Nada es obligatorio: "más o menos" está bien y nunca se bloquea al usuario. */
   const next = () => {
-    if (step === 1 && income.incomeType === 'fecha_fija' && income.payDays.length === 0) {
-      setError('Elige al menos un día, o toca Omitir.');
-      return;
-    }
     setError('');
     setStep(step + 1);
   };
 
   const skipStep = () => {
     setError('');
-    if (step === 1) setIncome({ incomeType: '', payDays: [] });
+    if (step === 1) setSources({});
     if (step === 2) setBalance('');
     setStep(step + 1);
   };
@@ -107,11 +108,7 @@ function WelcomeSteps() {
           {step === 1 && (
             <>
               <h1 className="text-2xl font-semibold tracking-tight">¿Cómo te entra la plata?</h1>
-              <IncomeFields
-                incomeType={income.incomeType}
-                payDays={income.payDays}
-                onChange={(changes) => setIncome((current) => ({ ...current, ...changes }))}
-              />
+              <IncomeSourcesFields forms={sources} onChange={setSources} />
             </>
           )}
 
