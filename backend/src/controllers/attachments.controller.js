@@ -15,6 +15,17 @@ function fileName(req) {
 }
 
 /**
+ * `GET /api/v1/transactions/attachment-limits`: si el usuario tiene los soportes activos y los
+ * límites. Nunca responde 403: con `enabled: false` el frontend simplemente no ofrece adjuntar.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+export async function getAttachmentLimits(req, res) {
+  res.json(await attachments.limits(req.userId));
+}
+
+/**
  * `GET /api/v1/transactions/:id/attachments`: soportes del movimiento y los límites.
  * @param {import('express').Request} req
  * @param {import('express').Response} res

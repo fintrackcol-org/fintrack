@@ -17,6 +17,34 @@ const CONNECTION_ERROR = 'No pudimos conectar con el servidor. Revisa tu conexi�
  */
 
 /**
+ * Si el usuario puede adjuntar soportes y los límites, sin un movimiento de por medio.
+ * @returns {Promise<{ enabled: boolean, max: number, maxBytes: number }>}
+ */
+export function getAttachmentLimits() {
+  return apiRequest('/transactions/attachment-limits');
+}
+
+/**
+ * Sube los soportes elegidos al anotar, uno tras otro, al movimiento recién guardado. No lanza: si
+ * alguno falla, devuelve sus nombres para avisar que se puede adjuntar desde el movimiento.
+ * @param {string} transactionId
+ * @param {Array<{ blob: Blob, name: string }>} files
+ * @param {typeof uploadAttachment} [upload] Para las pruebas.
+ * @returns {Promise<{ uploaded: number, failed: string[] }>}
+ */
+export async function uploadPending(transactionId, files, upload = uploadAttachment) {
+  const failed = [];
+  for (const file of files) {
+    try {
+      await upload(transactionId, file.blob, file.name);
+    } catch {
+      failed.push(file.name);
+    }
+  }
+  return { uploaded: files.length - failed.length, failed };
+}
+
+/**
  * Soportes del movimiento. Si el usuario no los tiene activos, falla con `code` `FEATURE_DISABLED`.
  * @param {string} transactionId
  * @returns {Promise<{ items: Attachment[], max: number, maxBytes: number }>}

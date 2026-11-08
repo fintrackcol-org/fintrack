@@ -145,6 +145,21 @@ export function createAttachmentsService(deps = {}) {
     isEnabledFor,
 
     /**
+     * Si el usuario puede adjuntar soportes y los límites, sin un movimiento de por medio: el
+     * formulario de anotar los ofrece antes de que el movimiento exista y los sube al guardarlo.
+     * @param {string} userId
+     * @returns {Promise<{ enabled: boolean, max: number, maxBytes: number }>}
+     */
+    async limits(userId) {
+      const user = await findUserById(userId);
+      return {
+        enabled: Boolean(user) && isEnabledFor(user.email),
+        max: MAX_ATTACHMENTS,
+        maxBytes: MAX_ATTACHMENT_BYTES,
+      };
+    },
+
+    /**
      * Soportes de un movimiento.
      * @param {string} userId
      * @param {string} transactionId

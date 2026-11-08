@@ -57,6 +57,7 @@ function toDefaults(initial, defaultType = 'gasto') {
  * @param {{ type: 'gasto'|'ingreso', amount: number|null, description: string, date?: string }|null} [props.draft]
  *   Lo dictado por voz (FT-0013): llena una transacción nueva para revisarla antes de guardar.
  *   Cada objeto nuevo vuelve a llenar el formulario.
+ * @param {import('react').ReactNode} [props.children] Va antes de los botones (p. ej. los soportes).
  */
 export default function TransactionForm({
   categories,
@@ -67,6 +68,7 @@ export default function TransactionForm({
   autoFocus = false,
   draft = null,
   cards = [],
+  children = null,
 }) {
   const [serverError, setServerError] = useState('');
   // Cambia en cada reinicio del formulario para que la fecha vuelva a "Hoy".
@@ -233,6 +235,8 @@ export default function TransactionForm({
           )}
         </>
       )}
+
+      {children}
 
       {serverError && (
         <p role="alert" className="text-sm text-negative">
