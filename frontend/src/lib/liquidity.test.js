@@ -32,7 +32,12 @@ describe('motor de liquidez en pantalla (FT-0059)', () => {
       '2026-11-20',
     );
     expect(points[0]).toMatchObject({ shortfall: false, payments: [] });
-    expect(points[1]).toMatchObject({ label: '20 nov', shortfall: true, payments: [{ name: 'Visa', amount: 250_000 }] });
+    expect(points[1]).toMatchObject({
+      label: '20 nov',
+      shortfall: true,
+      payments: [{ name: 'Visa', amount: 250_000 }],
+      incomes: [{ name: 'Sueldo', amount: 1 }],
+    });
   });
 
   it('consejos: tope diario, cobrar lo que le deben y mover los pagos más grandes primero', () => {

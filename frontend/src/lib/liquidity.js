@@ -16,7 +16,7 @@ export const shortDay = dayLabel;
  * Un punto por día para la gráfica: plata al final del día, si ese día hay pagos y si es el hueco.
  * @param {Array<{ date: string, end: number, events: Array<{ kind: string, name: string, amount: number }> }>} days
  * @param {string|null} shortfallDate
- * @returns {Array<{ date: string, label: string, end: number, payments: Array<{ name: string, amount: number }>, shortfall: boolean }>}
+ * @returns {Array<{ date: string, label: string, end: number, payments: Array<{ name: string, amount: number }>, incomes: Array<{ name: string, amount: number }>, shortfall: boolean }>}
  */
 export function chartPoints(days, shortfallDate) {
   return days.map((d) => ({
@@ -24,6 +24,8 @@ export function chartPoints(days, shortfallDate) {
     label: shortDay(d.date),
     end: d.end,
     payments: d.events.filter((e) => e.kind !== 'esperado').map(({ name, amount }) => ({ name, amount })),
+    // Plata que se espera recibir ese día (FT-0060), con el valor de un mes flaco.
+    incomes: d.events.filter((e) => e.kind === 'esperado').map(({ name, amount }) => ({ name, amount })),
     shortfall: d.date === shortfallDate,
   }));
 }
