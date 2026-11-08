@@ -217,3 +217,51 @@ export async function exportBusinessMonth(id, { month, format }) {
     filename: filenameFrom(res.headers.get('Content-Disposition'), `negocio-${month}.${format}`),
   };
 }
+
+/* ---------- Cuentas por cobrar y por pagar del negocio (FT-0058) ---------- */
+
+/**
+ * @typedef {object} BusinessAccount
+ * @property {string} id
+ * @property {'receivable'|'payable'} kind Cliente que debe, o proveedor al que se le debe.
+ * @property {string} party
+ * @property {string|null} description
+ * @property {number} amount
+ * @property {number} paid
+ * @property {number} remaining
+ * @property {string|null} dueDate AAAA-MM-DD.
+ * @property {'pendiente'|'vencida'|'pagada'} status
+ * @property {string|null} createdBy Quién la registró.
+ * @property {Array<{ id: string, amount: number, date: string, movementId: string, registeredBy: { id: string, name: string|null }|null }>} payments
+ */
+
+/**
+ * @param {string} id
+ * @returns {Promise<{ canRecord: boolean, items: BusinessAccount[], totals: { receivable: number, payable: number, overdueReceivable: number, overduePayable: number } }>}
+ */
+export const listAccounts = (id) => apiRequest(`/businesses/${id}/accounts`);
+
+/**
+ * @param {string} id
+ * @param {{ kind: 'receivable'|'payable', party: string, amount: number, dueDate?: string|null, description?: string|null }} data
+ * @returns {Promise<BusinessAccount>}
+ */
+export const createAccount = (id, data) => apiRequest(`/businesses/${id}/accounts`, { method: 'POST', body: data });
+
+/** @returns {Promise<null>} */
+export const deleteAccount = (id, accountId) =>
+  apiRequest(`/businesses/${id}/accounts/${accountId}`, { method: 'DELETE' });
+
+/**
+ * Abono parcial: crea el movimiento del negocio que le corresponde.
+ * @param {string} id
+ * @param {string} accountId
+ * @param {{ amount: number, date?: string, movementKind?: string }} data
+ * @returns {Promise<BusinessAccount>}
+ */
+export const payAccount = (id, accountId, data) =>
+  apiRequest(`/businesses/${id}/accounts/${accountId}/payments`, { method: 'POST', body: data });
+
+/** @returns {Promise<BusinessAccount>} */
+export const deleteAccountPayment = (id, accountId, paymentId) =>
+  apiRequest(`/businesses/${id}/accounts/${accountId}/payments/${paymentId}`, { method: 'DELETE' });

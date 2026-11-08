@@ -464,6 +464,33 @@ export const MIGRATIONS = [
       'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS terminos_aceptados_at TIMESTAMPTZ NULL',
     ],
   },
+  {
+    id: '025_negocio_cuentas',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS negocio_cuentas (
+         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         negocio_id UUID NOT NULL REFERENCES negocios(id) ON DELETE CASCADE,
+         usuario_id UUID NULL REFERENCES usuarios(id) ON DELETE SET NULL,
+         tipo VARCHAR(6) NOT NULL CHECK (tipo IN ('cobrar', 'pagar')),
+         tercero VARCHAR(80) NOT NULL,
+         descripcion VARCHAR(120) NULL,
+         monto NUMERIC(12,2) NOT NULL CHECK (monto > 0),
+         vence DATE NULL,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       )`,
+      'CREATE INDEX IF NOT EXISTS idx_negocio_cuentas_negocio ON negocio_cuentas(negocio_id, vence)',
+      `CREATE TABLE IF NOT EXISTS negocio_abonos (
+         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         cuenta_id UUID NOT NULL REFERENCES negocio_cuentas(id) ON DELETE CASCADE,
+         usuario_id UUID NULL REFERENCES usuarios(id) ON DELETE SET NULL,
+         monto NUMERIC(12,2) NOT NULL CHECK (monto > 0),
+         fecha DATE NOT NULL,
+         movimiento_id UUID NOT NULL REFERENCES negocio_movimientos(id) ON DELETE CASCADE,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       )`,
+      'CREATE INDEX IF NOT EXISTS idx_negocio_abonos_cuenta ON negocio_abonos(cuenta_id, fecha)',
+    ],
+  },
 ];
 
 /**

@@ -182,9 +182,11 @@ function MovementRow({ movement, onOpen }) {
  * Finanzas del negocio en un mes (FT-0017 y FT-0018): resumen, estado de resultados, punto de
  * equilibrio, reparto entre socios, flujo por semana y movimientos; además, exportar el mes. Los
  * lectores ven y exportan, pero no registran, no retiran ni borran.
- * @param {{ businessId: string, businessName: string, myRole: 'dueno'|'editor'|'lector', myId: string, online: boolean }} props
+ * `refreshKey` cambia cuando algo de afuera crea o borra movimientos (abonos de las cuentas, FT-0058);
+ * `onChanged` avisa cuando se borra uno, porque puede ser un abono.
+ * @param {{ businessId: string, businessName: string, myRole: 'dueno'|'editor'|'lector', myId: string, online: boolean, refreshKey?: number, onChanged?: () => void }} props
  */
-export default function BusinessMonth({ businessId, businessName, myRole, myId, online }) {
+export default function BusinessMonth({ businessId, businessName, myRole, myId, online, refreshKey = 0, onChanged }) {
   const today = todayIso();
   const currentMonth = today.slice(0, 7);
   const [month, setMonth] = useState(currentMonth);
@@ -203,7 +205,7 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
     return () => {
       cancelled = true;
     };
-  }, [businessId, month, version]);
+  }, [businessId, month, version, refreshKey]);
 
   const handleCreate = async (values) => {
     const movement = await createMovement(businessId, values);
@@ -218,6 +220,7 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
     setSheet(null);
     setNotice(wasWithdrawal ? 'Retiro deshecho: también se quitó de tus movimientos.' : 'Movimiento borrado.');
     reload();
+    onChanged?.();
   };
   const handleWithdraw = async (values) => {
     const { movement } = await withdraw(businessId, values);
