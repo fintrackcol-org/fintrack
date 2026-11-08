@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useNavigationType, useSearchParams } from 'react-router-dom';
-import { Check, ChevronLeft, Delete, Loader2, Mic, Plus, Sparkles, X } from 'lucide-react';
+import { Check, ChevronLeft, Delete, Loader2, Mic, Paperclip, Plus, Sparkles, X } from 'lucide-react';
 import CategoryIcon from '@/components/categories/CategoryIcon';
 import NewCategoryDialog from '@/components/categories/NewCategoryDialog';
 import ChipGroup from '@/components/common/ChipGroup';
 import Segmented from '@/components/common/Segmented';
 import { currentMonth } from '@/components/budgets/month';
+import AttachmentPicker from '@/components/transactions/AttachmentPicker';
 import BudgetAlert from '@/components/transactions/BudgetAlert';
 import DateQuickPick from '@/components/transactions/DateQuickPick';
 import VoiceEntry from '@/components/transactions/VoiceEntry';
@@ -14,12 +15,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import useAsync from '@/hooks/useAsync';
+import useAttachmentLimits from '@/hooks/useAttachmentLimits';
 import useCategoryNames from '@/hooks/useCategoryNames';
 import usePageTitle from '@/hooks/usePageTitle';
 import { NETWORK_LABELS } from '@/lib/cardStyles';
+import { attachedText } from '@/lib/attachedText';
 import { cn } from '@/lib/utils';
 import { today, transactionSchema } from '@/lib/validation/transaction';
 import { saveNewTransaction } from '@/offline/saveNewTransaction';
+import { uploadPending } from '@/services/attachmentService';
 import { listBudgets } from '@/services/budgetService';
 import { listCards } from '@/services/cardService';
 import { getMoneyPlan } from '@/services/moneyProfileService';
@@ -33,7 +37,7 @@ const CASH = 'cash';
 /** Categorías que se ven sin tocar "Ver todas". */
 const VISIBLE_CATEGORIES = 5;
 
-const empty = (card = CASH) => ({ type: 'gasto', amount: '', description: '', category: AI, date: today(), card, installments: '1' });
+const empty = (card = CASH) => ({ type: 'gasto', amount: '', description: '', category: AI, date: today(), card, installments: '1', files: [] });
 
 /**
  * Suma una tecla del teclado al monto (solo dígitos, sin ceros a la izquierda) o borra la última.
@@ -111,6 +115,7 @@ export default function Anotar() {
   const [creating, setCreating] = useState(false);
   const names = { ...loadedNames, ...Object.fromEntries(created.map((c) => [c.key, c.name])) };
   const cards = useAsync(listCards, []);
+  const attachmentLimits = useAttachmentLimits();
 
   const set = (changes) => setForm((f) => ({ ...f, ...changes }));
   // La tarjeta de partida se queda en la dirección, así recargar no la pierde.
@@ -163,7 +168,15 @@ export default function Anotar() {
     setSaving(true);
     try {
       const saved = await saveNewTransaction(values);
-      setResult({ ...saved, values, money: null, left: null });
+      // Los soportes van después del movimiento: necesitan su id. Sin conexión no se pueden subir.
+      const files = form.files ?? [];
+      const attached =
+        files.length === 0
+          ? null
+          : saved.transaction
+            ? await uploadPending(saved.transaction.id, files)
+            : { uploaded: 0, failed: files.map((f) => f.name) };
+      setResult({ ...saved, values, attached, money: null, left: null });
       setParams({ paso: 'listo', ...keep }, { replace: true });
       // El saldo llega después: "listo" no espera otra respuesta del servidor.
       if (!saved.offline) {
@@ -197,7 +210,8 @@ export default function Anotar() {
   const categoryName = form.category === AI ? 'la sugiere la IA' : names[form.category] ?? form.category;
 
   if (step === 'listo' && result) {
-    const { values, transaction, alert, offline, money, left } = result;
+    const { values, transaction, alert, offline, money, left, attached } = result;
+    const attachedNote = attachedText(attached);
     const category = transaction?.category;
     return (
       <div className="mx-auto flex min-h-[70dvh] max-w-md flex-col justify-between gap-8 rounded-3xl bg-violet p-6 text-white max-md:rounded-none max-md:fixed max-md:inset-0 max-md:z-50 max-md:max-w-none max-md:overflow-y-auto max-md:px-4 max-md:pb-[max(1rem,env(safe-area-inset-bottom))] max-md:pt-[max(1rem,env(safe-area-inset-top))]">
@@ -238,6 +252,15 @@ export default function Anotar() {
               </>
             )}
           </div>
+          {attachedNote && (
+            <p
+              role={attached.failed.length ? 'alert' : undefined}
+              className="mt-4 flex items-start gap-2 rounded-2xl bg-white/15 px-4 py-3 text-[15px] motion-safe:animate-done-in"
+            >
+              <Paperclip className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              {attachedNote}
+            </p>
+          )}
           <BudgetAlert className="mt-4" alert={alert} categoryName={names[category]} />
         </div>
 
@@ -456,6 +479,13 @@ export default function Anotar() {
               </p>
             </div>
           )}
+
+          <AttachmentPicker
+            className="mt-6"
+            files={form.files ?? []}
+            onChange={(files) => set({ files })}
+            limits={attachmentLimits}
+          />
 
           {error && (
             <p role="alert" className="mt-4 text-sm text-negative">

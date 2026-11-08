@@ -586,6 +586,27 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /transactions/attachment-limits:
+    get:
+      tags: [Transactions]
+      summary: Si el usuario puede adjuntar soportes de pago, y los límites (FT-0044)
+      description: |
+        Sirve para ofrecer "Adjuntar soporte" al anotar un gasto o un ingreso, antes de que el
+        movimiento exista: el frontend sube los archivos justo después de guardarlo. Nunca responde
+        403; sin los soportes activos devuelve `enabled: false`.
+      responses:
+        "200":
+          description: Disponibilidad y límites
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled: { type: boolean, example: true }
+                  max: { type: integer, example: 3 }
+                  maxBytes: { type: integer, example: 5242880 }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /transactions/{id}:
     parameters:
       - { $ref: "#/components/parameters/Id" }

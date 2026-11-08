@@ -101,6 +101,21 @@ function upload(base, owner, data, name = 'factura.jpg') {
 const get = (base, token, url) =>
   fetch(base + url, { headers: { Authorization: `Bearer ${token}` } });
 
+test('los límites dicen si puede adjuntar antes de que exista el movimiento', options, async () => {
+  await withServer(async (base) => {
+    const me = await userWithTransaction(base);
+    const res = await get(base, me.token, '/transactions/attachment-limits');
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), {
+      enabled: true,
+      max: MAX_ATTACHMENTS,
+      maxBytes: MAX_ATTACHMENT_BYTES,
+    });
+    const anonymous = await fetch(`${base}/transactions/attachment-limits`);
+    assert.equal(anonymous.status, 401);
+  });
+});
+
 test('adjunta una foto, la lista y la devuelve igual', options, async () => {
   await withServer(async (base) => {
     const me = await userWithTransaction(base);

@@ -1,15 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Paperclip } from 'lucide-react';
 import Panel from '@/components/layout/Panel';
+import AttachmentPicker from '@/components/transactions/AttachmentPicker';
+import AttachmentsPanel from '@/components/transactions/AttachmentsPanel';
 import BudgetAlert from '@/components/transactions/BudgetAlert';
 import TransactionForm from '@/components/transactions/TransactionForm';
 import { Button } from '@/components/ui/button';
 import useAsync from '@/hooks/useAsync';
+import useAttachmentLimits from '@/hooks/useAttachmentLimits';
+import { attachedText } from '@/lib/attachedText';
 import usePageTitle from '@/hooks/usePageTitle';
 import { canGoBack } from '@/lib/backPath';
 import { saveNewTransaction } from '@/offline/saveNewTransaction';
 import { cacheTransaction, queueUpdate } from '@/offline/sync';
+import { uploadPending } from '@/services/attachmentService';
 import { listCards } from '@/services/cardService';
 import {
   CATEGORIES_CHANGED_EVENT,
@@ -71,6 +76,9 @@ export default function TransactionEdit() {
   const [categories, setCategories] = useState({ expense: [], income: [] });
   const [cards, setCards] = useState([]);
   const [error, setError] = useState('');
+  // Soportes elegidos al registrar uno nuevo: se suben apenas se guarda.
+  const [files, setFiles] = useState([]);
+  const attachmentLimits = useAttachmentLimits();
   // Resultado de guardar: `offline` decide a dónde vuelve, porque el detalle aún no tendría el cambio.
   const [done, setDone] = useState(null);
   const names = useMemo(
@@ -103,7 +111,15 @@ export default function TransactionEdit() {
   const submit = async (values) => {
     if (!id) {
       const { transaction, alert, offline } = await saveNewTransaction(values);
+      const attached =
+        files.length === 0
+          ? null
+          : transaction
+            ? await uploadPending(transaction.id, files)
+            : { uploaded: 0, failed: files.map((f) => f.name) };
+      setFiles([]);
       setDone({
+        attached,
         offline,
         message: offline ? 'Guardado sin conexión. Se sincronizará cuando vuelva internet.' : savedMessage(transaction, names),
         alert: offline ? null : alert,
@@ -151,6 +167,15 @@ export default function TransactionEdit() {
           <p role="status" className="rounded-xl bg-brand-soft px-3 py-2.5 text-[15px]">
             {done.message}
           </p>
+          {attachedText(done.attached) && (
+            <p
+              role={done.attached.failed.length ? 'alert' : undefined}
+              className="flex items-start gap-2 rounded-xl bg-ink/5 px-3 py-2.5 text-[15px]"
+            >
+              <Paperclip className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
+              {attachedText(done.attached)}
+            </p>
+          )}
           <BudgetAlert alert={done.alert} categoryName={names[done.category]} />
           <Button size="lg" onClick={() => leave(done.offline)}>
             Listo
@@ -176,7 +201,14 @@ export default function TransactionEdit() {
             draft={draft}
             onSubmit={submit}
             onCancel={() => leave()}
-          />
+          >
+            {/* Al editar, los soportes se suben o borran al instante; en uno nuevo, al guardarlo. */}
+            {id ? (
+              <AttachmentsPanel transactionId={id} bare />
+            ) : (
+              <AttachmentPicker files={files} onChange={setFiles} limits={attachmentLimits} />
+            )}
+          </TransactionForm>
         </Panel>
       )}
     </div>
