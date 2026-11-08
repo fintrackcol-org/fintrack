@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight, CircleAlert, CircleCheck, TriangleAlert } from 'lucide-react';
 import { formatMoney } from '@/components/transactions/format';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
+import { hasData } from '@/lib/liquidity';
 import { cn } from '@/lib/utils';
 import { getLiquidity } from '@/services/moneyProfileService';
 
@@ -46,8 +47,9 @@ export function liquidityMessage(liquidity, money) {
 
 /**
  * Tarjeta del Inicio "Tu plata en los próximos días" (FT-0059): una sola frase en verde, amarillo
- * o rojo según el motor de liquidez, y un enlace al calendario de pagos. Solo con conexión y con
- * Mi plata configurada (si no, el Inicio ya muestra cómo configurarla).
+ * o rojo según el motor de liquidez, y un enlace al detalle (`/app/liquidez`). Solo con conexión y
+ * con Mi plata configurada (si no, el Inicio ya muestra cómo configurarla). Sin pagos ni gasto
+ * normal, invita a agregar los pagos del mes.
  * @param {{ hidden?: boolean, className?: string }} props `hidden`: montos ocultos.
  */
 export default function LiquidityCard({ hidden = false, className }) {
@@ -67,6 +69,21 @@ export default function LiquidityCard({ hidden = false, className }) {
 
   if (!online || !liquidity?.ready) return null;
 
+  if (!hasData(liquidity)) {
+    return (
+      <section aria-label="Tu plata en los próximos días" className={cn('rounded-2xl bg-ink/5 p-4', className)}>
+        <p className="text-[13px] font-medium text-ink/70">Tu plata en los próximos días</p>
+        <p className="mt-1 font-semibold leading-snug">Agrega tus pagos del mes para ver si te alcanza.</p>
+        <Link
+          to="/app/mi-plata"
+          className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand underline-offset-4 hover:underline"
+        >
+          Ir a Mi plata <ChevronRight className="size-4" aria-hidden="true" />
+        </Link>
+      </section>
+    );
+  }
+
   const money = (amount) => (hidden ? '$ •••' : formatMoney(Math.round(amount)));
   const tone = TONES[liquidity.risk] ?? TONES.ok;
   const Icon = tone.icon;
@@ -81,7 +98,7 @@ export default function LiquidityCard({ hidden = false, className }) {
       </p>
       {detail && <p className="mt-1 text-sm text-ink/70">{detail}</p>}
       <Link
-        to="/app/calendario"
+        to="/app/liquidez"
         className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand underline-offset-4 hover:underline"
       >
         Ver qué pasa <ChevronRight className="size-4" aria-hidden="true" />

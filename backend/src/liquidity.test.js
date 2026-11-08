@@ -98,3 +98,24 @@ test(
     });
   },
 );
+
+test('con fuentes de ingreso (FT-0060) cuenta el sueldo esperado como "esperado"', options, async () => {
+  await withUser(async (api, token) => {
+    await api('/money-profile', { method: 'PUT', token, body: { incomeType: 'sin_fecha', balance: 1_000_000 } });
+    const saved = await api('/money-profile/sources', {
+      method: 'PUT',
+      token,
+      body: { sources: [{ kind: 'sueldo', amount: 3_000_000, payDays: [1, 15] }] },
+    });
+    assert.equal(saved.status, 200);
+
+    const res = await api('/liquidity', { token });
+    assert.equal(res.body.ready, true);
+    const incomes = res.body.days.flatMap((d) => d.events.filter((e) => e.kind === 'esperado'));
+    assert.ok(incomes.length >= 2, 'el 1 y el 15 dentro de 45 días');
+    assert.ok(incomes.every((e) => e.amount === 1_500_000 && e.name === 'Sueldo'));
+    assert.ok(res.body.days.some((d) => d.in === 1_500_000));
+    assert.equal(res.body.firstShortfall, null);
+    assert.ok(res.body.assumptions.some((a) => a.includes('mes flaco')));
+  });
+});

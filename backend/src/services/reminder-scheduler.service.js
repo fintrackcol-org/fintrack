@@ -1,12 +1,18 @@
 import {
   listCardReminderUsers,
+  listLiquidityReminderUsers,
   listReminderCandidates,
+  saveLiquidityAlert,
 } from '../repositories/reminders.repository.js';
 import { updateCard } from '../repositories/cards.repository.js';
 import { listDebtsDueTomorrow, markReminded } from '../repositories/debts.repository.js';
+import * as businessReminders from '../repositories/negocio-reminders.repository.js';
+import { accountAlertPayload, taxDatePayload } from './negocio-accounts.logic.js';
 import { pushService } from './push.service.js';
 import * as cardsService from './cards.service.js';
-import { money } from './whatsapp.service.js';
+import { liquidityAlertDue, liquidityAlertPayload } from './liquidity.logic.js';
+import { getLiquidity } from './liquidity.service.js';
+import { money, notify as notifyWhatsapp } from './whatsapp.service.js';
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
@@ -17,6 +23,10 @@ export const REMINDER_PAYLOAD = {
   body: '¿Ya registraste tus gastos de hoy?',
   url: '/app/transacciones',
 };
+
+/** Los avisos de los negocios salen desde esta hora de Colombia (FT-0058). */
+const BUSINESS_TIMEZONE = 'America/Bogota';
+const BUSINESS_HOUR = 8;
 
 /** Días antes del pago en que se avisa. */
 const CARD_REMINDER_DAYS = 3;
@@ -117,6 +127,12 @@ export function checkReminderDue({ time, timezone, now, windowMinutes = 5 }) {
  * @param {(cardId: string, userId: string, date: string) => Promise<unknown>} [deps.markCardReminded]
  * @param {typeof listDebtsDueTomorrow} [deps.listDueDebts]
  * @param {(debtId: string) => Promise<unknown>} [deps.markDebtReminded]
+ * @param {typeof listLiquidityReminderUsers} [deps.listLiquidityUsers]
+ * @param {typeof getLiquidity} [deps.getLiquidity]
+ * @param {typeof saveLiquidityAlert} [deps.saveLiquidityAlert]
+ * @param {(userId: string, text: string) => Promise<boolean>} [deps.notifyWhatsapp]
+ * @param {Pick<typeof businessReminders, 'listAccountAlerts'|'listTaxDateAlerts'|'listRecorders'|'markAccountAlert'|'markTaxDateAlert'>} [deps.businessReminders]
+ *   Avisos de los negocios (FT-0058).
  * @param {number} [deps.intervalMs] Cada cuánto revisa (por defecto 1 minuto).
  * @param {number} [deps.windowMinutes] Minutos de tolerancia tras la hora configurada.
  * @returns {{ tick: () => Promise<{ sent: number, skipped: number }>, start: () => void, stop: () => void }}
@@ -131,6 +147,11 @@ export function createReminderScheduler(deps = {}) {
     ((id, userId, date) => updateCard(id, userId, { reminderSentFor: date }));
   const listDueDebts = deps.listDueDebts ?? listDebtsDueTomorrow;
   const markDebtReminded = deps.markDebtReminded ?? markReminded;
+  const listLiquidityUsers = deps.listLiquidityUsers ?? listLiquidityReminderUsers;
+  const liquidityOf = deps.getLiquidity ?? getLiquidity;
+  const saveAlert = deps.saveLiquidityAlert ?? saveLiquidityAlert;
+  const whatsapp = deps.notifyWhatsapp ?? notifyWhatsapp;
+  const business = deps.businessReminders ?? businessReminders;
   const now = deps.now ?? (() => new Date());
   const log = deps.log ?? console;
   const intervalMs = deps.intervalMs ?? MINUTE_MS;
@@ -206,6 +227,85 @@ export function createReminderScheduler(deps = {}) {
   }
 
   /**
+   * Motor de liquidez (FT-0059): a la hora del primer recordatorio del usuario, si le va a faltar
+   * plata en 7, 3 o 1 días, le avisa por la bandeja, push y WhatsApp (si tiene el bot). No repite
+   * el aviso salvo que lo que falta cambie más del 10 %.
+   * @param {Date} moment
+   * @returns {Promise<number>} Avisos enviados.
+   */
+  async function liquidityTick(moment) {
+    let sent = 0;
+    for (const user of await listLiquidityUsers()) {
+      try {
+        const { due, key } = checkReminderDue({
+          time: user.time,
+          timezone: user.timezone,
+          now: moment,
+          windowMinutes,
+        });
+        const id = `liquidez|${user.id}|${key}`;
+        if (!due || handled.has(id)) continue;
+        handled.set(id, moment.getTime());
+
+        const liquidity = await liquidityOf(user.id);
+        if (!liquidity.ready) continue;
+        const shortfall = liquidity.firstShortfall;
+        const daysBefore = liquidityAlertDue({ today: liquidity.today, shortfall, last: user.last });
+        if (daysBefore === null) continue;
+
+        const payload = liquidityAlertPayload(liquidity);
+        await saveAlert(user.id, { date: shortfall.date, daysBefore, missing: shortfall.missing });
+        await sendToUser(user.id, payload);
+        await whatsapp(user.id, `${payload.body}\nMira el detalle en FinTrack.`).catch((err) => {
+          log.error(`No se pudo avisar la liquidez por WhatsApp al usuario ${user.id}: ${err.message}`);
+        });
+        sent += 1;
+      } catch (err) {
+        log.error(`Error revisando la liquidez del usuario ${user.id}: ${err.message}`);
+      }
+    }
+    return sent;
+  }
+
+  /**
+   * Avisos de los negocios (FT-0058) a sus dueños y editores, desde las 8 a. m. de Colombia:
+   * cuentas que vencen mañana o que ya vencieron, y fechas de impuestos de los próximos 3 días.
+   * Cada aviso queda marcado en su fila, así no se repite aunque el servidor se reinicie.
+   * @param {Date} moment
+   * @returns {Promise<number>} Avisos enviados.
+   */
+  async function businessTick(moment) {
+    const clock = localClock(moment, BUSINESS_TIMEZONE);
+    if (clock.minutes < BUSINESS_HOUR * 60) return 0;
+    const today = clock.localDate;
+    let sent = 0;
+    const notify = async (businessId, payload) => {
+      for (const userId of await business.listRecorders(businessId)) {
+        await sendToUser(userId, payload);
+        sent += 1;
+      }
+    };
+    for (const alert of await business.listAccountAlerts(today)) {
+      try {
+        // Primero se marca: si el envío falla a medias, no se repite a quienes ya les llegó.
+        await business.markAccountAlert(alert.id, alert.stage);
+        await notify(alert.businessId, accountAlertPayload(alert));
+      } catch (err) {
+        log.error(`Error avisando la cuenta ${alert.id} del negocio ${alert.businessId}: ${err.message}`);
+      }
+    }
+    for (const alert of await business.listTaxDateAlerts(today)) {
+      try {
+        await business.markTaxDateAlert(alert.id);
+        await notify(alert.businessId, taxDatePayload(alert, today));
+      } catch (err) {
+        log.error(`Error avisando la fecha ${alert.id} del negocio ${alert.businessId}: ${err.message}`);
+      }
+    }
+    return sent;
+  }
+
+  /**
    * Revisa los recordatorios pendientes ahora mismo.
    * @returns {Promise<{ sent: number, skipped: number }>}
    */
@@ -249,6 +349,8 @@ export function createReminderScheduler(deps = {}) {
     }
     sent += await cardTick(moment);
     sent += await debtTick(moment);
+    sent += await liquidityTick(moment);
+    sent += await businessTick(moment);
     return { sent, skipped };
   }
 

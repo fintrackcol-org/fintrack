@@ -13,6 +13,7 @@ import {
   previousMonth,
 } from './negocio-panel.logic.js';
 import * as transactions from './transactions.service.js';
+import { CUSTOM_CATEGORY_RE } from '../validators/negocio-movements.validator.js';
 
 // Movimientos de un negocio y su panel del mes (FT-0017), retiros y reparto (FT-0018). Todos los
 // socios ven; los dueños y los editores registran; un lector solo ve. Cada movimiento guarda quién
@@ -39,7 +40,7 @@ const futureDate = () =>
  * @param {string} id
  * @returns {Promise<{ id: string, name: string, nit: string|null, role: 'dueno'|'editor'|'lector' }>}
  */
-async function requirePartner(userId, id) {
+export async function requirePartner(userId, id) {
   const business = UUID_RE.test(id) && (await businesses.findBusinessForMember(id, userId));
   if (!business) throw notFound();
   return business;
@@ -49,7 +50,7 @@ async function requirePartner(userId, id) {
  * @param {string} userId
  * @returns {Promise<string>} Hoy en la zona horaria del usuario.
  */
-async function today(userId) {
+export async function today(userId) {
   const user = await findUserById(userId);
   return todayIso(new Date(), user?.timezone);
 }
@@ -89,11 +90,11 @@ async function loadMonth(business, month) {
 export async function listMonth(userId, id, month) {
   const business = await requirePartner(userId, id);
   const selected = month ?? (await today(userId)).slice(0, 7);
-  return {
-    month: selected,
-    canRecord: business.role !== 'lector',
-    ...(await loadMonth(business, selected)),
-  };
+  const [monthData, customCategories] = await Promise.all([
+    loadMonth(business, selected),
+    repo.listCustomCategories(business.id),
+  ]);
+  return { month: selected, canRecord: business.role !== 'lector', customCategories, ...monthData };
 }
 
 /**
@@ -126,6 +127,14 @@ export async function record(userId, id, input) {
   const now = await today(userId);
   const date = input.date ?? now;
   if (date > now) throw futureDate();
+  if (CUSTOM_CATEGORY_RE.test(input.category)) {
+    const custom = await repo.listCustomCategories(business.id);
+    if (!custom.some((c) => c.key === input.category)) {
+      throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
+        { field: 'category', problem: 'Esa categoría no existe en este negocio' },
+      ]);
+    }
+  }
   const movement = await repo.insertMovement({
     businessId: business.id,
     userId,
@@ -221,3 +230,63 @@ export async function remove(userId, id, movementId) {
     });
   }
 }
+
+/* ---------- Categorías propias del negocio (FT-0058) ---------- */
+
+/** Cuántas categorías propias puede tener un negocio. */
+export const MAX_CUSTOM_CATEGORIES = 30;
+
+/**
+ * Crea una categoría propia. Dueños y editores. El nombre no puede repetir una de siempre ni otra
+ * propia (sin importar mayúsculas).
+ * @param {string} userId
+ * @param {string} id
+ * @param {{ name: string }} input
+ * @returns {Promise<{ key: string, name: string }>}
+ */
+export async function addCategory(userId, id, { name }) {
+  const business = await requirePartner(userId, id);
+  if (business.role === 'lector') throw readOnly();
+  const taken = () =>
+    new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [{ field: 'name', problem: 'Ya hay una categoría con ese nombre' }]);
+  const plain = (s) => s.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+  if (Object.values(BUILT_IN_NAMES).some((n) => plain(n) === plain(name))) throw taken();
+  const custom = await repo.listCustomCategories(business.id);
+  if (custom.length >= MAX_CUSTOM_CATEGORIES) {
+    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
+      { field: 'name', problem: `Máximo ${MAX_CUSTOM_CATEGORIES} categorías propias` },
+    ]);
+  }
+  const key = `c_${randomUUID().replace(/-/g, '').slice(0, 8)}`;
+  const created = await repo.insertCustomCategory(business.id, { key, name });
+  if (!created) throw taken();
+  return created;
+}
+
+/**
+ * Borra una categoría propia. Sus movimientos pasan a "Otros". Dueños y editores.
+ * @param {string} userId
+ * @param {string} id
+ * @param {string} key
+ * @returns {Promise<void>}
+ */
+export async function removeCategory(userId, id, key) {
+  const business = await requirePartner(userId, id);
+  if (business.role === 'lector') throw readOnly();
+  const deleted = CUSTOM_CATEGORY_RE.test(key) && (await repo.deleteCustomCategory(business.id, key));
+  if (!deleted) throw new AppError(404, 'NOT_FOUND', 'Categoría no encontrada');
+}
+
+/** Nombres de las categorías de siempre, para no repetirlos en las propias. */
+const BUILT_IN_NAMES = {
+  ventas: 'Ventas',
+  insumos: 'Insumos',
+  arriendo: 'Arriendo',
+  nomina: 'Nómina',
+  servicios: 'Servicios',
+  publicidad: 'Publicidad',
+  transporte: 'Transporte',
+  impuestos: 'Impuestos',
+  otros: 'Otros',
+  retiros: 'Retiros',
+};

@@ -488,6 +488,71 @@ export const MIGRATIONS = [
          REFERENCES fuentes_ingreso(id) ON DELETE SET NULL`,
     ],
   },
+  {
+    id: '024_aviso_liquidez',
+    statements: [
+      'ALTER TABLE perfiles_financieros ADD COLUMN IF NOT EXISTS aviso_liquidez_fecha DATE NULL',
+      'ALTER TABLE perfiles_financieros ADD COLUMN IF NOT EXISTS aviso_liquidez_dias SMALLINT NULL',
+      'ALTER TABLE perfiles_financieros ADD COLUMN IF NOT EXISTS aviso_liquidez_monto NUMERIC(12,2) NULL',
+    ],
+  },
+  {
+    id: '025_negocio_cuentas',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS negocio_cuentas (
+         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         negocio_id UUID NOT NULL REFERENCES negocios(id) ON DELETE CASCADE,
+         usuario_id UUID NULL REFERENCES usuarios(id) ON DELETE SET NULL,
+         tipo VARCHAR(6) NOT NULL CHECK (tipo IN ('cobrar', 'pagar')),
+         tercero VARCHAR(80) NOT NULL,
+         descripcion VARCHAR(120) NULL,
+         monto NUMERIC(12,2) NOT NULL CHECK (monto > 0),
+         vence DATE NULL,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       )`,
+      'CREATE INDEX IF NOT EXISTS idx_negocio_cuentas_negocio ON negocio_cuentas(negocio_id, vence)',
+      `CREATE TABLE IF NOT EXISTS negocio_abonos (
+         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         cuenta_id UUID NOT NULL REFERENCES negocio_cuentas(id) ON DELETE CASCADE,
+         usuario_id UUID NULL REFERENCES usuarios(id) ON DELETE SET NULL,
+         monto NUMERIC(12,2) NOT NULL CHECK (monto > 0),
+         fecha DATE NOT NULL,
+         movimiento_id UUID NOT NULL REFERENCES negocio_movimientos(id) ON DELETE CASCADE,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       )`,
+      'CREATE INDEX IF NOT EXISTS idx_negocio_abonos_cuenta ON negocio_abonos(cuenta_id, fecha)',
+    ],
+  },
+  {
+    id: '026_avisos_negocio',
+    statements: [
+      'ALTER TABLE negocio_cuentas ADD COLUMN IF NOT EXISTS aviso_previo_at TIMESTAMPTZ NULL',
+      'ALTER TABLE negocio_cuentas ADD COLUMN IF NOT EXISTS aviso_vencida_at TIMESTAMPTZ NULL',
+      `CREATE TABLE IF NOT EXISTS negocio_fechas_impuesto (
+         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         negocio_id UUID NOT NULL REFERENCES negocios(id) ON DELETE CASCADE,
+         nombre VARCHAR(40) NOT NULL,
+         fecha DATE NOT NULL,
+         avisada_at TIMESTAMPTZ NULL,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       )`,
+      'CREATE INDEX IF NOT EXISTS idx_negocio_fechas_impuesto ON negocio_fechas_impuesto(negocio_id, fecha)',
+    ],
+  },
+  {
+    id: '027_negocio_categorias',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS negocio_categorias (
+         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         negocio_id UUID NOT NULL REFERENCES negocios(id) ON DELETE CASCADE,
+         clave VARCHAR(20) NOT NULL,
+         nombre VARCHAR(30) NOT NULL,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       )`,
+      'CREATE UNIQUE INDEX IF NOT EXISTS ux_negocio_categorias_clave ON negocio_categorias(negocio_id, clave)',
+      'CREATE UNIQUE INDEX IF NOT EXISTS ux_negocio_categorias_nombre ON negocio_categorias(negocio_id, lower(nombre))',
+    ],
+  },
 ];
 
 /**
