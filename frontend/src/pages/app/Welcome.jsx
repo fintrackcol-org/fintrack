@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Plus, X } from 'lucide-react';
+import { useAuth } from '@/auth/AuthContext';
 import MoneyInput from '@/components/common/MoneyInput';
 import IncomeSourcesFields from '@/components/money/IncomeSourcesFields';
+import HowItWorksTour from '@/components/onboarding/HowItWorksTour';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import usePageTitle from '@/hooks/usePageTitle';
+import { getDisplayName } from '@/lib/displayName';
 import { SUGGESTED_COMMITMENTS, balanceProposal, readCommitmentForm, toProfileData } from '@/lib/moneyProfile';
 import { cn } from '@/lib/utils';
 import { toApiSources } from '@/lib/incomeSources';
@@ -23,6 +26,9 @@ function WelcomeSteps() {
   usePageTitle('Bienvenida');
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  // FT-0048: antes de las preguntas, el recorrido "Cómo funciona" (se puede saltar).
+  const [touring, setTouring] = useState(true);
   const [step, setStep] = useState(1);
   // FT-0060: fuentes de ingreso elegidas (por tipo). Se puede elegir varias o ninguna.
   const [sources, setSources] = useState({});
@@ -94,6 +100,11 @@ function WelcomeSteps() {
 
   return (
     <div data-theme={theme} className="min-h-dvh bg-canvas text-ink antialiased">
+      {touring ? (
+        <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6">
+          <HowItWorksTour name={getDisplayName(user)} onDone={() => setTouring(false)} />
+        </main>
+      ) : (
       <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6">
         <div className="flex items-center justify-between">
           <p className="text-sm text-ink/60">
@@ -239,6 +250,7 @@ function WelcomeSteps() {
           )}
         </div>
       </main>
+      )}
     </div>
   );
 }
