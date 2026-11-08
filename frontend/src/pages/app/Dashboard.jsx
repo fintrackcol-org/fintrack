@@ -7,6 +7,7 @@ import DashboardEmpty from '@/components/dashboard/DashboardEmpty';
 import MobileHome from '@/components/dashboard/MobileHome';
 import ExpenseDonut from '@/components/dashboard/ExpenseDonut';
 import HealthCard from '@/components/dashboard/HealthCard';
+import LiquidityCard from '@/components/dashboard/LiquidityCard';
 import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
 import PeriodSelector from '@/components/dashboard/PeriodSelector';
 import QuickActions from '@/components/dashboard/QuickActions';
@@ -205,6 +206,7 @@ export default function Dashboard() {
               {welcomePending && <MoneyInvite onDone={moneyProfile.reload} />}
               <PeriodSelector period={selected.period} date={selected.date} onChange={setSelected} />
               {balanceCard}
+              <LiquidityCard hidden={hidden} />
               <CardsSummary cards={cards.data} hidden={hidden} />
               {summary.error && online && (
                 <p role="alert" className="-mt-2 text-sm text-negative">
