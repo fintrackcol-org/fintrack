@@ -5,6 +5,7 @@ import {
   deleteInvitation,
   deleteMovement,
   deletePartner,
+  getAdvice,
   getBusiness,
   getBusinesses,
   getExport,
@@ -54,6 +55,7 @@ import { requireAuth } from '../middlewares/auth.middleware.js';
  *   impuestos (IVA, retención…), con aviso 3 días antes (FT-0058).
  * - `POST /:id/categories` · `DELETE /:id/categories/:key` → categorías propias del negocio (dueños
  *   y editores); al borrar una, sus movimientos pasan a "Otros". Se listan en `GET /:id/movements`.
+ * - `GET /:id/advice?month=` → consejo sobre el mes (IA con cifras agregadas, o reglas) (FT-0058).
  */
 const router = Router();
 
@@ -75,6 +77,7 @@ router.post('/:id/movements', postMovement);
 router.delete('/:id/movements/:movementId', deleteMovement);
 router.post('/:id/withdrawals', postWithdrawal);
 router.get('/:id/export', getExport);
+router.get('/:id/advice', getAdvice);
 router.get('/:id/accounts', getAccounts);
 router.post('/:id/accounts', postAccount);
 router.delete('/:id/accounts/:accountId', deleteAccount);

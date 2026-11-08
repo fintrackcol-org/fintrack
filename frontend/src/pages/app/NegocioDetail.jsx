@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, LogOut, MoreHorizontal, Pencil, Trash2, UserPlus } from 'lucide-react';
 import ConfirmButton from '@/components/common/ConfirmButton';
 import Sheet from '@/components/common/Sheet';
+import Tabs from '@/components/common/Tabs';
 import BusinessAccounts from '@/components/negocios/BusinessAccounts';
 import BusinessMonth from '@/components/negocios/BusinessMonth';
 import BusinessTaxDates from '@/components/negocios/BusinessTaxDates';
@@ -28,7 +29,8 @@ import {
 } from '@/services/negocioService';
 
 /**
- * Página privada `/app/negocios/:id` (FT-0016 y FT-0017): las finanzas del mes del negocio y sus socios. Los dueños invitan
+ * Página privada `/app/negocios/:id` (FT-0016 y FT-0017): las finanzas del mes del negocio y sus socios,
+ * en pestañas Finanzas, Cuentas y Socios (FT-0058). Los dueños invitan
  * (ventana), cambian roles y participaciones desde cada socio y editan el negocio en Opciones;
  * cualquier socio puede salirse. Se vuelve a pedir al regresar a la pestaña, para ver los cambios
  * de los demás socios.
@@ -49,6 +51,9 @@ export default function NegocioDetail() {
   // Las cuentas crean movimientos y el mes puede borrar abonos: cada uno avisa al otro (FT-0058).
   // `accounts` sube cuando cambian las cuentas (recarga el mes); `month`, cuando se borra un movimiento.
   const [ledger, setLedger] = useState({ accounts: 0, month: 0 });
+  // Pestañas (FT-0058): en celular la pantalla quedaba muy larga. Al crear el negocio se abre en
+  // Socios, para invitar.
+  const [tab, setTab] = useState(state?.created ? 'socios' : 'finanzas');
   usePageTitle(business?.name ?? 'Negocio');
 
   const load = useCallback(async () => {
@@ -124,6 +129,41 @@ export default function NegocioDetail() {
   const lastOwner = isOwner && business.partners.filter((p) => p.role === 'dueno').length === 1;
   const closeSheet = () => setSheet(null);
 
+  const partnersPanel = (
+    <Panel aria-labelledby="partners-title">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 id="partners-title" className="text-lg font-semibold tracking-tight">
+            Socios ({business.membersCount})
+          </h2>
+          <p className="text-sm text-ink/60">
+            {isOwner
+              ? business.totalShare > 0
+                ? `${formatShare(business.totalShare)} de la participación asignada`
+                : 'Toca ⋮ en un socio para cambiar su rol o su participación.'
+              : `Eres ${role.label.toLowerCase()}: ${role.hint.toLowerCase()}.`}
+          </p>
+        </div>
+        {isOwner && (
+          <Button onClick={() => setSheet('invitar')}>
+            <UserPlus aria-hidden="true" /> Invitar
+          </Button>
+        )}
+      </div>
+      <PartnerList
+        partners={business.partners}
+        isOwner={isOwner}
+        online={online}
+        onUpdate={(userId, changes) => apply(() => updatePartner(id, userId, changes), 'Socio actualizado.')}
+        onRemove={async (userId) => {
+          await removePartner(id, userId);
+          setNotice('Socio retirado del negocio.');
+          await load();
+        }}
+      />
+    </Panel>
+  );
+
   return (
     <div className="mx-auto max-w-3xl">
       <Link
@@ -154,59 +194,44 @@ export default function NegocioDetail() {
         {notice}
       </p>
 
-      <div className="mb-8 space-y-4">
-        <BusinessMonth
-          businessId={id}
-          businessName={business.name}
-          myRole={business.role}
-          myId={business.partners.find((p) => p.isMe)?.userId}
-          online={online}
-          refreshKey={ledger.accounts}
-          onChanged={() => setLedger((l) => ({ ...l, month: l.month + 1 }))}
-        />
-        <BusinessAccounts
-          businessId={id}
-          myRole={business.role}
-          myId={business.partners.find((p) => p.isMe)?.userId}
-          online={online}
-          refreshKey={ledger.month}
-          onChanged={() => setLedger((l) => ({ ...l, accounts: l.accounts + 1 }))}
-        />
-        <BusinessTaxDates businessId={id} online={online} />
-      </div>
-
-      <Panel aria-labelledby="partners-title">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h2 id="partners-title" className="text-lg font-semibold tracking-tight">
-              Socios ({business.membersCount})
-            </h2>
-            <p className="text-sm text-ink/60">
-              {isOwner
-                ? business.totalShare > 0
-                  ? `${formatShare(business.totalShare)} de la participación asignada`
-                  : 'Toca ⋮ en un socio para cambiar su rol o su participación.'
-                : `Eres ${role.label.toLowerCase()}: ${role.hint.toLowerCase()}.`}
-            </p>
-          </div>
-          {isOwner && (
-            <Button onClick={() => setSheet('invitar')}>
-              <UserPlus aria-hidden="true" /> Invitar
-            </Button>
-          )}
-        </div>
-        <PartnerList
-          partners={business.partners}
-          isOwner={isOwner}
-          online={online}
-          onUpdate={(userId, changes) => apply(() => updatePartner(id, userId, changes), 'Socio actualizado.')}
-          onRemove={async (userId) => {
-            await removePartner(id, userId);
-            setNotice('Socio retirado del negocio.');
-            await load();
-          }}
-        />
-      </Panel>
+      <Tabs
+        label="Secciones del negocio"
+        tabs={[
+          { value: 'finanzas', label: 'Finanzas' },
+          { value: 'cuentas', label: 'Cuentas' },
+          { value: 'socios', label: 'Socios', count: business.membersCount },
+        ]}
+        value={tab}
+        onChange={setTab}
+      >
+        {(current) =>
+          current === 'finanzas' ? (
+            <BusinessMonth
+              businessId={id}
+              businessName={business.name}
+              myRole={business.role}
+              myId={business.partners.find((p) => p.isMe)?.userId}
+              online={online}
+              refreshKey={ledger.accounts}
+              onChanged={() => setLedger((l) => ({ ...l, month: l.month + 1 }))}
+            />
+          ) : current === 'cuentas' ? (
+            <div className="space-y-4">
+              <BusinessAccounts
+                businessId={id}
+                myRole={business.role}
+                myId={business.partners.find((p) => p.isMe)?.userId}
+                online={online}
+                refreshKey={ledger.month}
+                onChanged={() => setLedger((l) => ({ ...l, accounts: l.accounts + 1 }))}
+              />
+              <BusinessTaxDates businessId={id} online={online} />
+            </div>
+          ) : (
+            partnersPanel
+          )
+        }
+      </Tabs>
 
       {isOwner && (
         <Sheet open={sheet === 'invitar'} title="Invitar socios" onClose={closeSheet}>

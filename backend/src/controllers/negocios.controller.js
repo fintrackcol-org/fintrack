@@ -1,5 +1,6 @@
 import * as movements from '../services/negocio-movements.service.js';
 import * as negocios from '../services/negocios.service.js';
+import { getBusinessAdvice } from '../services/negocio-advice.service.js';
 import {
   parseCategory,
   parseExport,
@@ -10,6 +11,8 @@ import {
 import {
   buildBusinessPdf,
   buildBusinessWorkbook,
+  buildRangePdf,
+  buildRangeWorkbook,
   reportFilename,
 } from '../services/negocio-report.service.js';
 import {
@@ -199,23 +202,32 @@ export async function postWithdrawal(req, res) {
 
 /**
  * `GET /api/v1/businesses/:id/export?month=AAAA-MM&format=xlsx|pdf`: el mes del negocio para el
- * contador (FT-0018). Todos los socios pueden descargarlo.
+ * contador (FT-0018). Con `from=AAAA-MM&to=AAAA-MM`, varios meses (FT-0058). Todos los socios
+ * pueden descargarlo.
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @returns {Promise<void>}
  */
 export async function getExport(req, res) {
-  const { month, format } = parseExport(req.query);
-  const report = await movements.monthReport(req.userId, req.params.id, month);
-  const body =
-    format === 'xlsx' ? await buildBusinessWorkbook(report) : await buildBusinessPdf(report);
+  const { month, from, to, format } = parseExport(req.query);
+  let body;
+  let filename;
+  if (from) {
+    const report = await movements.rangeReport(req.userId, req.params.id, from, to);
+    body = format === 'xlsx' ? await buildRangeWorkbook(report) : await buildRangePdf(report);
+    filename = reportFilename(report.business.name, from === to ? from : `${from}_${to}`, format);
+  } else {
+    const report = await movements.monthReport(req.userId, req.params.id, month);
+    body = format === 'xlsx' ? await buildBusinessWorkbook(report) : await buildBusinessPdf(report);
+    filename = reportFilename(report.business.name, report.month, format);
+  }
   res
     .set({
       'Content-Type':
         format === 'xlsx'
           ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
           : 'application/pdf',
-      'Content-Disposition': `attachment; filename="${reportFilename(report.business.name, report.month, format)}"`,
+      'Content-Disposition': `attachment; filename="${filename}"`,
       'Cache-Control': 'no-store',
     })
     .send(body);
@@ -240,4 +252,14 @@ export async function postCategory(req, res) {
 export async function deleteCategory(req, res) {
   await movements.removeCategory(req.userId, req.params.id, req.params.key);
   res.status(204).end();
+}
+
+/**
+ * `GET /api/v1/businesses/:id/advice?month=`: consejo sobre el mes del negocio (FT-0058).
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+export async function getAdvice(req, res) {
+  res.json(await getBusinessAdvice(req.userId, req.params.id, parseMonth(req.query.month)));
 }

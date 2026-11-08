@@ -53,3 +53,7 @@ db.version(2)
 // porque se envían a `POST /vacas/:id/contributions`, no a `/sync/batch`. La copia de las vacas
 // para verlas sin conexión vive en `meta` (`vacas:<userId>` y `vaca:<userId>:<id>`).
 db.version(3).stores({ vacaPending: 'localId, userId, vacaId, createdAt' });
+
+// v4 (FT-0058, Emprendimientos): movimientos de negocios hechos sin conexión. Se envían a
+// `POST /businesses/:id/movements`. La copia del mes vive en `meta` (`negocio:<userId>:<id>:<mes>`).
+db.version(4).stores({ businessPending: 'localId, userId, businessId, createdAt' });
