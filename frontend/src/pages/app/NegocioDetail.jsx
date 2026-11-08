@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, LogOut, MoreHorizontal, Pencil, Trash2, UserPlus } from 'lucide-react';
 import ConfirmButton from '@/components/common/ConfirmButton';
 import Sheet from '@/components/common/Sheet';
+import Tabs from '@/components/common/Tabs';
 import BusinessMonth from '@/components/negocios/BusinessMonth';
 import Panel from '@/components/layout/Panel';
 import NegocioForm from '@/components/negocios/NegocioForm';
@@ -43,6 +44,8 @@ export default function NegocioDetail() {
   const [notice, setNotice] = useState(
     state?.created ? 'Negocio creado. Invita a tus socios.' : state?.joined ? '¡Ya eres socio del negocio!' : '',
   );
+  // FT-0052: la pantalla era muy larga en el celular; Finanzas y Socios van en pestañas.
+  const [tab, setTab] = useState('finanzas');
   const [sheet, setSheet] = useState(state?.created ? 'invitar' : null); // 'invitar' | 'opciones' | 'editar'
   usePageTitle(business?.name ?? 'Negocio');
 
@@ -123,7 +126,8 @@ export default function NegocioDetail() {
     <div className="mx-auto max-w-3xl">
       <Link
         to="/app/negocios"
-        className="mb-3 inline-flex items-center gap-1 text-sm text-ink/60 transition-colors hover:text-ink"
+        // En el celular ya está la flecha del encabezado: dos "volver" sobraban.
+        className="mb-3 inline-flex items-center gap-1 text-sm text-ink/60 transition-colors hover:text-ink max-md:hidden"
       >
         <ArrowLeft className="size-4" aria-hidden="true" /> Mis negocios
       </Link>
@@ -140,7 +144,13 @@ export default function NegocioDetail() {
             {business.nit && <span className="break-all">NIT {business.nit}</span>}
           </p>
         </div>
-        <Button variant="outline" size="icon" className="shrink-0" onClick={() => setSheet('opciones')} aria-label="Opciones del negocio">
+        <Button
+          variant="outline"
+          size="icon"
+          className="shrink-0"
+          onClick={() => setSheet('opciones')}
+          aria-label="Opciones del negocio"
+        >
           <MoreHorizontal aria-hidden="true" />
         </Button>
       </header>
@@ -149,48 +159,62 @@ export default function NegocioDetail() {
         {notice}
       </p>
 
-      <div className="mb-8">
-        <BusinessMonth
-          businessId={id}
-          businessName={business.name}
-          myRole={business.role}
-          myId={business.partners.find((p) => p.isMe)?.userId}
-          online={online}
-        />
-      </div>
-
-      <Panel aria-labelledby="partners-title">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h2 id="partners-title" className="text-lg font-semibold tracking-tight">
-              Socios ({business.membersCount})
-            </h2>
-            <p className="text-sm text-ink/60">
-              {isOwner
-                ? business.totalShare > 0
-                  ? `${formatShare(business.totalShare)} de la participación asignada`
-                  : 'Toca ⋮ en un socio para cambiar su rol o su participación.'
-                : `Eres ${role.label.toLowerCase()}: ${role.hint.toLowerCase()}.`}
-            </p>
+      <Tabs
+        label="Secciones del negocio"
+        tabs={[
+          { value: 'finanzas', label: 'Finanzas' },
+          { value: 'socios', label: 'Socios', count: business.membersCount },
+        ]}
+        value={tab}
+        onChange={setTab}
+      >
+        {(value) => (
+          <div className="mt-4">
+            {value === 'finanzas' ? (
+              <BusinessMonth
+                businessId={id}
+                businessName={business.name}
+                myRole={business.role}
+                myId={business.partners.find((p) => p.isMe)?.userId}
+                online={online}
+              />
+            ) : (
+              <Panel aria-labelledby="partners-title">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 id="partners-title" className="text-lg font-semibold tracking-tight">
+                      Socios ({business.membersCount})
+                    </h2>
+                    <p className="text-sm text-ink/60">
+                      {isOwner
+                        ? business.totalShare > 0
+                          ? `${formatShare(business.totalShare)} de la participación asignada`
+                          : 'Toca ⋮ en un socio para cambiar su rol o su participación.'
+                        : `Eres ${role.label.toLowerCase()}: ${role.hint.toLowerCase()}.`}
+                    </p>
+                  </div>
+                  {isOwner && (
+                    <Button onClick={() => setSheet('invitar')}>
+                      <UserPlus aria-hidden="true" /> Invitar
+                    </Button>
+                  )}
+                </div>
+                <PartnerList
+                  partners={business.partners}
+                  isOwner={isOwner}
+                  online={online}
+                  onUpdate={(userId, changes) => apply(() => updatePartner(id, userId, changes), 'Socio actualizado.')}
+                  onRemove={async (userId) => {
+                    await removePartner(id, userId);
+                    setNotice('Socio retirado del negocio.');
+                    await load();
+                  }}
+                />
+              </Panel>
+            )}
           </div>
-          {isOwner && (
-            <Button onClick={() => setSheet('invitar')}>
-              <UserPlus aria-hidden="true" /> Invitar
-            </Button>
-          )}
-        </div>
-        <PartnerList
-          partners={business.partners}
-          isOwner={isOwner}
-          online={online}
-          onUpdate={(userId, changes) => apply(() => updatePartner(id, userId, changes), 'Socio actualizado.')}
-          onRemove={async (userId) => {
-            await removePartner(id, userId);
-            setNotice('Socio retirado del negocio.');
-            await load();
-          }}
-        />
-      </Panel>
+        )}
+      </Tabs>
 
       {isOwner && (
         <Sheet open={sheet === 'invitar'} title="Invitar socios" onClose={closeSheet}>
