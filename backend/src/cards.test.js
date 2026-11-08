@@ -326,6 +326,7 @@ test(
       const scheduler = createReminderScheduler({
         listDueDebts: async () => [],
         businessReminders: NO_BUSINESS_ALERTS,
+        listLiquidityUsers: async () => [],
         listCandidates: async () => [],
         listCardUsers: async () => [
           { id: userId, timezone: 'UTC', time: now.toISOString().slice(11, 16) },
