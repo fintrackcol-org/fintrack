@@ -5,7 +5,7 @@ import { formatMoney } from '@/components/transactions/format';
 import { Button } from '@/components/ui/button';
 import useAsync from '@/hooks/useAsync';
 import usePageTitle from '@/hooks/usePageTitle';
-import { toProfileData } from '@/lib/moneyProfile';
+import { NOT_INCOME, toProfileData } from '@/lib/moneyProfile';
 import { cn } from '@/lib/utils';
 import { pressKey } from '@/pages/app/Anotar';
 import { getMoneyPlan, getMoneyProfile, updateMoneyProfile } from '@/services/moneyProfileService';
@@ -51,7 +51,8 @@ export default function FixBalance() {
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-5rem)] max-w-md flex-col">
       <h1 className="text-[26px] font-semibold tracking-tight">¿Cuánta plata tienes?</h1>
-      <p className="mt-1 text-[15px] text-ink/70">Suma banco, Nequi y efectivo</p>
+      <p className="mt-1 text-[15px] text-ink/70">Suma banco, Nequi y efectivo. Desde ahí sumamos y restamos lo que anotes.</p>
+      <p className="mt-1 text-sm text-ink/60">{NOT_INCOME}</p>
       <p aria-live="polite" className={cn('mt-4 text-5xl font-semibold tracking-tight tabular-nums', !Number(shown) && 'text-ink/30')}>
         {formatMoney(Number(shown || 0))}
       </p>

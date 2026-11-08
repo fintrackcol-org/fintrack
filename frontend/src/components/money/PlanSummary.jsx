@@ -5,6 +5,7 @@ import MoneyInput from '@/components/common/MoneyInput';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { dayMessage, planHeadline } from '@/lib/moneyPlan';
+import { NOT_INCOME } from '@/lib/moneyProfile';
 import { cn } from '@/lib/utils';
 import { updateMoneyProfile } from '@/services/moneyProfileService';
 
@@ -51,25 +52,25 @@ export default function PlanSummary({ plan, profile, money, onChanged }) {
 
   return (
     <>
-      <div className="relative mt-2 flex items-center gap-2">
-        <p className="text-4xl font-semibold tracking-tight tabular-nums md:text-5xl">{money(plan.money)}</p>
-        {profile && !editing && (
-          <button
-            type="button"
-            aria-label="Corregir cuánta plata tienes"
-            onClick={() => setEditing(true)}
-            className="grid size-9 shrink-0 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-white"
-          >
-            <Pencil className="size-4" aria-hidden="true" />
-          </button>
-        )}
-      </div>
+      <p className="relative mt-2 text-4xl font-semibold tracking-tight tabular-nums md:text-5xl">{money(plan.money)}</p>
+      {profile && !editing && (
+        <button
+          type="button"
+          aria-label="Corregir cuánta plata tienes"
+          onClick={() => setEditing(true)}
+          className="relative -ml-1 mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-full px-1 text-sm text-white/90 transition-colors hover:text-white focus-visible:outline-white"
+        >
+          <Pencil className="size-4" aria-hidden="true" />
+          ¿No es tu plata real? Corrígela
+        </button>
+      )}
 
       {editing && (
         <form onSubmit={submit} className="relative mt-3 space-y-2 text-ink">
           <Label htmlFor="plan-balance" className="text-white">
             Suma banco, Nequi y efectivo
           </Label>
+          <p className="text-sm text-white/80">{NOT_INCOME}</p>
           <MoneyInput id="plan-balance" value={text} onChange={setText} placeholder="0" showHint={false} autoFocus />
           <div className="flex flex-wrap gap-2">
             <Button type="submit" size="sm" variant="outline-light">

@@ -22,9 +22,9 @@ export default function MoneyInvite({ onDone }) {
       </span>
       <div className="min-w-40 flex-1">
         <h2 id="money-invite-title" className="font-semibold tracking-tight">
-          Cuéntanos cómo te entra la plata
+          ¿Ya tenías plata cuando empezaste?
         </h2>
-        <p className="text-sm text-ink/60">Son tres preguntas y las puedes cambiar cuando quieras.</p>
+        <p className="text-sm text-ink/60">Dinos cuánta tienes hoy y cómo te entra: son tres preguntas y las cambias cuando quieras.</p>
         {error && (
           <p role="alert" className="mt-1 text-sm text-negative">
             {error}
