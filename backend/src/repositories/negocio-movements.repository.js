@@ -19,7 +19,9 @@ const KIND = `CASE m.tipo WHEN 'venta' THEN 'sale' WHEN 'otro_ingreso' THEN 'oth
 const COLUMNS = `m.id, ${KIND} AS kind, m.categoria AS category, m.monto::float8 AS amount,
   m.descripcion AS description, to_char(m.fecha, 'YYYY-MM-DD') AS date, m.created_at AS "createdAt",
   CASE WHEN u.id IS NULL THEN NULL ELSE json_build_object('id', u.id, 'name', u.nombre) END
-    AS "registeredBy"`;
+    AS "registeredBy",
+  (SELECT k.nombre FROM negocio_categorias k WHERE k.negocio_id = m.negocio_id AND k.clave = m.categoria)
+    AS "categoryName"`;
 
 /**
  * Movimientos del negocio entre dos fechas, del más reciente al más viejo.
@@ -107,4 +109,63 @@ export async function deleteMovement(businessId, id) {
     [businessId, id],
   );
   return rowCount > 0;
+}
+
+/* ---------- Categorías propias del negocio (FT-0058) ---------- */
+
+/**
+ * @param {string} businessId
+ * @returns {Promise<Array<{ key: string, name: string }>>} En orden alfabético.
+ */
+export async function listCustomCategories(businessId) {
+  const { rows } = await pool.query(
+    'SELECT clave AS key, nombre AS name FROM negocio_categorias WHERE negocio_id = $1 ORDER BY lower(nombre)',
+    [businessId],
+  );
+  return rows;
+}
+
+/**
+ * Crea una categoría. Si ya hay una con el mismo nombre (sin importar mayúsculas), no hace nada.
+ * @param {string} businessId
+ * @param {{ key: string, name: string }} data
+ * @returns {Promise<{ key: string, name: string }|undefined>} `undefined` si el nombre ya existía.
+ */
+export async function insertCustomCategory(businessId, { key, name }) {
+  const { rows } = await pool.query(
+    `INSERT INTO negocio_categorias (negocio_id, clave, nombre) VALUES ($1, $2, $3)
+     ON CONFLICT DO NOTHING RETURNING clave AS key, nombre AS name`,
+    [businessId, key, name],
+  );
+  return rows[0];
+}
+
+/**
+ * Borra una categoría propia; sus movimientos pasan a "otros". Todo en una transacción.
+ * @param {string} businessId
+ * @param {string} key
+ * @returns {Promise<boolean>} `false` si no existía.
+ */
+export async function deleteCustomCategory(businessId, key) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rowCount } = await client.query(
+      'DELETE FROM negocio_categorias WHERE negocio_id = $1 AND clave = $2',
+      [businessId, key],
+    );
+    if (rowCount > 0) {
+      await client.query(
+        "UPDATE negocio_movimientos SET categoria = 'otros' WHERE negocio_id = $1 AND categoria = $2",
+        [businessId, key],
+      );
+    }
+    await client.query('COMMIT');
+    return rowCount > 0;
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
 }

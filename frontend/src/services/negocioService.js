@@ -276,3 +276,12 @@ export const createTaxDate = (id, data) => apiRequest(`/businesses/${id}/tax-dat
 
 /** @returns {Promise<null>} */
 export const deleteTaxDate = (id, dateId) => apiRequest(`/businesses/${id}/tax-dates/${dateId}`, { method: 'DELETE' });
+
+/* ---------- Categorías propias del negocio (FT-0058) ---------- */
+
+/** @returns {Promise<{ key: string, name: string }>} */
+export const createCategory = (id, name) =>
+  apiRequest(`/businesses/${id}/categories`, { method: 'POST', body: { name } });
+
+/** Sus movimientos pasan a "Otros". @returns {Promise<null>} */
+export const deleteCategory = (id, key) => apiRequest(`/businesses/${id}/categories/${key}`, { method: 'DELETE' });

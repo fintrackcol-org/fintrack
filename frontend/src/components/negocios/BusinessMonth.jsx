@@ -5,13 +5,30 @@ import Sheet from '@/components/common/Sheet';
 import Panel from '@/components/layout/Panel';
 import BusinessDistribution, { WithdrawalForm } from '@/components/negocios/BusinessDistribution';
 import MovementForm from '@/components/negocios/MovementForm';
-import { BUSINESS_CATEGORIES, MOVEMENT_KINDS, changeText, monthLabel, shiftMonth } from '@/components/negocios/movementFormat';
+import ChipGroup from '@/components/common/ChipGroup';
+import {
+  KIND_FILTERS,
+  MOVEMENT_KINDS,
+  categoryLabel,
+  changeText,
+  filterMovements,
+  monthLabel,
+  shiftMonth,
+} from '@/components/negocios/movementFormat';
 import { formatMoney, formatRelativeDay } from '@/components/transactions/format';
 import { todayIso } from '@/components/vacas/vacaFormat';
 import { Button } from '@/components/ui/button';
 import { downloadFile } from '@/lib/downloadFile';
 import { cn } from '@/lib/utils';
-import { createMovement, deleteMovement, exportBusinessMonth, listMovements, withdraw } from '@/services/negocioService';
+import {
+  createCategory,
+  createMovement,
+  deleteCategory,
+  deleteMovement,
+  exportBusinessMonth,
+  listMovements,
+  withdraw,
+} from '@/services/negocioService';
 
 /**
  * Hoja "Exportar el mes": Excel o PDF para el contador (FT-0018).
@@ -58,6 +75,8 @@ function ExportOptions({ onExport, disabled }) {
     </div>
   );
 }
+
+const NO_FILTER = { kind: 'all', partner: 'all' };
 
 const percent = (n) => `${n.toLocaleString('es-CO', { maximumFractionDigits: 1 })} %`;
 
@@ -166,7 +185,7 @@ function MovementRow({ movement, onOpen }) {
         <span className="min-w-0 flex-1">
           <span className="block break-words font-medium">{movement.description}</span>
           <span className="block text-sm text-ink/60">
-            {kind.label} · {BUSINESS_CATEGORIES[movement.category]} · {formatRelativeDay(movement.date)}
+            {kind.label} · {categoryLabel(movement)} · {formatRelativeDay(movement.date)}
           </span>
         </span>
         <span className={cn('shrink-0 font-semibold tabular-nums', kind.income ? 'text-positive' : 'text-ink')}>
@@ -196,6 +215,8 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
   const [notice, setNotice] = useState('');
   const [version, setVersion] = useState(0);
   const reload = useCallback(() => setVersion((v) => v + 1), []);
+  // Filtros del historial (FT-0058): solo cambian la lista, no el panel del mes.
+  const [filter, setFilter] = useState(NO_FILTER);
 
   useEffect(() => {
     let cancelled = false;
@@ -236,6 +257,11 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
   };
 
   const panel = data?.panel;
+  const shown = data ? filterMovements(data.movements, filter) : [];
+  // Socios que registraron algo este mes, para filtrar por quién lo hizo.
+  const partners = data
+    ? [...new Map(data.movements.filter((m) => m.registeredBy).map((m) => [m.registeredBy.id, m.registeredBy])).values()]
+    : [];
   const prevLabel = panel && monthLabel(panel.previous.month, currentMonth);
   const opened = sheet && typeof sheet === 'object' && 'id' in sheet ? sheet : null;
   const isMine = opened?.registeredBy?.id === myId;
@@ -361,12 +387,46 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
               </Panel>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-ink/60">Movimientos ({data.movements.length})</h3>
-                <ul aria-label="Movimientos del negocio" className="space-y-2">
-                  {data.movements.map((m) => (
-                    <MovementRow key={m.id} movement={m} onOpen={() => setSheet(m)} />
-                  ))}
-                </ul>
+                <h3 className="mb-2 text-sm font-medium text-ink/60">
+                  Movimientos ({shown.length === data.movements.length ? data.movements.length : `${shown.length} de ${data.movements.length}`})
+                </h3>
+                <div className="mb-3 space-y-2">
+                  <ChipGroup
+                    legend="Tipo de movimiento"
+                    hideLegend
+                    options={KIND_FILTERS.filter((f) => f.value === 'all' || data.movements.some((m) => m.kind === f.value))}
+                    value={filter.kind}
+                    onChange={(kind) => setFilter((f) => ({ ...f, kind }))}
+                    scroll
+                  />
+                  {partners.length > 1 && (
+                    <ChipGroup
+                      legend="Quién lo registró"
+                      hideLegend
+                      options={[
+                        { value: 'all', label: 'Todos los socios' },
+                        ...partners.map((p) => ({ value: p.id, label: p.id === myId ? 'Yo' : p.name || 'Socio' })),
+                      ]}
+                      value={filter.partner}
+                      onChange={(partner) => setFilter((f) => ({ ...f, partner }))}
+                      scroll
+                    />
+                  )}
+                </div>
+                {shown.length === 0 ? (
+                  <p className="text-sm text-ink/60">
+                    Ningún movimiento con ese filtro.{' '}
+                    <button type="button" className="underline" onClick={() => setFilter(NO_FILTER)}>
+                      Ver todos
+                    </button>
+                  </p>
+                ) : (
+                  <ul aria-label="Movimientos del negocio" className="space-y-2">
+                    {shown.map((m) => (
+                      <MovementRow key={m.id} movement={m} onOpen={() => setSheet(m)} />
+                    ))}
+                  </ul>
+                )}
               </div>
             </>
           )}
@@ -374,7 +434,27 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
       )}
 
       <Sheet open={sheet === 'nuevo'} title="Registrar en el negocio" onClose={() => setSheet(null)}>
-        {sheet === 'nuevo' && <MovementForm today={today} disabled={!online} onSubmit={handleCreate} />}
+        {sheet === 'nuevo' && (
+          <MovementForm
+            today={today}
+            disabled={!online}
+            onSubmit={handleCreate}
+            customCategories={data?.customCategories ?? []}
+            onCreateCategory={async (name) => {
+              const created = await createCategory(businessId, name);
+              setData((d) => ({
+                ...d,
+                customCategories: [...d.customCategories, created].sort((a, b) => a.name.localeCompare(b.name, 'es')),
+              }));
+              return created;
+            }}
+            onDeleteCategory={async (key) => {
+              await deleteCategory(businessId, key);
+              setData((d) => ({ ...d, customCategories: d.customCategories.filter((c) => c.key !== key) }));
+              reload();
+            }}
+          />
+        )}
       </Sheet>
       <Sheet open={sheet === 'exportar'} title={`Exportar ${monthLabel(month, currentMonth)}`} onClose={() => setSheet(null)}>
         {sheet === 'exportar' && <ExportOptions onExport={handleExport} disabled={!online} />}
@@ -404,7 +484,7 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-ink/60">Categoría</dt>
-                <dd>{BUSINESS_CATEGORIES[opened.category]}</dd>
+                <dd>{categoryLabel(opened)}</dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-ink/60">Fecha</dt>

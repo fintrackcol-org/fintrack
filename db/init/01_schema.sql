@@ -490,3 +490,14 @@ CREATE TABLE IF NOT EXISTS negocio_fechas_impuesto (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_negocio_fechas_impuesto ON negocio_fechas_impuesto(negocio_id, fecha);
+
+-- FT-0058: categorías propias de cada negocio (ver db/patches/027).
+CREATE TABLE IF NOT EXISTS negocio_categorias (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  negocio_id UUID NOT NULL REFERENCES negocios(id) ON DELETE CASCADE,
+  clave VARCHAR(20) NOT NULL,
+  nombre VARCHAR(30) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_negocio_categorias_clave ON negocio_categorias(negocio_id, clave);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_negocio_categorias_nombre ON negocio_categorias(negocio_id, lower(nombre));
