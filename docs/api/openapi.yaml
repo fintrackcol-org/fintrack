@@ -2251,6 +2251,130 @@ paths:
         "403": { description: "FORBIDDEN: lector, o editor que no lo registró" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /businesses/{id}/accounts:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Businesses]
+      summary: Cuentas por cobrar y por pagar del negocio (todos los socios)
+      description: >
+        Primero las vencidas, luego las pendientes por fecha y al final las pagadas. `totals` suma lo
+        que falta por cobrar y por pagar, y cuánto de eso está vencido.
+      responses:
+        "200":
+          description: Cuentas y totales
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [canRecord, items, totals]
+                properties:
+                  canRecord: { type: boolean, description: "false para el lector" }
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/BusinessAccount" }
+                  totals:
+                    type: object
+                    properties:
+                      receivable: { type: number }
+                      payable: { type: number }
+                      overdueReceivable: { type: number }
+                      overduePayable: { type: number }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Businesses]
+      summary: Registra lo que debe un cliente o lo que se le debe a un proveedor (dueños y editores)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, party, amount]
+              properties:
+                kind: { type: string, enum: [receivable, payable], description: "receivable: cliente; payable: proveedor" }
+                party: { type: string, minLength: 1, maxLength: 80 }
+                description: { type: string, maxLength: 120 }
+                amount: { type: number, minimum: 0.01, maximum: 9999999999.99 }
+                dueDate: { type: string, format: date }
+      responses:
+        "201":
+          description: Cuenta creada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BusinessAccount" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: "FORBIDDEN: el lector no registra" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /businesses/{id}/accounts/{accountId}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: accountId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [Businesses]
+      summary: Borra la cuenta y sus abonos (quien la registró o un dueño)
+      description: Los movimientos que dejaron los abonos se quedan; fueron plata que sí entró o salió.
+      responses:
+        "204": { description: Borrada }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: "FORBIDDEN: lector, o editor que no la registró" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /businesses/{id}/accounts/{accountId}/payments:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: accountId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Businesses]
+      summary: Abono parcial (dueños y editores)
+      description: >
+        No puede pasar del saldo ni tener fecha futura. Crea el movimiento del negocio: el cobro de un
+        cliente como `sale` (o `otherIncome`); el pago a un proveedor como `cost` (o `fixed`,
+        `variable`). Si después se borra ese movimiento, el abono también se va.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: number, minimum: 0.01, maximum: 9999999999.99 }
+                date: { type: string, format: date }
+                movementKind: { type: string, enum: [sale, otherIncome, cost, fixed, variable] }
+      responses:
+        "201":
+          description: La cuenta con el abono
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BusinessAccount" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: "FORBIDDEN: el lector no abona" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /businesses/{id}/accounts/{accountId}/payments/{paymentId}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: accountId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: paymentId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [Businesses]
+      summary: Deshace un abono y su movimiento (quien lo registró o un dueño)
+      responses:
+        "200":
+          description: La cuenta sin el abono
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BusinessAccount" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: "FORBIDDEN: lector, o editor que no lo registró" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /push/vapid-public-key:
     get:
       tags: [Push]
@@ -2862,6 +2986,37 @@ components:
             id: { type: string, format: uuid }
             name: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
+    BusinessAccount:
+      type: object
+      description: Cuenta por cobrar (cliente) o por pagar (proveedor) del negocio (FT-0058).
+      required: [id, kind, party, amount, paid, remaining, status, payments, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [receivable, payable] }
+        party: { type: string, description: "Cliente o proveedor" }
+        description: { type: string, nullable: true }
+        amount: { type: number }
+        paid: { type: number, description: "Suma de los abonos" }
+        remaining: { type: number }
+        dueDate: { type: string, format: date, nullable: true }
+        status: { type: string, enum: [pendiente, vencida, pagada] }
+        createdBy: { type: string, format: uuid, nullable: true, description: "Quién la registró" }
+        createdAt: { type: string, format: date-time }
+        payments:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              amount: { type: number }
+              date: { type: string, format: date }
+              movementId: { type: string, format: uuid }
+              registeredBy:
+                type: object
+                nullable: true
+                properties:
+                  id: { type: string, format: uuid }
+                  name: { type: string, nullable: true }
     BusinessPanel:
       type: object
       description: >

@@ -39,7 +39,7 @@ const futureDate = () =>
  * @param {string} id
  * @returns {Promise<{ id: string, name: string, nit: string|null, role: 'dueno'|'editor'|'lector' }>}
  */
-async function requirePartner(userId, id) {
+export async function requirePartner(userId, id) {
   const business = UUID_RE.test(id) && (await businesses.findBusinessForMember(id, userId));
   if (!business) throw notFound();
   return business;
@@ -49,7 +49,7 @@ async function requirePartner(userId, id) {
  * @param {string} userId
  * @returns {Promise<string>} Hoy en la zona horaria del usuario.
  */
-async function today(userId) {
+export async function today(userId) {
   const user = await findUserById(userId);
   return todayIso(new Date(), user?.timezone);
 }
