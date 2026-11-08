@@ -89,3 +89,13 @@ export function deleteCommitment(id) {
 export function getPaymentCalendar(month) {
   return apiRequest(`/money-profile/calendar${month ? `?month=${month}` : ''}`);
 }
+
+/**
+ * Motor de liquidez (FT-0059): la plata día por día, cuándo y cuánto faltaría y cuánto puede
+ * gastar al día para llegar. Conservador: no cuenta ingresos futuros.
+ * @param {number} [days] Días a proyectar (1 a 90; por defecto 45).
+ * @returns {Promise<{ ready: boolean } & Record<string, any>>} Ver `GET /liquidity` en la API.
+ */
+export function getLiquidity(days) {
+  return apiRequest(days ? `/liquidity?days=${days}` : '/liquidity');
+}

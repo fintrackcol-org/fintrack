@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import LiquidityCard from '@/components/dashboard/LiquidityCard';
 import { Link } from 'react-router-dom';
 import { ArrowDownLeft, ArrowUpRight, Bell, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
@@ -178,6 +179,8 @@ export default function MobileHome({
       <p className="mt-2 text-[13px] text-ink/70 first-letter:uppercase">De {monthLabel}</p>
 
       <CircleActions label="Accesos" actions={CIRCLES} className="mt-5" />
+
+      <LiquidityCard hidden={hidden} className="mt-5" />
 
       {notice ? (
         <Link
