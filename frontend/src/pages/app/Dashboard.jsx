@@ -149,6 +149,7 @@ export default function Dashboard() {
     return (
       <MobileHome
         balance={loadingBalance ? undefined : (moneyProfile.data?.money ?? totals?.balance ?? null)}
+        balanceSet={typeof moneyProfile.data?.balance === 'number'}
         totals={totals}
         expense={summary.error ? null : current?.expense}
         budgets={budgets.data}

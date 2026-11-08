@@ -21,7 +21,7 @@ import useMediaQuery from '@/hooks/useMediaQuery';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { TRANSACTION_SAVED_EVENT } from '@/offline/saveNewTransaction';
-import { balanceProposal, incomeSummary, readCommitmentForm, toProfileData } from '@/lib/moneyProfile';
+import { NOT_INCOME, balanceProposal, incomeSummary, readCommitmentForm, toProfileData } from '@/lib/moneyProfile';
 import {
   createCommitment,
   deleteCommitment,
@@ -116,13 +116,15 @@ export function IncomeSection({ profile, onSave, title = 'Cómo recibes la plata
 }
 
 /**
- * Para quien aún no dice cuánta plata tiene; después se ve y se corrige en la ficha del inicio. Si
- * sus movimientos dan un número, se lo propone en vez de pedirle que escriba uno de memoria.
+ * "Tu plata hoy" (FT-0057): siempre visible, con el monto y Corregir. Para quien aún no dice cuánta
+ * plata tiene, si sus movimientos dan un número se lo propone en vez de pedirle que escriba uno de memoria.
  * @param {{ profile: import('@/services/moneyProfileService').MoneyProfile, onSave: (changes: object) => Promise<void> }} props
  */
 function BalanceSection({ profile, onSave }) {
-  const proposal = balanceProposal(profile.totals);
-  const [typing, setTyping] = useState(proposal === null);
+  const known = typeof profile.money === 'number';
+  const proposal = known ? null : balanceProposal(profile.totals);
+  // `null`: solo se muestra el monto; `false`: la propuesta; `true`: el campo para escribir.
+  const [typing, setTyping] = useState(known ? null : proposal === null);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
 
@@ -130,6 +132,8 @@ function BalanceSection({ profile, onSave }) {
     setError('');
     try {
       await onSave({ balance: String(balance), resetBalance: true });
+      if (known) setTyping(null);
+      setText('');
     } catch (err) {
       setError(err.message);
     }
@@ -146,9 +150,21 @@ function BalanceSection({ profile, onSave }) {
 
   return (
     <Panel aria-labelledby="mi-plata-saldo">
-      <SectionTitle id="mi-plata-saldo" title="Cuánta plata tienes" />
+      <SectionTitle
+        id="mi-plata-saldo"
+        title="Tu plata hoy"
+        action={
+          typing === null && (
+            <Button variant="ghost" size="sm" onClick={() => setTyping(true)}>
+              Corregir
+            </Button>
+          )
+        }
+      />
 
-      {!typing && (
+      {typing === null && <p className="mt-1 text-xl font-semibold tabular-nums">{formatMoney(profile.money)}</p>}
+
+      {typing === false && (
         <div className="mt-4 rounded-2xl bg-ink/5 p-4">
           <p className="text-sm text-ink/60">Según tus movimientos</p>
           <p className="mt-0.5 text-xl font-semibold tabular-nums">{formatMoney(proposal)}</p>
@@ -170,10 +186,16 @@ function BalanceSection({ profile, onSave }) {
         <form onSubmit={submit} className="mt-4 space-y-3">
           <div className="space-y-2">
             <Label htmlFor="money-balance">Suma banco, Nequi y efectivo</Label>
+            <p className="text-sm text-ink/60">{NOT_INCOME}</p>
             <MoneyInput id="money-balance" value={text} onChange={setText} placeholder="0" autoFocus />
           </div>
           <div className="flex gap-2">
             <Button type="submit">Guardar</Button>
+            {known && (
+              <Button type="button" variant="ghost" onClick={() => setTyping(null)}>
+                Cancelar
+              </Button>
+            )}
           </div>
         </form>
       )}
@@ -501,7 +523,7 @@ export default function MiPlata() {
             {data && (
               <>
                 <IncomeSection profile={data} onSave={save} />
-                {data.money === null && <BalanceSection profile={data} onSave={save} />}
+                <BalanceSection key={data.money === null ? 'nuevo' : 'conocido'} profile={data} onSave={save} />
                 <div id="pagos" className="scroll-mt-4">
                   <PaymentsSection commitments={data.commitments} onChanged={profile.reload} />
                 </div>

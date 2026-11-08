@@ -15,8 +15,8 @@ export default function MoneySetupLink() {
       >
         <Wallet className="size-5 shrink-0 text-brand" aria-hidden="true" />
         <span className="min-w-0 flex-1 text-sm">
-          <span className="font-medium">Configura Mi plata</span>
-          <span className="block text-ink/60">Dinos cómo te entra la plata y te calculamos cuánto puedes gastar.</span>
+          <span className="font-medium">¿Cuánta plata tienes hoy?</span>
+          <span className="block text-ink/60">Dínoslo y cómo te entra la plata: así ves tu plata real y cuánto puedes gastar.</span>
         </span>
         <ChevronRight className="size-5 shrink-0 text-ink/40" aria-hidden="true" />
       </Link>
