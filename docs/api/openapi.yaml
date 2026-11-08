@@ -2343,9 +2343,13 @@ paths:
       summary: Reporte del mes para el contador (Excel o PDF)
       description: >
         Estado de resultados, punto de equilibrio, reparto entre socios y movimientos con quién los
-        registró. Todos los socios pueden descargarlo, también el lector.
+        registró. Todos los socios pueden descargarlo, también el lector. Con `from` y `to` (los
+        dos, de 1 a 12 meses, FT-0058) trae el resumen mes a mes con el total; el Excel trae además
+        todos los movimientos del periodo.
       parameters:
         - { name: month, in: query, schema: { type: string }, description: "AAAA-MM; por defecto el mes actual" }
+        - { name: from, in: query, schema: { type: string }, description: "AAAA-MM; primer mes (con `to`)" }
+        - { name: to, in: query, schema: { type: string }, description: "AAAA-MM; último mes (con `from`)" }
         - { name: format, in: query, required: true, schema: { type: string, enum: [xlsx, pdf] } }
       responses:
         "200":
@@ -2557,6 +2561,33 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { description: "FORBIDDEN: el lector no borra" }
         "404": { $ref: "#/components/responses/NotFound" }
+
+  /businesses/{id}/advice:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Businesses]
+      summary: Consejo sobre el mes del negocio (todos los socios)
+      description: >
+        Lo da la IA solo con cifras agregadas del mes (sin nombres ni descripciones) y se guarda
+        mientras no cambien; si la IA no responde, se arma con reglas (`source: reglas`). Lleva el
+        límite de peticiones de la IA.
+      parameters:
+        - { name: month, in: query, schema: { type: string }, description: "AAAA-MM; por defecto el mes actual" }
+      responses:
+        "200":
+          description: Consejo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  advice: { type: string }
+                  source: { type: string, enum: [ia, reglas] }
+                  month: { type: string }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { description: "RATE_LIMITED" }
 
   /businesses/{id}/categories:
     parameters:

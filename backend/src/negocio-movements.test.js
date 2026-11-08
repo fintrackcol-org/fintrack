@@ -13,7 +13,13 @@ import {
   sumByKind,
   weeklyCashFlow,
 } from './services/negocio-panel.logic.js';
-import { monthTitle, reportFilename, resultLines } from './services/negocio-report.service.js';
+import {
+  monthTitle,
+  rangeTitle,
+  rangeTotals,
+  reportFilename,
+  resultLines,
+} from './services/negocio-report.service.js';
 import {
   parseExport,
   parseMonth,
@@ -401,11 +407,43 @@ test('parseWithdrawal y parseExport', () => {
     () => parseWithdrawal({ amount: -1 }),
     (err) => err.statusCode === 422,
   );
-  assert.deepEqual(parseExport({ format: 'pdf' }), { month: undefined, format: 'pdf' });
+  assert.deepEqual(parseExport({ format: 'pdf' }), { month: undefined, from: null, to: null, format: 'pdf' });
   assert.throws(
     () => parseExport({ format: 'csv' }),
     (err) => err.statusCode === 422,
   );
+  // Varios meses (FT-0058): de 1 a 12, en orden.
+  assert.deepEqual(parseExport({ format: 'xlsx', from: '2025-11', to: '2026-10' }), {
+    month: undefined,
+    from: '2025-11',
+    to: '2026-10',
+    format: 'xlsx',
+  });
+  for (const range of [
+    { from: '2025-11', to: '2026-11' },
+    { from: '2026-05', to: '2026-04' },
+    { from: '2026-05' },
+  ]) {
+    assert.throws(() => parseExport({ format: 'pdf', ...range }), (err) => err.statusCode === 422);
+  }
+});
+
+test('reporte de varios meses: totales y título', () => {
+  const months = [
+    { panel: { sale: 100, cost: 40, variable: 5, fixed: 20, otherIncome: 0, netProfit: 35, withdrawal: 0 } },
+    { panel: { sale: 200, cost: 80, variable: 10, fixed: 20, otherIncome: 10, netProfit: 100, withdrawal: 50 } },
+  ];
+  assert.deepEqual(rangeTotals(months), {
+    sale: 300,
+    cost: 120,
+    variable: 15,
+    fixed: 40,
+    otherIncome: 10,
+    netProfit: 135,
+    withdrawal: 50,
+  });
+  assert.equal(rangeTitle('2026-01', '2026-06'), 'enero a junio de 2026');
+  assert.equal(rangeTitle('2025-11', '2026-02'), 'noviembre de 2025 a febrero de 2026');
 });
 
 /**
@@ -525,6 +563,19 @@ test(
         );
         assert.equal((await download(outsider.token, 'pdf')).status, 404);
         assert.equal((await download(owner.token, 'csv')).status, 422);
+
+        // Varios meses (FT-0058): los últimos 3 meses en Excel y PDF.
+        const now = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' }).slice(0, 7);
+        const [y, m] = now.split('-').map(Number);
+        const start = new Date(Date.UTC(y, m - 3, 1)).toISOString().slice(0, 7);
+        const rangeXlsx = await download(reader.token, `xlsx&from=${start}&to=${now}`);
+        assert.equal(rangeXlsx.status, 200);
+        assert.match(
+          rangeXlsx.headers.get('content-disposition'),
+          new RegExp(`negocio-arepas-dona-rosa-${start}_${now}\\.xlsx`),
+        );
+        const rangePdf = await download(owner.token, `pdf&from=${start}&to=${now}`);
+        assert.equal(Buffer.from(await rangePdf.arrayBuffer()).subarray(0, 4).toString(), '%PDF');
       } finally {
         server.close();
       }

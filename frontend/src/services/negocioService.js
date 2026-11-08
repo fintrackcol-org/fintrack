@@ -203,8 +203,9 @@ export const withdraw = (id, data) => apiRequest(`/businesses/${id}/withdrawals`
  * @param {{ month: string, format: 'xlsx'|'pdf' }} options
  * @returns {Promise<{ blob: Blob, filename: string }>}
  */
-export async function exportBusinessMonth(id, { month, format }) {
-  const query = new URLSearchParams({ month, format });
+export async function exportBusinessMonth(id, { month, from, to, format }) {
+  // Con `from` y `to`, varios meses (FT-0058).
+  const query = new URLSearchParams(from ? { from, to, format } : { month, format });
   let res;
   try {
     res = await authFetch(`/businesses/${id}/export?${query}`);
@@ -214,7 +215,7 @@ export async function exportBusinessMonth(id, { month, format }) {
   if (!res.ok) throw await toApiError(res);
   return {
     blob: await res.blob(),
-    filename: filenameFrom(res.headers.get('Content-Disposition'), `negocio-${month}.${format}`),
+    filename: filenameFrom(res.headers.get('Content-Disposition'), `negocio-${from ? `${from}_${to}` : month}.${format}`),
   };
 }
 
@@ -285,3 +286,12 @@ export const createCategory = (id, name) =>
 
 /** Sus movimientos pasan a "Otros". @returns {Promise<null>} */
 export const deleteCategory = (id, key) => apiRequest(`/businesses/${id}/categories/${key}`, { method: 'DELETE' });
+
+/**
+ * Consejo sobre el mes del negocio (FT-0058).
+ * @param {string} id
+ * @param {string} [month] AAAA-MM
+ * @returns {Promise<{ advice: string, source: 'ia'|'reglas', month: string }>}
+ */
+export const getBusinessAdvice = (id, month) =>
+  apiRequest(`/businesses/${id}/advice${month ? `?month=${month}` : ''}`);

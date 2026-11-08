@@ -111,14 +111,28 @@ export function parseWithdrawal(body) {
  * @returns {{ month: string|undefined, format: 'xlsx'|'pdf' }}
  */
 export function parseExport(query) {
-  const month = parseMonth(query.month);
   if (query.format !== 'xlsx' && query.format !== 'pdf') {
     throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
       { field: 'format', problem: 'Debe ser xlsx o pdf' },
     ]);
   }
-  return { month, format: query.format };
+  // Varios meses (FT-0058): `from` y `to`, los dos, de 1 a 12 meses.
+  if (query.from !== undefined || query.to !== undefined) {
+    const from = parseMonth(query.from);
+    const to = parseMonth(query.to);
+    const span = from && to ? (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 + Number(to.slice(5)) - Number(from.slice(5)) + 1 : 0;
+    if (span < 1 || span > MAX_EXPORT_MONTHS) {
+      throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
+        { field: 'to', problem: `Elige desde y hasta, de 1 a ${MAX_EXPORT_MONTHS} meses` },
+      ]);
+    }
+    return { month: undefined, from, to, format: query.format };
+  }
+  return { month: parseMonth(query.month), from: null, to: null, format: query.format };
 }
+
+/** Meses que se pueden exportar de una vez. */
+export const MAX_EXPORT_MONTHS = 12;
 
 /**
  * Valida `POST /businesses/:id/categories` (FT-0058).

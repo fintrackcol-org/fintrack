@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Download, FileSpreadsheet, FileText, Loader2
 import ConfirmButton from '@/components/common/ConfirmButton';
 import Sheet from '@/components/common/Sheet';
 import Panel from '@/components/layout/Panel';
+import BusinessAdvice from '@/components/negocios/BusinessAdvice';
 import BusinessDistribution, { WithdrawalForm } from '@/components/negocios/BusinessDistribution';
 import MovementForm from '@/components/negocios/MovementForm';
 import ChipGroup from '@/components/common/ChipGroup';
@@ -18,11 +19,11 @@ import {
 import { formatMoney, formatRelativeDay } from '@/components/transactions/format';
 import { todayIso } from '@/components/vacas/vacaFormat';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { downloadFile } from '@/lib/downloadFile';
 import { cn } from '@/lib/utils';
 import {
   createCategory,
-  createMovement,
   deleteCategory,
   deleteMovement,
   exportBusinessMonth,
@@ -34,25 +35,60 @@ import {
  * Hoja "Exportar el mes": Excel o PDF para el contador (FT-0018).
  * @param {{ onExport: (format: 'xlsx'|'pdf') => Promise<void>, disabled: boolean }} props
  */
-function ExportOptions({ onExport, disabled }) {
+function ExportOptions({ onExport, disabled, month }) {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState('');
+  // Varios meses (FT-0058): por defecto, los últimos 3 hasta el mes que se está viendo.
+  const [several, setSeveral] = useState(false);
+  const [from, setFrom] = useState(shiftMonth(month, -2));
+  const [to, setTo] = useState(month);
   const run = async (format) => {
+    if (several && (!from || !to || from > to)) {
+      setError('El mes inicial no puede ser después del final.');
+      return;
+    }
     setBusy(format);
     setError('');
     try {
-      await onExport(format);
+      await onExport(format, several ? { from, to } : null);
     } catch (err) {
-      setError(err.message);
+      setError(Object.values(err.fields ?? {})[0] ?? err.message);
     } finally {
       setBusy(null);
     }
   };
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink/60">
-        Estado de resultados, punto de equilibrio, reparto entre socios y todos los movimientos con quién los registró.
-      </p>
+      <ChipGroup
+        legend="Qué exportar"
+        hideLegend
+        options={[
+          { value: 'uno', label: 'Este mes' },
+          { value: 'varios', label: 'Varios meses' },
+        ]}
+        value={several ? 'varios' : 'uno'}
+        onChange={(v) => setSeveral(v === 'varios')}
+        disabled={disabled || busy}
+      />
+      {several ? (
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-sm">
+            <span className="mb-1 block text-ink/60">Desde</span>
+            <Input type="month" value={from} max={to} onChange={(e) => setFrom(e.target.value)} disabled={disabled || busy} />
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block text-ink/60">Hasta</span>
+            <Input type="month" value={to} min={from} onChange={(e) => setTo(e.target.value)} disabled={disabled || busy} />
+          </label>
+          <p className="col-span-2 text-sm text-ink/60">
+            Hasta 12 meses: el resumen mes a mes con el total y, en el Excel, todos los movimientos.
+          </p>
+        </div>
+      ) : (
+        <p className="text-sm text-ink/60">
+          Estado de resultados, punto de equilibrio, reparto entre socios y todos los movimientos con quién los registró.
+        </p>
+      )}
       <Button
         variant="outline"
         size="lg"
@@ -77,6 +113,9 @@ function ExportOptions({ onExport, disabled }) {
 }
 
 const NO_FILTER = { kind: 'all', partner: 'all' };
+
+/** `@/offline/businessQueue` (con Dexie) se carga aparte, como en las vacas. */
+const loadQueue = () => import('@/offline/businessQueue');
 
 const percent = (n) => `${n.toLocaleString('es-CO', { maximumFractionDigits: 1 })} %`;
 
@@ -218,19 +257,72 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
   // Filtros del historial (FT-0058): solo cambian la lista, no el panel del mes.
   const [filter, setFilter] = useState(NO_FILTER);
 
+  // Movimientos hechos sin conexión que aún no llegan al servidor (FT-0058).
+  const [pending, setPending] = useState([]);
+  const [fromCache, setFromCache] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     listMovements(businessId, month)
-      .then((res) => !cancelled && (setData(res), setError('')))
-      .catch((err) => !cancelled && setError(err.message));
+      .then((res) => {
+        if (cancelled) return;
+        setData(res);
+        setError('');
+        setFromCache(false);
+        loadQueue().then((q) => q.cacheBusinessMonth(businessId, res).catch(() => {}));
+      })
+      .catch(async (err) => {
+        if (cancelled) return;
+        // Sin conexión se muestra la copia del dispositivo, si la hay.
+        const cached = err.code === 'NETWORK_ERROR' ? await loadQueue().then((q) => q.getCachedBusinessMonth(businessId, month)) : null;
+        if (cancelled) return;
+        if (cached) {
+          setData(cached);
+          setError('');
+          setFromCache(true);
+        } else setError(err.message);
+      });
     return () => {
       cancelled = true;
     };
   }, [businessId, month, version, refreshKey]);
 
+  useEffect(() => {
+    let active = true;
+    let cleanup = () => {};
+    loadQueue().then(({ BUSINESS_SYNC_EVENT, flushBusinessMovements, listPendingMovements }) => {
+      if (!active) return;
+      const refresh = () => listPendingMovements(businessId).then((p) => active && setPending(p)).catch(() => {});
+      const onSync = ({ detail }) => {
+        if (detail.businessId && detail.businessId !== businessId) return;
+        refresh();
+        if (detail.synced) reload();
+      };
+      const onOnline = () => flushBusinessMovements();
+      window.addEventListener(BUSINESS_SYNC_EVENT, onSync);
+      window.addEventListener('online', onOnline);
+      cleanup = () => {
+        window.removeEventListener(BUSINESS_SYNC_EVENT, onSync);
+        window.removeEventListener('online', onOnline);
+      };
+      refresh();
+      flushBusinessMovements();
+    });
+    return () => {
+      active = false;
+      cleanup();
+    };
+  }, [businessId, reload]);
+
   const handleCreate = async (values) => {
-    const movement = await createMovement(businessId, values);
+    const queue = await loadQueue();
+    const result = await queue.saveBusinessMovement(businessId, values);
     setSheet(null);
+    if (result.queued) {
+      setNotice(`Sin conexión: «${values.description}» se envía solo cuando vuelva internet.`);
+      return;
+    }
+    const { movement } = result;
     setNotice(`Registrado: ${movement.description}.`);
     if (movement.date.slice(0, 7) !== month) setMonth(movement.date.slice(0, 7));
     else reload();
@@ -250,8 +342,8 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
     if (movement.date.slice(0, 7) !== month) setMonth(movement.date.slice(0, 7));
     else reload();
   };
-  const handleExport = async (format) => {
-    const { blob, filename } = await exportBusinessMonth(businessId, { month, format });
+  const handleExport = async (format, range) => {
+    const { blob, filename } = await exportBusinessMonth(businessId, range ? { ...range, format } : { month, format });
     downloadFile(blob, filename);
     setSheet(null);
   };
@@ -296,7 +388,7 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
             </Button>
           )}
           {data?.canRecord && (
-            <Button onClick={() => (setNotice(''), setSheet('nuevo'))} disabled={!online}>
+            <Button onClick={() => (setNotice(''), setSheet('nuevo'))}>
               <Plus aria-hidden="true" /> Registrar
             </Button>
           )}
@@ -306,6 +398,40 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
       <p role="status" className={cn('text-sm text-positive', !notice && 'sr-only')}>
         {notice}
       </p>
+      {fromCache && (
+        <p className="text-sm text-ink/60">Sin conexión: ves lo último que se cargó en este dispositivo.</p>
+      )}
+      {pending.length > 0 && (
+        <Panel aria-labelledby="pendientes-title" className="p-4 md:p-4">
+          <h3 id="pendientes-title" className="text-sm font-semibold">
+            Por enviar ({pending.length})
+          </h3>
+          <ul className="mt-2 divide-y divide-ink/10 text-sm">
+            {pending.map((p) => (
+              <li key={p.localId} className="flex items-center justify-between gap-3 py-2">
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{p.movement.description}</span>
+                  <span className={cn('block text-xs', p.rejected ? 'text-negative' : 'text-ink/60')}>
+                    {p.rejected ? `No se pudo guardar: ${p.rejected}` : 'Se envía solo cuando vuelva internet'}
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className="tabular-nums">{formatMoney(p.movement.amount)}</span>
+                  {p.rejected && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => loadQueue().then((q) => q.discardPendingMovement(p.localId))}
+                    >
+                      Descartar
+                    </Button>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
       {error && (
         <p role="alert" className="text-sm text-negative">
           {error}{' '}
@@ -362,6 +488,8 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
                   )}
                 </dl>
               </Panel>
+
+              <BusinessAdvice businessId={businessId} month={month} panel={panel} online={online && !fromCache} />
 
               <BusinessDistribution
                 distribution={data.distribution}
@@ -437,17 +565,17 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
         {sheet === 'nuevo' && (
           <MovementForm
             today={today}
-            disabled={!online}
             onSubmit={handleCreate}
             customCategories={data?.customCategories ?? []}
-            onCreateCategory={async (name) => {
+            // Las categorías se crean y se quitan con conexión; el movimiento se guarda igual sin ella.
+            onCreateCategory={online ? async (name) => {
               const created = await createCategory(businessId, name);
               setData((d) => ({
                 ...d,
                 customCategories: [...d.customCategories, created].sort((a, b) => a.name.localeCompare(b.name, 'es')),
               }));
               return created;
-            }}
+            } : undefined}
             onDeleteCategory={async (key) => {
               await deleteCategory(businessId, key);
               setData((d) => ({ ...d, customCategories: d.customCategories.filter((c) => c.key !== key) }));
@@ -456,8 +584,8 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
           />
         )}
       </Sheet>
-      <Sheet open={sheet === 'exportar'} title={`Exportar ${monthLabel(month, currentMonth)}`} onClose={() => setSheet(null)}>
-        {sheet === 'exportar' && <ExportOptions onExport={handleExport} disabled={!online} />}
+      <Sheet open={sheet === 'exportar'} title="Exportar para el contador" onClose={() => setSheet(null)}>
+        {sheet === 'exportar' && <ExportOptions onExport={handleExport} disabled={!online} month={month} />}
       </Sheet>
       <Sheet open={Boolean(sheet && 'withdraw' in Object(sheet))} title="Registrar mi retiro" onClose={() => setSheet(null)}>
         {sheet && typeof sheet === 'object' && 'withdraw' in sheet && (
