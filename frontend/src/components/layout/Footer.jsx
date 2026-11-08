@@ -3,6 +3,7 @@ import { ArrowUp, Play } from 'lucide-react';
 import Logo from '@/components/common/Logo';
 import { useTour } from '@/components/home/tour/GuidedTour';
 import useApiHealth from '@/hooks/useApiHealth';
+import { scrollBehavior } from '@/lib/pageMotion';
 import { cn } from '@/lib/utils';
 
 const COLUMNS = [
@@ -53,7 +54,7 @@ export default function Footer() {
   const apiStatus = useApiHealth();
   const tour = useTour();
 
-  const toTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  const toTop = () => window.scrollTo({ top: 0, behavior: scrollBehavior() });
 
   return (
     <footer className="relative overflow-hidden bg-[linear-gradient(to_bottom,#6142ff,#000_10rem)] pt-16 text-white">

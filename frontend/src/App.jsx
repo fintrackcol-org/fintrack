@@ -106,8 +106,8 @@ export default function App() {
       <ReloadAfterChunkError />
       {/* Aviso de versión nueva (FT-0020): fuera de las rutas, sale en cualquier pantalla. */}
       <UpdatePrompt />
-      {/* key: al cambiar de ruta se monta un boundary nuevo y se limpia el error anterior. */}
-      <ErrorBoundary key={pathname}>
+      {/* Al cambiar de ruta se limpia el error anterior, sin remontar la app. */}
+      <ErrorBoundary resetKey={pathname}>
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Home />} />

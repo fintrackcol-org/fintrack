@@ -5,6 +5,7 @@ import useKeyboardInset from '@/hooks/useKeyboardInset';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import { cn } from '@/lib/utils';
+import { scrollBehavior } from '@/lib/pageMotion';
 import { askAssistant, MAX_QUESTION_CHARS, sourceLabels } from '@/services/assistantService';
 
 /** Preguntas para empezar: se tocan y se envían. */
@@ -53,7 +54,7 @@ export default function AssistantChat({ className, embedded = false }) {
     log.scrollTop = log.scrollHeight;
     // Con la caja fija abajo (celular), la conversación tiene que quedar a la vista al preguntar;
     // `scroll-mb` deja el final del chat por encima de la caja.
-    if (fixedBox && messages.length > 0) log.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    if (fixedBox && messages.length > 0) log.scrollIntoView?.({ block: 'nearest', behavior: scrollBehavior() });
   }, [messages, pending, error, fixedBox]);
 
   /** Envía la conversación con la pregunta nueva (o reintenta la última si no hay pregunta). */

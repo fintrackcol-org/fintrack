@@ -6,9 +6,10 @@ const EASE_DRAWER = [0.32, 0.72, 0, 1];
 const PHONE = {
   initial: { y: '100%' },
   animate: { y: 0 },
-  // Sale hacia abajo desde donde esté: si se soltó arrastrando, sigue bajando en vez de devolverse.
-  exit: { y: '100%', transition: { duration: 0.24, ease: EASE_DRAWER } },
-  transition: { duration: 0.34, ease: EASE_DRAWER },
+  // Sale hacia abajo desde donde esté y con la velocidad del dedo (FT-0050): un resorte la hereda,
+  // así que no hay un "corte" entre arrastrar y cerrarse.
+  exit: { y: '100%', transition: { type: 'spring', bounce: 0, duration: 0.3 } },
+  transition: { type: 'spring', bounce: 0, duration: 0.4 },
 };
 
 const WIDE = {

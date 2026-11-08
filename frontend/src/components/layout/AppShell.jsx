@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useState } from 'react';
-import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate, useNavigationType, useOutlet } from 'react-router-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   CreditCard,
   HandCoins,
@@ -26,8 +27,10 @@ import SyncStatus from '@/components/layout/SyncStatus';
 import QuickEntryBar from '@/components/transactions/QuickEntryBar';
 import { useAuth } from '@/auth/AuthContext';
 import useOfflineSync from '@/hooks/useOfflineSync';
+import useMediaQuery from '@/hooks/useMediaQuery';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import { backPath, canGoBack } from '@/lib/backPath';
+import { pageVariants } from '@/lib/pageMotion';
 import { getDisplayName, getInitial } from '@/lib/displayName';
 import { cn } from '@/lib/utils';
 import { getProfile } from '@/services/userService';
@@ -270,9 +273,7 @@ function Shell() {
         >
           <div className="mx-auto w-full max-w-6xl">
             <Suspense fallback={<SectionFallback />}>
-              <PageEnter key={pathname}>
-                <Outlet />
-              </PageEnter>
+              <PageTransition />
             </Suspense>
           </div>
         </main>
@@ -283,22 +284,45 @@ function Shell() {
   );
 }
 
-let firstPage = true;
+/** Guarda la pantalla que se va tal como estaba: si no, mientras sale ya mostraría la nueva. */
+function Frozen({ children }) {
+  const [frozen] = useState(children);
+  return frozen;
+}
 
 /**
- * Entrada de cada pantalla: llega desde la derecha al avanzar y desde la izquierda al volver. No se
- * anima lo primero que se ve al abrir la app, ni Anotar, que es a pantalla completa y sube por su cuenta.
+ * Cambio de pantalla tipo iPhone (FT-0050): al avanzar entra desde la derecha y la anterior se corre a
+ * la izquierda; al volver, el mismo camino al revés. No se anima lo primero que se ve al abrir la app,
+ * ni Anotar, que es a pantalla completa y sube por su cuenta. Con movimiento reducido, solo un fundido.
  */
-function PageEnter({ children }) {
-  const type = useNavigationType();
+function PageTransition() {
+  const outlet = useOutlet();
   const { pathname } = useLocation();
-  const [enter] = useState(() => {
-    const first = firstPage;
-    firstPage = false;
-    if (first || pathname === '/app/anotar') return undefined;
-    return type === 'POP' ? 'motion-safe:animate-page-back' : 'motion-safe:animate-page-in';
-  });
-  return <div className={enter}>{children}</div>;
+  const type = useNavigationType();
+  const reduced = useReducedMotion();
+  const wide = useMediaQuery('(width >= 48rem)');
+  const direction = pathname === '/app/anotar' ? 0 : type === 'POP' ? -1 : 1;
+  const variants = pageVariants({ reduced, wide });
+
+  return (
+    // Recorta en el celular lo que queda fuera de la vista mientras se mueve. El -mx-4/px-4 deja espacio a
+    // las franjas que llegan al borde (como la violeta del inicio) para que el recorte no se las coma.
+    <div className="relative max-md:-mx-4 max-md:overflow-x-clip max-md:px-4">
+      <AnimatePresence initial={false} custom={direction} mode="popLayout">
+        <motion.div
+          key={pathname}
+          custom={direction}
+          variants={variants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          className="bg-canvas"
+        >
+          <Frozen>{outlet}</Frozen>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
 }
 
 /**
