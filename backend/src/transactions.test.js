@@ -107,7 +107,9 @@ test(
   options,
   async () => {
     await withApi(async ({ api, alice }) => {
-      const res = await api('/transactions', { method: 'POST', token: alice, body: GASTO });
+      // Sin palabra clave conocida: "Almuerzo" se clasificaría aun sin IA.
+      const body = { ...GASTO, description: 'Croquetas' };
+      const res = await api('/transactions', { method: 'POST', token: alice, body });
       assert.equal(res.status, 201);
       assert.equal(res.body.transaction.category, null);
       assert.equal(res.body.transaction.source, 'sin_clasificar');

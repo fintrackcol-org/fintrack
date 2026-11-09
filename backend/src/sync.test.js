@@ -172,7 +172,12 @@ test('creado sin categoría y sin IA disponible queda sin_clasificar', options, 
     await withApi(async (api) => {
       const token = await newUserToken();
       const res = await sync(api, token, null, [
-        { op: 'create', localId: 'loc-1', transaction: expense({ category: null }) },
+        {
+          op: 'create',
+          localId: 'loc-1',
+          // Sin palabra clave conocida: "almuerzo" se clasificaría aun sin IA.
+          transaction: expense({ category: null, description: 'Croquetas' }),
+        },
       ]);
       const saved = await api(`/transactions/${res.body.synced[0].serverId}`, { token });
       assert.equal(saved.body.category, null);
