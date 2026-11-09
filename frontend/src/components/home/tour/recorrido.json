@@ -3,7 +3,7 @@
   "segments": [
     {
       "id": "inicio",
-      "text": "Hola. Esto es FinTrack: todos tus ingresos y gastos en un solo lugar. Te lo muestro en un minuto.",
+      "text": "Hola. Esto es Rinde: todos tus ingresos y gastos en un solo lugar. Te lo muestro en un minuto.",
       "start": 0.0,
       "end": 7.99
     },
@@ -27,7 +27,7 @@
     },
     {
       "id": "alertas",
-      "text": "Y antes de que te pases del presupuesto, FinTrack te avisa.",
+      "text": "Y antes de que te pases del presupuesto, Rinde te avisa.",
       "start": 34.08,
       "end": 38.33
     },
@@ -45,7 +45,7 @@
     },
     {
       "id": "empieza",
-      "text": "Crea tu cuenta gratis en menos de un minuto. FinTrack: tu plata, bajo control.",
+      "text": "Crea tu cuenta gratis en menos de un minuto. Rinde: tu plata, bajo control.",
       "start": 49.92,
       "end": 56.52
     }

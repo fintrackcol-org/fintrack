@@ -45,7 +45,7 @@ export default function NegocioInvitePanel({ business, online, onInvite, onCance
     try {
       await navigator.share({
         title: `Negocio "${business.name}"`,
-        text: `Únete al negocio "${business.name}" en FinTrack (código ${business.code}):`,
+        text: `Únete al negocio "${business.name}" en Rinde (código ${business.code}):`,
         url: link,
       });
     } catch {

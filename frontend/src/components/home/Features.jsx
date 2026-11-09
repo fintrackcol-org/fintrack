@@ -134,7 +134,7 @@ function DebtsPreview() {
         </div>
       ))}
       <p className="rounded-2xl bg-obsidian px-4 py-3 text-sm text-white/80">
-        Al saldarla, FinTrack registra el ingreso o el gasto por ti.
+        Al saldarla, Rinde registra el ingreso o el gasto por ti.
       </p>
     </div>
   );

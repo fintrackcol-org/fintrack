@@ -30,7 +30,7 @@ import { securityHeaders } from './middlewares/security-headers.middleware.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 
 /**
- * Crea y configura la aplicación Express de FinTrack (sin iniciar el servidor).
+ * Crea y configura la aplicación Express de Rinde (sin iniciar el servidor).
  *
  * Registra, en orden: cabeceras de seguridad, CORS, parser JSON, límite de intentos de login/registro,
  * rutas de la API, el manejador 404 y el manejador central de errores.

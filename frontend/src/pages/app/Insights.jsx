@@ -160,7 +160,7 @@ export default function Insights() {
         <Sheet open={panel === 'detail'} title="Tu mes en números" onClose={() => setPanel(null)}>
           <MonthAnalytics />
         </Sheet>
-        <Sheet open={panel === 'chat'} title="Pregúntale a FinTrack" onClose={() => setPanel(null)}>
+        <Sheet open={panel === 'chat'} title="Pregúntale a Rinde" onClose={() => setPanel(null)}>
           <AssistantChat embedded className="border-0 bg-transparent p-0 md:p-0" />
         </Sheet>
       </>

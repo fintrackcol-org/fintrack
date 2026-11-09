@@ -12,7 +12,7 @@ import GuidedTour from '@/components/home/tour/GuidedTour';
 import usePageTitle from '@/hooks/usePageTitle';
 
 /**
- * Landing de FinTrack: escenario 3D (hero, "Qué es" y "Cómo funciona"), funcionalidades,
+ * Landing de Rinde: escenario 3D (hero, "Qué es" y "Cómo funciona"), funcionalidades,
  * alertas, app instalable, seguridad, preguntas y cierre.
  * `MotionConfig` desactiva las animaciones si el sistema pide movimiento reducido.
  */

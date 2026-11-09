@@ -29,7 +29,7 @@ export async function getHealthStatus() {
   return {
     status: database === 'up' ? 'ok' : 'error',
     service: 'fintrack-api',
-    message: 'Hello world desde el backend de FinTrack',
+    message: 'Hello world desde el backend de Rinde',
     env: env.nodeEnv,
     database,
     time: new Date().toISOString(),

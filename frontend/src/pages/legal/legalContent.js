@@ -1,5 +1,5 @@
 /**
- * Términos de uso y política de privacidad de FinTrack (FT-0017). Un solo lugar para el texto y su
+ * Términos de uso y política de privacidad de Rinde (FT-0017). Un solo lugar para el texto y su
  * versión: las páginas `/terminos` y `/privacidad` lo pintan y el registro guarda `LEGAL_VERSION`
  * con la fecha en que la persona acepta. Al cambiar el texto de fondo hay que subir la versión,
  * y quienes aceptaron la anterior la vuelven a aceptar al entrar.
@@ -28,9 +28,9 @@ export const RESPONSIBLES = [
 /** @type {LegalSection[]} */
 export const TERMS = [
   {
-    title: '1. Qué es FinTrack',
+    title: '1. Qué es Rinde',
     paragraphs: [
-      'FinTrack es una aplicación web para llevar las finanzas personales: registrar ingresos y gastos, armar presupuestos, recibir consejos y recordatorios, juntar plata en grupo (vacas) y llevar las cuentas de un emprendimiento con sus socios. Es un proyecto de estudiantes y hoy es gratuito.',
+      'Rinde es una aplicación web para llevar las finanzas personales: registrar ingresos y gastos, armar presupuestos, recibir consejos y recordatorios, juntar plata en grupo (vacas) y llevar las cuentas de un emprendimiento con sus socios. Es un proyecto de estudiantes y hoy es gratuito.',
       `La prestan ${RESPONSIBLES.join(', ')} (en adelante, "nosotros"). Puedes escribirnos a ${CONTACT_EMAIL}.`,
     ],
   },
@@ -50,16 +50,16 @@ export const TERMS = [
     ],
   },
   {
-    title: '4. Lo que FinTrack es y no es',
+    title: '4. Lo que Rinde es y no es',
     items: [
-      'FinTrack te ayuda a ordenar tu información. No es un banco, no recibe, guarda ni mueve tu dinero y no se conecta a tus cuentas bancarias.',
+      'Rinde te ayuda a ordenar tu información. No es un banco, no recibe, guarda ni mueve tu dinero y no se conecta a tus cuentas bancarias.',
       'Los consejos, proyecciones y cálculos (incluidos los generados con inteligencia artificial) son orientativos, pueden tener errores y no son asesoría financiera, tributaria ni legal. Las decisiones sobre tu dinero son tuyas.',
-      'En las vacas y los negocios, FinTrack solo registra lo que cada persona anota. Los acuerdos de plata entre los miembros o socios son entre ellos.',
+      'En las vacas y los negocios, Rinde solo registra lo que cada persona anota. Los acuerdos de plata entre los miembros o socios son entre ellos.',
     ],
   },
   {
     title: '5. Uso permitido',
-    paragraphs: ['No puedes usar FinTrack para:'],
+    paragraphs: ['No puedes usar Rinde para:'],
     items: [
       'actividades ilegales, fraude o lavado de activos;',
       'invitar a personas sin su consentimiento o publicar datos de terceros;',
@@ -69,7 +69,7 @@ export const TERMS = [
   {
     title: '6. Disponibilidad',
     paragraphs: [
-      'Hacemos lo posible para que FinTrack funcione siempre, pero al ser un servicio gratuito en etapa de proyecto puede tener interrupciones, cambios o dejar de prestarse. Si eso pasa te avisaremos con anticipación para que puedas descargar tus movimientos.',
+      'Hacemos lo posible para que Rinde funcione siempre, pero al ser un servicio gratuito en etapa de proyecto puede tener interrupciones, cambios o dejar de prestarse. Si eso pasa te avisaremos con anticipación para que puedas descargar tus movimientos.',
     ],
   },
   {
@@ -163,12 +163,12 @@ export const PRIVACY = [
   {
     title: '9. Datos en tu dispositivo y cookies',
     paragraphs: [
-      'Para funcionar sin conexión, FinTrack guarda en tu navegador una copia de tus datos y tu sesión. No usamos cookies de rastreo ni de publicidad. Al cerrar sesión se borra la copia del dispositivo.',
+      'Para funcionar sin conexión, Rinde guarda en tu navegador una copia de tus datos y tu sesión. No usamos cookies de rastreo ni de publicidad. Al cerrar sesión se borra la copia del dispositivo.',
     ],
   },
   {
     title: '10. Menores de edad',
-    paragraphs: ['FinTrack es para mayores de 18 años. No recogemos a sabiendas datos de menores.'],
+    paragraphs: ['Rinde es para mayores de 18 años. No recogemos a sabiendas datos de menores.'],
   },
   {
     title: '11. Cambios',

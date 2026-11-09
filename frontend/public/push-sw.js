@@ -12,7 +12,7 @@ const SYNC_TAG = 'fintrack-sync';
 /*
  * Background Sync (FT-0009): el navegador dispara `sync` cuando vuelve la conexión.
  * La sesión vive en localStorage, que el service worker no puede leer, así que el envío
- * lo hace la app: aquí solo se le avisa a cada pestaña abierta de FinTrack.
+ * lo hace la app: aquí solo se le avisa a cada pestaña abierta de Rinde.
  */
 self.addEventListener('sync', (event) => {
   if (event.tag !== SYNC_TAG) return;
@@ -32,7 +32,7 @@ self.addEventListener('push', (event) => {
     payload = { body: event.data ? event.data.text() : '' };
   }
 
-  const title = payload.title || 'FinTrack';
+  const title = payload.title || 'Rinde';
   event.waitUntil(
     self.registration.showNotification(title, {
       body: payload.body || '',
@@ -45,7 +45,7 @@ self.addEventListener('push', (event) => {
   );
 });
 
-/** Al tocar la notificación abre FinTrack: reutiliza una pestaña abierta o crea una nueva. */
+/** Al tocar la notificación abre Rinde: reutiliza una pestaña abierta o crea una nueva. */
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 

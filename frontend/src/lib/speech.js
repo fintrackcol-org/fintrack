@@ -1,7 +1,7 @@
 /**
  * Dictado con el reconocimiento de voz del navegador (Web Speech API), sin React, para poder
  * probarlo con un micrófono simulado. El navegador convierte la voz en texto (Chrome y Edge con
- * servidores de Google o Microsoft, Safari con los de Apple); FinTrack solo recibe el texto.
+ * servidores de Google o Microsoft, Safari con los de Apple); Rinde solo recibe el texto.
  */
 
 /**

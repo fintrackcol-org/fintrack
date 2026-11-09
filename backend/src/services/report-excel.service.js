@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 
 /*
- * Reporte en Excel (.xlsx) del periodo, con el diseño de FinTrack (FT-0012).
+ * Reporte en Excel (.xlsx) del periodo, con el diseño de Rinde (FT-0012).
  *
  * Hojas:
  * - "Resumen": totales, gastos e ingresos por categoría, top 5 de gastos y presupuestos del mes.
@@ -248,7 +248,7 @@ function addSummarySheet(workbook, report, { first, last }) {
   // Encabezado de marca
   ws.mergeCells('A1:F1');
   Object.assign(ws.getCell('A1'), {
-    value: 'FinTrack · Reporte de movimientos',
+    value: 'Rinde · Reporte de movimientos',
     font: font({ bold: true, size: 18, color: { argb: COLORS.white } }),
     fill: fill(COLORS.brand),
     alignment: { vertical: 'middle', indent: 1 },
@@ -413,7 +413,7 @@ function addSummarySheet(workbook, report, { first, last }) {
  */
 export async function buildWorkbook(report) {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'FinTrack';
+  workbook.creator = 'Rinde';
   workbook.created = new Date();
   workbook.title = 'Reporte de movimientos';
   // Al abrir, Excel recalcula todas las fórmulas.

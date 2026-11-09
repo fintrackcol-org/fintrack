@@ -16,7 +16,7 @@ try {
 }
 
 createApp().listen(env.port, () => {
-  console.log(`FinTrack API escuchando en el puerto ${env.port}`);
+  console.log(`Rinde API escuchando en el puerto ${env.port}`);
 });
 
 if (!env.remindersEnabled) {

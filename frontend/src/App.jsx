@@ -88,7 +88,7 @@ function OldMovements() {
  * Zona privada, dentro del marco con menú (`AppShell`): `/app` inicio · `/app/mi-plata` saldo y movimientos · `/app/transacciones/nuevo` y `/app/transacciones/:id/editar` formulario completo ·
  * `/app/presupuestos` presupuestos por categoría y mes · `/app/insights` consejos con IA ·
  * `/app/transacciones/exportar` descarga de movimientos · `/app/cuenta` tema, notificaciones y sesión ·
- * `/app/renta` enlaces a la DIAN · `/app/invitar` compartir FinTrack · `/app/planes` planes de ejemplo ·
+ * `/app/renta` enlaces a la DIAN · `/app/invitar` compartir Rinde · `/app/planes` planes de ejemplo ·
  * `/app/lo-que-viene` ideas y votos · `/app/lo-que-viene/admin` panel del equipo ·
  * `/app/metas` metas de ahorro personales (vacas de una sola persona) · `/app/metas/:id` su avance ·
  * `/app/vacas` metas de ahorro en grupo · `/app/vacas/:id` seguimiento de aportes · `/app/vacas/unirse/:code`

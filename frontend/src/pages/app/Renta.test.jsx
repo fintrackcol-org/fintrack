@@ -14,7 +14,7 @@ describe('Renta', () => {
     expect(html.match(/rel="noopener noreferrer"/g)).toHaveLength(DIAN_LINKS.length);
   });
 
-  it('no pide el documento dentro de FinTrack', () => {
+  it('no pide el documento dentro de Rinde', () => {
     expect(renderToStaticMarkup(<Renta />)).not.toContain('<input');
   });
 });

@@ -60,7 +60,7 @@ export default function BankSyncForm({ card, hidden = false, disabled = false, o
   return (
     <form onSubmit={submit} noValidate className="space-y-4" aria-label="Actualizar con el banco">
       <p className="text-sm text-ink/70">
-        FinTrack no calcula intereses. Si el banco cobró de más, la diferencia queda como gasto «Cargos del banco» de la
+        Rinde no calcula intereses. Si el banco cobró de más, la diferencia queda como gasto «Cargos del banco» de la
         tarjeta (intereses, cuota de manejo u otros cargos).
       </p>
       {money('available', 'sync-available', 'Cupo disponible')}

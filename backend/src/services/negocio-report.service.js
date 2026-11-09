@@ -4,7 +4,7 @@ import { pdfSafe } from './report-pdf.service.js';
 
 /*
  * Reporte del mes de un negocio para el contador (FT-0018), en Excel o PDF, con los colores de
- * FinTrack. Lleva el estado de resultados, el punto de equilibrio, el reparto entre socios y la
+ * Rinde. Lleva el estado de resultados, el punto de equilibrio, el reparto entre socios y la
  * lista de movimientos con quién registró cada uno.
  */
 
@@ -129,7 +129,7 @@ const MONEY_FMT = '"$" #,##0;[Red]-"$" #,##0';
  */
 export async function buildBusinessWorkbook(report) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'FinTrack';
+  wb.creator = 'Rinde';
   wb.created = new Date();
   const { business, panel } = report;
 
@@ -245,7 +245,7 @@ export function buildBusinessPdf(report) {
     size: 'LETTER',
     margin: 0,
     bufferPages: true,
-    info: { Title: `Reporte de ${pdfSafe(report.business.name)}`, Author: 'FinTrack' },
+    info: { Title: `Reporte de ${pdfSafe(report.business.name)}`, Author: 'Rinde' },
   });
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));
@@ -402,7 +402,7 @@ export function buildBusinessPdf(report) {
       .font('Helvetica')
       .fontSize(8)
       .fillColor(C.muted)
-      .text(`FinTrack · Página ${i + 1} de ${range.count}`, MARGIN, PAGE.height - 30, {
+      .text(`Rinde · Página ${i + 1} de ${range.count}`, MARGIN, PAGE.height - 30, {
         width: CONTENT,
         align: 'center',
         lineBreak: false,
@@ -456,7 +456,7 @@ const RANGE_COLUMNS = [
  */
 export async function buildRangeWorkbook(report) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'FinTrack';
+  wb.creator = 'Rinde';
   wb.created = new Date();
   const { business } = report;
   const paint = (row) => {
@@ -523,7 +523,7 @@ export function buildRangePdf(report) {
   const doc = new PDFDocument({
     size: 'LETTER',
     margin: 0,
-    info: { Title: `Reporte de ${pdfSafe(report.business.name)}`, Author: 'FinTrack' },
+    info: { Title: `Reporte de ${pdfSafe(report.business.name)}`, Author: 'Rinde' },
   });
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));

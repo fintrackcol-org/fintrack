@@ -160,7 +160,7 @@ export default function Vacas() {
           <PiggyBank className="mx-auto size-10 text-brand" aria-hidden="true" />
           <p className="mt-3 text-lg font-semibold">Aún no tienes vacas</p>
           <p className="mx-auto mt-1 max-w-md text-ink/60">
-            Crea una para el paseo, el regalo o el mercado del mes e invita a los demás. FinTrack reparte la meta y les
+            Crea una para el paseo, el regalo o el mercado del mes e invita a los demás. Rinde reparte la meta y les
             dice si van a tiempo.
           </p>
           <Button className="mt-4" onClick={() => setSheet('nueva')} disabled={!online}>

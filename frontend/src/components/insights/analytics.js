@@ -94,7 +94,7 @@ export function nextAction({ health, projection, smallExpenses, day, daysInMonth
       return weakest.value === null
         ? {
             title: 'Crea tu primer presupuesto',
-            detail: 'Ponle un límite a tu mayor gasto: FinTrack te avisa al llegar al 80 % y al pasarte.',
+            detail: 'Ponle un límite a tu mayor gasto: Rinde te avisa al llegar al 80 % y al pasarte.',
             gain,
             to: '/app/presupuestos',
             cta: 'Crear presupuesto',

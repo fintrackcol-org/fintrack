@@ -150,7 +150,7 @@ export default function Register() {
               <Link to="/privacidad" target="_blank" rel="noopener" className="text-violet-light underline underline-offset-4">
                 política de privacidad
               </Link>{' '}
-              de FinTrack.
+              de Rinde.
             </Label>
           </div>
           {errors.acceptTerms && (

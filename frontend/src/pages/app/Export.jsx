@@ -96,8 +96,8 @@ function longDate(iso) {
 }
 
 /**
- * Nombre que tendrá el archivo, igual al que arma el servidor: `fintrack_2026-10.xlsx` si es un mes
- * completo; si no, `fintrack_<desde>_<hasta>.xlsx`.
+ * Nombre que tendrá el archivo, igual al que arma el servidor: `rinde_2026-10.xlsx` si es un mes
+ * completo; si no, `rinde_<desde>_<hasta>.xlsx`.
  * @param {{ from: string, to: string }} range
  * @param {string} extension
  * @returns {string}
@@ -105,7 +105,7 @@ function longDate(iso) {
 function previewFilename({ from, to }, extension) {
   const whole = monthRange(from.slice(0, 7));
   const period = whole.from === from && whole.to === to ? from.slice(0, 7) : `${from}_${to}`;
-  return `fintrack_${period}${extension}`;
+  return `rinde_${period}${extension}`;
 }
 
 /**
@@ -221,7 +221,7 @@ export default function Export() {
           : '';
   const rangeText =
     range.from === range.to ? `el ${longDate(range.from)}` : `del ${longDate(range.from)} al ${longDate(range.to)}`;
-  const filename = rangeError ? `fintrack${selected.extension}` : previewFilename(range, selected.extension);
+  const filename = rangeError ? `rinde${selected.extension}` : previewFilename(range, selected.extension);
 
   /** Al cambiar cualquier opción se borra el resultado anterior, para no mostrar uno que ya no aplica. */
   const reset = () => {

@@ -54,7 +54,7 @@ export function parseDeleteAccount(body) {
       { field: 'password', problem: 'Confirma con tu contraseña o con Google (solo uno)' },
     ]);
   }
-  // Más largo que esto no es una contraseña de FinTrack ni un token de Google: no se gasta bcrypt.
+  // Más largo que esto no es una contraseña de Rinde ni un token de Google: no se gasta bcrypt.
   if ((hasPassword && password.length > 200) || (hasGoogle && googleCredential.length > 4096)) {
     throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
       { field: hasPassword ? 'password' : 'googleCredential', problem: 'Es demasiado largo' },

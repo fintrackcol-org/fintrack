@@ -55,7 +55,7 @@ export function createAccountService(deps = {}) {
       throw notConfirmed('No pudimos confirmar tu cuenta de Google');
     }
     if (google.email !== user.email.toLowerCase()) {
-      throw notConfirmed('Esa cuenta de Google no es la de esta cuenta de FinTrack');
+      throw notConfirmed('Esa cuenta de Google no es la de esta cuenta de Rinde');
     }
   }
 

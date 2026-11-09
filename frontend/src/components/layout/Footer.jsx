@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowUp, Play } from 'lucide-react';
-import Logo from '@/components/common/Logo';
+import Logo, { Wordmark } from '@/components/common/Logo';
 import { useTour } from '@/components/home/tour/GuidedTour';
 import useApiHealth from '@/hooks/useApiHealth';
 import { cn } from '@/lib/utils';
@@ -47,7 +47,7 @@ const LINK = 'inline-flex items-center gap-2 text-white/65 transition-[color,tra
 
 /**
  * Pie de página: marca y tres columnas de enlaces, la línea final con el estado de `GET /health`
- * y "Volver arriba", y el nombre FinTrack en violeta cortado por el borde inferior como cierre.
+ * y "Volver arriba", y el nombre Rinde en violeta cortado por el borde inferior como cierre.
  */
 export default function Footer() {
   const apiStatus = useApiHealth();
@@ -98,7 +98,7 @@ export default function Footer() {
       </div>
 
       <div className="container-page relative flex flex-col gap-4 border-t border-white/10 py-6 text-sm text-white/55 sm:flex-row sm:items-center sm:justify-between">
-        <p>© {new Date().getFullYear()} FinTrack</p>
+        <p>© {new Date().getFullYear()} Rinde</p>
         <div className="flex flex-wrap items-center gap-3">
           <p className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5" role="status">
             <span className={cn('size-2 rounded-full', STATUS_DOT[apiStatus])} />
@@ -117,30 +117,10 @@ export default function Footer() {
 
       {/*
         Cierre: el nombre de la marca a todo el ancho, en violeta que se desvanece hacia abajo y
-        cortado por el borde inferior. Es un SVG decorativo (no texto), así no cuenta como texto de
-        bajo contraste; `textLength` lo estira justo al ancho del contenedor.
+        cortado por el borde inferior. Es decorativo; la máscara hace el desvanecido.
       */}
-      <div aria-hidden="true" className="container-page relative mt-4 select-none">
-        <svg viewBox="0 0 1000 175" className="block w-full" focusable="false">
-          <defs>
-            <linearGradient id="footer-wordmark" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#8b66ff" stopOpacity="0.55" />
-              <stop offset="1" stopColor="#6142ff" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <text
-            x="0"
-            y="235"
-            textLength="1000"
-            lengthAdjust="spacingAndGlyphs"
-            fill="url(#footer-wordmark)"
-            fontSize="290"
-            fontWeight="600"
-            letterSpacing="-14"
-          >
-            FinTrack
-          </text>
-        </svg>
+      <div aria-hidden="true" className="container-page relative mt-4 h-[17.5vw] max-h-56 select-none overflow-hidden">
+        <Wordmark className="h-auto w-full text-[#7a5cff] opacity-70 [mask-image:linear-gradient(to_bottom,#000,transparent_62%)]" />
       </div>
     </footer>
   );

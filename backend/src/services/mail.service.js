@@ -32,7 +32,7 @@ export async function sendEmail({ to, subject, html, text }) {
       accept: 'application/json',
     },
     body: JSON.stringify({
-      sender: { name: 'FinTrack', email: env.emailFrom },
+      sender: { name: 'Rinde', email: env.emailFrom },
       to: [{ email: to }],
       subject,
       htmlContent: html,
@@ -50,7 +50,7 @@ export async function sendEmail({ to, subject, html, text }) {
  */
 export async function sendPasswordResetEmail({ to, link, minutes }) {
   const text = [
-    'Recibimos una solicitud para cambiar la contraseña de tu cuenta de FinTrack.',
+    'Recibimos una solicitud para cambiar la contraseña de tu cuenta de Rinde.',
     `Crea una nueva desde este enlace (vence en ${minutes} minutos):`,
     link,
     '',
@@ -58,7 +58,7 @@ export async function sendPasswordResetEmail({ to, link, minutes }) {
   ].join('\n');
   await sendEmail({
     to,
-    subject: 'Recupera tu contraseña de FinTrack',
+    subject: 'Recupera tu contraseña de Rinde',
     html: accountHtml({
       heading: 'Crea una nueva contraseña',
       intro:
@@ -79,23 +79,23 @@ export async function sendPasswordResetEmail({ to, link, minutes }) {
  */
 export async function sendVerificationEmail({ to, link, hours }) {
   const text = [
-    'Bienvenido a FinTrack. Confirma que este correo es tuyo para empezar a usar tu cuenta.',
+    'Bienvenido a Rinde. Confirma que este correo es tuyo para empezar a usar tu cuenta.',
     `Verifícalo desde este enlace (vence en ${hours} horas):`,
     link,
     '',
-    'Si no creaste una cuenta en FinTrack, ignora este correo: nadie podrá entrar con él.',
+    'Si no creaste una cuenta en Rinde, ignora este correo: nadie podrá entrar con él.',
   ].join('\n');
   await sendEmail({
     to,
-    subject: 'Confirma tu correo de FinTrack',
+    subject: 'Confirma tu correo de Rinde',
     html: accountHtml({
       heading: 'Confirma tu correo',
-      intro: 'Ya casi. Toca el botón para confirmar que este correo es tuyo y entrar a FinTrack.',
+      intro: 'Ya casi. Toca el botón para confirmar que este correo es tuyo y entrar a Rinde.',
       button: 'Confirmar mi correo',
       link,
       expiry: `${hours} horas`,
       footer:
-        'Si no creaste una cuenta en FinTrack, ignora este correo: nadie podrá entrar con él.',
+        'Si no creaste una cuenta en Rinde, ignora este correo: nadie podrá entrar con él.',
     }),
     text,
   });
@@ -111,15 +111,15 @@ export async function sendAccountDeletedEmail({ to }) {
     'Si no fuiste tú, alguien entró con tu contraseña: cámbiala en los demás servicios donde la uses y escríbenos respondiendo este correo.';
   await sendEmail({
     to,
-    subject: 'Tu cuenta de FinTrack fue eliminada',
+    subject: 'Tu cuenta de Rinde fue eliminada',
     html: accountHtml({
       heading: 'Tu cuenta fue eliminada',
       intro:
-        'Borramos tu cuenta de FinTrack y tus datos: movimientos, presupuestos, tarjetas, soportes y ajustes. Esto no se puede deshacer. Si algún día vuelves, puedes crear una cuenta nueva con este mismo correo.',
+        'Borramos tu cuenta de Rinde y tus datos: movimientos, presupuestos, tarjetas, soportes y ajustes. Esto no se puede deshacer. Si algún día vuelves, puedes crear una cuenta nueva con este mismo correo.',
       footer,
     }),
     text: [
-      'Borramos tu cuenta de FinTrack y tus datos: movimientos, presupuestos, tarjetas, soportes y ajustes.',
+      'Borramos tu cuenta de Rinde y tus datos: movimientos, presupuestos, tarjetas, soportes y ajustes.',
       'Esto no se puede deshacer. Si algún día vuelves, puedes crear una cuenta nueva con este mismo correo.',
       '',
       footer,
@@ -155,7 +155,7 @@ function accountHtml({ heading, intro, button, link, expiry, footer }) {
         <tr><td>
           <p style="margin:0 0 32px;font-size:20px;font-weight:bold">
             <span style="display:inline-block;width:28px;height:28px;border-radius:8px;background:#6142ff;vertical-align:middle"></span>
-            <span style="vertical-align:middle;margin-left:8px">FinTrack</span>
+            <span style="vertical-align:middle;margin-left:8px">Rinde</span>
           </p>
           <h1 style="margin:0 0 12px;font-size:24px;line-height:1.3">${heading}</h1>
           <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#4b4858">
@@ -192,7 +192,7 @@ function escapeHtml(text) {
  */
 export async function sendVacaInvitationEmail({ to, inviter, vacaName, goal, link }) {
   const text = [
-    `${inviter} te invitó a la vaca "${vacaName}" en FinTrack (meta: ${goal}).`,
+    `${inviter} te invitó a la vaca "${vacaName}" en Rinde (meta: ${goal}).`,
     'Únete desde este enlace (si no tienes cuenta, créala con este mismo correo):',
     link,
     '',
@@ -226,7 +226,7 @@ const ROLE_TEXT = {
  */
 export async function sendBusinessInvitationEmail({ to, inviter, businessName, role, link }) {
   const text = [
-    `${inviter} te invitó al negocio "${businessName}" en FinTrack ${ROLE_TEXT[role]}.`,
+    `${inviter} te invitó al negocio "${businessName}" en Rinde ${ROLE_TEXT[role]}.`,
     'Únete desde este enlace (si no tienes cuenta, créala con este mismo correo):',
     link,
     '',
@@ -262,7 +262,7 @@ function invitationHtml({ heading, intro, button, link }) {
         <tr><td>
           <p style="margin:0 0 32px;font-size:20px;font-weight:bold">
             <span style="display:inline-block;width:28px;height:28px;border-radius:8px;background:#6142ff;vertical-align:middle"></span>
-            <span style="vertical-align:middle;margin-left:8px">FinTrack</span>
+            <span style="vertical-align:middle;margin-left:8px">Rinde</span>
           </p>
           <h1 style="margin:0 0 12px;font-size:24px;line-height:1.3">${heading}</h1>
           <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#4b4858">

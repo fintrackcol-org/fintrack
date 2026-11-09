@@ -43,7 +43,7 @@ export default function InvitePanel({ vaca, online, onInvite, onCancelInvitation
     try {
       await navigator.share({
         title: `Vaca "${vaca.name}"`,
-        text: `Únete a la vaca "${vaca.name}" en FinTrack (código ${vaca.code}):`,
+        text: `Únete a la vaca "${vaca.name}" en Rinde (código ${vaca.code}):`,
         url: link,
       });
     } catch {

@@ -113,7 +113,7 @@ function VacaIllustration() {
   );
 }
 
-/** Un chat de WhatsApp con FinTrack. */
+/** Un chat de WhatsApp con Rinde. */
 function WhatsappIllustration() {
   return (
     <div className="flex w-full flex-col gap-2 rounded-3xl bg-ink/5 p-4">
@@ -139,7 +139,7 @@ export const TOUR_STEPS = [
   },
   {
     title: 'Anota hablando',
-    text: 'Di “gasolina 40 mil” o “corte 25 mil” y FinTrack lo anota con su categoría. También puedes escribirlo.',
+    text: 'Di “gasolina 40 mil” o “corte 25 mil” y Rinde lo anota con su categoría. También puedes escribirlo.',
     Illustration: VoiceIllustration,
   },
   {
@@ -154,7 +154,7 @@ export const TOUR_STEPS = [
   },
   {
     title: 'También por WhatsApp',
-    text: 'Escríbele a FinTrack desde WhatsApp para anotar o preguntar cómo vas, sin abrir la app.',
+    text: 'Escríbele a Rinde desde WhatsApp para anotar o preguntar cómo vas, sin abrir la app.',
     Illustration: WhatsappIllustration,
   },
 ];
@@ -162,7 +162,7 @@ export const TOUR_STEPS = [
 /**
  * Recorrido "Cómo funciona" (FT-0048): primero un saludo con dos caminos y luego los pasos, que
  * avanzan solos o deslizando, con barra de progreso, pausa y Saltar. Las ilustraciones son
- * pantallas de FinTrack animadas: pesan poco y funcionan sin internet.
+ * pantallas de Rinde animadas: pesan poco y funcionan sin internet.
  *
  * @param {{ name?: string, onDone: () => void }} props `onDone`: terminó o saltó; sigue la bienvenida.
  */
@@ -197,7 +197,7 @@ export default function HowItWorksTour({ name, onDone }) {
         <LogoMark className="size-16" />
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{name ? `Hola, ${name}` : 'Hola'}</h1>
-          <p className="mt-2 text-ink/70">Te mostramos en un minuto qué puedes hacer con FinTrack.</p>
+          <p className="mt-2 text-ink/70">Te mostramos en un minuto qué puedes hacer con Rinde.</p>
         </div>
         <div className="flex w-full flex-col gap-2">
           <Button size="lg" onClick={() => go(0)}>

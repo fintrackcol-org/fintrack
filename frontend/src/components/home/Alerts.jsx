@@ -3,7 +3,7 @@ import { motion, useInView } from 'framer-motion';
 import { AlertTriangle, Bell, CalendarClock } from 'lucide-react';
 import { LogoMark } from '@/components/common/Logo';
 
-/** Avisos reales de FinTrack: presupuesto al 80%, al 100% y cuenta por vencer. */
+/** Avisos reales de Rinde: presupuesto al 80%, al 100% y cuenta por vencer. */
 const NOTIFICATIONS = [
   { icon: Bell, tone: 'bg-amber-400 text-obsidian', title: 'Alimentación', text: 'Vas en el 80% de tu presupuesto de este mes.' },
   {
@@ -49,7 +49,7 @@ export default function Alerts() {
                 <LogoMark className="size-10 shrink-0 rounded-xl" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold">FinTrack</p>
+                    <p className="font-semibold">Rinde</p>
                     <span className="text-xs text-white/50">ahora</span>
                   </div>
                   <p className="mt-0.5 flex items-center gap-1.5 text-sm font-medium">

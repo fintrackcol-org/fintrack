@@ -49,14 +49,14 @@ function FeatureList({ items }) {
 }
 
 /**
- * Página privada `/app/planes`: los planes como ejemplo, para que se vea hacia dónde va FinTrack.
+ * Página privada `/app/planes`: los planes como ejemplo, para que se vea hacia dónde va Rinde.
  * No tiene botón de pago: durante la beta no se cobra nada.
  */
 export default function Plans() {
   usePageTitle('Planes');
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title="Planes" description="Así podrían verse cuando FinTrack salga de la beta." />
+      <PageHeader title="Planes" description="Así podrían verse cuando Rinde salga de la beta." />
 
       <p className="mb-5 flex items-start gap-2 rounded-xl bg-brand-soft p-3 text-sm text-brand">
         <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />

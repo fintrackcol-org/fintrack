@@ -173,7 +173,7 @@ export const env = {
 };
 
 /**
- * ¿Este correo administra FinTrack? No distingue mayúsculas.
+ * ¿Este correo administra Rinde? No distingue mayúsculas.
  * @param {string} email
  * @returns {boolean}
  */

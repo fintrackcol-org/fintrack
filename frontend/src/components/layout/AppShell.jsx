@@ -19,7 +19,7 @@ import {
   Wallet,
   Flag,
 } from 'lucide-react';
-import { LogoMark } from '@/components/common/Logo';
+import { LogoMark, Wordmark } from '@/components/common/Logo';
 import NotificationBell from '@/components/layout/NotificationBell';
 import { NotificationsProvider } from '@/components/layout/NotificationsProvider';
 import SyncStatus from '@/components/layout/SyncStatus';
@@ -63,7 +63,7 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: 'FinTrack',
+    label: 'Rinde',
     items: [
       { to: '/app/invitar', label: 'Invitar amigos', icon: UserPlus },
       { to: '/app/planes', label: 'Planes', icon: Crown },
@@ -97,10 +97,10 @@ function Sidebar({ user }) {
       <Link
         to="/app"
         className="flex items-center gap-2.5 rounded-xl px-2 text-xl font-semibold tracking-tight max-lg:justify-center"
-        aria-label="FinTrack, ir al inicio"
+        aria-label="Rinde, ir al inicio"
       >
         <LogoMark />
-        <span className="max-lg:sr-only">FinTrack</span>
+        <Wordmark className="max-lg:hidden" />
       </Link>
       <NotificationBell label labelClassName="max-lg:sr-only" className="mt-4 w-full pr-3 max-lg:justify-center max-lg:pr-0" />
 

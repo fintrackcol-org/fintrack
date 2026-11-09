@@ -150,7 +150,7 @@ export default function Metas() {
           <Flag className="mx-auto size-10 text-brand" aria-hidden="true" />
           <p className="mt-3 text-lg font-semibold">Aún no tienes metas</p>
           <p className="mx-auto mt-1 max-w-md text-ink/60">
-            Ponle nombre y valor a lo que quieres (la moto, el semestre, un viaje) y ve apartando plata. FinTrack te
+            Ponle nombre y valor a lo que quieres (la moto, el semestre, un viaje) y ve apartando plata. Rinde te
             dice si vas a tiempo.
           </p>
           <Button className="mt-4" onClick={() => setCreating(true)} disabled={!online}>
