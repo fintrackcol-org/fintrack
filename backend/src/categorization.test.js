@@ -49,16 +49,46 @@ test('una categoría fuera del catálogo se marca "sin_clasificar"', async () =>
 
 test('una categoría de otro tipo tampoco es válida', async () => {
   const { suggestCategory } = build(async () => 'salario');
-  const result = await suggestCategory({ description: 'Cena', type: 'gasto' });
+  const result = await suggestCategory({ description: 'Croquetas', type: 'gasto' });
   assert.equal(result.source, 'sin_clasificar');
 });
 
 test('si la IA no está disponible se marca "sin_clasificar" sin lanzar error', async () => {
   const { suggestCategory } = build(unavailable);
-  assert.deepEqual(await suggestCategory({ description: 'Cena', type: 'gasto' }), {
+  assert.deepEqual(await suggestCategory({ description: 'Croquetas', type: 'gasto' }), {
     category: null,
     source: 'sin_clasificar',
   });
+});
+
+test('si la IA falla, las palabras clave clasifican lo obvio (plural y tildes incluidos)', async () => {
+  const { suggestCategory } = build(unavailable);
+  for (const [description, category] of [
+    ['bus', 'transporte'],
+    ['Tres almuerzos', 'alimentacion'],
+    ['Día 3 platos arroz chino', 'alimentacion'],
+    ['Empanadas', 'alimentacion'],
+  ]) {
+    assert.deepEqual(await suggestCategory({ description, type: 'gasto' }), {
+      category,
+      source: 'ia',
+    });
+  }
+});
+
+test('las palabras clave también cubren una respuesta inválida de la IA', async (t) => {
+  t.mock.method(console, 'warn', () => {});
+  const { suggestCategory } = build(async () => 'otros_ingressos');
+  const result = await suggestCategory({ description: 'Pago quincena', type: 'ingreso' });
+  assert.deepEqual(result, { category: 'salario', source: 'ia' });
+});
+
+test('palabras clave: si apuntan a dos categorías o al otro tipo, no adivinan', async () => {
+  const { suggestCategory } = build(unavailable);
+  const mixed = await suggestCategory({ description: 'almuerzo y bus', type: 'gasto' });
+  assert.equal(mixed.source, 'sin_clasificar');
+  const otherType = await suggestCategory({ description: 'sueldo', type: 'gasto' });
+  assert.equal(otherType.source, 'sin_clasificar');
 });
 
 test('un error que no es de la IA sí se propaga', async () => {

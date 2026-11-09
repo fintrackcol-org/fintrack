@@ -9,6 +9,83 @@ const SYSTEM_PROMPT =
   'sin comillas y sin puntuación.';
 
 /**
+ * Palabras inequívocas por categoría (sin tildes, en singular). Se usan solo cuando la IA no
+ * responde a tiempo o responde algo fuera del catálogo: así "bus" o "desayuno" no quedan sin
+ * clasificar por un 503 o un tiempo agotado del proveedor.
+ */
+const KEYWORDS = {
+  alimentacion: [
+    'almuerzo',
+    'desayuno',
+    'cena',
+    'comida',
+    'onces',
+    'empanada',
+    'arroz',
+    'pizza',
+    'hamburguesa',
+    'restaurante',
+    'mercado',
+    'cafe',
+    'pan',
+    'fruta',
+    'perro',
+    'arepa',
+    'pollo',
+  ],
+  transporte: [
+    'bus',
+    'buseta',
+    'taxi',
+    'uber',
+    'didi',
+    'pasaje',
+    'transmilenio',
+    'gasolina',
+    'parqueadero',
+    'peaje',
+    'mototaxi',
+    'colectivo',
+  ],
+  vivienda: ['arriendo'],
+  servicios_publicos: ['luz', 'agua', 'gas', 'internet'],
+  salud: ['farmacia', 'drogueria', 'medicamento', 'medico', 'eps', 'odontologo'],
+  educacion: ['matricula', 'fotocopia', 'libro', 'curso', 'semestre'],
+  entretenimiento: ['cine', 'netflix', 'spotify', 'fiesta', 'cerveza'],
+  ropa_accesorios: ['ropa', 'zapato', 'tenis', 'camisa', 'pantalon', 'camiseta'],
+  salario: ['salario', 'sueldo', 'quincena', 'nomina'],
+  freelance: ['freelance'],
+};
+const WORD_TO_KEY = new Map(
+  Object.entries(KEYWORDS).flatMap(([key, words]) => words.map((word) => [word, key])),
+);
+
+/**
+ * Adivina la categoría por palabras clave. Solo responde si todas las palabras reconocidas
+ * apuntan a una misma categoría del catálogo del usuario; si hay dudas, devuelve null.
+ * @param {string} description
+ * @param {Set<string>} keys Claves válidas para el tipo del movimiento.
+ * @returns {string|null}
+ */
+export function guessByKeyword(description, keys) {
+  const words =
+    description
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .match(/[a-z]+/g) ?? [];
+  const found = new Set();
+  for (const word of words) {
+    const key =
+      WORD_TO_KEY.get(word) ??
+      WORD_TO_KEY.get(word.slice(0, -1)) ??
+      WORD_TO_KEY.get(word.slice(0, -2));
+    if (key && keys.has(key)) found.add(key);
+  }
+  return found.size === 1 ? [...found][0] : null;
+}
+
+/**
  * Normaliza la respuesta del modelo para compararla con el catálogo.
  * @param {string} text
  * @returns {string}
@@ -48,6 +125,15 @@ export function createCategorizer(deps = {}) {
     const keys = new Set(catalog.map((c) => c.key));
     const list = catalog.map((c) => `- ${c.key}: ${c.name}`).join('\n');
 
+    // Respaldo cuando la IA falla. Cuenta como 'ia' (categoría automática): origen solo admite
+    // manual, ia o sin_clasificar.
+    const fallback = () => {
+      const guess = guessByKeyword(description, keys);
+      return guess
+        ? { category: guess, source: 'ia' }
+        : { category: null, source: 'sin_clasificar' };
+    };
+
     let answer;
     try {
       answer = await ask({
@@ -56,7 +142,7 @@ export function createCategorizer(deps = {}) {
       });
     } catch (err) {
       if (err instanceof AppError && err.code === 'AI_UNAVAILABLE') {
-        return { category: null, source: 'sin_clasificar' };
+        return fallback();
       }
       throw err;
     }
@@ -67,7 +153,7 @@ export function createCategorizer(deps = {}) {
       console.warn(
         `La IA respondió "${answer.trim().slice(0, 60)}", que no es una categoría de tipo ${type}`,
       );
-      return { category: null, source: 'sin_clasificar' };
+      return fallback();
     }
     return { category: key, source: 'ia' };
   }
