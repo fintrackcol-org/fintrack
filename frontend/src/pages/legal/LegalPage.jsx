@@ -30,7 +30,7 @@ export default function LegalPage({ title, sections, other }) {
   return (
     <div className="min-h-dvh bg-black text-white">
       <header className="container-page flex items-center justify-between gap-4 py-6">
-        <Link to="/" aria-label="FinTrack, ir al inicio">
+        <Link to="/" aria-label="Rinde, ir al inicio">
           <Logo />
         </Link>
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-white/60 transition-colors hover:text-white">

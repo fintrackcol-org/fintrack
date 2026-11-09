@@ -69,7 +69,7 @@ export function businessAdvicePrompt(panel, { current }) {
 }
 
 const SYSTEM =
-  'Eres el asistente de FinTrack, una app colombiana, y ayudas a dueños de negocios pequeños. Con las ' +
+  'Eres el asistente de Rinde, una app colombiana, y ayudas a dueños de negocios pequeños. Con las ' +
   'cifras del mes da UN consejo práctico en español de Colombia, de máximo 2 frases y 280 caracteres, ' +
   'sin saludos, sin emojis y sin inventar datos. Usa pesos colombianos con el formato de los datos.';
 

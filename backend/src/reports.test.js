@@ -96,7 +96,7 @@ test('exporta los movimientos del periodo como CSV descargable, en orden cronol�
     const res = await api(EXPORT_OCT, { token });
     assert.equal(res.status, 200);
     assert.equal(res.headers.get('content-type'), 'text/csv; charset=utf-8');
-    assert.equal(res.headers.get('content-disposition'), 'attachment; filename="fintrack_2026-10.csv"');
+    assert.equal(res.headers.get('content-disposition'), 'attachment; filename="rinde_2026-10.csv"');
     assert.equal(res.headers.get('cache-control'), 'no-store');
     assert.deepEqual(res.text.replace(/^\uFEFF/, '').split('\r\n'), [
       'Fecha;Tipo;Categoría;Descripción;Monto;Origen',
@@ -116,7 +116,7 @@ test('exporta el reporte en Excel con resumen y movimientos', options, async () 
     const res = await api('/reports/export?format=xlsx&from=2026-10-01&to=2026-10-31', { token });
     assert.equal(res.status, 200);
     assert.equal(res.headers.get('content-type'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    assert.equal(res.headers.get('content-disposition'), 'attachment; filename="fintrack_2026-10.xlsx"');
+    assert.equal(res.headers.get('content-disposition'), 'attachment; filename="rinde_2026-10.xlsx"');
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(res.buffer);
@@ -170,7 +170,7 @@ test('exporta el reporte en PDF', options, async () => {
     const pdf = await api('/reports/export?format=pdf&from=2026-10-01&to=2026-10-31', { token });
     assert.equal(pdf.status, 200);
     assert.equal(pdf.headers.get('content-type'), 'application/pdf');
-    assert.equal(pdf.headers.get('content-disposition'), 'attachment; filename="fintrack_2026-10.pdf"');
+    assert.equal(pdf.headers.get('content-disposition'), 'attachment; filename="rinde_2026-10.pdf"');
     assert.equal(pdf.buffer.subarray(0, 5).toString(), '%PDF-');
   });
 });

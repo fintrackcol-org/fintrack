@@ -3,7 +3,7 @@ import PDFDocument from 'pdfkit';
 /** @typedef {InstanceType<typeof PDFDocument>} PdfDoc Documento de pdfkit. */
 
 /*
- * Reporte en PDF del periodo, con el diseño de FinTrack (FT-0012).
+ * Reporte en PDF del periodo, con el diseño de Rinde (FT-0012).
  *
  * Página 1: encabezado, indicadores, gráficos (gastos por categoría y evolución), top 5 de gastos y
  * presupuestos del mes. Páginas siguientes: la tabla de movimientos. Todo se dibuja como vectores
@@ -169,7 +169,7 @@ function sectionTitle(doc, text, x, y, width) {
  */
 function drawHeader(doc, report) {
   doc.rect(0, 0, PAGE.width, 84).fill(C.brand);
-  write(doc, 'FinTrack', MARGIN, 24, { size: 20, font: BOLD, color: C.white });
+  write(doc, 'Rinde', MARGIN, 24, { size: 20, font: BOLD, color: C.white });
   write(doc, 'Reporte de movimientos', MARGIN, 30, { size: 11, color: C.white, width: CONTENT, align: 'right' });
   const who = report.owner.name || report.owner.email;
   const period = `Del ${longDate(report.period.from)} al ${longDate(report.period.to)}`;
@@ -447,7 +447,7 @@ function drawFooters(doc) {
   for (let i = start; i < start + count; i += 1) {
     doc.switchToPage(i);
     doc.moveTo(MARGIN, FOOTER_Y - 6).lineTo(PAGE.width - MARGIN, FOOTER_Y - 6).lineWidth(0.5).strokeColor(C.line).stroke();
-    write(doc, 'FinTrack · Reporte de movimientos', MARGIN, FOOTER_Y, { size: 8, color: C.muted });
+    write(doc, 'Rinde · Reporte de movimientos', MARGIN, FOOTER_Y, { size: 8, color: C.muted });
     write(doc, `Página ${i - start + 1} de ${count}`, MARGIN, FOOTER_Y, { size: 8, color: C.muted, width: CONTENT, align: 'right' });
   }
 }
@@ -462,7 +462,7 @@ export function buildPdf(report) {
     size: 'LETTER',
     margin: 0, // Las posiciones se manejan a mano; sin margen pdfkit no agrega páginas por su cuenta.
     bufferPages: true, // Necesario para escribir "Página X de Y" al final.
-    info: { Title: 'Reporte de movimientos', Author: 'FinTrack', Creator: 'FinTrack' },
+    info: { Title: 'Reporte de movimientos', Author: 'Rinde', Creator: 'Rinde' },
   });
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));

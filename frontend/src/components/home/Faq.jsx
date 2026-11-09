@@ -4,8 +4,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 
 const FAQS = [
   {
-    q: '¿FinTrack tiene algún costo?',
-    a: 'No. FinTrack es un proyecto académico y es gratuito.',
+    q: '¿Rinde tiene algún costo?',
+    a: 'No. Rinde es un proyecto académico y es gratuito.',
   },
   {
     q: '¿Necesito descargarla de una tienda de aplicaciones?',
@@ -46,7 +46,7 @@ export default function Faq() {
           align="left"
           eyebrow="FAQ"
           title="Preguntas frecuentes."
-          description="Lo esencial para empezar a usar FinTrack."
+          description="Lo esencial para empezar a usar Rinde."
           className="lg:sticky lg:top-28 lg:self-start"
         />
         <Reveal delay={0.1}>

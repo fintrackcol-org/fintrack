@@ -31,7 +31,7 @@ export default function Privacy() {
             Seguridad y privacidad desde el diseño.
           </h2>
           <p className="mt-6 max-w-md text-lg text-white/70 md:text-xl">
-            Manejar dinero exige confianza. Por eso FinTrack protege tu información en cada paso.
+            Manejar dinero exige confianza. Por eso Rinde protege tu información en cada paso.
           </p>
         </div>
         <ul className="divide-y divide-white/10">

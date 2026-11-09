@@ -1,6 +1,6 @@
 /**
  * Crea una cuenta de pruebas con tres meses de historial creíble (transacciones, presupuestos
- * y alertas) para probar FinTrack con una sola cuenta: dashboard con datos, presupuestos en
+ * y alertas) para probar Rinde con una sola cuenta: dashboard con datos, presupuestos en
  * 80 % y por encima del 100 %, insights (hace falta más de un mes de historial), exportación
  * y filtros.
  *
@@ -426,7 +426,7 @@ async function main() {
     const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     const { rows } = await client.query(
       `INSERT INTO usuarios (email, nombre, password_hash, timezone)
-       VALUES ($1, 'Demo FinTrack', $2, 'America/Bogota') RETURNING id`,
+       VALUES ($1, 'Demo Rinde', $2, 'America/Bogota') RETURNING id`,
       [email, hash],
     );
     const userId = rows[0].id;

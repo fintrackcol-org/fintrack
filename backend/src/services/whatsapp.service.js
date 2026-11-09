@@ -28,10 +28,10 @@ const PROGRESS_QUESTION =
 const ANY_QUESTION = /\?|^¿?\s*(cuanto|cuanta|que|como|cual)(?!\p{L})/u;
 
 export const REPLIES = {
-  unlinked: 'Hola. Para usar este chat, conecta tu número en FinTrack, en Cuenta → WhatsApp.',
+  unlinked: 'Hola. Para usar este chat, conecta tu número en Rinde, en Cuenta → WhatsApp.',
   linked: 'Listo, tu número quedó conectado. Escríbeme algo como "almuerzo 15 mil".',
-  invalidCode: 'Ese código no es válido o ya venció. Genera uno nuevo en FinTrack, en Cuenta.',
-  taken: 'Este número ya está conectado a otra cuenta de FinTrack.',
+  invalidCode: 'Ese código no es válido o ya venció. Genera uno nuevo en Rinde, en Cuenta.',
+  taken: 'Este número ya está conectado a otra cuenta de Rinde.',
   textOnly: 'Por ahora solo leo mensajes de texto. Prueba con "almuerzo 15 mil".',
   noAmount: 'No encontré el monto. Prueba con algo como "almuerzo 15 mil".',
   severalAmounts: 'Vi varios números. Escríbelo con un solo monto, como "almuerzos 24 mil".',
@@ -39,7 +39,7 @@ export const REPLIES = {
   dailyLimit: 'Llegaste al límite de mensajes de hoy. Mañana sigo registrando.',
   failed: 'No pude guardar ese movimiento. Inténtalo de nuevo en un momento.',
   help: 'Puedo decirte cómo vas hoy, tu saldo y tus gastos del mes. Prueba con "cómo voy", "cuánto tengo" o "cuánto he gastado".',
-  noPlan: `Para decirte cómo vas hoy, primero cuéntame cómo te entra la plata en FinTrack: ${env.appUrl}/app/mi-plata`,
+  noPlan: `Para decirte cómo vas hoy, primero cuéntame cómo te entra la plata en Rinde: ${env.appUrl}/app/mi-plata`,
   queryFailed: 'No pude consultar tus movimientos. Inténtalo de nuevo en un momento.',
   noMovements: (month) => `En ${month} aún no tienes movimientos.`,
   noExpenses: (month) => `En ${month} aún no tienes gastos.`,
@@ -208,7 +208,7 @@ export function planProgress(plan) {
     ].join('\n');
   }
   if (plan.shortfall > 0) {
-    return `Te faltan ${money(plan.shortfall)}. Revisa tus movimientos o corrige tu saldo en FinTrack.`;
+    return `Te faltan ${money(plan.shortfall)}. Revisa tus movimientos o corrige tu saldo en Rinde.`;
   }
   if (plan.runwayDays === null) return `Ya cubres tus pagos. Tienes libres ${money(plan.free)}.`;
   return `Ya cubres tus pagos. Lo que tienes te alcanza para ${daysText(plan.runwayDays)} a tu ritmo.`;

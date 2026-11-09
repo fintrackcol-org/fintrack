@@ -16,7 +16,7 @@ const DEVICES = [
 ];
 
 const STEPS = [
-  'Abre FinTrack en el navegador',
+  'Abre Rinde en el navegador',
   'Agrégala a tu pantalla de inicio',
   'Ábrela como cualquier otra app, incluso sin internet',
 ];
@@ -33,7 +33,7 @@ function AppScreen({ compact }) {
     <div className="flex h-full flex-col gap-3 overflow-hidden rounded-[inherit] bg-black p-4 text-white">
       <div className="flex items-center gap-2">
         <LogoMark className="size-6" />
-        <span className="text-sm font-semibold">FinTrack</span>
+        <span className="text-sm font-semibold">Rinde</span>
         <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/70">
           <WifiOff className="size-3" aria-hidden="true" />
           {!compact && <span className="whitespace-nowrap">Sin conexión</span>}
@@ -77,7 +77,7 @@ export default function AppDevices() {
             Tus finanzas, en el bolsillo.
           </h2>
           <p className="mt-6 max-w-md text-lg text-muted-foreground md:text-xl">
-            FinTrack es una aplicación web progresiva: rápida, liviana y lista para usarse sin conexión.
+            Rinde es una aplicación web progresiva: rápida, liviana y lista para usarse sin conexión.
           </p>
           <ol className="mt-9 space-y-4">
             {STEPS.map((step) => (
@@ -91,7 +91,7 @@ export default function AppDevices() {
           </ol>
           <div className="mt-10">
             {isInstalled ? (
-              <p className="font-medium text-emerald-700">Ya tienes FinTrack instalada en este dispositivo.</p>
+              <p className="font-medium text-emerald-700">Ya tienes Rinde instalada en este dispositivo.</p>
             ) : canInstall ? (
               <Button size="lg" className="rounded-full px-7" onClick={install}>
                 <Download /> Instalar app

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import usePageTitle from '@/hooks/usePageTitle';
 
 /**
- * Páginas oficiales de la DIAN. Son las que no cambian de un año a otro: FinTrack no muestra topes
+ * Páginas oficiales de la DIAN. Son las que no cambian de un año a otro: Rinde no muestra topes
  * ni fechas, que cambian cada año y solo la DIAN mantiene al día.
  */
 export const DIAN_LINKS = [
@@ -56,7 +56,7 @@ export default function Renta() {
 
         <p className="flex items-start gap-2 px-1 text-sm text-ink/60">
           <Lock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          Tu documento lo escribes en la página de la DIAN, nunca en FinTrack. Esta guía no reemplaza a un contador.
+          Tu documento lo escribes en la página de la DIAN, nunca en Rinde. Esta guía no reemplaza a un contador.
         </p>
       </div>
     </div>

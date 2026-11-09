@@ -155,7 +155,7 @@ function LiquidityDetail({ data, money, hidden }) {
               <li key={tip}>{tip}</li>
             ))}
           </ul>
-          <p className="mt-3 text-xs text-ink/50">Son sugerencias: FinTrack no mueve ni cambia tus pagos.</p>
+          <p className="mt-3 text-xs text-ink/50">Son sugerencias: Rinde no mueve ni cambia tus pagos.</p>
         </Panel>
       )}
 

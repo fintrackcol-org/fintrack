@@ -66,8 +66,8 @@ export function toCsv(rows) {
 }
 
 /**
- * Nombre del archivo: `fintrack_2026-10.csv` si el rango es un mes completo,
- * `fintrack_2026-10-01_2026-10-15.csv` en cualquier otro caso.
+ * Nombre del archivo: `rinde_2026-10.csv` si el rango es un mes completo,
+ * `rinde_2026-10-01_2026-10-15.csv` en cualquier otro caso.
  * @param {string} from AAAA-MM-DD
  * @param {string} to AAAA-MM-DD
  * @param {string} extension
@@ -75,7 +75,7 @@ export function toCsv(rows) {
  */
 export function exportFilename(from, to, extension) {
   const period = isWholeMonth(from, to) ? from.slice(0, 7) : `${from}_${to}`;
-  return `fintrack_${period}.${extension}`;
+  return `rinde_${period}.${extension}`;
 }
 
 /** @returns {AppError} 422 `NO_DATA`: no hay movimientos en el periodo (REQ-033). */

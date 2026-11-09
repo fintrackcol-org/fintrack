@@ -75,7 +75,7 @@ export default function TermsGate() {
           Publicamos nuestros términos y la política de privacidad
         </h2>
         <p id="terms-gate-text" className="mt-2 text-ink/70">
-          Explican qué hace FinTrack con tus datos, con qué servicios los procesamos y cómo pedir que los veamos,
+          Explican qué hace Rinde con tus datos, con qué servicios los procesamos y cómo pedir que los veamos,
           corrijamos o borremos. Para seguir usando la app necesitamos que los aceptes.
         </p>
         <ul className="mt-4 space-y-2 text-sm">

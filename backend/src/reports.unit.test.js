@@ -89,8 +89,8 @@ test('toCsv arma BOM, encabezado y una línea por movimiento con etiquetas legib
 });
 
 test('exportFilename usa el mes cuando el rango es un mes completo', () => {
-  assert.equal(exportFilename('2026-10-01', '2026-10-31', 'csv'), 'fintrack_2026-10.csv');
-  assert.equal(exportFilename('2028-02-01', '2028-02-29', 'csv'), 'fintrack_2028-02.csv', 'año bisiesto');
-  assert.equal(exportFilename('2026-10-01', '2026-10-30', 'csv'), 'fintrack_2026-10-01_2026-10-30.csv');
-  assert.equal(exportFilename('2026-10-01', '2026-11-30', 'csv'), 'fintrack_2026-10-01_2026-11-30.csv');
+  assert.equal(exportFilename('2026-10-01', '2026-10-31', 'csv'), 'rinde_2026-10.csv');
+  assert.equal(exportFilename('2028-02-01', '2028-02-29', 'csv'), 'rinde_2028-02.csv', 'año bisiesto');
+  assert.equal(exportFilename('2026-10-01', '2026-10-30', 'csv'), 'rinde_2026-10-01_2026-10-30.csv');
+  assert.equal(exportFilename('2026-10-01', '2026-11-30', 'csv'), 'rinde_2026-10-01_2026-11-30.csv');
 });

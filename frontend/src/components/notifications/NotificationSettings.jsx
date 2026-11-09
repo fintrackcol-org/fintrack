@@ -142,12 +142,12 @@ export default function NotificationSettings() {
       <Card title="Notificaciones en este dispositivo">
         {!push.supported ? (
           <p className="text-ink/60">
-            Este navegador no permite notificaciones. En iPhone, instala FinTrack en la pantalla de inicio y ábrela
+            Este navegador no permite notificaciones. En iPhone, instala Rinde en la pantalla de inicio y ábrela
             desde allí.
           </p>
         ) : push.permission === 'denied' ? (
           <p className="text-ink/60">
-            Bloqueaste las notificaciones de FinTrack. Para activarlas, permítelas en los ajustes del sitio de tu
+            Bloqueaste las notificaciones de Rinde. Para activarlas, permítelas en los ajustes del sitio de tu
             navegador (el candado junto a la dirección) y recarga la página.
           </p>
         ) : push.checking ? (

@@ -52,7 +52,7 @@ function PhoneDemo() {
             {/* Sin 3D (equipo modesto o aún cargando) se ve el logo plano; con 3D, aterriza el otro encima. */}
             <LogoMark className="size-16 rounded-2xl transition-opacity duration-500 group-data-[scene=on]/stage:opacity-0" />
           </div>
-          <p className="text-sm font-semibold">FinTrack</p>
+          <p className="text-sm font-semibold">Rinde</p>
         </div>
 
         <ul className="mt-5 space-y-2">

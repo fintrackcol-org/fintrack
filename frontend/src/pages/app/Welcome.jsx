@@ -256,7 +256,7 @@ function WelcomeSteps() {
 }
 
 /**
- * Página privada `/app/bienvenida` (FT-0036): tres preguntas que se pueden omitir para que FinTrack
+ * Página privada `/app/bienvenida` (FT-0036): tres preguntas que se pueden omitir para que Rinde
  * se ajuste a cómo le entra la plata a cada persona. Sale una vez; todo se cambia luego en Cuenta.
  */
 export default function Welcome() {

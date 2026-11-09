@@ -14,14 +14,14 @@ const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public')
 
 // Mismos valores que LogoMark, en su cuadrícula de 32 × 32.
 const GRID = 32;
-const TILE_RADIUS = 9;
-const GRADIENT_FROM = [0x61, 0x42, 0xff];
-const GRADIENT_TO = [0x8b, 0x66, 0xff];
-const BARS = [
-  { x: 8, y: 17, width: 4, height: 7, radius: 1.5, opacity: 0.55 },
-  { x: 14, y: 12, width: 4, height: 12, radius: 1.5, opacity: 0.8 },
-  { x: 20, y: 7, width: 4, height: 17, radius: 1.5, opacity: 1 },
-];
+const TILE_RADIUS = 8;
+const VIOLET = [0x61, 0x42, 0xff];
+const MINT = [0x2f, 0xd6, 0xa3];
+// La "r": asta de (9.75, 21.5) a (9.75, 16.25) y brazo de radio 5.75 hasta (15.5, 10.5); trazo de 4.25.
+const STEM = { x: 9.75, top: 16.25, bottom: 21.5 };
+const ARM = { cx: 15.5, cy: 16.25, radius: 5.75 };
+const STROKE = 4.25;
+const COIN = { cx: 22, cy: 10.5, radius: 2.375 };
 
 // Fondo de las pantallas de carga: coincide con background_color del manifest.
 const SPLASH_BACKGROUND = [0, 0, 0];
@@ -49,6 +49,19 @@ function roundedRectDistance(px, py, x, y, width, height, radius) {
   return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - radius;
 }
 
+/** Distancia con signo a la "r" (trazo de puntas redondas): negativa adentro. */
+function letterDistance(px, py) {
+  const stem = Math.hypot(px - STEM.x, py - Math.min(Math.max(py, STEM.top), STEM.bottom));
+  const dx = px - ARM.cx;
+  const dy = py - ARM.cy;
+  // El brazo es el cuarto de círculo de arriba a la izquierda; fuera de él manda la punta más cercana.
+  const arm =
+    dx <= 0 && dy <= 0
+      ? Math.abs(Math.hypot(dx, dy) - ARM.radius)
+      : Math.min(Math.hypot(px - STEM.x, py - STEM.top), Math.hypot(dx, dy + ARM.radius));
+  return Math.min(stem, arm) - STROKE / 2;
+}
+
 /** Cobertura del píxel (0 a 1) según su distancia al borde, medida en píxeles: suaviza el contorno. */
 const coverage = (distance) => Math.min(Math.max(0.5 - distance, 0), 1);
 
@@ -58,7 +71,7 @@ const mix = (from, to, amount) => from + (to - from) * amount;
  * Pinta el logo sobre un lienzo RGBA.
  * @param {{ pixels: Float64Array, width: number, height: number }} canvas
  * @param {{ left: number, top: number, size: number, artScale?: number, rounded?: boolean }} options
- * `artScale` encoge solo las barras (ícono maskable); `rounded: false` llena el cuadro entero.
+ * `artScale` encoge solo la r y la moneda (ícono maskable); `rounded: false` llena el cuadro entero.
  */
 function drawLogo({ pixels, width, height }, { left, top, size, artScale = 1, rounded = true }) {
   const scale = size / GRID;
@@ -73,21 +86,16 @@ function drawLogo({ pixels, width, height }, { left, top, size, artScale = 1, ro
       const tile = coverage(roundedRectDistance(px, py, 0, 0, size, size, radius));
       if (tile === 0) continue;
 
-      // Degradado diagonal, igual que x1=0 y1=0 x2=1 y2=1 en el SVG.
-      const amount = (px + py) / (2 * size);
-      const color = GRADIENT_FROM.map((value, channel) => mix(value, GRADIENT_TO[channel], amount));
+      const color = [...VIOLET];
 
-      // Las barras se escalan respecto al centro del cuadro.
+      // La r y la moneda se escalan respecto al centro del cuadro.
       const artX = (px - size / 2) / (scale * artScale) + GRID / 2;
       const artY = (py - size / 2) / (scale * artScale) + GRID / 2;
       const artPixel = 1 / (scale * artScale);
-      for (const bar of BARS) {
-        const distance =
-          roundedRectDistance(artX, artY, bar.x, bar.y, bar.width, bar.height, bar.radius) / artPixel;
-        const white = coverage(distance) * bar.opacity;
-        for (let channel = 0; channel < 3; channel += 1) {
-          color[channel] = mix(color[channel], 255, white);
-        }
+      const white = coverage(letterDistance(artX, artY) / artPixel);
+      const mint = coverage((Math.hypot(artX - COIN.cx, artY - COIN.cy) - COIN.radius) / artPixel);
+      for (let channel = 0; channel < 3; channel += 1) {
+        color[channel] = mix(mix(color[channel], 255, white), MINT[channel], mint);
       }
 
       const offset = (y * width + x) * 4;
@@ -179,6 +187,6 @@ icon('icons/icon-192.png', 192, {});
 icon('icons/icon-512.png', 512, {});
 // Sin esquinas: iOS y Android recortan el ícono con su propia máscara.
 icon('icons/apple-touch-icon.png', 180, { rounded: false });
-// Las barras más pequeñas para que quepan en la zona segura (círculo central del 80 %).
+// La r y la moneda más pequeñas para que quepan en la zona segura (círculo central del 80 %).
 icon('icons/maskable-512.png', 512, { rounded: false, artScale: 0.8 });
 for (const [width, height] of SPLASH_SIZES) splash(width, height);

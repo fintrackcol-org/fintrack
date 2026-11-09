@@ -27,13 +27,6 @@ class SceneBoundary extends Component {
   }
 }
 
-/** Barras del isotipo (viewBox 32×32): x, alto y opacidad, como en `LogoMark`. */
-const FLAT_BARS = [
-  { x: 8, h: 7, o: 0.55 },
-  { x: 14, h: 12, o: 0.8 },
-  { x: 20, h: 17, o: 1 },
-];
-
 /**
  * Logo plano animado: lo que se ve antes de que cargue el 3D, y en su lugar en equipos
  * modestos, con ahorro de datos o con "reducir movimiento". Llena el espacio reservado del
@@ -46,23 +39,29 @@ function FlatLogo({ animate }) {
       className="pointer-events-none absolute inset-0 transition-opacity duration-500 group-data-[scene=on]/stage:opacity-0"
     >
       <svg viewBox="0 0 32 32" className="size-full drop-shadow-[0_30px_60px_rgba(97,66,255,0.45)] motion-safe:animate-float">
-        <rect width="32" height="32" rx="9" fill="#6142ff" />
-        {FLAT_BARS.map(({ x, h, o }, i) => (
-          <motion.rect
-            key={x}
-            x={x}
-            y={24 - h}
-            width="4"
-            height={h}
-            rx="1.5"
-            fill="#fff"
-            opacity={o}
-            style={{ transformBox: 'fill-box', originY: 1 }}
-            initial={animate ? { scaleY: 0 } : false}
-            animate={{ scaleY: 1 }}
-            transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.3 + i * 0.15 }}
-          />
-        ))}
+        <rect width="32" height="32" rx="8" fill="#6142ff" />
+        {/* Misma geometría que `LogoMark`: la r crece desde abajo y luego salta la moneda. */}
+        <motion.path
+          d="M9.75 21.5V16.25A5.75 5.75 0 0 1 15.5 10.5"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="4.25"
+          strokeLinecap="round"
+          style={{ transformBox: 'fill-box', originY: 1 }}
+          initial={animate ? { scaleY: 0 } : false}
+          animate={{ scaleY: 1 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.3 }}
+        />
+        <motion.circle
+          cx="22"
+          cy="10.5"
+          r="2.375"
+          fill="#2fd6a3"
+          style={{ transformBox: 'fill-box' }}
+          initial={animate ? { scale: 0 } : false}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.6 }}
+        />
       </svg>
     </div>
   );
@@ -106,7 +105,7 @@ const fadeUp = (delay) => ({
 
 /**
  * Escenario del inicio: el hero y "Qué es" comparten un lienzo 3D fijo (sticky) con el logo
- * de FinTrack y figuras de finanzas. Al bajar, el fondo pasa de negro a violeta y el logo
+ * de Rinde y figuras de finanzas. Al bajar, el fondo pasa de negro a violeta y el logo
  * viaja del centro a la derecha. El lienzo solo vive dentro de este bloque, así nunca tapa
  * las secciones siguientes, y deja de dibujar cuando sale de pantalla.
  */
@@ -219,7 +218,7 @@ export default function HeroStage() {
         <motion.div {...fadeUp(0.3)} className="mt-9 flex flex-col items-center gap-4">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-orchid">Un minuto, con voz</p>
           <div className="flex flex-col items-center gap-3 sm:flex-row">
-            {/* "Comenzar": la voz explica FinTrack y la página baja sola, sección por sección. */}
+            {/* "Comenzar": la voz explica Rinde y la página baja sola, sección por sección. */}
             <button
               type="button"
               onClick={tour.start}
@@ -255,7 +254,7 @@ export default function HeroStage() {
       >
         <div className="container-page">
           <div className="max-w-xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-mint">Qué es FinTrack</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-mint">Qué es Rinde</p>
             <h2 className="mt-4 text-balance text-5xl font-semibold leading-[0.98] tracking-[-0.04em] md:text-6xl lg:text-7xl">
               Tu plata, bajo control.
             </h2>

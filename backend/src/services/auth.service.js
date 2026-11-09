@@ -126,7 +126,7 @@ export async function login({ email, password }) {
 }
 
 /**
- * Inicia sesión con una cuenta de Google. Si el correo ya tiene cuenta en FinTrack, entra a esa
+ * Inicia sesión con una cuenta de Google. Si el correo ya tiene cuenta en Rinde, entra a esa
  * misma cuenta; si no, la crea (con el nombre de Google) y guarda que aceptó los términos: el botón
  * dice que al continuar se aceptan (FT-0017). Las cuentas creadas así no tienen
  * contraseña utilizable: se guarda el hash de una cadena aleatoria que nadie conoce.

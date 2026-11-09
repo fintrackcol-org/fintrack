@@ -94,7 +94,7 @@ export default function AssistantChat({ className, embedded = false }) {
         </span>
         <div className="min-w-0 flex-1">
           <h2 id={titleId} className="text-lg font-semibold tracking-tight">
-            Pregúntale a FinTrack
+            Pregúntale a Rinde
           </h2>
           <p className="text-sm text-ink/70">Responde con los totales de tu mes.</p>
         </div>
@@ -144,7 +144,7 @@ export default function AssistantChat({ className, embedded = false }) {
                   : 'self-start rounded-bl-md bg-surface-muted text-ink',
               )}
             >
-              <span className="sr-only">{message.role === 'user' ? 'Tú: ' : 'FinTrack: '}</span>
+              <span className="sr-only">{message.role === 'user' ? 'Tú: ' : 'Rinde: '}</span>
               {message.text}
               {message.sources?.length > 0 && (
                 <span className="mt-2 flex items-center gap-1.5 border-t border-ink/10 pt-2 text-xs text-ink/60">
@@ -158,7 +158,7 @@ export default function AssistantChat({ className, embedded = false }) {
 
         {pending && (
           <p className="flex items-center gap-1 self-start rounded-2xl rounded-bl-md bg-surface-muted px-4 py-3">
-            <span className="sr-only">FinTrack está escribiendo…</span>
+            <span className="sr-only">Rinde está escribiendo…</span>
             {[0, 150, 300].map((delay) => (
               <span
                 key={delay}

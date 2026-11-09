@@ -19,7 +19,7 @@ const DAY_MS = 24 * 60 * MINUTE_MS;
 
 /** Mensaje del recordatorio diario (REQ-030). */
 export const REMINDER_PAYLOAD = {
-  title: 'FinTrack',
+  title: 'Rinde',
   body: '¿Ya registraste tus gastos de hoy?',
   url: '/app/transacciones',
 };
@@ -256,7 +256,7 @@ export function createReminderScheduler(deps = {}) {
         const payload = liquidityAlertPayload(liquidity);
         await saveAlert(user.id, { date: shortfall.date, daysBefore, missing: shortfall.missing });
         await sendToUser(user.id, payload);
-        await whatsapp(user.id, `${payload.body}\nMira el detalle en FinTrack.`).catch((err) => {
+        await whatsapp(user.id, `${payload.body}\nMira el detalle en Rinde.`).catch((err) => {
           log.error(`No se pudo avisar la liquidez por WhatsApp al usuario ${user.id}: ${err.message}`);
         });
         sent += 1;

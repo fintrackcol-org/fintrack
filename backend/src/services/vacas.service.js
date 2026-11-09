@@ -353,7 +353,7 @@ export function advicePrompt({
 }
 
 const ADVICE_SYSTEM =
-  'Eres el asistente de ahorro de FinTrack, una app colombiana. Un grupo de personas (familia o amigos) ' +
+  'Eres el asistente de ahorro de Rinde, una app colombiana. Un grupo de personas (familia o amigos) ' +
   'junta plata para una meta común ("hacer una vaca"). Con los datos del grupo, da UN consejo práctico y ' +
   'amable en español de Colombia, de máximo 2 frases y 280 caracteres, sin saludos, sin emojis y sin ' +
   'inventar datos. Usa pesos colombianos con el formato de los datos.';

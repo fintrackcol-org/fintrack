@@ -101,7 +101,7 @@ function MobileAccount({ onSignOut, leaving }) {
         {shortcut.data?.enabled && row('applepay', 'Pagos con Apple Pay')}
       </RowGroup>
 
-      <RowGroup label="FinTrack">
+      <RowGroup label="Rinde">
         {LINKS.slice(1).map(({ to, label }) => (
           <Link key={to} to={to} className={ROW}>
             {label}
@@ -165,7 +165,7 @@ export default function Account() {
       <div className="flex flex-col gap-8">
         <ProfileCard />
         <Group label="Preferencias">
-          <Section id="apariencia" title="Apariencia" description="Elige cómo se ve FinTrack.">
+          <Section id="apariencia" title="Apariencia" description="Elige cómo se ve Rinde.">
             <ThemeSelector />
           </Section>
           <CustomCategories />

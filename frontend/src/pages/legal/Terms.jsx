@@ -1,7 +1,7 @@
 import LegalPage from './LegalPage';
 import { TERMS } from './legalContent';
 
-/** Página pública `/terminos`: términos de uso de FinTrack (FT-0017). */
+/** Página pública `/terminos`: términos de uso de Rinde (FT-0017). */
 export default function Terms() {
   return (
     <LegalPage

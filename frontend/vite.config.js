@@ -22,8 +22,8 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
-        name: 'FinTrack',
-        short_name: 'FinTrack',
+        name: 'Rinde',
+        short_name: 'Rinde',
         description:
           'Registra tus gastos, controla tu presupuesto y sincroniza tus finanzas, incluso sin conexión.',
         lang: 'es',

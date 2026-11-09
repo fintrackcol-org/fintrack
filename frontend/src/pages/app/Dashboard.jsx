@@ -190,7 +190,7 @@ export default function Dashboard() {
     <>
       <PageHeader
         title={name ? `Hola, ${name}` : 'Hola'}
-        description={empty ? 'Te damos la bienvenida a FinTrack.' : `Así va tu ${label}.`}
+        description={empty ? 'Te damos la bienvenida a Rinde.' : `Así va tu ${label}.`}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">

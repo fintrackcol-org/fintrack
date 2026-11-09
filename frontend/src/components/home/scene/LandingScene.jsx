@@ -209,7 +209,7 @@ function FpsProbe({ onTooSlow }) {
 }
 
 /**
- * Escena 3D de la landing (se carga aparte, con `lazy`): el logo de FinTrack y las figuras.
+ * Escena 3D de la landing (se carga aparte, con `lazy`): el logo de Rinde y las figuras.
  * `onReady` avisa cuando el lienzo está listo; `onTooSlow`, si el equipo no la mueve con fluidez.
  * @param {{ stageRef: React.RefObject<HTMLElement>, active: boolean, reducedMotion: boolean,
  *   onReady?: () => void, onTooSlow?: () => void }} props

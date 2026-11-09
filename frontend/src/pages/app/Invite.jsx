@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import usePageTitle from '@/hooks/usePageTitle';
 
-/** Dirección pública de FinTrack: la que recibe el amigo. */
+/** Dirección pública de Rinde: la que recibe el amigo. */
 export const APP_URL = 'https://www.fintrackcol.online';
 
-const SHARE_TEXT = 'Estoy organizando mis finanzas con FinTrack. Pruébala y armemos una vaca:';
+const SHARE_TEXT = 'Estoy organizando mis finanzas con Rinde. Pruébala y armemos una vaca:';
 
-/** Página privada `/app/invitar`: compartir FinTrack con amigos. No hay premio ni se cuenta quién se registra. */
+/** Página privada `/app/invitar`: compartir Rinde con amigos. No hay premio ni se cuenta quién se registra. */
 export default function Invite() {
   usePageTitle('Invitar amigos');
   const [copied, setCopied] = useState(false);
@@ -31,7 +31,7 @@ export default function Invite() {
 
   const share = async () => {
     try {
-      await navigator.share({ title: 'FinTrack', text: SHARE_TEXT, url: APP_URL });
+      await navigator.share({ title: 'Rinde', text: SHARE_TEXT, url: APP_URL });
     } catch {
       // El usuario cerró el menú de compartir: no es un error.
     }
@@ -39,7 +39,7 @@ export default function Invite() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title="Invitar amigos" description="Compárteles FinTrack y armen una vaca juntos." />
+      <PageHeader title="Invitar amigos" description="Compárteles Rinde y armen una vaca juntos." />
 
       <Panel>
         <div className="flex items-start gap-3">
@@ -56,7 +56,7 @@ export default function Invite() {
           <Input
             readOnly
             value={APP_URL}
-            aria-label="Enlace de FinTrack"
+            aria-label="Enlace de Rinde"
             className="min-w-0 text-sm"
             onFocus={(event) => event.target.select()}
           />
@@ -83,7 +83,7 @@ export default function Invite() {
         {canShare && (
           <Button type="button" size="lg" className="mt-2 w-full" onClick={share}>
             <Share2 aria-hidden="true" />
-            Compartir FinTrack
+            Compartir Rinde
           </Button>
         )}
       </Panel>

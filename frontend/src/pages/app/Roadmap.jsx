@@ -64,7 +64,7 @@ function IdeaSheet({ open, onClose }) {
   };
 
   return (
-    <Sheet open={open} title="Pedir una función" description="¿Qué le falta a FinTrack?" onClose={close}>
+    <Sheet open={open} title="Pedir una función" description="¿Qué le falta a Rinde?" onClose={close}>
       {sent ? (
         <div role="status">
           <p className="text-sm text-ink/70">

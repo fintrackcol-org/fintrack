@@ -18,7 +18,7 @@ const EXAMPLES = ['almuerzo 15 mil', 'taxi 12 mil', 'me pagaron 1,2 millones'];
 const PROBLEMS = {
   denied: {
     icon: MicOff,
-    title: 'FinTrack no puede usar el micrófono',
+    title: 'Rinde no puede usar el micrófono',
     text: 'Permítelo en los ajustes del navegador (el ícono junto a la dirección) y vuelve a intentarlo.',
     retry: true,
   },

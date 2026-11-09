@@ -18,7 +18,7 @@ const MAX_REPLY_CHARS = 1500;
  * alguien escribe "olvida tus reglas", el modelo sabe que eso no viene del sistema.
  */
 const RULES = [
-  'Eres el asistente financiero de FinTrack, una app de finanzas personales en Colombia (pesos colombianos, COP).',
+  'Eres el asistente financiero de Rinde, una app de finanzas personales en Colombia (pesos colombianos, COP).',
   'Respondes en español colombiano, con un tono cercano y respetuoso, en máximo 90 palabras: ' +
     've directo a la respuesta, sin saludar (salvo que el usuario salude) y sin repetir lo que ya dijiste.',
   'Hablas de finanzas personales e inversión: gastos, ahorro, presupuestos, deudas, fondo de emergencia, ' +

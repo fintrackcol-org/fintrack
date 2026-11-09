@@ -35,7 +35,7 @@ export function createNotificationsService(deps = {}) {
     async record(userId, { title, body, url }) {
       await repo.insertNotification({
         userId,
-        title: String(title || 'FinTrack').slice(0, 120),
+        title: String(title || 'Rinde').slice(0, 120),
         body: String(body ?? '').slice(0, 300),
         url: safeUrl(url),
       });

@@ -5,7 +5,7 @@ import { authFetch } from '@/lib/authFetch';
 import { CONNECTION_ERROR, toApiError } from '@/lib/apiRequest';
 
 /**
- * Saca el nombre del archivo de `Content-Disposition: attachment; filename="fintrack_2026-10.csv"`.
+ * Saca el nombre del archivo de `Content-Disposition: attachment; filename="rinde_2026-10.csv"`.
  * @param {string|null} header
  * @param {string} fallback Nombre si el encabezado no llega (p. ej. un proxy lo quitó).
  * @returns {string}
@@ -33,6 +33,6 @@ export async function exportTransactions({ format, from, to }) {
 
   return {
     blob: await res.blob(),
-    filename: filenameFrom(res.headers.get('Content-Disposition'), `fintrack_${from}_${to}.${format}`),
+    filename: filenameFrom(res.headers.get('Content-Disposition'), `rinde_${from}_${to}.${format}`),
   };
 }

@@ -48,7 +48,7 @@ export default function UpdatePrompt() {
       className="fixed inset-x-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-[60] mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-obsidian py-2.5 pl-4 pr-2 text-sm text-white shadow-elevated ring-1 ring-white/15"
     >
       <RefreshCw className="size-4 shrink-0 text-violet-light" aria-hidden="true" />
-      <p className="min-w-0 flex-1">Hay una versión nueva de FinTrack.</p>
+      <p className="min-w-0 flex-1">Hay una versión nueva de Rinde.</p>
       <button
         type="button"
         onClick={() => {
