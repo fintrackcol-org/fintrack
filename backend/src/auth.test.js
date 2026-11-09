@@ -134,7 +134,7 @@ test('login entrega tokens y no revela qué campo falló (200 / 401)', options, 
   });
 });
 
-test('refresh rota el token: el usado deja de servir (200 / 401)', options, async () => {
+test('refresh rota el token: el usado sirve 60 s más y luego no (200 / 401)', options, async () => {
   await withApi(async (api) => {
     const session = await createVerifiedSession({ email: newEmail(), password: PASSWORD });
     const body = { refreshToken: session.refreshToken };
@@ -144,6 +144,23 @@ test('refresh rota el token: el usado deja de servir (200 / 401)', options, asyn
     assert.ok(first.body.accessToken);
     assert.notEqual(first.body.refreshToken, session.refreshToken);
 
+    // La respuesta pudo no llegar al celular: el reintento con el token viejo aún sirve.
+    const retry = await api('/auth/refresh', { method: 'POST', body });
+    assert.equal(retry.status, 200);
+    const {
+      rows: [token],
+    } = await pool.query(
+      `SELECT expires_at - now() <= interval '60 seconds' AS short FROM refresh_tokens
+       WHERE token_hash = encode(sha256($1::bytea), 'hex')`,
+      [session.refreshToken],
+    );
+    assert.equal(token.short, true, 'el margen no se alarga con cada reintento');
+
+    // Pasado el margen, el token viejo ya no sirve.
+    await pool.query(
+      `UPDATE refresh_tokens SET expires_at = now() WHERE token_hash = encode(sha256($1::bytea), 'hex')`,
+      [session.refreshToken],
+    );
     const reused = await api('/auth/refresh', { method: 'POST', body });
     assert.equal(reused.status, 401);
     assert.equal(reused.body.error.code, 'UNAUTHORIZED');
