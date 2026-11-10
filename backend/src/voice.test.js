@@ -9,6 +9,7 @@ const audio = Buffer.from('audio de prueba');
 
 /**
  * Sustituye fetch (la llamada a Groq) y guarda lo que se le envió.
+ * 
  * @param {Response|Error} reply Lo que "responde" Groq, o el error de red que lanza.
  * @param {(calls: Array<{ url: string, init: RequestInit }>) => Promise<void>} fn
  * @returns {Promise<void>}
