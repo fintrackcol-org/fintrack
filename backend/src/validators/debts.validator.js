@@ -1,4 +1,5 @@
 import { AppError } from '../errors/app-error.js';
+import { parseReminder } from './reminders.validator.js';
 
 /** Lo máximo que cabe en `numeric(12,2)`. */
 const MAX_AMOUNT = 9_999_999_999.99;
@@ -38,7 +39,7 @@ const isDate = (v) =>
  * Lee los campos editables que vengan (los ausentes se omiten).
  * @param {object} body
  * @param {FieldProblem[]} details
- * @returns {{ person?: string, amount?: number, dueDate?: string|null, note?: string|null }}
+ * @returns {{ person?: string, amount?: number, dueDate?: string|null, note?: string|null, reminder?: import('./reminders.validator.js').ReminderConfig }}
  */
 function readFields(body, details) {
   const out = {};
@@ -62,6 +63,11 @@ function readFields(body, details) {
     if (note === null || note === '') out.note = null;
     else if (typeof note === 'string' && note.length <= 200) out.note = note;
     else details.push({ field: 'note', problem: 'Máximo 200 caracteres' });
+  }
+  // Bloque "Avisarme" (FT-0063): cuándo, a qué hora y por dónde.
+  if (body.reminder !== undefined) {
+    const reminder = parseReminder(body.reminder, details);
+    if (reminder) out.reminder = reminder;
   }
   return out;
 }

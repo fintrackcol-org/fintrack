@@ -13,6 +13,7 @@ import { apiRequest } from '@/lib/apiRequest';
  * @property {string|null} note
  * @property {string|null} settledAt Fecha ISO en que se saldó.
  * @property {string|null} transactionId Movimiento creado al saldarla.
+ * @property {import('@/lib/reminder').Reminder} reminder Cuándo y por dónde se avisa (FT-0063).
  */
 
 /** @returns {Promise<{ items: Debt[], totals: { receivable: number, payable: number } }>} */

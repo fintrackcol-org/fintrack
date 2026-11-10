@@ -5,8 +5,10 @@ import { Loader2 } from 'lucide-react';
 import FormField from '@/components/auth/FormField';
 import ChipGroup from '@/components/common/ChipGroup';
 import MoneyInput from '@/components/common/MoneyInput';
+import ReminderBlock from '@/components/common/ReminderBlock';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DEFAULT_REMINDER } from '@/lib/reminder';
 import { debtSchema } from '@/lib/validation/debt';
 
 const KIND_OPTIONS = [
@@ -22,10 +24,12 @@ export default function DebtForm({ debt, kind: initialKind = 'receivable', disab
   const editing = Boolean(debt);
   const [kind, setKind] = useState(debt?.kind ?? initialKind);
   const [serverError, setServerError] = useState('');
+  const [reminder, setReminder] = useState(debt?.reminder ?? DEFAULT_REMINDER);
   const {
     control,
     register,
     handleSubmit,
+    watch,
     setError,
     formState: { errors, isSubmitting },
   } = useForm({
@@ -44,6 +48,8 @@ export default function DebtForm({ debt, kind: initialKind = 'receivable', disab
       ...values,
       dueDate: values.dueDate || null,
       note: values.note || null,
+      // Sin fecha límite no hay de qué avisar.
+      ...(values.dueDate && { reminder }),
     };
     try {
       await onSubmit(editing ? body : { kind, ...body });
@@ -56,6 +62,7 @@ export default function DebtForm({ debt, kind: initialKind = 'receivable', disab
   });
 
   const receivable = kind === 'receivable';
+  const hasDueDate = Boolean(watch('dueDate'));
   return (
     <form onSubmit={submit} noValidate className="space-y-4" aria-label={editing ? 'Editar cuenta' : 'Nueva cuenta'}>
       {!editing && <ChipGroup legend="¿Quién debe?" options={KIND_OPTIONS} value={kind} onChange={setKind} disabled={disabled} />}
@@ -82,6 +89,11 @@ export default function DebtForm({ debt, kind: initialKind = 'receivable', disab
       <FormField id="debt-due" label="Fecha límite (opcional)" error={errors.dueDate?.message}>
         <Input type="date" disabled={disabled} {...register('dueDate')} />
       </FormField>
+      {hasDueDate ? (
+        <ReminderBlock value={reminder} onChange={setReminder} disabled={disabled} />
+      ) : (
+        <p className="text-sm text-ink/60">Si le pones fecha límite, puedes elegir cuándo y por dónde te avisamos.</p>
+      )}
       <FormField id="debt-note" label="Nota (opcional)" error={errors.note?.message}>
         <Input
           autoComplete="off"
@@ -91,7 +103,7 @@ export default function DebtForm({ debt, kind: initialKind = 'receivable', disab
           {...register('note')}
         />
       </FormField>
-      <p className="text-sm text-ink/60">Un día antes de la fecha te llega un aviso. Esto no cambia lo que tienes en Mi plata.</p>
+      <p className="text-sm text-ink/60">Esto no cambia lo que tienes en Mi plata.</p>
       {disabled && <p className="text-sm text-ink/60">Necesitas conexión</p>}
       {serverError && (
         <p role="alert" className="text-sm text-negative">

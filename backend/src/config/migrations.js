@@ -566,6 +566,31 @@ export const MIGRATIONS = [
       'CREATE INDEX IF NOT EXISTS idx_ajustes_saldo_usuario ON ajustes_saldo(usuario_id, created_at DESC)',
     ],
   },
+  {
+    id: '029_avisos',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS avisos (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        origen_tipo VARCHAR(20) NOT NULL,
+        origen_id UUID NOT NULL,
+        dias_antes SMALLINT[] NOT NULL DEFAULT '{1}',
+        hora TIME NULL,
+        canal VARCHAR(10) NOT NULL DEFAULT 'push' CHECK (canal IN ('push', 'whatsapp', 'both')),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE (origen_tipo, origen_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS avisos_enviados (
+        usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        origen_tipo VARCHAR(20) NOT NULL,
+        origen_id UUID NOT NULL,
+        fecha_vence DATE NOT NULL,
+        dias_antes SMALLINT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (origen_tipo, origen_id, fecha_vence, dias_antes)
+      )`,
+    ],
+  },
 ];
 
 /**

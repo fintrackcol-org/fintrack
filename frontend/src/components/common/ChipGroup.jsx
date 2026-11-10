@@ -13,18 +13,20 @@ import { cn } from '@/lib/utils';
 /**
  * Grupo de opciones en forma de "pastillas" (una sola elegida). Son radios nativos ocultos:
  * se navegan con las flechas del teclado y el lector de pantalla anuncia el grupo y la opción.
+ * Con `multiple` son casillas: se pueden elegir varias o ninguna, y `value` es una lista.
  *
  * @param {object} props
  * @param {string} props.legend Nombre del grupo (visible o solo para lectores con `hideLegend`).
  * @param {boolean} [props.hideLegend]
  * @param {ChipOption[]} props.options
- * @param {string} props.value
- * @param {(value: string) => void} props.onChange
+ * @param {string|Array<string|number>} props.value Lista si es `multiple`.
+ * @param {(value: any) => void} props.onChange
+ * @param {boolean} [props.multiple]
  * @param {boolean} [props.scroll] Una sola fila con desplazamiento horizontal (muchas opciones en celular).
  * @param {boolean} [props.disabled]
  * @param {string} [props.className]
  */
-export default function ChipGroup({ legend, hideLegend = false, options, value, onChange, scroll = false, disabled, className }) {
+export default function ChipGroup({ legend, hideLegend = false, options, value, onChange, multiple = false, scroll = false, disabled, className }) {
   const name = useId();
   return (
     <fieldset className={cn('min-w-0', className)} disabled={disabled}>
@@ -38,7 +40,7 @@ export default function ChipGroup({ legend, hideLegend = false, options, value, 
         )}
       >
         {options.map(({ value: optionValue, label, icon: Icon, disabled: optionDisabled, badge }) => {
-          const checked = value === optionValue;
+          const checked = multiple ? value.includes(optionValue) : value === optionValue;
           return (
             <label
               key={optionValue}
@@ -54,12 +56,14 @@ export default function ChipGroup({ legend, hideLegend = false, options, value, 
               )}
             >
               <input
-                type="radio"
+                type={multiple ? 'checkbox' : 'radio'}
                 name={name}
                 value={optionValue}
                 checked={checked}
                 disabled={optionDisabled}
-                onChange={() => onChange(optionValue)}
+                onChange={() =>
+                  onChange(multiple ? (checked ? value.filter((v) => v !== optionValue) : [...value, optionValue]) : optionValue)
+                }
                 className="sr-only"
               />
               {Icon && <Icon className="size-4" aria-hidden="true" />}
