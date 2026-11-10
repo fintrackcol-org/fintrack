@@ -11,10 +11,24 @@ import {
   updateTransaction,
 } from '../repositories/transactions.repository.js';
 import { findByLocalId } from '../repositories/sync.repository.js';
+import { findUserById } from '../repositories/users.repository.js';
 import { attachments } from './attachments.service.js';
 import { resolveCategory } from './categorization.service.js';
+import { todayIso } from './insights.service.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Lo que ve el usuario al anotar con fecha futura (FT-0061). */
+export const FUTURE_DATE_PROBLEM = 'No puedes anotar un movimiento en el futuro';
+
+/**
+ * Hoy (AAAA-MM-DD) en la zona horaria del usuario.
+ * @param {string} userId
+ * @returns {Promise<string>}
+ */
+export async function userToday(userId) {
+  return todayIso(new Date(), (await findUserById(userId))?.timezone ?? undefined);
+}
 
 /**
  * @param {Date} date Fecha en UTC (solo importa el día).
@@ -107,6 +121,7 @@ export function createTransactionService(deps = {}) {
   const resolve = deps.resolveCategory ?? resolveCategory;
   const getCard = deps.findCard ?? findCard;
   const removeAttachments = deps.removeAttachments ?? attachments.removeAllOf;
+  const today = deps.today ?? userToday;
   const repo = deps.repository ?? {
     insertTransaction,
     findTransaction,
@@ -152,6 +167,21 @@ export function createTransactionService(deps = {}) {
   }
 
   /**
+   * Un movimiento es algo que ya pasó: lo que viene va en el calendario de pagos (FT-0061).
+   * @param {string} date AAAA-MM-DD
+   * @param {string} userId
+   * @returns {Promise<void>}
+   * @throws {AppError} 422 en el campo `date`.
+   */
+  async function assertNotFuture(date, userId) {
+    if (date > (await today(userId))) {
+      throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
+        { field: 'date', problem: FUTURE_DATE_PROBLEM },
+      ]);
+    }
+  }
+
+  /**
    * Decide la categoría final: la del usuario (`manual`) o la sugerida por la IA (REQ-010/011).
    * @param {{ category?: string|null, description: string, type: 'ingreso'|'gasto', userId: string }} input
    * @returns {Promise<{ category: string|null, source: 'manual'|'ia'|'sin_clasificar' }>}
@@ -173,6 +203,7 @@ export function createTransactionService(deps = {}) {
     const existing = input.localId && (await repo.findByLocalId(userId, input.localId));
     // Si ya se había borrado, se devuelve tal cual (con `deletedAt`) en vez de revivirla.
     if (existing) return existing.deletedAt ? existing : present(existing);
+    await assertNotFuture(input.date, userId);
     if (input.card) await assertCard(input.card, input.type, userId);
     const { category, source } = await decideCategory({ ...input, userId });
     const record = await repo.insertTransaction({ ...input, userId, category, source });
@@ -222,6 +253,8 @@ export function createTransactionService(deps = {}) {
     if (!UUID_RE.test(id)) throw notFound();
     const current = await repo.findTransaction(id, userId);
     if (!current) throw notFound();
+    // Solo si la cambian: un movimiento viejo con fecha futura se puede seguir corrigiendo.
+    if (changes.date && changes.date !== current.date) await assertNotFuture(changes.date, userId);
 
     const patch = { ...changes };
     const type = changes.type ?? current.type;

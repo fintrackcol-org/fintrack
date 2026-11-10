@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import ChipGroup from '@/components/common/ChipGroup';
 import { Input } from '@/components/ui/input';
-import { today } from '@/lib/validation/transaction';
+import { FUTURE_DATE_MESSAGE, today } from '@/lib/validation/transaction';
 
 /** Ayer en la zona del dispositivo, como AAAA-MM-DD. */
 function yesterday() {
@@ -25,7 +26,7 @@ function modeOf(date) {
 
 /**
  * Fecha del movimiento: "Hoy" y "Ayer" con un toque (los casos más comunes) y
- * "Otra fecha" abre el calendario nativo.
+ * "Otra fecha" abre el calendario nativo, hasta hoy: lo que viene va en el calendario de pagos.
  *
  * @param {object} props
  * @param {string} props.value AAAA-MM-DD
@@ -36,6 +37,8 @@ export default function DateQuickPick({ value, onChange, error }) {
   // "Otra fecha" puede estar elegida aunque la fecha coincida con hoy (el usuario va a cambiarla).
   const [forceOther, setForceOther] = useState(false);
   const mode = forceOther ? 'other' : modeOf(value);
+  // Se avisa apenas la eligen (el iPhone deja escribir una fecha mayor que `max`).
+  const future = value > today();
 
   const pick = (next) => {
     setForceOther(next === 'other');
@@ -52,10 +55,20 @@ export default function DateQuickPick({ value, onChange, error }) {
           aria-label="Fecha del movimiento"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          aria-invalid={error ? true : undefined}
+          max={today()}
+          aria-invalid={error || future ? true : undefined}
         />
       )}
-      {error && <p className="text-sm text-negative">{error}</p>}
+      {future ? (
+        <p role="alert" className="text-sm text-negative">
+          {FUTURE_DATE_MESSAGE}.{' '}
+          <Link to="/app/calendario" className="font-medium underline underline-offset-2">
+            ¿Es un pago que viene? Míralo en el calendario
+          </Link>
+        </p>
+      ) : (
+        error && <p className="text-sm text-negative">{error}</p>
+      )}
     </div>
   );
 }

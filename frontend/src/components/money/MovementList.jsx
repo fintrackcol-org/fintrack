@@ -90,6 +90,9 @@ export default function MovementList({ names, hidden = false }) {
       if (detail?.notices?.some((n) => n.code === 'cardDropped')) {
         setNotice('Guardamos el gasto sin tarjeta: esa tarjeta ya no existe. Puedes asignarle una al editarlo.');
       }
+      if (detail?.notices?.some((n) => n.code === 'dateClamped')) {
+        setNotice('Un movimiento tenía fecha futura y quedó con fecha de hoy. Puedes cambiarla al editarlo.');
+      }
     };
     refreshQueue();
     window.addEventListener(TRANSACTION_SAVED_EVENT, reload);

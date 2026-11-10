@@ -382,20 +382,21 @@ test(
           token: alice,
           body: { ...GASTO, amount, category: 'otros', date },
         });
-      // Semana del lunes 2026-10-19 al domingo 2026-10-25, y bordes de mes y de año.
+      // Semana del lunes 2025-10-20 al domingo 2025-10-26, y bordes de mes y de año.
+      // Todo en 2025: un movimiento no puede tener fecha futura (FT-0061).
       const days = [
-        ['2025-12-31', 1],
-        ['2026-01-01', 2],
-        ['2026-09-30', 4],
-        ['2026-10-01', 8],
-        ['2026-10-18', 16],
-        ['2026-10-19', 32],
-        ['2026-10-25', 64],
-        ['2026-10-26', 128],
-        ['2026-10-31', 256],
-        ['2026-11-01', 512],
-        ['2026-12-31', 1024],
-        ['2027-01-01', 2048],
+        ['2024-12-31', 1],
+        ['2025-01-01', 2],
+        ['2025-09-30', 4],
+        ['2025-10-01', 8],
+        ['2025-10-19', 16],
+        ['2025-10-20', 32],
+        ['2025-10-26', 64],
+        ['2025-10-27', 128],
+        ['2025-10-31', 256],
+        ['2025-11-01', 512],
+        ['2025-12-31', 1024],
+        ['2026-01-01', 2048],
       ];
       const created = await Promise.all(days.map(([date, amount]) => gasto(date, amount)));
       assert.deepEqual(
@@ -407,10 +408,10 @@ test(
         (await api(`/transactions/summary?${query}`, { token: alice })).body.expense.total;
 
       // Cada monto es una potencia de 2: el total dice exactamente qué días entraron.
-      assert.equal(await total('period=week&date=2026-10-22'), 32 + 64);
-      assert.equal(await total('period=month&date=2026-10-15'), 8 + 16 + 32 + 64 + 128 + 256);
+      assert.equal(await total('period=week&date=2025-10-22'), 32 + 64);
+      assert.equal(await total('period=month&date=2025-10-15'), 8 + 16 + 32 + 64 + 128 + 256);
       assert.equal(
-        await total('period=year&date=2026-06-01'),
+        await total('period=year&date=2025-06-01'),
         2 + 4 + 8 + 16 + 32 + 64 + 128 + 256 + 512 + 1024,
       );
     });

@@ -359,6 +359,21 @@ test(
   },
 );
 
+test('sync: una fecha futura queda con fecha de hoy y avisa (FT-0061)', options, async () => {
+  await withApi(async (api) => {
+    const token = await newUserToken();
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(
+      new Date(),
+    );
+    const res = await sync(api, token, null, [
+      { op: 'create', localId: 'a', transaction: expense({ date: '2099-01-01' }) },
+    ]);
+    assert.equal(res.status, 200);
+    assert.equal(res.body.synced[0].transaction.date, today);
+    assert.deepEqual(res.body.notices, [{ localId: 'a', code: 'dateClamped' }]);
+  });
+});
+
 test('sync: una tarjeta inválida se descarta con aviso y el gasto se guarda', options, async () => {
   await withApi(async (api) => {
     const token = await newUserToken();
