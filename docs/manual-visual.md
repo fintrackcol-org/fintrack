@@ -65,6 +65,7 @@ Reglas:
 | **ChipGroup** | `common/ChipGroup.jsx` | Pastillas de una sola opción (radios) o de varias con `multiple` (casillas). Elegida: borde `brand`, fondo `brand-soft` |
 | **ReminderBlock** | `common/ReminderBlock.jsx` | Bloque "Avisarme" (FT-0063): días de anticipación (varios), hora y canal, con una frase que resume lo elegido. Es el único bloque de avisos de la app: se usa igual en cuentas, tarjetas, suscripciones y calendario; no se copia ni se rediseña por pantalla. Sin días elegidos esconde hora y canal. Si se elige WhatsApp sin tenerlo conectado, avisa en `caution` con enlace a Cuenta |
 | **AdjustmentRow** | `money/AdjustmentRow.jsx` | Fila gris de "Ajuste de saldo" en el historial (FT-0062): no es ingreso ni gasto, por eso no usa `positive` ni `negative` |
+| **MonthGrid** | `common/MonthGrid.jsx` | Cuadrícula de un mes. Con `onSelect` cada día es un botón de 48 px de alto con su texto para lector de pantalla; `footer` lleva la leyenda |
 | **Segmented** | `common/Segmented.jsx` | Opciones excluyentes en una franja (Gasto/Ingreso, Semana/Mes/Año); 44 px de alto |
 | **Sheet** | `common/Sheet.jsx` | Ventana que sube desde abajo en celular y se centra desde tablet; arrastrable, atrapa el foco, Escape cierra, devuelve el foco al abrir |
 | **ConfirmButton** | `common/ConfirmButton.jsx` | Confirmación en dos pasos para acciones destructivas |
@@ -90,6 +91,7 @@ Reglas: respetar `prefers-reduced-motion` (`motion-safe:`, `MotionConfig reduced
 - Cada gráfico responde **una pregunta** (¿en qué gasto?, ¿cuánto me queda?, ¿voy dentro del presupuesto?). Si no la responde, no se pone.
 - Ingresos y gastos usan `chart-income` / `chart-expense`; categorías usan `chart-cat-*`, con nombre y valor visibles.
 - Lo estimado o proyectado se rotula y no se presenta como dato cierto.
+- **Semáforo del calendario (FT-0069):** `positive` te alcanza con holgura, `caution` te queda poco, `negative` no alcanza o está atrasado. Sale de lo que queda después de los pagos del día. Siempre con leyenda visible; el rojo lleva además el signo `!`. Un pago sin saldo calculado va en `ink/60` y lo que entra en `brand`, para no confundirlos con el verde.
 
 ## 9. Estados que toda pantalla debe resolver
 | Estado | Patrón existente |

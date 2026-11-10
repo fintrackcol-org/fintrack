@@ -759,6 +759,41 @@ export const handlers = [
     return HttpResponse.json(profile);
   }),
 
+  // Calendario simplificado (FT-0025, FT-0069): compromisos y cuentas con fecha del mes pedido.
+  http.get(`${API_V1}/money-profile/calendar`, ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const profile = moneyProfileOf(user.id);
+    const today = new Date().toLocaleDateString('en-CA');
+    const month = new URL(request.url).searchParams.get('month') ?? today.slice(0, 7);
+    const status = (date) => (date < today ? 'atrasado' : 'pendiente');
+    const events = [
+      ...profile.commitments.map((c) => {
+        const date = `${month}-${String(c.dayOfMonth).padStart(2, '0')}`;
+        return { date, kind: 'compromiso', id: c.id, name: c.name, amount: c.amount, status: status(date) };
+      }),
+      ...(debtsByUser.get(user.id) ?? [])
+        .filter((d) => d.dueDate?.startsWith(month) && !d.settledAt)
+        .map((d) => ({
+          date: d.dueDate,
+          kind: d.kind === 'payable' ? 'cuenta' : 'cobro',
+          id: d.id,
+          name: d.person,
+          amount: d.amount,
+          status: status(d.dueDate),
+        })),
+    ].sort((a, b) => a.date.localeCompare(b.date));
+    let balance = profile.money;
+    for (const e of events) {
+      const counts = e.kind !== 'cobro' && typeof balance === 'number';
+      if (counts) balance -= e.amount;
+      e.balanceAfter = counts ? balance : null;
+      e.risk = counts ? (balance < 0 ? 'negativo' : balance < 100000 ? 'riesgo' : 'ok') : null;
+    }
+    const pending = events.filter((e) => e.kind !== 'cobro').reduce((acc, e) => acc + e.amount, 0);
+    return HttpResponse.json({ month, today, money: profile.money, projectedUntil: null, events, totals: { pending, paid: 0 } });
+  }),
+
   http.post(`${API_V1}/money-profile/commitments`, async ({ request }) => {
     const user = authUser(request);
     if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');

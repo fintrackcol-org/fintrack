@@ -35,18 +35,45 @@ export function shortMoney(amount) {
 }
 
 /** Lo más grave de un día manda en su color. */
-const TONE_ORDER = ['negativo', 'riesgo', 'pago', 'ingreso'];
+const TONE_ORDER = ['negativo', 'riesgo', 'ok', 'pago', 'ingreso'];
+
+/** Lo que entra (día de pago o plata que le deben): no es un pago del usuario. */
+const isInflow = (event) => event.kind === 'ingreso' || event.kind === 'cobro';
 
 /**
- * Tono de un evento en la cuadrícula: el riesgo si lo tiene, si no si es pago o día de pago.
- * @param {{ kind: string, status: string|null, risk: string|null }} event
- * @returns {'negativo'|'riesgo'|'pago'|'ingreso'|null} `null` si ya está pagado.
+ * Semáforo del calendario (FT-0069), siempre con su texto: el color nunca va solo.
+ * Sale de lo que le queda al usuario después de los pagos del día.
  */
-function toneOf(event) {
-  if (event.kind === 'ingreso') return 'ingreso';
+export const LEGEND = [
+  { tone: 'ok', label: 'Te alcanza con holgura' },
+  { tone: 'riesgo', label: 'Te queda poco' },
+  { tone: 'negativo', label: 'No alcanza o está atrasado' },
+];
+
+/**
+ * Tono de un evento: rojo si no alcanza o está atrasado, amarillo si queda poco, verde si alcanza.
+ * `pago` es un pago sin saldo calculado (falta Mi plata, o es después del próximo ingreso).
+ * @param {{ kind: string, status: string|null, risk: string|null }} event
+ * @returns {'negativo'|'riesgo'|'ok'|'pago'|'ingreso'|null} `null` si ya está pagado.
+ */
+export function toneOf(event) {
+  if (isInflow(event)) return 'ingreso';
   if (event.status === 'pagado') return null;
-  if (event.risk === 'negativo' || event.risk === 'riesgo') return event.risk;
+  if (event.risk === 'negativo' || event.status === 'atrasado') return 'negativo';
+  if (event.risk === 'riesgo' || event.risk === 'ok') return event.risk;
   return 'pago';
+}
+
+/**
+ * A dónde lleva cada elemento del calendario para verlo o cambiarlo.
+ * @param {{ kind: string, id: string|null }} event
+ * @returns {string}
+ */
+export function eventLink({ kind, id }) {
+  if (kind === 'vaca') return `/app/vacas/${id}`;
+  if (kind === 'card') return `/app/tarjetas/${id}`;
+  if (kind === 'cuenta' || kind === 'cobro') return '/app/cuentas';
+  return kind === 'ingreso' ? '/app/mi-plata' : '/app/mi-plata/pagos';
 }
 
 /**
@@ -54,7 +81,8 @@ function toneOf(event) {
  * @param {string} month AAAA-MM
  * @param {Array<{ date: string, kind: string, amount: number|null, status: string|null, risk: string|null }>} events
  * @param {string} today AAAA-MM-DD
- * @returns {Array<null|{ day: number, date: string, isToday: boolean, isPast: boolean, total: number, tone: string|null }>}
+ * @returns {Array<null|{ day: number, date: string, isToday: boolean, isPast: boolean, total: number, tone: string|null, count: number }>}
+ *   `count`: cuántas cosas hay ese día (para decirlo al lector de pantalla).
  */
 export function calendarCells(month, events, today) {
   return monthCells(month, today).map((cell) => {
@@ -63,8 +91,9 @@ export function calendarCells(month, events, today) {
     const tones = ofDay.map(toneOf).filter(Boolean);
     return {
       ...cell,
+      count: ofDay.length,
       total: ofDay
-        .filter((e) => e.kind !== 'ingreso' && e.status !== 'pagado')
+        .filter((e) => !isInflow(e) && e.status !== 'pagado')
         .reduce((acc, e) => acc + e.amount, 0),
       tone: TONE_ORDER.find((t) => tones.includes(t)) ?? null,
     };

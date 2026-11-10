@@ -196,3 +196,30 @@ test('el pago de tarjeta pendiente se descuenta antes de los pagos que vienen de
   const paid = { ...card, nextPaymentDate: '2026-12-07', paidDueDate: '2026-11-07', paidAmount: 400000 };
   assert.equal(byName(buildPaymentCalendar({ ...base, cards: [paid] })).Netflix.balanceAfter, 877100);
 });
+
+test('las cuentas personales con fecha salen en el calendario (FT-0069)', () => {
+  const debt = (id, kind, person, amount, dueDate, settledAt = null) => ({ id, kind, person, amount, dueDate, settledAt });
+  const calendar = buildPaymentCalendar({
+    ...base,
+    commitments: [commitment('Internet', 89000, 5)],
+    debts: [
+      debt('d1', 'payable', 'Ana', 300000, '2026-11-08'),
+      debt('d2', 'receivable', 'Juan', 500000, '2026-11-04'),
+      debt('d3', 'payable', 'Vieja', 10000, '2026-11-01'),
+      debt('d4', 'payable', 'Saldada', 99999, '2026-11-09', new Date()),
+      debt('d5', 'payable', 'Sin fecha', 99999, null),
+      debt('d6', 'payable', 'Diciembre', 50000, '2026-12-02'),
+    ],
+  });
+  const events = byName(calendar);
+  assert.deepEqual(Object.keys(events).sort(), ['Ana', 'Día de pago', 'Internet', 'Juan', 'Vieja']);
+
+  // Lo atrasado se resta hoy: 1.000.000 − 10.000; luego Internet y después lo que le debe a Ana.
+  assert.deepEqual([events.Vieja.kind, events.Vieja.status, events.Vieja.balanceAfter], ['cuenta', 'atrasado', 990000]);
+  assert.equal(events.Internet.balanceAfter, 901000);
+  assert.deepEqual([events.Ana.kind, events.Ana.balanceAfter, events.Ana.risk], ['cuenta', 601000, 'ok']);
+
+  // Lo que le deben se muestra, pero no suma al saldo ni a "por pagar".
+  assert.deepEqual([events.Juan.kind, events.Juan.balanceAfter, events.Juan.risk], ['cobro', null, null]);
+  assert.equal(calendar.totals.pending, 10000 + 89000 + 300000);
+});

@@ -18,9 +18,10 @@ const KIND_OPTIONS = [
 
 /**
  * Formulario de una cuenta por cobrar o por pagar. Al crear se elige el lado; al editar no cambia.
- * @param {{ debt?: object, kind?: 'receivable'|'payable', disabled?: boolean, onSubmit: (v: object) => Promise<void> }} props
+ * `dueDate` deja puesta la fecha límite al crear (p. ej. desde un día del calendario).
+ * @param {{ debt?: object, kind?: 'receivable'|'payable', dueDate?: string, disabled?: boolean, onSubmit: (v: object) => Promise<void> }} props
  */
-export default function DebtForm({ debt, kind: initialKind = 'receivable', disabled = false, onSubmit }) {
+export default function DebtForm({ debt, kind: initialKind = 'receivable', dueDate: initialDueDate = '', disabled = false, onSubmit }) {
   const editing = Boolean(debt);
   const [kind, setKind] = useState(debt?.kind ?? initialKind);
   const [serverError, setServerError] = useState('');
@@ -37,7 +38,7 @@ export default function DebtForm({ debt, kind: initialKind = 'receivable', disab
     defaultValues: {
       person: debt?.person ?? '',
       amount: debt ? String(debt.amount) : '',
-      dueDate: debt?.dueDate ?? '',
+      dueDate: debt?.dueDate ?? initialDueDate,
       note: debt?.note ?? '',
     },
   });

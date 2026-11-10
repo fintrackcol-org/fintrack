@@ -1254,7 +1254,7 @@ paths:
                       type: object
                       properties:
                         date: { type: string, format: date }
-                        kind: { type: string, enum: [compromiso, vaca, ingreso, card] }
+                        kind: { type: string, enum: [compromiso, vaca, ingreso, card, cuenta, cobro], description: "cuenta: plata que el usuario debe (se resta del saldo). cobro: plata que le deben (se muestra, no se suma) (FT-0069)" }
                         id: { type: string, nullable: true }
                         name: { type: string }
                         amount: { type: number, nullable: true }

@@ -1,4 +1,5 @@
 import { listMovements } from '../repositories/analytics.repository.js';
+import { listDebts } from '../repositories/debts.repository.js';
 import * as repo from '../repositories/money-profile.repository.js';
 import { daysInMonth, shiftMonth } from './analytics.service.js';
 import { todayIso } from './insights.service.js';
@@ -9,7 +10,9 @@ import { list as listVacas } from './vacas.service.js';
 /**
  * Calendario de pagos (FT-0025): los compromisos de Mi plata, los días de pago y lo que falta
  * aportar a cada vaca, con cuánto le queda al usuario después de cada pago. No guarda nada: todo
- * sale de Mi plata (parche 011) y de las vacas.
+ * sale de Mi plata (parche 011) y de las vacas. Desde FT-0069 también salen las cuentas personales
+ * con fecha: lo que el usuario debe se resta del saldo; lo que le deben se muestra pero no se suma
+ * (la plata que no ha entrado nunca se cuenta).
  */
 
 /** Días de gasto normal que deben quedar después de un pago para no marcarlo en riesgo. */
@@ -18,7 +21,8 @@ export const RISK_DAYS = 7;
 /**
  * @typedef {object} CalendarEvent
  * @property {string} date AAAA-MM-DD
- * @property {'compromiso'|'vaca'|'ingreso'|'card'} kind Pago propio, aporte a una vaca, día de pago o pago de una tarjeta.
+ * @property {'compromiso'|'vaca'|'ingreso'|'card'|'cuenta'|'cobro'} kind Pago propio, aporte a una vaca, día de pago,
+ *   pago de una tarjeta, cuenta que el usuario debe (`cuenta`) o que le deben (`cobro`).
  * @property {string|null} id Compromiso o vaca; `null` en los días de pago.
  * @property {string} name Nombre del compromiso o de la vaca.
  * @property {number|null} amount `null` en los días de pago: Mi plata no sabe cuánto le pagan.
@@ -68,6 +72,8 @@ export function riskOf(balanceAfter, pace) {
  * @param {Array<{ id: string, name: string, nextPaymentDate: string, amount: number, paidDueDate: string|null, paidAmount: number }>} [data.cards]
  *   Tarjetas con su primer pago sin hacer (`nextPaymentDate`, puede estar atrasado) y el último
  *   ciclo pagado con lo que se pagó en él.
+ * @param {Array<{ id: string, kind: 'receivable'|'payable', person: string, amount: number, dueDate: string|null, settledAt: Date|null }>} [data.debts]
+ *   Cuentas personales (FT-0069). Solo cuentan las pendientes con fecha.
  * @param {{ ready: boolean, money?: number, pace?: number|null, nextPay?: string }} data.plan Lo de `getPlan`.
  * @returns {{ month: string, today: string, money: number|null, projectedUntil: string|null, events: CalendarEvent[], totals: { pending: number, paid: number } }}
  */
@@ -80,12 +86,14 @@ export function buildPaymentCalendar({
   monthExpenses,
   vacas,
   cards = [],
+  debts = [],
   plan,
 }) {
   const currentMonth = today.slice(0, 7);
   const fixed = profile?.incomeType === 'fecha_fija';
   const end = projectionEnd({ fixed, nextPay: plan.nextPay, today });
   const isPaid = (name, expenses) => expenses.some((e) => isPaymentOf({ name }, e));
+  const openDebts = debts.filter((d) => d.dueDate && !d.settledAt);
 
   // 1. Lo que falta pagar desde hoy hasta el fin de la proyección, en orden.
   const owed = [
@@ -99,6 +107,10 @@ export function buildPaymentCalendar({
     ...cards
       .filter((c) => c.amount > 0 && c.nextPaymentDate < end)
       .map((c) => ({ key: `card:${c.id}`, date: c.nextPaymentDate, amount: c.amount })),
+    // Lo que el usuario le debe a alguien, con fecha: sale de su plata ese día.
+    ...openDebts
+      .filter((d) => d.kind === 'payable' && d.dueDate < end)
+      .map((d) => ({ key: `cuenta:${d.id}`, date: d.dueDate, amount: d.amount })),
   ]
     // Lo atrasado se paga hoy, antes que lo demás.
     .map((p) => ({ ...p, when: p.date < today ? today : p.date }))
@@ -164,6 +176,20 @@ export function buildPaymentCalendar({
       });
     }
   }
+  for (const d of openDebts) {
+    if (!d.dueDate.startsWith(month)) continue;
+    const payable = d.kind === 'payable';
+    events.push({
+      date: d.dueDate,
+      kind: payable ? 'cuenta' : 'cobro',
+      id: d.id,
+      name: d.person,
+      amount: d.amount,
+      status: d.dueDate < today ? 'atrasado' : 'pendiente',
+      // Lo que le deben no cambia el saldo proyectado.
+      ...(payable ? projected(`cuenta:${d.id}`) : { balanceAfter: null, risk: null }),
+    });
+  }
   if (fixed) {
     for (const day of new Set(profile.payDays.map((d) => Math.min(d, daysInMonth(month))))) {
       events.push({
@@ -179,10 +205,10 @@ export function buildPaymentCalendar({
     }
   }
   // Mismo día: primero el ingreso, luego los pagos.
-  const order = { ingreso: 0, compromiso: 1, vaca: 2, card: 3 };
+  const order = { ingreso: 0, cobro: 1, compromiso: 2, vaca: 3, card: 4, cuenta: 5 };
   events.sort((a, b) => a.date.localeCompare(b.date) || order[a.kind] - order[b.kind]);
 
-  const owes = (e) => e.status === 'pendiente' || e.status === 'atrasado';
+  const owes = (e) => e.kind !== 'cobro' && (e.status === 'pendiente' || e.status === 'atrasado');
   return {
     month,
     today,
@@ -224,7 +250,7 @@ export function createPaymentCalendarService(deps = {}) {
           to: `${m}-${String(daysInMonth(m)).padStart(2, '0')}`,
         })
       ).filter((mv) => mv.type === 'gasto');
-    const [profile, commitments, currentExpenses, monthExpenses, vacas, cardList, plan] = await Promise.all([
+    const [profile, commitments, currentExpenses, monthExpenses, vacas, cardList, plan, debts] = await Promise.all([
       repo.findProfile(userId),
       repo.listCommitments(userId),
       expensesOf(currentMonth),
@@ -232,6 +258,7 @@ export function createPaymentCalendarService(deps = {}) {
       listVacas(userId),
       listCards(userId),
       getPlan(userId),
+      listDebts(userId),
     ]);
     return buildPaymentCalendar({
       month: shown,
@@ -249,6 +276,7 @@ export function createPaymentCalendarService(deps = {}) {
         paidDueDate: c.paidDueDate,
         paidAmount: c.paidAmount,
       })),
+      debts,
       plan,
     });
   }
