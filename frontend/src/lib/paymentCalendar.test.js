@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dayLabel, monthLabel, shiftMonth } from '@/lib/calendar';
-import { calendarCells, filterEvents, groupByDate, shortMoney } from '@/lib/paymentCalendar';
+import { calendarCells, eventLink, filterEvents, groupByDate, shortMoney, toneOf } from '@/lib/paymentCalendar';
 
 const event = (date, kind, amount, extra = {}) => ({ date, kind, amount, status: 'pendiente', risk: 'ok', ...extra });
 
@@ -57,5 +57,33 @@ describe('calendario de pagos (FT-0025)', () => {
     expect(shortMoney(1250000)).toBe('1,3 M');
     expect(shortMoney(2000000)).toBe('2 M');
     expect(shortMoney(500)).toBe('500');
+  });
+});
+
+describe('semáforo y cuentas en el calendario (FT-0069)', () => {
+  it('rojo si no alcanza o está atrasado, amarillo si queda poco, verde si alcanza', () => {
+    expect(toneOf(event('2026-11-10', 'compromiso', 1, { risk: 'negativo' }))).toBe('negativo');
+    expect(toneOf(event('2026-11-01', 'cuenta', 1, { status: 'atrasado', risk: 'ok' }))).toBe('negativo');
+    expect(toneOf(event('2026-11-10', 'card', 1, { risk: 'riesgo' }))).toBe('riesgo');
+    expect(toneOf(event('2026-11-10', 'compromiso', 1))).toBe('ok');
+    expect(toneOf(event('2026-11-20', 'compromiso', 1, { risk: null }))).toBe('pago');
+    expect(toneOf(event('2026-11-10', 'compromiso', 1, { status: 'pagado' }))).toBeNull();
+  });
+
+  it('lo que te deben no suma a lo que hay que pagar ese día', () => {
+    const cells = calendarCells(
+      '2026-11',
+      [event('2026-11-12', 'cobro', 500000, { risk: null }), event('2026-11-12', 'cuenta', 80000)],
+      '2026-11-03',
+    );
+    expect(cells.find((c) => c?.day === 12)).toMatchObject({ total: 80000, tone: 'ok', count: 2 });
+    expect(toneOf(event('2026-11-12', 'cobro', 500000, { risk: null }))).toBe('ingreso');
+  });
+
+  it('cada elemento lleva a su detalle', () => {
+    expect(eventLink({ kind: 'vaca', id: 'v1' })).toBe('/app/vacas/v1');
+    expect(eventLink({ kind: 'card', id: 'c1' })).toBe('/app/tarjetas/c1');
+    expect(eventLink({ kind: 'cuenta', id: 'd1' })).toBe('/app/cuentas');
+    expect(eventLink({ kind: 'compromiso', id: 'x' })).toBe('/app/mi-plata/pagos');
   });
 });
