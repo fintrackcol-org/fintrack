@@ -118,10 +118,55 @@ export async function expensesOfDay(userId, date) {
  * Crea o reemplaza el perfil.
  * @param {string} userId
  * @param {import('../validators/money-profile.validator.js').ProfileData} data
+ * @param {{ before: number, after: number }|null} [adjustment] Rastro de la corrección de saldo (FT-0062).
  * @returns {Promise<void>}
  */
-export async function saveProfile(userId, { incomeType, payDays, balance, resetBalance = false }) {
-  await pool.query(SAVE_PROFILE, [userId, incomeType, payDays, balance, false, resetBalance, resetBalance]);
+export async function saveProfile(userId, { incomeType, payDays, balance, resetBalance = false }, adjustment = null) {
+  const values = [userId, incomeType, payDays, balance, false, resetBalance, resetBalance];
+  if (!adjustment) {
+    await pool.query(SAVE_PROFILE, values);
+    return;
+  }
+  // El saldo y su rastro se guardan juntos o no se guarda ninguno.
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(SAVE_PROFILE, values);
+    await client.query(
+      'INSERT INTO ajustes_saldo (usuario_id, saldo_antes, saldo_despues) VALUES ($1, $2, $3)',
+      [userId, adjustment.before, adjustment.after],
+    );
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/** Tope de ajustes por consulta: nadie corrige el saldo tantas veces en un mes. */
+const MAX_ADJUSTMENTS = 100;
+
+/**
+ * Correcciones de saldo del usuario, de la más reciente a la más antigua (FT-0062).
+ * @param {string} userId
+ * @param {{ from?: string, to?: string }} [range] Días (AAAA-MM-DD) en la zona del usuario.
+ * @returns {Promise<Array<{ id: string, before: number, after: number, date: string, createdAt: Date }>>}
+ */
+export async function listAdjustments(userId, { from = null, to = null } = {}) {
+  const { rows } = await pool.query(
+    `SELECT a.id, a.saldo_antes::float8 AS before, a.saldo_despues::float8 AS after,
+            to_char(a.created_at AT TIME ZONE u.timezone, 'YYYY-MM-DD') AS date,
+            a.created_at AS "createdAt"
+     FROM ajustes_saldo a JOIN usuarios u ON u.id = a.usuario_id
+     WHERE a.usuario_id = $1
+       AND ($2::date IS NULL OR (a.created_at AT TIME ZONE u.timezone)::date >= $2::date)
+       AND ($3::date IS NULL OR (a.created_at AT TIME ZONE u.timezone)::date <= $3::date)
+     ORDER BY a.created_at DESC LIMIT ${MAX_ADJUSTMENTS}`,
+    [userId, from, to],
+  );
+  return rows;
 }
 
 /**

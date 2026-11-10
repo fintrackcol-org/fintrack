@@ -1160,6 +1160,38 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /money-profile/adjustments:
+    get:
+      tags: [MoneyProfile]
+      summary: Correcciones de saldo, para mostrarlas en el historial (FT-0062)
+      description: |
+        Cada vez que el usuario corrige su saldo (`PUT /money-profile` con `resetBalance`) y el valor
+        cambia, queda un ajuste con el saldo de antes y el de después. No es un movimiento: ningún
+        reporte, resumen ni presupuesto lo cuenta. Máximo 100, del más reciente al más antiguo.
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date }, description: Desde este día (zona del usuario) }
+        - { name: to, in: query, schema: { type: string, format: date }, description: Hasta este día }
+      responses:
+        "200":
+          description: Ajustes del rango
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        before: { type: number, description: Plata que mostraba la app antes de corregir }
+                        after: { type: number, description: Saldo que dijo el usuario }
+                        date: { type: string, format: date }
+                        createdAt: { type: string, format: date-time }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
   /money-profile/plan:
     get:
       tags: [MoneyProfile]

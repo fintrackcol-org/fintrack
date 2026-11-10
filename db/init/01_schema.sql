@@ -522,3 +522,14 @@ CREATE TABLE IF NOT EXISTS negocio_categorias (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_negocio_categorias_clave ON negocio_categorias(negocio_id, clave);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_negocio_categorias_nombre ON negocio_categorias(negocio_id, lower(nombre));
+
+-- FT-0062: rastro de cada corrección de saldo (ver db/patches/028). No es un movimiento:
+-- ningún reporte lo cuenta como ingreso o gasto.
+CREATE TABLE IF NOT EXISTS ajustes_saldo (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  saldo_antes NUMERIC(12,2) NOT NULL,
+  saldo_despues NUMERIC(12,2) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_ajustes_saldo_usuario ON ajustes_saldo(usuario_id, created_at DESC);

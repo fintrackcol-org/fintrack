@@ -3,6 +3,8 @@ import { getCalendar as buildCalendar } from '../services/payment-calendar.servi
 import * as moneyProfile from '../services/money-profile.service.js';
 import { parseMonthQuery } from '../validators/budgets.validator.js';
 import * as income from '../services/income.service.js';
+import { AppError } from '../errors/app-error.js';
+import { isValidDate } from '../validators/transactions.validator.js';
 import { parseCommitment, parseProfile, parseSources, parseSplitQuery, parseWelcome } from '../validators/money-profile.validator.js';
 
 /**
@@ -44,6 +46,21 @@ export async function getCalendar(req, res) {
  */
 export async function putProfile(req, res) {
   res.json(await moneyProfile.update(req.userId, parseProfile(req.body)));
+}
+
+/**
+ * `GET /api/v1/money-profile/adjustments?from=&to=`: correcciones de saldo, para el historial (FT-0062).
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+export async function getAdjustments(req, res) {
+  const { from, to } = req.query;
+  const details = ['from', 'to']
+    .filter((field) => req.query[field] !== undefined && !isValidDate(req.query[field]))
+    .map((field) => ({ field, problem: 'Debe ser una fecha AAAA-MM-DD' }));
+  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+  res.json({ data: await moneyProfile.listAdjustments(req.userId, { from, to }) });
 }
 
 /**

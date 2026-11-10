@@ -553,6 +553,19 @@ export const MIGRATIONS = [
       'CREATE UNIQUE INDEX IF NOT EXISTS ux_negocio_categorias_nombre ON negocio_categorias(negocio_id, lower(nombre))',
     ],
   },
+  {
+    id: '028_ajustes_saldo',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS ajustes_saldo (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        saldo_antes NUMERIC(12,2) NOT NULL,
+        saldo_despues NUMERIC(12,2) NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       )`,
+      'CREATE INDEX IF NOT EXISTS idx_ajustes_saldo_usuario ON ajustes_saldo(usuario_id, created_at DESC)',
+    ],
+  },
 ];
 
 /**
