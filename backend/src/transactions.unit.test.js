@@ -6,7 +6,9 @@ import {
   parseListQuery,
   parseUpdateTransaction,
 } from './validators/transactions.validator.js';
-import { createTransactionService } from './services/transactions.service.js';
+import { FUTURE_DATE_PROBLEM, createTransactionService } from './services/transactions.service.js';
+
+const TODAY = '2026-11-10';
 
 const VALID = { amount: 25000.5, description: ' Almuerzo ', type: 'gasto', date: '2026-10-12' };
 
@@ -101,6 +103,7 @@ function buildService({ current = null } = {}) {
   const asked = [];
   const removedAttachments = [];
   const service = createTransactionService({
+    today: async () => TODAY,
     listCategories: async () => CATALOG,
     removeAttachments: async (userId, id) => {
       removedAttachments.push([userId, id]);
@@ -153,6 +156,29 @@ test('create rechaza una categoría inexistente o de otro tipo (RN-02)', async (
   await assert.rejects(service.create('u1', { ...VALID, category: 'salario' }), {
     statusCode: 422,
   });
+});
+
+test('create rechaza una fecha futura y acepta la de hoy (FT-0061)', async () => {
+  const { service, saved } = buildService();
+  const future = { statusCode: 422, details: [{ field: 'date', problem: FUTURE_DATE_PROBLEM }] };
+  await assert.rejects(service.create('u1', { ...VALID, date: '2026-11-11' }), future);
+  await assert.rejects(service.create('u1', { ...VALID, date: '2027-11-10' }), future);
+  assert.equal(saved.length, 0);
+  await service.create('u1', { ...VALID, date: TODAY });
+  assert.equal(saved[0].date, TODAY);
+});
+
+test('update rechaza mover la fecha al futuro, pero deja corregir uno que ya la tenía', async () => {
+  const old = { id: ID, ...VALID, category: 'alimentacion', date: '2027-01-01' };
+  await assert.rejects(
+    buildService({ current: { ...old, date: TODAY } }).service.update('u1', ID, {
+      date: '2026-12-31',
+    }),
+    { statusCode: 422 },
+  );
+  const { service, saved } = buildService({ current: old });
+  await service.update('u1', ID, { amount: 10, date: '2027-01-01' });
+  assert.equal(saved[0].amount, 10);
 });
 
 test('list traduce la página a limit/offset', async () => {

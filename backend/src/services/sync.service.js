@@ -71,17 +71,34 @@ async function dropInvalidCard(userId, localId, transaction, type, notices) {
 }
 
 /**
+ * Lo anotado sin conexión con fecha futura queda con fecha de hoy (FT-0061). No se rechaza:
+ * un 422 dejaría la cola del dispositivo atascada y el gasto sin guardar.
+ * @param {string} localId
+ * @param {object} transaction
+ * @param {string} today Hoy del usuario, AAAA-MM-DD.
+ * @param {Array<{ localId: string, code: string }>} notices Se le agrega el aviso si se corrigió.
+ * @returns {object} La misma transacción, o una copia con la fecha de hoy.
+ */
+function clampFutureDate(localId, transaction, today, notices) {
+  if (!transaction.date || transaction.date <= today) return transaction;
+  notices.push({ localId, code: 'dateClamped' });
+  return { ...transaction, date: today };
+}
+
+/**
  * Aplica un `create` sin duplicar: si ese `localId` ya existe, devuelve la que ya estaba.
  * La IA solo se usa mientras quede cupo (`aiQuota.left`); sin cupo queda `sin_clasificar`.
  * @param {string} userId
  * @param {SyncOperation} operation
  * @param {{ left: number }} aiQuota Se descuenta cada vez que se consulta a la IA.
  * @param {Array<{ localId: string, code: string }>} notices
+ * @param {string} today Hoy del usuario, AAAA-MM-DD.
  * @returns {Promise<TransactionRecord>}
  */
-async function applyCreate(userId, { localId, transaction: input }, aiQuota, notices) {
+async function applyCreate(userId, { localId, transaction: raw }, aiQuota, notices, today) {
   const existing = await repo.findByLocalId(userId, localId);
   if (existing) return existing;
+  const input = clampFutureDate(localId, raw, today, notices);
   const transaction = await dropInvalidCard(userId, localId, input, input.type, notices);
 
   let decided = { category: null, source: 'sin_clasificar' };
@@ -107,9 +124,10 @@ async function applyCreate(userId, { localId, transaction: input }, aiQuota, not
  * @param {Date|null} lastSyncedAt
  * @param {Set<string>} touched Ids ya modificados por este mismo lote: no cuentan como cambio del servidor.
  * @param {Array<{ localId: string, code: string }>} notices
+ * @param {string} today Hoy del usuario, AAAA-MM-DD.
  * @returns {Promise<{ synced?: { localId: string, serverId: string, transaction?: TransactionRecord }, conflict?: object, touched?: string }>}
  */
-async function applyChange(userId, operation, current, lastSyncedAt, touched, notices) {
+async function applyChange(userId, operation, current, lastSyncedAt, touched, notices, today) {
   const { localId, serverId } = operation;
 
   // No existe o es de otro usuario (RN-01): se le pide al dispositivo descartar el cambio.
@@ -141,7 +159,7 @@ async function applyChange(userId, operation, current, lastSyncedAt, touched, no
     const changes = await dropInvalidCard(
       userId,
       localId,
-      operation.transaction,
+      clampFutureDate(localId, operation.transaction, today, notices),
       operation.transaction.type ?? current.type,
       notices,
     );
@@ -186,16 +204,25 @@ export async function syncBatch(userId, { lastSyncedAt, operations }) {
   const notices = [];
   const touched = new Set();
   const aiQuota = { left: env.syncAiMax };
+  const today = await transactions.userToday(userId);
 
   for (const operation of operations) {
     if (operation.op === 'create') {
-      const record = await applyCreate(userId, operation, aiQuota, notices);
+      const record = await applyCreate(userId, operation, aiQuota, notices, today);
       synced.push({ localId: operation.localId, serverId: record.id, transaction: record });
       touched.add(record.id);
     } else {
       // Se vuelve a leer: una operación anterior del lote pudo cambiarla.
       const latest = await repo.findForSync(operation.serverId, userId);
-      const result = await applyChange(userId, operation, latest, lastSyncedAt, touched, notices);
+      const result = await applyChange(
+        userId,
+        operation,
+        latest,
+        lastSyncedAt,
+        touched,
+        notices,
+        today,
+      );
       if (result.synced) synced.push(result.synced);
       if (result.conflict) conflicts.push(result.conflict);
       if (result.touched) touched.add(result.touched);

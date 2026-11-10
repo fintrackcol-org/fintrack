@@ -5,6 +5,9 @@ export function today() {
   return new Date().toLocaleDateString('en-CA');
 }
 
+/** Un movimiento ya pasó; lo que viene va en el calendario de pagos (FT-0061). */
+export const FUTURE_DATE_MESSAGE = 'No puedes anotar un movimiento en el futuro';
+
 /**
  * Formulario de transacción. Sigue el contrato de `POST /transactions`:
  * monto mayor que 0 (REQ-007), descripción de hasta 200 caracteres y fecha AAAA-MM-DD.
@@ -21,7 +24,10 @@ export const transactionSchema = z.object({
     .trim()
     .min(1, 'Escribe una descripción')
     .max(200, 'Usa máximo 200 caracteres'),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Elige una fecha'),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Elige una fecha')
+    .refine((date) => date <= today(), FUTURE_DATE_MESSAGE),
   category: z.string(),
   card: z.string().nullable(),
   // '' se deja pasar aquí (campo oculto sin tarjeta) y se exige abajo; así nunca se vuelve 0.
