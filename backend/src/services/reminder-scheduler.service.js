@@ -5,7 +5,8 @@ import {
   saveLiquidityAlert,
 } from '../repositories/reminders.repository.js';
 import { updateCard } from '../repositories/cards.repository.js';
-import { listDebtsDueTomorrow, markReminded } from '../repositories/debts.repository.js';
+import { listDebtsDueTomorrow } from '../repositories/debts.repository.js';
+import { markReminderSent } from '../repositories/reminder-configs.repository.js';
 import * as businessReminders from '../repositories/negocio-reminders.repository.js';
 import { accountAlertPayload, taxDatePayload } from './negocio-accounts.logic.js';
 import { pushService } from './push.service.js';
@@ -49,17 +50,28 @@ export function cardReminderPayload(card) {
 }
 
 /**
- * Aviso de una cuenta personal que vence mañana (FT-0046).
- * @param {{ kind: 'receivable'|'payable', person: string, amount: number }} debt
+ * Cuándo vence algo, dicho desde el día del aviso: "Hoy", "Mañana" o "En 3 días".
+ * @param {number} daysBefore
+ * @returns {string}
+ */
+export function whenText(daysBefore) {
+  if (daysBefore === 0) return 'Hoy';
+  return daysBefore === 1 ? 'Mañana' : `En ${daysBefore} días`;
+}
+
+/**
+ * Aviso de una cuenta personal por vencer (FT-0046), con la anticipación que eligió el usuario (FT-0063).
+ * @param {{ kind: 'receivable'|'payable', person: string, amount: number, daysBefore?: number }} debt
  * @returns {{ title: string, body: string, url: string }}
  */
-export function debtReminderPayload({ kind, person, amount }) {
+export function debtReminderPayload({ kind, person, amount, daysBefore = 1 }) {
+  const when = whenText(daysBefore);
   return {
     title: kind === 'receivable' ? 'Te deben' : 'Tienes que pagar',
     body:
       kind === 'receivable'
-        ? `Mañana ${person} te debe pagar ${money(amount)}.`
-        : `Mañana vence lo que le debes a ${person}: ${money(amount)}.`,
+        ? `${when} ${person} te debe pagar ${money(amount)}.`
+        : `${when} vence lo que le debes a ${person}: ${money(amount)}.`,
     url: '/app/cuentas',
   };
 }
@@ -112,6 +124,15 @@ export function checkReminderDue({ time, timezone, now, windowMinutes = 5 }) {
 }
 
 /**
+ * Algo con fecha que avisa por el motor de recordatorios (FT-0063).
+ * @typedef {object} ReminderSource
+ * @property {string} type Nombre en `avisos.origen_tipo` ('cuenta', 'tarjeta'…).
+ * @property {() => Promise<Array<{ id: string, userId: string, timezone: string, time: string, dueDate: string, daysBefore: number, channel?: 'push'|'whatsapp'|'both' }>>} list
+ *   Lo que toca avisar hoy y aún no salió; la hora la revisa el motor.
+ * @property {(item: object) => { title: string, body: string, url: string }} payload Texto del aviso.
+ */
+
+/**
  * Crea el programador del recordatorio diario. Cada `intervalMs` revisa qué usuarios tienen
  * un recordatorio a la hora actual (pueden tener varios al día) y les envía la notificación,
  * una sola vez por cada hora y día.
@@ -126,7 +147,8 @@ export function checkReminderDue({ time, timezone, now, windowMinutes = 5 }) {
  * @param {typeof cardsService.list} [deps.listUserCards]
  * @param {(cardId: string, userId: string, date: string) => Promise<unknown>} [deps.markCardReminded]
  * @param {typeof listDebtsDueTomorrow} [deps.listDueDebts]
- * @param {(debtId: string) => Promise<unknown>} [deps.markDebtReminded]
+ * @param {ReminderSource[]} [deps.reminderSources] Qué cosas con fecha avisan por el motor (FT-0063).
+ * @param {typeof markReminderSent} [deps.markReminderSent]
  * @param {typeof listLiquidityReminderUsers} [deps.listLiquidityUsers]
  * @param {typeof getLiquidity} [deps.getLiquidity]
  * @param {typeof saveLiquidityAlert} [deps.saveLiquidityAlert]
@@ -145,8 +167,11 @@ export function createReminderScheduler(deps = {}) {
   const markCardReminded =
     deps.markCardReminded ??
     ((id, userId, date) => updateCard(id, userId, { reminderSentFor: date }));
-  const listDueDebts = deps.listDueDebts ?? listDebtsDueTomorrow;
-  const markDebtReminded = deps.markDebtReminded ?? markReminded;
+  // Para sumar tarjetas, suscripciones o el calendario al motor basta agregar su fuente aquí.
+  const sources = deps.reminderSources ?? [
+    { type: 'cuenta', list: deps.listDueDebts ?? listDebtsDueTomorrow, payload: debtReminderPayload },
+  ];
+  const markSent = deps.markReminderSent ?? markReminderSent;
   const listLiquidityUsers = deps.listLiquidityUsers ?? listLiquidityReminderUsers;
   const liquidityOf = deps.getLiquidity ?? getLiquidity;
   const saveAlert = deps.saveLiquidityAlert ?? saveLiquidityAlert;
@@ -200,27 +225,47 @@ export function createReminderScheduler(deps = {}) {
   }
 
   /**
-   * Avisa un día antes de la fecha límite de las cuentas por cobrar y por pagar, a la hora del
-   * primer recordatorio del usuario, una sola vez por cuenta (FT-0046).
+   * Entrega un aviso por donde lo pidió el usuario. Si eligió solo WhatsApp y no se pudo (no tiene
+   * el bot conectado, o falló), llega por notificación: un recordatorio de pago no se pierde.
+   * @param {string} userId
+   * @param {'push'|'whatsapp'|'both'} channel
+   * @param {{ title: string, body: string, url: string }} payload
+   * @returns {Promise<void>}
+   */
+  async function deliver(userId, channel, payload) {
+    let byWhatsapp = false;
+    if (channel !== 'push') {
+      byWhatsapp = await whatsapp(userId, `${payload.title}: ${payload.body}`).catch((err) => {
+        log.error(`No se pudo avisar por WhatsApp al usuario ${userId}: ${err.message}`);
+        return false;
+      });
+    }
+    if (channel !== 'whatsapp' || !byWhatsapp) await sendToUser(userId, payload);
+  }
+
+  /**
+   * Motor de recordatorios (FT-0063): recorre cada fuente (hoy, las cuentas personales) y envía los
+   * avisos que tocan a la hora elegida, una sola vez por vencimiento y anticipación.
    * @param {Date} moment
    * @returns {Promise<number>} Avisos enviados.
    */
-  async function debtTick(moment) {
+  async function sourcesTick(moment) {
     let sent = 0;
-    for (const debt of await listDueDebts()) {
-      try {
-        const { due } = checkReminderDue({
-          time: debt.time,
-          timezone: debt.timezone,
-          now: moment,
-          windowMinutes,
-        });
-        if (!due) continue;
-        await markDebtReminded(debt.id);
-        await sendToUser(debt.userId, debtReminderPayload(debt));
-        sent += 1;
-      } catch (err) {
-        log.error(`Error avisando la cuenta ${debt.id} al usuario ${debt.userId}: ${err.message}`);
+    for (const source of sources) {
+      for (const item of await source.list()) {
+        try {
+          const { due } = checkReminderDue({
+            time: item.time,
+            timezone: item.timezone,
+            now: moment,
+            windowMinutes,
+          });
+          if (!due || !(await markSent({ type: source.type, ...item }))) continue;
+          await deliver(item.userId, item.channel ?? 'push', source.payload(item));
+          sent += 1;
+        } catch (err) {
+          log.error(`Error avisando ${source.type} ${item.id} al usuario ${item.userId}: ${err.message}`);
+        }
       }
     }
     return sent;
@@ -348,7 +393,7 @@ export function createReminderScheduler(deps = {}) {
       }
     }
     sent += await cardTick(moment);
-    sent += await debtTick(moment);
+    sent += await sourcesTick(moment);
     sent += await liquidityTick(moment);
     sent += await businessTick(moment);
     return { sent, skipped };

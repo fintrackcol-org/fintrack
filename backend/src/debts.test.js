@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { createApp } from './app.js';
 import { pool } from './config/db.js';
 import { listDebtsDueTomorrow } from './repositories/debts.repository.js';
+import { markReminderSent } from './repositories/reminder-configs.repository.js';
 import { pendingTotals, settlementMovement } from './services/debts.service.js';
 import { parseNewDebt, parseSettle } from './validators/debts.validator.js';
 import { createVerifiedSession } from './verified-session.helper.js';
@@ -221,6 +222,64 @@ test(
     assert.match(due[0].time, /^\d{2}:\d{2}$/);
   },
 );
+
+test('el bloque "Avisarme" se guarda con la cuenta y decide qué día se avisa (FT-0063)', options, async () => {
+  await withApi(async (api) => {
+    const me = await newUser();
+    const { rows: local } = await pool.query(
+      `SELECT to_char((now() AT TIME ZONE 'America/Bogota')::date + 3, 'YYYY-MM-DD') AS "inThree"`,
+    );
+    const post = (body) => api('/debts', { method: 'POST', token: me.token, body });
+    const base = { kind: 'payable', person: 'Arriendo', amount: 500000, dueDate: local[0].inThree };
+
+    // Sin tocar nada: un día antes, por notificación, a la hora de Notificaciones.
+    const plain = await post(base);
+    assert.deepEqual(plain.body.reminder, { daysBefore: [1], time: null, channel: 'push' });
+
+    const custom = await post({
+      ...base,
+      person: 'Luz',
+      reminder: { daysBefore: [3, 0, 3], time: '07:30', channel: 'both' },
+    });
+    assert.deepEqual(custom.body.reminder, { daysBefore: [0, 3], time: '07:30', channel: 'both' });
+    const listed = (await api('/debts', { token: me.token })).body.items;
+    assert.deepEqual(listed.find((d) => d.person === 'Luz').reminder, custom.body.reminder);
+
+    // Vence en 3 días: solo avisa hoy la que pidió 3 días antes, a su hora y por su canal.
+    const mine = async () => (await listDebtsDueTomorrow()).filter((d) => d.userId === me.id);
+    const due = await mine();
+    assert.deepEqual(
+      due.map((d) => [d.person, d.daysBefore, d.time, d.channel, d.dueDate]),
+      [['Luz', 3, '07:30', 'both', local[0].inThree]],
+    );
+
+    // Una vez marcado, no vuelve a salir; si se marca dos veces, la segunda dice que ya estaba.
+    const mark = { type: 'cuenta', ...due[0] };
+    assert.equal(await markReminderSent(mark), true);
+    assert.equal(await markReminderSent(mark), false);
+    assert.deepEqual(await mine(), []);
+
+    // "No avisar" es una lista vacía; y se puede cambiar al editar.
+    const off = await api(`/debts/${custom.body.id}`, {
+      method: 'PUT',
+      token: me.token,
+      body: { reminder: { daysBefore: [], time: null, channel: 'push' } },
+    });
+    assert.deepEqual(off.body.reminder.daysBefore, []);
+
+    const bad = await post({ ...base, reminder: { daysBefore: [2], time: '25:00', channel: 'correo' } });
+    assert.equal(bad.status, 422);
+    assert.deepEqual(
+      bad.body.error.details.map((d) => d.field),
+      ['reminder.daysBefore', 'reminder.time', 'reminder.channel'],
+    );
+
+    // Al borrar la cuenta se va su configuración.
+    await api(`/debts/${custom.body.id}`, { method: 'DELETE', token: me.token });
+    const { rows: left } = await pool.query('SELECT 1 FROM avisos WHERE origen_id = $1', [custom.body.id]);
+    assert.equal(left.length, 0);
+  });
+});
 
 test('validaciones y cálculos sin base', () => {
   assert.throws(

@@ -928,6 +928,7 @@ export const handlers = [
       amount: body.amount,
       dueDate: body.dueDate ?? null,
       note: body.note ?? null,
+      reminder: body.reminder ?? { daysBefore: [1], time: null, channel: 'push' },
       settledAt: null,
       transactionId: null,
       createdAt: now,

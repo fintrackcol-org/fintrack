@@ -136,28 +136,31 @@ export async function markSettled({ id, userId, transactionId }, client = pool) 
 }
 
 /**
- * Cuentas pendientes que vencen mañana en la hora local de su dueño y aún no se avisaron, con la
- * hora a la que se avisa (la primera del recordatorio diario, o 09:00).
- * @returns {Promise<{ id: string, userId: string, timezone: string, time: string, kind: 'receivable'|'payable', person: string, amount: number }[]>}
+ * Cuentas pendientes cuyo aviso toca hoy (hora local de su dueño) y aún no salió (FT-0063).
+ * Cada cuenta avisa con la anticipación, la hora y el canal que eligió el usuario; sin configuración,
+ * un día antes, por notificación y a la primera hora de su recordatorio diario (o 09:00).
+ * @returns {Promise<{ id: string, userId: string, timezone: string, time: string, kind: 'receivable'|'payable', person: string, amount: number, dueDate: string, daysBefore: number, channel: 'push'|'whatsapp'|'both' }[]>}
  */
 export async function listDebtsDueTomorrow() {
   const { rows } = await pool.query(
     `SELECT c.id, c.usuario_id AS "userId", u.timezone,
-            COALESCE(to_char((SELECT min(t) FROM unnest(u.reminder_times) AS t), 'HH24:MI'), '09:00') AS time,
+            COALESCE(to_char(a.hora, 'HH24:MI'),
+                     to_char((SELECT min(t) FROM unnest(u.reminder_times) AS t), 'HH24:MI'), '09:00') AS time,
             CASE c.tipo WHEN 'por_cobrar' THEN 'receivable' ELSE 'payable' END AS kind,
-            c.persona AS person, c.monto::float8 AS amount
-     FROM cuentas_personales c JOIN usuarios u ON u.id = c.usuario_id
-     WHERE c.saldada_at IS NULL AND NOT c.recordatorio_enviado
-       AND c.fecha_limite = (now() AT TIME ZONE u.timezone)::date + 1`,
+            c.persona AS person, c.monto::float8 AS amount,
+            to_char(c.fecha_limite, 'YYYY-MM-DD') AS "dueDate", d.dias AS "daysBefore",
+            COALESCE(a.canal, 'push') AS channel
+     FROM cuentas_personales c
+     JOIN usuarios u ON u.id = c.usuario_id
+     LEFT JOIN avisos a ON a.origen_tipo = 'cuenta' AND a.origen_id = c.id
+     CROSS JOIN LATERAL (SELECT c.fecha_limite - (now() AT TIME ZONE u.timezone)::date AS dias) d
+     WHERE c.saldada_at IS NULL AND c.fecha_limite IS NOT NULL
+       AND d.dias = ANY(COALESCE(a.dias_antes, '{1}'))
+       -- Las que ya se avisaron con el sistema anterior (un día antes) no se repiten.
+       AND NOT (a.id IS NULL AND c.recordatorio_enviado)
+       AND NOT EXISTS (SELECT 1 FROM avisos_enviados e
+                       WHERE e.origen_tipo = 'cuenta' AND e.origen_id = c.id
+                         AND e.fecha_vence = c.fecha_limite AND e.dias_antes = d.dias)`,
   );
   return rows;
-}
-
-/**
- * Deja constancia de que ya se avisó.
- * @param {string} id
- * @returns {Promise<void>}
- */
-export async function markReminded(id) {
-  await pool.query('UPDATE cuentas_personales SET recordatorio_enviado = true WHERE id = $1', [id]);
 }

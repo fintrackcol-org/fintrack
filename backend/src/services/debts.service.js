@@ -1,6 +1,7 @@
 import { pool } from '../config/db.js';
 import { AppError } from '../errors/app-error.js';
 import * as repo from '../repositories/debts.repository.js';
+import * as reminders from '../repositories/reminder-configs.repository.js';
 import { insertTransaction } from '../repositories/transactions.repository.js';
 import { findUserById } from '../repositories/users.repository.js';
 import { todayIso } from './insights.service.js';
@@ -10,6 +11,8 @@ import { todayIso } from './insights.service.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const notFound = () => new AppError(404, 'NOT_FOUND', 'Cuenta no encontrada');
+/** Así se llaman las cuentas personales en el motor de recordatorios (FT-0063). */
+export const DEBT_REMINDER_TYPE = 'cuenta';
 const alreadySettled = () => new AppError(409, 'ALREADY_SETTLED', 'Esta cuenta ya está saldada');
 
 /**
@@ -42,8 +45,23 @@ export function pendingTotals(items) {
  * @returns {Promise<{ items: object[], totals: { receivable: number, payable: number } }>}
  */
 export async function list(userId) {
-  const items = await repo.listDebts(userId);
+  const debts = await repo.listDebts(userId);
+  const configs = await reminders.findReminderConfigs(DEBT_REMINDER_TYPE, debts.map((d) => d.id));
+  const items = debts.map((d) => ({ ...d, reminder: configs.get(d.id) }));
   return { items, totals: pendingTotals(items) };
+}
+
+/**
+ * Guarda el bloque "Avisarme" si vino y devuelve la cuenta con el que quedó.
+ * @param {string} userId
+ * @param {import('../repositories/debts.repository.js').DebtRecord} debt
+ * @param {import('../validators/reminders.validator.js').ReminderConfig} [reminder]
+ * @returns {Promise<object>}
+ */
+async function withReminder(userId, debt, reminder) {
+  if (reminder) await reminders.saveReminderConfig(userId, DEBT_REMINDER_TYPE, debt.id, reminder);
+  const configs = await reminders.findReminderConfigs(DEBT_REMINDER_TYPE, [debt.id]);
+  return { ...debt, reminder: configs.get(debt.id) };
 }
 
 /**
@@ -51,8 +69,8 @@ export async function list(userId) {
  * @param {ReturnType<import('../validators/debts.validator.js').parseNewDebt>} input
  * @returns {Promise<object>}
  */
-export async function create(userId, input) {
-  return repo.insertDebt({ userId, ...input });
+export async function create(userId, { reminder, ...input }) {
+  return withReminder(userId, await repo.insertDebt({ userId, ...input }), reminder);
 }
 
 /**
@@ -60,12 +78,13 @@ export async function create(userId, input) {
  * @param {string} userId
  * @param {string} id
  * @param {object} changes
+ * @param {object} [changes.reminder] Bloque Avisarme (FT-0063).
  * @returns {Promise<object>}
  */
-export async function update(userId, id, changes) {
+export async function update(userId, id, { reminder, ...changes }) {
   if (!UUID_RE.test(id)) throw notFound();
   const updated = await repo.updateDebt(id, userId, changes);
-  if (updated) return updated;
+  if (updated) return withReminder(userId, updated, reminder);
   throw (await repo.findDebt(id, userId)) ? alreadySettled() : notFound();
 }
 
@@ -76,6 +95,7 @@ export async function update(userId, id, changes) {
  */
 export async function remove(userId, id) {
   if (!UUID_RE.test(id) || !(await repo.deleteDebt(id, userId))) throw notFound();
+  await reminders.deleteReminderConfig(DEBT_REMINDER_TYPE, id);
 }
 
 /**

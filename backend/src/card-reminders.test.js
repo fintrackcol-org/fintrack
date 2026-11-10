@@ -127,6 +127,9 @@ test('una cuenta personal que vence mañana avisa una vez, a la hora del usuario
       kind: 'receivable',
       person: 'Juan',
       amount: 50000,
+      dueDate: '2026-11-13',
+      daysBefore: 1,
+      channel: 'push',
     },
     {
       id: 'd2',
@@ -136,6 +139,9 @@ test('una cuenta personal que vence mañana avisa una vez, a la hora del usuario
       kind: 'payable',
       person: 'Ana',
       amount: 12500,
+      dueDate: '2026-11-13',
+      daysBefore: 1,
+      channel: 'push',
     },
   ];
   const scheduler = createReminderScheduler({
@@ -144,7 +150,7 @@ test('una cuenta personal que vence mañana avisa una vez, a la hora del usuario
     listCandidates: async () => [],
     listCardUsers: async () => [],
     listDueDebts: async () => due.filter((d) => !marked.includes(d.id)),
-    markDebtReminded: async (id) => marked.push(id),
+    markReminderSent: async ({ id }) => marked.push(id) > 0,
     sendToUser: async (id, payload) => sent.push([id, payload]),
     now: () => new Date('2026-11-12T14:00:00Z'), // 09:00 en Bogotá
     log: { info: () => {}, error: (m) => assert.fail(m) },
@@ -159,4 +165,51 @@ test('una cuenta personal que vence mañana avisa una vez, a la hora del usuario
     body: 'Mañana vence lo que le debes a Ana: $12.500.',
     url: '/app/cuentas',
   });
+});
+
+test('el motor entrega por el canal elegido y no pierde el aviso si WhatsApp falla (FT-0063)', async () => {
+  const pushed = [];
+  const texted = [];
+  const item = (id, channel, daysBefore) => ({
+    id,
+    userId: id,
+    timezone: 'America/Bogota',
+    time: '09:00',
+    kind: 'payable',
+    person: 'Ana',
+    amount: 12500,
+    dueDate: '2026-11-15',
+    daysBefore,
+    channel,
+  });
+  const scheduler = createReminderScheduler({
+    businessReminders: NO_BUSINESS_ALERTS,
+    listLiquidityUsers: async () => [],
+    listCandidates: async () => [],
+    listCardUsers: async () => [],
+    listDueDebts: async () => [
+      item('solo-push', 'push', 3),
+      item('ambos', 'both', 0),
+      item('solo-whatsapp', 'whatsapp', 7),
+      item('sin-bot', 'whatsapp', 1),
+      item('otra-hora', 'push', 1),
+    ].map((d) => (d.id === 'otra-hora' ? { ...d, time: '20:00' } : d)),
+    markReminderSent: async () => true,
+    sendToUser: async (id, payload) => pushed.push([id, payload.body]),
+    // Quien no tiene el bot conectado recibe `false`.
+    notifyWhatsapp: async (id, text) => id !== 'sin-bot' && texted.push([id, text]) > 0,
+    now: () => new Date('2026-11-12T14:00:00Z'), // 09:00 en Bogotá
+    log: { info: () => {}, error: (m) => assert.fail(m) },
+  });
+  const { sent } = await scheduler.tick();
+  assert.equal(sent, 4, 'la de las 20:00 no sale a las 09:00');
+  assert.deepEqual(pushed, [
+    ['solo-push', 'En 3 días vence lo que le debes a Ana: $12.500.'],
+    ['ambos', 'Hoy vence lo que le debes a Ana: $12.500.'],
+    ['sin-bot', 'Mañana vence lo que le debes a Ana: $12.500.'],
+  ]);
+  assert.deepEqual(texted, [
+    ['ambos', 'Tienes que pagar: Hoy vence lo que le debes a Ana: $12.500.'],
+    ['solo-whatsapp', 'Tienes que pagar: En 7 días vence lo que le debes a Ana: $12.500.'],
+  ]);
 });
