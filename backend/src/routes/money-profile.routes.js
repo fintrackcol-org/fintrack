@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   deleteCommitment,
+  getAdjustments,
   getCalendar,
   getIncome,
   getSplit,
@@ -21,6 +22,7 @@ import { requireAuth } from '../middlewares/auth.middleware.js';
  * - `GET /plan` → cuánto puede gastar o necesita ganar hoy.
  * - `GET /calendar?month=AAAA-MM` → pagos del mes y cuánto queda después de cada uno.
  * - `PUT /` → cómo le entra la plata y cuánta tiene.
+ * - `GET /adjustments?from=&to=` → correcciones de saldo, para el historial (FT-0062).
  * - `GET /income` → mes normal y flaco, sueldo propio, colchón y seguridad social (FT-0060).
  * - `GET /income/split?amount=` → cómo repartir un ingreso.
  * - `PUT /sources` → fuentes de ingreso (reemplaza todas).
@@ -36,6 +38,7 @@ router.get('/', getProfile);
 router.get('/plan', getPlan);
 router.get('/calendar', getCalendar);
 router.put('/', putProfile);
+router.get('/adjustments', getAdjustments);
 router.get('/income', getIncome);
 router.get('/income/split', getSplit);
 router.put('/sources', putSources);

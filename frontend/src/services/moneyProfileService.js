@@ -38,6 +38,24 @@ export function getMoneyPlan() {
 }
 
 /**
+ * @typedef {object} BalanceAdjustment Corrección de saldo; no es ingreso ni gasto (FT-0062).
+ * @property {string} id
+ * @property {number} before Plata que mostraba la app antes de corregir.
+ * @property {number} after Saldo que dijo el usuario.
+ * @property {string} date AAAA-MM-DD
+ * @property {string} createdAt
+ */
+
+/**
+ * Correcciones de saldo de un rango de días, de la más reciente a la más antigua.
+ * @param {{ from: string, to: string }} range AAAA-MM-DD
+ * @returns {Promise<BalanceAdjustment[]>}
+ */
+export async function listBalanceAdjustments({ from, to }) {
+  return (await apiRequest(`/money-profile/adjustments?from=${from}&to=${to}`)).data;
+}
+
+/**
  * Cambia cómo le entra la plata al usuario y cuánta tiene.
  * @param {{ incomeType: string|null, payDays: number[], balance: number|null, resetBalance?: boolean }} data
  * @returns {Promise<MoneyProfile>}

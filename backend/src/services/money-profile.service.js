@@ -46,8 +46,22 @@ export async function get(userId) {
  * @returns {Promise<object>} El perfil actualizado.
  */
 export async function update(userId, data) {
-  await repo.saveProfile(userId, data);
+  // Corregir el saldo deja rastro en el historial si de verdad cambió (FT-0062).
+  const correcting = data.resetBalance && typeof data.balance === 'number';
+  const before = correcting ? (await get(userId)).money : null;
+  const changed = typeof before === 'number' && Math.round(before) !== Math.round(data.balance);
+  await repo.saveProfile(userId, data, changed ? { before, after: data.balance } : null);
   return get(userId);
+}
+
+/**
+ * Correcciones de saldo, para mostrarlas en el historial. No son ingresos ni gastos.
+ * @param {string} userId
+ * @param {{ from?: string, to?: string }} range
+ * @returns {Promise<Array<{ id: string, before: number, after: number, date: string, createdAt: Date }>>}
+ */
+export function listAdjustments(userId, range) {
+  return repo.listAdjustments(userId, range);
 }
 
 /**

@@ -11,6 +11,8 @@ import { plainText } from '@/lib/plainText';
 
 /** @type {Map<string, { id: string, email: string, password: string, timezone: string, verified: boolean }>} */
 const users = new Map();
+/** @type {Map<string, object[]>} Correcciones de saldo por usuario (FT-0062). */
+const adjustments = new Map();
 /** token del enlace para confirmar el correo → email (FT-0016) */
 const verificationTokens = new Map();
 /** access token → email */
@@ -714,6 +716,12 @@ export const handlers = [
     return HttpResponse.json(moneyProfileOf(user.id));
   }),
 
+  http.get(`${API_V1}/money-profile/adjustments`, ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    return HttpResponse.json({ data: adjustments.get(user.id) ?? [] });
+  }),
+
   http.get(`${API_V1}/money-profile/plan`, ({ request }) => {
     if (!authUser(request)) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
     return HttpResponse.json({ ready: false });
@@ -723,7 +731,14 @@ export const handlers = [
     const user = authUser(request);
     if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
     const profile = moneyProfileOf(user.id);
-    const { incomeType = null, payDays = [], balance = null } = await readJson(request);
+    const { incomeType = null, payDays = [], balance = null, resetBalance = false } = await readJson(request);
+    if (resetBalance && typeof profile.money === 'number' && balance !== null && profile.money !== balance) {
+      const now = new Date();
+      adjustments.set(user.id, [
+        { id: crypto.randomUUID(), before: profile.money, after: balance, date: now.toLocaleDateString('en-CA'), createdAt: now.toISOString() },
+        ...(adjustments.get(user.id) ?? []),
+      ]);
+    }
     Object.assign(profile, {
       incomeType,
       payDays,

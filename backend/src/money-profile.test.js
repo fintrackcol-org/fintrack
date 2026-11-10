@@ -244,6 +244,45 @@ test('corregir el saldo al mismo número reinicia la cuenta', options, async () 
   });
 });
 
+test('corregir el saldo deja un ajuste en el historial y no cambia los totales (FT-0062)', options, async () => {
+  await withApi(async (api) => {
+    const token = await newUserToken();
+    const put = (body) => api('/money-profile', { method: 'PUT', token, body });
+    const adjustments = async (query = '') => (await api(`/money-profile/adjustments${query}`, { token })).body.data;
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+
+    // Decir el saldo por primera vez no es una corrección: no había un "antes".
+    await put({ incomeType: 'sin_fecha', balance: 1000000, resetBalance: true });
+    assert.deepEqual(await adjustments(), []);
+
+    await api('/transactions', {
+      method: 'POST',
+      token,
+      body: { type: 'ingreso', amount: 200000, date: today, description: 'Prueba', category: 'otros_ingresos' },
+    });
+    await put({ incomeType: 'sin_fecha', balance: 900000, resetBalance: true });
+    // Guardar otra vez el mismo saldo no repite el ajuste.
+    await put({ incomeType: 'sin_fecha', balance: 900000, resetBalance: true });
+
+    const list = await adjustments(`?from=${today}&to=${today}`);
+    assert.equal(list.length, 1);
+    assert.deepEqual(
+      { before: list[0].before, after: list[0].after, date: list[0].date },
+      { before: 1200000, after: 900000, date: today },
+    );
+    assert.deepEqual(await adjustments('?to=2020-01-01'), []);
+
+    // El ajuste no es ingreso ni gasto: el resumen del mes sigue igual.
+    const summary = (await api(`/transactions/summary?period=month&date=${today}`, { token })).body;
+    assert.equal(summary.income.total, 200000);
+    assert.equal(summary.expense.total, 0);
+    assert.equal((await api('/transactions', { token })).body.total, 1);
+
+    assert.equal((await api('/money-profile/adjustments?from=ayer', { token })).status, 422);
+    assert.deepEqual((await api('/money-profile/adjustments', { token: await newUserToken() })).body.data, []);
+  });
+});
+
 test('sin corregir, la plata sale de los movimientos; al corregir, del saldo', options, async () => {
   await withApi(async (api) => {
     const token = await newUserToken();
