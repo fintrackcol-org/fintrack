@@ -1,0 +1,39 @@
+name: Deploy frontend (Vercel)
+
+# Vercel no siempre despliega solo los commits a main (el proyecto está en una cuenta Hobby
+# personal y el repo es de la organización). Este workflow despliega con la CLI de Vercel en
+# cada push a main que toque el frontend, sin depender de la integración de Git.
+#
+# Secretos del repo (Settings → Secrets and variables → Actions):
+#   VERCEL_TOKEN       token de la cuenta dueña del proyecto (vercel.com/account/tokens)
+#   VERCEL_ORG_ID      "orgId" de frontend/.vercel/project.json tras `vercel link`
+#   VERCEL_PROJECT_ID  "projectId" del mismo archivo
+
+on:
+  push:
+    branches: [main]
+    paths: ['frontend/**', '.github/workflows/deploy-frontend.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --global vercel@latest
+      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
