@@ -71,6 +71,21 @@ async function dropInvalidCard(userId, localId, transaction, type, notices) {
 }
 
 /**
+ * Emoción y Kakeibo son solo de gastos (FT-0070): en un ingreso se quitan sin avisar, en vez de
+ * rechazar el lote y dejar la cola del dispositivo atascada.
+ * @param {object} transaction
+ * @param {'ingreso'|'gasto'|undefined} type Tipo con el que quedará la transacción.
+ * @returns {object} La misma transacción, o una copia sin `emotion` ni `kakeibo`.
+ */
+function dropReflectionOnIncome(transaction, type) {
+  if (type !== 'ingreso' || (!transaction.emotion && !transaction.kakeibo)) return transaction;
+  const rest = { ...transaction };
+  delete rest.emotion;
+  delete rest.kakeibo;
+  return rest;
+}
+
+/**
  * Lo anotado sin conexión con fecha futura queda con fecha de hoy (FT-0061). No se rechaza:
  * un 422 dejaría la cola del dispositivo atascada y el gasto sin guardar.
  * @param {string} localId
@@ -99,7 +114,10 @@ async function applyCreate(userId, { localId, transaction: raw }, aiQuota, notic
   const existing = await repo.findByLocalId(userId, localId);
   if (existing) return existing;
   const input = clampFutureDate(localId, raw, today, notices);
-  const transaction = await dropInvalidCard(userId, localId, input, input.type, notices);
+  const transaction = dropReflectionOnIncome(
+    await dropInvalidCard(userId, localId, input, input.type, notices),
+    input.type,
+  );
 
   let decided = { category: null, source: 'sin_clasificar' };
   if (transaction.category) {
@@ -156,12 +174,16 @@ async function applyChange(userId, operation, current, lastSyncedAt, touched, no
   // En `update` se devuelve la versión final: el servidor pudo recalcular la categoría con IA.
   let transaction;
   if (operation.op === 'update') {
-    const changes = await dropInvalidCard(
-      userId,
-      localId,
-      clampFutureDate(localId, operation.transaction, today, notices),
-      operation.transaction.type ?? current.type,
-      notices,
+    const type = operation.transaction.type ?? current.type;
+    const changes = dropReflectionOnIncome(
+      await dropInvalidCard(
+        userId,
+        localId,
+        clampFutureDate(localId, operation.transaction, today, notices),
+        type,
+        notices,
+      ),
+      type,
     );
     transaction = await transactions.update(userId, serverId, changes);
   } else {

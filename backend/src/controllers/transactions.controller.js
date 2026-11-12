@@ -1,10 +1,12 @@
 import {
   parseCreateTransaction,
   parseListQuery,
+  parseReflectionQuery,
   parseSummaryQuery,
   parseUpdateTransaction,
 } from '../validators/transactions.validator.js';
 import { getTransactionAlert } from '../services/budgets.service.js';
+import { weeklyReflection } from '../services/reflection.service.js';
 import * as transactions from '../services/transactions.service.js';
 
 /*
@@ -75,4 +77,15 @@ export async function putTransaction(req, res) {
 export async function deleteTransaction(req, res) {
   await transactions.remove(req.userId, req.params.id);
   res.status(204).end();
+}
+
+/**
+ * `GET /api/v1/transactions/reflection`: reflexión de la semana (emociones y Kakeibo, FT-0070).
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+export async function getReflection(req, res) {
+  const { date } = parseReflectionQuery(req.query);
+  res.json(await weeklyReflection(req.userId, date));
 }

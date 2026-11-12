@@ -8,6 +8,7 @@ import {
 } from '../controllers/attachments.controller.js';
 import {
   deleteTransaction,
+  getReflection,
   getSummary,
   getTransaction,
   getTransactions,
@@ -25,6 +26,7 @@ import { MAX_ATTACHMENT_BYTES } from '../services/attachments.service.js';
  * - `POST /` → registrar (categoría opcional, la IA la sugiere si falta).
  * - `GET /summary` → resumen por categoría y periodo (dashboard). Va antes de `/:id`
  *   porque Express revisa en orden y si no tomaría "summary" como si fuera un id.
+ * - `GET /reflection` → reflexión de la semana: emociones y Kakeibo de los gastos (FT-0070).
  * - `GET /attachment-limits` → si el usuario puede adjuntar soportes y los límites (también antes de `/:id`).
  * - `GET /:id` → una transacción puntual.
  * - `PUT /:id` → editar.
@@ -40,6 +42,7 @@ router.use(requireAuth);
 router.get('/', getTransactions);
 router.post('/', postTransaction);
 router.get('/summary', getSummary);
+router.get('/reflection', getReflection);
 router.get('/attachment-limits', getAttachmentLimits);
 router.get('/:id', getTransaction);
 router.put('/:id', putTransaction);
