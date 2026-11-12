@@ -569,3 +569,16 @@ ALTER TABLE compromisos ADD CONSTRAINT compromisos_tipo_check CHECK (tipo IN ('p
 ALTER TABLE compromisos DROP CONSTRAINT IF EXISTS compromisos_frecuencia_check;
 ALTER TABLE compromisos ADD CONSTRAINT compromisos_frecuencia_check
   CHECK ((frecuencia = 'mensual' AND mes IS NULL) OR (frecuencia = 'anual' AND mes BETWEEN 1 AND 12));
+
+-- Parche 031: emociones y Kakeibo en los gastos (FT-0070).
+ALTER TABLE transacciones ADD COLUMN IF NOT EXISTS emocion VARCHAR(16) NULL;
+ALTER TABLE transacciones ADD COLUMN IF NOT EXISTS kakeibo VARCHAR(10) NULL;
+ALTER TABLE transacciones DROP CONSTRAINT IF EXISTS transacciones_emocion_check;
+ALTER TABLE transacciones ADD CONSTRAINT transacciones_emocion_check
+  CHECK (emocion IN ('valio_la_pena', 'normal', 'no_lo_necesitaba', 'me_arrepiento'));
+ALTER TABLE transacciones DROP CONSTRAINT IF EXISTS transacciones_kakeibo_check;
+ALTER TABLE transacciones ADD CONSTRAINT transacciones_kakeibo_check
+  CHECK (kakeibo IN ('necesidad', 'deseo', 'cultura', 'imprevisto'));
+ALTER TABLE transacciones DROP CONSTRAINT IF EXISTS transacciones_reflexion_solo_gasto;
+ALTER TABLE transacciones ADD CONSTRAINT transacciones_reflexion_solo_gasto
+  CHECK (tipo = 'gasto' OR (emocion IS NULL AND kakeibo IS NULL));

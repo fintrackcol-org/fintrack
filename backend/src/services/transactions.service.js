@@ -99,6 +99,19 @@ function present(record) {
 }
 
 /**
+ * Emoción y grupo Kakeibo son solo de gastos (FT-0070): en un ingreso no se aceptan.
+ * @param {{ emotion?: string|null, kakeibo?: string|null }} values
+ * @returns {void}
+ * @throws {AppError} 422 en el campo que sobra.
+ */
+function assertReflectionOnExpense(values) {
+  const details = ['emotion', 'kakeibo']
+    .filter((field) => values[field])
+    .map((field) => ({ field, problem: 'Solo aplica a gastos' }));
+  if (details.length) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+}
+
+/**
  * Crea el servicio de transacciones. Las dependencias se inyectan para probarlo sin BD ni IA.
  *
  * @param {object} [deps]
@@ -205,6 +218,7 @@ export function createTransactionService(deps = {}) {
     if (existing) return existing.deletedAt ? existing : present(existing);
     await assertNotFuture(input.date, userId);
     if (input.card) await assertCard(input.card, input.type, userId);
+    if (input.type === 'ingreso') assertReflectionOnExpense(input);
     const { category, source } = await decideCategory({ ...input, userId });
     const record = await repo.insertTransaction({ ...input, userId, category, source });
     return present(record ?? (await repo.findByLocalId(userId, input.localId)));
@@ -284,6 +298,13 @@ export function createTransactionService(deps = {}) {
         patch.installments =
           changes.installments ?? (cardId === current.card?.id ? current.installments : 1);
       }
+    }
+
+    // Emoción y Kakeibo solo en gastos: no se ponen en un ingreso y se quitan si pasa a ser ingreso.
+    if (type === 'ingreso') {
+      assertReflectionOnExpense(changes);
+      if (current.emotion) patch.emotion = null;
+      if (current.kakeibo) patch.kakeibo = null;
     }
 
     const updated = await repo.updateTransaction(id, userId, patch);
