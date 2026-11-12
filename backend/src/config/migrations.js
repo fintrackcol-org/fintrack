@@ -591,6 +591,19 @@ export const MIGRATIONS = [
       )`,
     ],
   },
+  {
+    id: '030_compromisos_suscripciones',
+    statements: [
+      "ALTER TABLE compromisos ADD COLUMN IF NOT EXISTS tipo VARCHAR(12) NOT NULL DEFAULT 'pago_fijo'",
+      "ALTER TABLE compromisos ADD COLUMN IF NOT EXISTS frecuencia VARCHAR(8) NOT NULL DEFAULT 'mensual'",
+      'ALTER TABLE compromisos ADD COLUMN IF NOT EXISTS mes SMALLINT NULL',
+      'ALTER TABLE compromisos DROP CONSTRAINT IF EXISTS compromisos_tipo_check',
+      "ALTER TABLE compromisos ADD CONSTRAINT compromisos_tipo_check CHECK (tipo IN ('pago_fijo', 'suscripcion'))",
+      'ALTER TABLE compromisos DROP CONSTRAINT IF EXISTS compromisos_frecuencia_check',
+      `ALTER TABLE compromisos ADD CONSTRAINT compromisos_frecuencia_check
+         CHECK ((frecuencia = 'mensual' AND mes IS NULL) OR (frecuencia = 'anual' AND mes BETWEEN 1 AND 12))`,
+    ],
+  },
 ];
 
 /**

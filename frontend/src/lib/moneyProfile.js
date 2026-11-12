@@ -55,17 +55,50 @@ export function incomeSummary({ incomeType, payDays }) {
   return `Con fecha fija, ${payDays.length === 1 ? 'el día' : 'los días'} ${days}`;
 }
 
+/** Meses para elegir el cobro de un pago anual (FT-0067). */
+export const MONTH_NAMES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
+/** Tipos de compromiso, con un ejemplo para no confundirlos (FT-0067). */
+export const COMMITMENT_KIND_OPTIONS = [
+  { value: 'fixed', label: 'Pago fijo', hint: 'Lo que pagas sí o sí: arriendo, internet, la cuota del carro.' },
+  { value: 'subscription', label: 'Suscripción', hint: 'Un servicio que se cobra solo y puedes cancelar: Netflix, Spotify, iCloud.' },
+];
+
+export const COMMITMENT_FREQUENCY_OPTIONS = [
+  { value: 'monthly', label: 'Cada mes' },
+  { value: 'yearly', label: 'Una vez al año' },
+];
+
 /**
  * Revisa un compromiso escrito en un formulario.
- * @param {{ name: string, amount: string, dayOfMonth: string }} form
- * @returns {{ data?: { name: string, amount: number, dayOfMonth: number }, error?: string }}
+ * @param {{ name: string, amount: string, dayOfMonth: string, kind?: string, frequency?: string, month?: string }} form
+ * @returns {{ data?: { name: string, amount: number, dayOfMonth: number, kind: string, frequency: string, month: number|null }, error?: string }}
  */
-export function readCommitmentForm({ name, amount, dayOfMonth }) {
+export function readCommitmentForm({ name, amount, dayOfMonth, kind = 'fixed', frequency = 'monthly', month = '' }) {
   const cleanName = name.trim();
   const cleanAmount = Number(amount);
   const day = Number(dayOfMonth);
   if (!cleanName) return { error: 'Escribe el nombre del pago.' };
   if (!(cleanAmount > 0)) return { error: `Escribe cuánto pagas por ${cleanName}.` };
   if (!Number.isInteger(day) || day < 1 || day > 31) return { error: `Escribe un día entre 1 y 31 para ${cleanName}.` };
-  return { data: { name: cleanName, amount: cleanAmount, dayOfMonth: day } };
+  const yearly = frequency === 'yearly';
+  const monthNumber = Number(month);
+  if (yearly && !(Number.isInteger(monthNumber) && monthNumber >= 1 && monthNumber <= 12)) {
+    return { error: `Elige en qué mes se cobra ${cleanName}.` };
+  }
+  return {
+    data: { name: cleanName, amount: cleanAmount, dayOfMonth: day, kind, frequency, month: yearly ? monthNumber : null },
+  };
+}
+
+/**
+ * Cuándo se cobra, en pocas palabras: "día 20", "cada año, el 5 de marzo".
+ * @param {{ dayOfMonth: number, frequency?: string, month?: number|null }} commitment
+ * @returns {string}
+ */
+export function commitmentWhen({ dayOfMonth, frequency, month }) {
+  return frequency === 'yearly' ? `cada año, el ${dayOfMonth} de ${MONTH_NAMES[month - 1]}` : `día ${dayOfMonth}`;
 }

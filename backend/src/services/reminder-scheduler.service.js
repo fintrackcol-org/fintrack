@@ -6,12 +6,14 @@ import {
 } from '../repositories/reminders.repository.js';
 import { updateCard } from '../repositories/cards.repository.js';
 import { listDebtsDueTomorrow } from '../repositories/debts.repository.js';
+import { listCommitmentsWithReminder } from '../repositories/money-profile.repository.js';
 import { markReminderSent } from '../repositories/reminder-configs.repository.js';
 import * as businessReminders from '../repositories/negocio-reminders.repository.js';
 import { accountAlertPayload, taxDatePayload } from './negocio-accounts.logic.js';
 import { pushService } from './push.service.js';
 import * as cardsService from './cards.service.js';
-import { liquidityAlertDue, liquidityAlertPayload } from './liquidity.logic.js';
+import { addDays, liquidityAlertDue, liquidityAlertPayload } from './liquidity.logic.js';
+import { dateInMonth, occursInMonth } from './money-plan.service.js';
 import { getLiquidity } from './liquidity.service.js';
 import { money, notify as notifyWhatsapp } from './whatsapp.service.js';
 
@@ -74,6 +76,40 @@ export function debtReminderPayload({ kind, person, amount, daysBefore = 1 }) {
         : `${when} vence lo que le debes a ${person}: ${money(amount)}.`,
     url: '/app/cuentas',
   };
+}
+
+/**
+ * Aviso de un pago fijo o una suscripción de Mi plata (FT-0067).
+ * @param {{ name: string, amount: number, kind: 'fixed'|'subscription', daysBefore?: number }} commitment
+ * @returns {{ title: string, body: string, url: string }}
+ */
+export function commitmentReminderPayload({ name, amount, kind, daysBefore = 1 }) {
+  const when = whenText(daysBefore);
+  return kind === 'subscription'
+    ? { title: 'Suscripción', body: `${when} se cobra ${name}: ${money(amount)}.`, url: '/app/calendario' }
+    : { title: 'Pago del mes', body: `${when} vence ${name}: ${money(amount)}.`, url: '/app/calendario' };
+}
+
+/**
+ * Compromisos que hoy tocan avisar (FT-0067): para cada anticipación elegida, si la fecha de hoy más
+ * esos días es un cobro del compromiso (los anuales, solo en su mes), sale un aviso con esa fecha.
+ * @param {Array<{ dayOfMonth: number, frequency: string, month: number|null, timezone: string, daysBefore: number[] }>} commitments
+ * @param {Date} now
+ * @returns {Array<object>} Cada uno con `dueDate` y `daysBefore` (un número).
+ */
+export function dueCommitments(commitments, now) {
+  const items = [];
+  for (const c of commitments) {
+    const today = localClock(now, c.timezone).localDate;
+    for (const days of c.daysBefore) {
+      const date = addDays(today, days);
+      const month = date.slice(0, 7);
+      if (occursInMonth(c, month) && dateInMonth(month, c.dayOfMonth) === date) {
+        items.push({ ...c, dueDate: date, daysBefore: days });
+      }
+    }
+  }
+  return items;
 }
 
 /**
@@ -170,6 +206,12 @@ export function createReminderScheduler(deps = {}) {
   // Para sumar tarjetas, suscripciones o el calendario al motor basta agregar su fuente aquí.
   const sources = deps.reminderSources ?? [
     { type: 'cuenta', list: deps.listDueDebts ?? listDebtsDueTomorrow, payload: debtReminderPayload },
+    // Pagos fijos y suscripciones de Mi plata (FT-0067).
+    {
+      type: 'compromiso',
+      list: async () => dueCommitments(await (deps.listCommitments ?? listCommitmentsWithReminder)(), now()),
+      payload: commitmentReminderPayload,
+    },
   ];
   const markSent = deps.markReminderSent ?? markReminderSent;
   const listLiquidityUsers = deps.listLiquidityUsers ?? listLiquidityReminderUsers;

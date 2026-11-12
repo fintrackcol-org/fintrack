@@ -8,7 +8,7 @@ import usePageTitle from '@/hooks/usePageTitle';
 import { dayAndMonth } from '@/lib/moneyPlan';
 import { todayIso } from '@/lib/period';
 import { TRANSACTION_SAVED_EVENT, saveNewTransaction } from '@/offline/saveNewTransaction';
-import { CommitmentDialog, EMPTY_COMMITMENT, IncomeSection } from '@/pages/app/MiPlata';
+import { CommitmentDialog, EMPTY_COMMITMENT, IncomeSection, commitmentToForm } from '@/pages/app/MiPlata';
 import { deleteCommitment, getMoneyProfile, getPaymentCalendar, updateMoneyProfile } from '@/services/moneyProfileService';
 import { toProfileData } from '@/lib/moneyProfile';
 
@@ -102,6 +102,7 @@ export default function MoneyPayments() {
           <p className="truncate font-medium">{event.name}</p>
           <p className="text-sm tabular-nums text-ink/70">
             {formatMoney(event.amount)} · {dayAndMonth(event.date)}
+            {event.subscription && ' · suscripción'}
             {event.status === 'atrasado' && <span className="font-medium text-negative"> · atrasado</span>}
           </p>
         </div>
@@ -118,9 +119,7 @@ export default function MoneyPayments() {
             variant="ghost"
             size="icon"
             aria-label={`Editar ${event.name}`}
-            onClick={() =>
-              setForm({ id: commitment.id, name: commitment.name, amount: String(commitment.amount), dayOfMonth: String(commitment.dayOfMonth) })
-            }
+            onClick={() => setForm(commitmentToForm(commitment))}
           >
             <Pencil aria-hidden="true" />
           </Button>
@@ -164,7 +163,7 @@ export default function MoneyPayments() {
             </div>
           </div>
           {events.length === 0 && (
-            <p className="text-sm text-ink/70">Agrega lo que pagas cada mes, como arriendo, internet o celular.</p>
+            <p className="text-sm text-ink/70">Agrega lo que pagas cada mes (arriendo, internet) y tus suscripciones (Netflix, Spotify).</p>
           )}
           {group('Por pagar', events.filter((e) => e.status !== 'pagado'))}
           {group('Pagados', events.filter((e) => e.status === 'pagado'))}

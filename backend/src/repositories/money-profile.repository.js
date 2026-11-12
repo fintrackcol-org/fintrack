@@ -6,6 +6,9 @@ import { pool } from '../config/db.js';
  * @property {string} name Nombre con el que el usuario lo reconoce.
  * @property {number} amount Monto mensual.
  * @property {number} dayOfMonth Día del mes en que se paga.
+ * @property {'fixed'|'subscription'} kind Pago fijo o suscripción (FT-0067).
+ * @property {'monthly'|'yearly'} frequency
+ * @property {number|null} month Mes del cobro si es anual.
  */
 
 /**
@@ -18,7 +21,13 @@ import { pool } from '../config/db.js';
  * @property {Date|null} welcomeAt Cuándo respondió u omitió la bienvenida.
  */
 
-const COMMITMENT_COLUMNS = `id, nombre AS name, monto::float8 AS amount, dia_mes::int AS "dayOfMonth"`;
+const COMMITMENT_COLUMNS = `id, nombre AS name, monto::float8 AS amount, dia_mes::int AS "dayOfMonth",
+  CASE tipo WHEN 'suscripcion' THEN 'subscription' ELSE 'fixed' END AS kind,
+  CASE frecuencia WHEN 'anual' THEN 'yearly' ELSE 'monthly' END AS frequency, mes::int AS month`;
+
+/** Tipo y frecuencia de la API a la base (FT-0067). */
+const KIND_DB = { fixed: 'pago_fijo', subscription: 'suscripcion' };
+const FREQUENCY_DB = { monthly: 'mensual', yearly: 'anual' };
 
 /**
  * Guarda el perfil. La hora del saldo solo cambia si cambió el saldo o si el usuario lo corrigió
@@ -226,12 +235,13 @@ export async function countCommitments(userId) {
  * @param {import('../validators/money-profile.validator.js').NewCommitment} data
  * @returns {Promise<CommitmentRecord|null>} `null` si el nombre ya existía.
  */
-export async function insertCommitment(userId, { name, amount, dayOfMonth }) {
+export async function insertCommitment(userId, { name, amount, dayOfMonth, kind = 'fixed', frequency = 'monthly', month = null }) {
   const { rows } = await pool.query(
-    `INSERT INTO compromisos (usuario_id, nombre, monto, dia_mes) VALUES ($1, $2, $3, $4)
+    `INSERT INTO compromisos (usuario_id, nombre, monto, dia_mes, tipo, frecuencia, mes)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      ON CONFLICT (usuario_id, lower(nombre)) DO NOTHING
      RETURNING ${COMMITMENT_COLUMNS}`,
-    [userId, name, amount, dayOfMonth],
+    [userId, name, amount, dayOfMonth, KIND_DB[kind], FREQUENCY_DB[frequency], month],
   );
   return rows[0] ?? null;
 }
@@ -243,12 +253,12 @@ export async function insertCommitment(userId, { name, amount, dayOfMonth }) {
  * @param {import('../validators/money-profile.validator.js').NewCommitment} data
  * @returns {Promise<CommitmentRecord|'duplicate'|null>} `'duplicate'` si el nombre ya lo usa otro; `null` si no existe.
  */
-export async function updateCommitment(id, userId, { name, amount, dayOfMonth }) {
+export async function updateCommitment(id, userId, { name, amount, dayOfMonth, kind = 'fixed', frequency = 'monthly', month = null }) {
   try {
     const { rows } = await pool.query(
-      `UPDATE compromisos SET nombre = $3, monto = $4, dia_mes = $5
+      `UPDATE compromisos SET nombre = $3, monto = $4, dia_mes = $5, tipo = $6, frecuencia = $7, mes = $8
        WHERE id = $1 AND usuario_id = $2 RETURNING ${COMMITMENT_COLUMNS}`,
-      [id, userId, name, amount, dayOfMonth],
+      [id, userId, name, amount, dayOfMonth, KIND_DB[kind], FREQUENCY_DB[frequency], month],
     );
     return rows[0] ?? null;
   } catch (err) {
@@ -266,4 +276,26 @@ export async function updateCommitment(id, userId, { name, amount, dayOfMonth })
 export async function deleteCommitment(id, userId) {
   const { rowCount } = await pool.query('DELETE FROM compromisos WHERE id = $1 AND usuario_id = $2', [id, userId]);
   return rowCount > 0;
+}
+
+/**
+ * Compromisos con "Avisarme" configurado (FT-0067), con lo necesario para decidir si hoy toca avisar.
+ * Sin configuración no se avisa: así nadie empieza a recibir avisos de pagos que ya tenía.
+ * @returns {Promise<Array<CommitmentRecord & { userId: string, timezone: string, time: string, daysBefore: number[], channel: string }>>}
+ */
+export async function listCommitmentsWithReminder() {
+  const { rows } = await pool.query(
+    `SELECT c.id, c.nombre AS name, c.monto::float8 AS amount, c.dia_mes::int AS "dayOfMonth",
+            CASE c.tipo WHEN 'suscripcion' THEN 'subscription' ELSE 'fixed' END AS kind,
+            CASE c.frecuencia WHEN 'anual' THEN 'yearly' ELSE 'monthly' END AS frequency, c.mes::int AS month,
+            c.usuario_id AS "userId", u.timezone,
+            COALESCE(to_char(a.hora, 'HH24:MI'),
+                     to_char((SELECT min(t) FROM unnest(u.reminder_times) AS t), 'HH24:MI'), '09:00') AS time,
+            a.dias_antes::int[] AS "daysBefore", a.canal AS channel
+     FROM compromisos c
+     JOIN usuarios u ON u.id = c.usuario_id
+     JOIN avisos a ON a.origen_tipo = 'compromiso' AND a.origen_id = c.id
+     WHERE cardinality(a.dias_antes) > 0`,
+  );
+  return rows;
 }

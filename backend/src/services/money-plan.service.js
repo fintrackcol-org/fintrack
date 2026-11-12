@@ -100,15 +100,33 @@ export function isPaymentOf(commitment, expense) {
  */
 export function pendingCommitments({ commitments, expenses, today, until }) {
   const month = today.slice(0, 7);
+  const next = shiftMonth(month, 1);
   const pending = [];
-  for (const { id, name, amount, dayOfMonth } of commitments) {
+  for (const commitment of commitments) {
+    const { id, name, amount, dayOfMonth } = commitment;
     const add = (date) => pending.push({ id, name, amount, date });
     const thisMonth = dateInMonth(month, dayOfMonth);
-    if (!expenses.some((e) => isPaymentOf({ name }, e)) && (!until || thisMonth < until)) add(thisMonth);
-    const nextMonth = dateInMonth(shiftMonth(month, 1), dayOfMonth);
-    if (until && nextMonth < until) add(nextMonth);
+    if (
+      occursInMonth(commitment, month) &&
+      !expenses.some((e) => isPaymentOf({ name }, e)) &&
+      (!until || thisMonth < until)
+    ) {
+      add(thisMonth);
+    }
+    const nextMonth = dateInMonth(next, dayOfMonth);
+    if (until && nextMonth < until && occursInMonth(commitment, next)) add(nextMonth);
   }
   return pending.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * ¿El compromiso se cobra en ese mes? Los mensuales, siempre; los anuales, solo en su mes (FT-0067).
+ * @param {{ frequency?: string, month?: number|null }} commitment
+ * @param {string} month AAAA-MM
+ * @returns {boolean}
+ */
+export function occursInMonth(commitment, month) {
+  return commitment.frequency !== 'yearly' || Number(month.slice(5, 7)) === commitment.month;
 }
 
 /**

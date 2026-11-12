@@ -47,6 +47,7 @@ function scheduler(business, now) {
   const sent = [];
   const s = createReminderScheduler({
     listLiquidityUsers: async () => [],
+    listCommitments: async () => [],
     listCandidates: async () => [],
     listCardUsers: async () => [],
     listDueDebts: async () => [],

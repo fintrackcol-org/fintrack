@@ -1,6 +1,6 @@
 import { shiftMonth } from './analytics.service.js';
 import { RISK_DAYS } from './payment-calendar.service.js';
-import { dateInMonth } from './money-plan.service.js';
+import { dateInMonth, occursInMonth } from './money-plan.service.js';
 
 /**
  * Motor de liquidez (FT-0059): cálculo puro, sin base de datos. Proyecta día por día la plata del
@@ -52,6 +52,7 @@ export function monthlyOutflows({ commitments, paidThisMonth, today, until }) {
     for (let month = current; `${month}-01` < until; month = shiftMonth(month, 1)) {
       const date = dateInMonth(month, c.dayOfMonth);
       if (date >= until) break;
+      if (!occursInMonth(c, month)) continue; // un pago anual solo sale en su mes (FT-0067)
       if (month === current && paidThisMonth(c)) continue;
       out.push({ date, amount: c.amount, kind: 'compromiso', name: c.name, id: c.id });
     }
