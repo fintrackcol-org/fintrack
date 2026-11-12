@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowDownLeft, ArrowUpRight, ChevronRight, Eye, EyeOff, PiggyBank } from 'lucide-react';
 import PlanSummary from '@/components/money/PlanSummary';
 import { formatMoney } from '@/components/transactions/format';
+import { TOTAL_ARROW_CLASSES, TOTAL_LINK_CLASSES, totalLinkLabel } from '@/lib/totalLink';
 import { cn } from '@/lib/utils';
 
 export const MASK = '$ ••••••';
@@ -19,17 +20,18 @@ function Amount({ value, hidden, className }) {
 
 /**
  * Total del periodo (ingresos o gastos) en una tarjeta blanca que se monta sobre la franja violeta.
- * Lleva a "Cómo va el mes".
- * @param {{ label: string, value?: number, hidden: boolean, positive?: boolean }} props
+ * Lleva a "Cómo va el mes"; la flecha de la esquina y el cambio al presionar dicen que se puede tocar (FT-0068).
+ * @param {{ label: string, value?: number, hidden: boolean, positive?: boolean, period?: string }} props
  */
-function Total({ label, value, hidden, positive = false, selected }) {
+function Total({ label, value, hidden, positive = false, selected, period }) {
   const Icon = positive ? ArrowDownLeft : ArrowUpRight;
   return (
     <Link
       to={positive ? '/app/ingresos' : '/app/gastos'}
       state={{ selected }}
-      className="min-w-0 flex-1 rounded-2xl border border-ink/10 bg-surface p-4 shadow-[0_8px_24px_-12px_rgb(22_20_31/0.25)] transition-colors hover:border-ink/20 focus-visible:outline-2 focus-visible:outline-violet"
+      className={cn(TOTAL_LINK_CLASSES, 'flex-1 p-4 pr-9 shadow-[0_8px_24px_-12px_rgb(22_20_31/0.25)]')}
     >
+      <ChevronRight className={TOTAL_ARROW_CLASSES} aria-hidden="true" />
       <p className="flex items-center gap-1.5 text-sm text-ink/60">
         <span
           aria-hidden="true"
@@ -45,7 +47,7 @@ function Total({ label, value, hidden, positive = false, selected }) {
       <p className="mt-1.5 truncate text-base font-semibold sm:text-xl">
         <Amount value={value} hidden={hidden} />
       </p>
-      <span className="sr-only">, ver el detalle</span>
+      <span className="sr-only">, {totalLinkLabel(label.toLowerCase(), period).toLowerCase()}</span>
     </Link>
   );
 }
@@ -133,8 +135,8 @@ export default function BalanceCard({ periodLabel, selected, totals, note, plan 
       </div>
 
       <div className="relative -mt-9 flex gap-3 px-3 md:gap-4 md:px-5">
-        <Total label="Ingresos" value={totals?.income} hidden={hidden} positive selected={selected} />
-        <Total label="Gastos" value={totals?.expense} hidden={hidden} selected={selected} />
+        <Total label="Ingresos" value={totals?.income} hidden={hidden} positive selected={selected} period={periodLabel} />
+        <Total label="Gastos" value={totals?.expense} hidden={hidden} selected={selected} period={periodLabel} />
       </div>
     </section>
   );
