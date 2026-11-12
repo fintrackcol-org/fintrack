@@ -170,6 +170,14 @@ test('solo acepta texto y respeta el límite diario', async () => {
   assert.equal(limit.saved.length, 0);
 });
 
+test('después del aviso de límite, el bot no responde más ese día', async () => {
+  const over = setup({ recent: 4 });
+  await over.service.handleMessage(message('almuerzo 15 mil'));
+  await over.service.handleMessage(message('cuánto tengo'));
+  assert.equal(over.sent.length, 0);
+  assert.equal(over.saved.length, 0);
+});
+
 test('responde el balance del mes con varias formas de preguntarlo', async () => {
   for (const [i, text] of ['Cuánto tengo hasta ahora en total?', 'cuanto tengo', 'cuánto me queda', 'saldo'].entries()) {
     const { service, sent, saved, queries } = setup({ income: 1_200_000, expense: 450_000 });

@@ -445,8 +445,13 @@ export function createWhatsappService(deps = {}) {
       await send(from, REPLIES.unlinked);
       return;
     }
-    if ((await store.countRecentMessages(userId)) >= dailyMax) {
-      await send(from, REPLIES.dailyLimit);
+    const used = await store.countRecentMessages(userId);
+    if (used >= dailyMax) {
+      // Cada respuesta se cobra: el aviso va solo al primer mensaje de más (que queda contado) y
+      // los siguientes se ignoran hasta que la ventana de 24 h libere cupo.
+      if (used === dailyMax && (await store.claimMessage({ messageId: message.id, userId }))) {
+        await send(from, REPLIES.dailyLimit);
+      }
       return;
     }
     if (!(await store.claimMessage({ messageId: message.id, userId }))) return;
