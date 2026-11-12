@@ -269,8 +269,10 @@ export default function VacaDetail() {
   const noun = personal ? 'la meta' : 'la vaca';
   const pendingTotal = pending.filter((p) => !p.rejected).reduce((acc, p) => acc + p.contribution.amount, 0);
   const closeSheet = () => setSheet(null);
-  // FT-0066: una vaca de un solo integrante, del que la creó, probablemente es una meta personal.
-  const soloVaca = !personal && isAdmin && vaca.membersCount === 1 && !fromCache;
+  // FT-0066: una vaca de un solo integrante, del que la creó, probablemente es una meta personal. No se
+  // sugiere recién creada (todavía no ha invitado a nadie) ni si hay invitaciones pendientes.
+  const soloVaca =
+    !personal && isAdmin && vaca.membersCount === 1 && !fromCache && !state?.created && !vaca.invitations?.length;
 
   return (
     <>
