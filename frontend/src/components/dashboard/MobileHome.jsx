@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { ArrowDownLeft, ArrowUpRight, Bell, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import { MASK } from '@/components/dashboard/BalanceCard';
+import { TOTAL_ARROW_CLASSES, TOTAL_LINK_CLASSES, totalLinkLabel } from '@/lib/totalLink';
 import ExpenseDonut from '@/components/dashboard/ExpenseDonut';
 import { CIRCLES } from '@/components/dashboard/QuickActions';
 import CircleActions from '@/components/common/CircleActions';
@@ -31,14 +32,15 @@ const Skeleton = ({ className }) => (
   <span className={cn('inline-block animate-pulse rounded-md bg-current opacity-20', className)} />
 );
 
-/** Ingresos o gastos del mes, sobre la franja morada. Lleva a su detalle. */
-function Total({ label, value, money, to, positive = false }) {
+/**
+ * Ingresos o gastos del mes, sobre la franja morada. Lleva a su detalle; la flecha de la esquina y el
+ * cambio al presionar dicen que se puede tocar (FT-0068).
+ */
+function Total({ label, value, money, to, positive = false, period }) {
   const Icon = positive ? ArrowDownLeft : ArrowUpRight;
   return (
-    <Link
-      to={to}
-      className="min-w-0 rounded-2xl border border-ink/10 bg-surface p-3.5 transition-transform duration-150 focus-visible:outline-2 focus-visible:outline-violet motion-safe:active:scale-[0.98]"
-    >
+    <Link to={to} className={cn(TOTAL_LINK_CLASSES, 'p-3.5 pr-8')}>
+      <ChevronRight className={TOTAL_ARROW_CLASSES} aria-hidden="true" />
       <span className="flex items-center gap-1.5 text-sm text-ink/70">
         <Icon className={cn('size-4', positive ? 'text-positive' : 'text-negative')} strokeWidth={2.25} aria-hidden="true" />
         {label}
@@ -46,7 +48,7 @@ function Total({ label, value, money, to, positive = false }) {
       <span className="mt-1.5 block truncate text-lg font-semibold tabular-nums">
         {value === undefined ? <Skeleton className="h-[1em] w-24" /> : money(value)}
       </span>
-      <span className="sr-only">, ver el detalle</span>
+      <span className="sr-only">, {totalLinkLabel(label.toLowerCase(), period).toLowerCase()}</span>
     </Link>
   );
 }
@@ -184,8 +186,8 @@ export default function MobileHome({
       </div>
 
       <div className="relative -mt-10 grid grid-cols-2 gap-3">
-        <Total label="Ingresos" to="/app/ingresos" value={totals?.income} money={money} positive />
-        <Total label="Gastos" to="/app/gastos" value={totals?.expense} money={money} />
+        <Total label="Ingresos" to="/app/ingresos" value={totals?.income} money={money} positive period={monthLabel} />
+        <Total label="Gastos" to="/app/gastos" value={totals?.expense} money={money} period={monthLabel} />
       </div>
       <p className="mt-2 text-[13px] text-ink/70 first-letter:uppercase">De {monthLabel}</p>
 
