@@ -178,3 +178,13 @@ export async function getAdvice(req, res) {
 export async function postReminders(req, res) {
   res.json(await vacas.remind(req.userId, req.params.id));
 }
+
+/**
+ * `POST /api/v1/vacas/:id/personal`: pasa a Metas una vaca de un solo integrante (FT-0066).
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+export async function postPersonal(req, res) {
+  res.json(await vacas.makePersonal(req.userId, req.params.id));
+}

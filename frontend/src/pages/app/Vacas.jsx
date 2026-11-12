@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CalendarClock, KeyRound, Loader2, PiggyBank, Plus, Users } from 'lucide-react';
+import { CalendarClock, KeyRound, Loader2, PiggyBank, Plus, User, Users } from 'lucide-react';
 import JoinByCode from '@/components/common/JoinByCode';
 import Sheet from '@/components/common/Sheet';
 import GroupSwitch from '@/components/layout/GroupSwitch';
@@ -69,6 +69,39 @@ function VacaCard({ vaca }) {
   );
 }
 
+/**
+ * Primera pregunta al crear (FT-0066): ¿es solo para ti o con más personas? Así las metas propias
+ * (la moto, un viaje) no terminan como vacas de un solo integrante.
+ * @param {{ onChoose: (who: 'solo'|'grupo') => void }} props
+ */
+function WhoChoice({ onChoose }) {
+  const options = [
+    { value: 'solo', icon: User, title: 'Solo para mí', hint: 'Una meta propia: la moto, el semestre, un viaje.' },
+    { value: 'grupo', icon: Users, title: 'Con más personas', hint: 'Juntan plata entre varios: el paseo, un regalo.' },
+  ];
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-ink/70">¿Es solo para ti o con más personas?</p>
+      {options.map(({ value, icon: Icon, title, hint }) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() => onChoose(value)}
+          className="flex w-full items-center gap-3 rounded-2xl border border-ink/10 bg-surface p-4 text-left transition-colors hover:border-ink/25 focus-visible:outline-2 focus-visible:outline-violet active:bg-ink/[0.04]"
+        >
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-soft text-brand" aria-hidden="true">
+            <Icon className="size-5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block font-semibold">{title}</span>
+            <span className="block text-sm text-ink/60">{hint}</span>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /** Las metas personales salen en `/app/metas`, no aquí. */
 const isGroup = (vaca) => !vaca.personal;
 
@@ -116,7 +149,19 @@ export default function Vacas() {
     };
   }, [version, online]);
 
+  // FT-0066: antes del formulario se pregunta si es solo para el usuario; si lo es, se crea en Metas.
+  const [forWho, setForWho] = useState(null); // null | 'solo' | 'grupo'
+  const openNew = () => {
+    setForWho(null);
+    setSheet('nueva');
+  };
+
   const handleCreate = async (values) => {
+    if (forWho === 'solo') {
+      const meta = await createVaca({ ...values, personal: true });
+      navigate(`/app/metas/${meta.id}`, { state: { created: true } });
+      return;
+    }
     const vaca = await createVaca(values);
     navigate(`/app/vacas/${vaca.id}`, { state: { created: true } });
   };
@@ -129,7 +174,7 @@ export default function Vacas() {
         description="Junten plata en grupo para una meta."
         actions={
           <>
-            <Button onClick={() => setSheet('nueva')} disabled={!online}>
+            <Button onClick={openNew} disabled={!online}>
               <Plus aria-hidden="true" /> Nueva vaca
             </Button>
             <Button variant="ghost" onClick={() => setSheet('codigo')} disabled={!online}>
@@ -163,7 +208,7 @@ export default function Vacas() {
             Crea una para el paseo, el regalo o el mercado del mes e invita a los demás. Rinde reparte la meta y les
             dice si van a tiempo.
           </p>
-          <Button className="mt-4" onClick={() => setSheet('nueva')} disabled={!online}>
+          <Button className="mt-4" onClick={openNew} disabled={!online}>
             Crear mi primera vaca
           </Button>
         </Panel>
@@ -177,8 +222,28 @@ export default function Vacas() {
         )
       )}
 
-      <Sheet open={sheet === 'nueva'} title="Nueva vaca" onClose={() => setSheet(null)}>
-        <VacaForm disabled={!online} onSubmit={handleCreate} onCancel={() => setSheet(null)} />
+      <Sheet
+        open={sheet === 'nueva'}
+        title={forWho === 'solo' ? 'Nueva meta' : 'Nueva vaca'}
+        onClose={() => setSheet(null)}
+      >
+        {forWho === null ? (
+          <WhoChoice onChoose={setForWho} />
+        ) : (
+          <>
+            {forWho === 'solo' && (
+              <p className="mb-4 rounded-xl bg-brand-soft p-3 text-sm text-ink/80">
+                Como es solo para ti, la guardamos en <b>Metas</b>: sin invitaciones ni reparto.
+              </p>
+            )}
+            <VacaForm
+              disabled={!online}
+              personal={forWho === 'solo'}
+              onSubmit={handleCreate}
+              onCancel={() => setForWho(null)}
+            />
+          </>
+        )}
       </Sheet>
       <Sheet
         open={sheet === 'codigo'}

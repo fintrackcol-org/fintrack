@@ -477,3 +477,45 @@ export async function claimReminder(id, hours) {
   );
   return rowCount > 0;
 }
+
+/**
+ * ¿Hay aportes vigentes de alguien distinto al usuario? (FT-0066: una vaca con aportes de otros no
+ * se puede pasar a meta personal).
+ * @param {string} vacaId
+ * @param {string} userId
+ * @returns {Promise<boolean>}
+ */
+export async function hasContributionsFromOthers(vacaId, userId) {
+  const { rows } = await pool.query(
+    `SELECT EXISTS (
+       SELECT 1 FROM vaca_aportes
+       WHERE vaca_id = $1 AND usuario_id IS DISTINCT FROM $2 AND deleted_at IS NULL
+     ) AS found`,
+    [vacaId, userId],
+  );
+  return rows[0].found;
+}
+
+/**
+ * Convierte una vaca en meta personal: reparto igual, sin cuotas ni invitaciones pendientes.
+ * @param {string} id
+ * @returns {Promise<void>}
+ */
+export async function makePersonal(id) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      "UPDATE vacas SET personal = true, reparto = 'igual', updated_at = now() WHERE id = $1",
+      [id],
+    );
+    await client.query('UPDATE vaca_miembros SET cuota = NULL WHERE vaca_id = $1', [id]);
+    await client.query('DELETE FROM vaca_invitaciones WHERE vaca_id = $1', [id]);
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}

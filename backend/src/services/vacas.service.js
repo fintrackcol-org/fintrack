@@ -971,3 +971,25 @@ export async function remind(userId, id) {
   }
   return { reminded: targets.length, delivered };
 }
+
+/**
+ * Pasa a Metas una vaca que en realidad es solo del usuario (FT-0066): solo el administrador, solo si
+ * no hay más miembros y nadie más ha aportado. Las invitaciones pendientes se cancelan y el código
+ * deja de mostrarse.
+ * @param {string} userId
+ * @param {string} id
+ * @returns {Promise<object>} El detalle, ya como meta personal.
+ */
+export async function makePersonal(userId, id) {
+  const vaca = await requireAdmin(userId, id);
+  if (vaca.personal) throw new AppError(409, 'ALREADY_PERSONAL', 'Ya es una meta personal');
+  const members = await repo.listMembers(vaca.id);
+  if (members.length > 1) {
+    throw new AppError(409, 'HAS_MEMBERS', 'Esta vaca tiene más integrantes: no se puede pasar a Metas');
+  }
+  if (await repo.hasContributionsFromOthers(vaca.id, userId)) {
+    throw new AppError(409, 'HAS_MEMBERS', 'Otras personas ya aportaron a esta vaca: no se puede pasar a Metas');
+  }
+  await repo.makePersonal(vaca.id);
+  return loadDetail(userId, await repo.findVacaForMember(vaca.id, userId));
+}

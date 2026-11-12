@@ -603,3 +603,43 @@ test(
     });
   },
 );
+
+test('pasar a Metas una vaca de un solo integrante (FT-0066)', options, async () => {
+  await withApi(async (api) => {
+    const owner = await newUser();
+    const solo = await api('/vacas', { method: 'POST', token: owner.token, body: { name: 'Moto', goal: 3000000 } });
+    await api(`/vacas/${solo.body.id}/invitations`, {
+      method: 'POST',
+      token: owner.token,
+      body: { email: `x-${randomUUID()}${TEST_DOMAIN}` },
+    });
+    await api(`/vacas/${solo.body.id}/contributions`, {
+      method: 'POST',
+      token: owner.token,
+      body: { amount: 50000, date: today() },
+    });
+
+    const moved = await api(`/vacas/${solo.body.id}/personal`, { method: 'POST', token: owner.token });
+    assert.equal(moved.status, 200);
+    assert.equal(moved.body.personal, true);
+    assert.equal(moved.body.code, null, 'una meta no muestra el código');
+    assert.equal(moved.body.total, 50000, 'los aportes se conservan');
+    assert.deepEqual(moved.body.invitations ?? [], [], 'se cancelan las invitaciones');
+    const metas = await api('/vacas?tipo=personal', { token: owner.token });
+    assert.ok(metas.body.some((v) => v.id === solo.body.id));
+    assert.equal((await api(`/vacas/${solo.body.id}/personal`, { method: 'POST', token: owner.token })).status, 409);
+
+    // Con más integrantes no se puede, y solo el administrador puede intentarlo.
+    const { owner: other, member, vaca } = await vacaWithTwo(api);
+    assert.equal((await api(`/vacas/${vaca.id}/personal`, { method: 'POST', token: member.token })).status, 403);
+    const blocked = await api(`/vacas/${vaca.id}/personal`, { method: 'POST', token: other.token });
+    assert.equal(blocked.status, 409);
+    assert.equal(blocked.body.error.code, 'HAS_MEMBERS');
+
+    // Si alguien más aportó y luego salió, tampoco.
+    await api(`/vacas/${vaca.id}/contributions`, { method: 'POST', token: member.token, body: { amount: 1000, date: today() } });
+    await api(`/vacas/${vaca.id}/members/${member.id}`, { method: 'DELETE', token: member.token });
+    const left = await api(`/vacas/${vaca.id}/personal`, { method: 'POST', token: other.token });
+    assert.equal(left.status, 409);
+  });
+});
