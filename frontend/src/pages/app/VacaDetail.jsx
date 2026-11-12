@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, HandCoins, Loader2, LogOut, MoreHorizontal, Pencil, Trash2, UserPlus } from 'lucide-react';
+import { ArrowLeft, HandCoins, Loader2, LogOut, MoreHorizontal, Pencil, Target, Trash2, UserPlus } from 'lucide-react';
 import ConfirmButton from '@/components/common/ConfirmButton';
 import Sheet from '@/components/common/Sheet';
 import Tabs from '@/components/common/Tabs';
@@ -27,6 +27,7 @@ import {
   deleteVaca,
   getVaca,
   inviteByEmail,
+  makePersonal,
   regenerateCode,
   removeMember,
   sendReminders,
@@ -84,7 +85,9 @@ export default function VacaDetail() {
         : 'Vaca creada. Invita a los demás con el enlace o el código.'
       : state?.joined
         ? '¡Ya eres parte de la vaca!'
-        : '',
+        : state?.movedToMetas
+          ? 'Listo: ahora está en tus Metas, con todos tus aportes.'
+          : '',
   );
   const [sheet, setSheet] = useState(state?.created && !inMetas ? 'invitar' : null); // 'aportar' | 'invitar' | 'opciones' | 'editar'
   const [tab, setTab] = useState(inMetas ? 'aportes' : 'miembros');
@@ -225,6 +228,13 @@ export default function VacaDetail() {
     navigate(home.to, { replace: true });
   };
 
+  /** Pasa la vaca a Metas (FT-0066) y abre la meta. */
+  const toMetas = async () => {
+    const meta = await makePersonal(id);
+    (await loadQueue()).cacheVaca(meta).catch(() => {});
+    navigate(`/app/metas/${meta.id}`, { replace: true, state: { movedToMetas: true } });
+  };
+
   if (gone) {
     return (
       <Panel className="mx-auto max-w-lg text-center">
@@ -259,6 +269,10 @@ export default function VacaDetail() {
   const noun = personal ? 'la meta' : 'la vaca';
   const pendingTotal = pending.filter((p) => !p.rejected).reduce((acc, p) => acc + p.contribution.amount, 0);
   const closeSheet = () => setSheet(null);
+  // FT-0066: una vaca de un solo integrante, del que la creó, probablemente es una meta personal. No se
+  // sugiere recién creada (todavía no ha invitado a nadie) ni si hay invitaciones pendientes.
+  const soloVaca =
+    !personal && isAdmin && vaca.membersCount === 1 && !fromCache && !state?.created && !vaca.invitations?.length;
 
   return (
     <>
@@ -285,6 +299,22 @@ export default function VacaDetail() {
       <p role="status" className={cn('text-sm text-positive', notice && 'mb-4')}>
         {notice}
       </p>
+      {soloVaca && (
+        <Panel aria-label="¿Es solo tuya?" className="mb-4 flex flex-wrap items-center gap-3 border-brand/20 bg-brand-soft p-4 md:p-4">
+          <p className="min-w-0 flex-1 text-sm">
+            <b>¿Es solo tuya?</b> Nadie más está en esta vaca. Pásala a Metas: guardas tu avance y deja de pedirte que
+            invites gente.
+          </p>
+          <ConfirmButton
+            label="Pasar a Metas"
+            question="Se cancelan las invitaciones pendientes y ya no podrás invitar a nadie. Tus aportes se conservan."
+            confirmLabel="Sí, pasar a Metas"
+            icon={Target}
+            disabled={!online}
+            onConfirm={toMetas}
+          />
+        </Panel>
+      )}
       {fromCache && (
         <p className="mb-4 text-sm text-ink/60">
           Sin conexión: ves la última versión guardada. Los aportes que hagas se envían al volver internet.

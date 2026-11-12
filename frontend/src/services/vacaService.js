@@ -222,3 +222,13 @@ export function getAdvice(id) {
 export function sendReminders(id) {
   return apiRequest(`/vacas/${id}/reminders`, { method: 'POST' });
 }
+
+/**
+ * Pasa a Metas una vaca de un solo integrante (FT-0066). Solo el administrador; si otra persona ya
+ * aportó o hay más integrantes, responde 409.
+ * @param {string} id
+ * @returns {Promise<Vaca>} La vaca, ya como meta personal.
+ */
+export function makePersonal(id) {
+  return apiRequest(`/vacas/${id}/personal`, { method: 'POST' });
+}

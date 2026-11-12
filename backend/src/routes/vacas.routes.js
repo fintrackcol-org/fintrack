@@ -14,6 +14,7 @@ import {
   postContribution,
   postInvitation,
   postJoin,
+  postPersonal,
   postReminders,
   postVaca,
 } from '../controllers/vacas.controller.js';
@@ -30,6 +31,7 @@ import { requireAuth } from '../middlewares/auth.middleware.js';
  * - `PATCH /:id/members/:userId` · `DELETE /:id/members/:userId` → rol o cuota · sacar o salirse.
  * - `POST /:id/contributions` · `DELETE /:id/contributions/:contributionId` → aportar · borrar el propio.
  * - `GET /:id/advice` · `POST /:id/reminders` → consejo para el grupo · push a los atrasados.
+ * - `POST /:id/personal` → pasar a Metas una vaca de un solo integrante (FT-0066).
  */
 const router = Router();
 
@@ -50,5 +52,6 @@ router.post('/:id/contributions', postContribution);
 router.delete('/:id/contributions/:contributionId', deleteContribution);
 router.get('/:id/advice', getAdvice);
 router.post('/:id/reminders', postReminders);
+router.post('/:id/personal', postPersonal);
 
 export default router;
