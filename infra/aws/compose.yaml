@@ -1,0 +1,60 @@
+# Rinde - entorno de pruebas en AWS (FT-0064). Lo levanta la instancia EC2 al arrancar
+# (ver template.yaml); los valores salen de infra/aws/.env, que se genera allá y nunca se sube.
+#
+#   docker compose up -d --build   # levantar o actualizar
+#   docker compose logs -f api     # ver la API
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rinde
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?falta DB_PASSWORD}
+      POSTGRES_DB: rinde
+    # Solo dentro de la instancia: para las pruebas se llega con el túnel de Session Manager.
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ../../db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rinde -d rinde"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ../../backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://rinde:${DB_PASSWORD}@db:5432/rinde
+      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      S3_BUCKET: ${S3_BUCKET}
+      AWS_REGION: ${AWS_REGION}
+      # Caddy está delante: la IP real del cliente llega en X-Forwarded-For.
+      TRUST_PROXY: 1
+      # En pruebas los recordatorios no deben mandar push ni WhatsApp a nadie.
+      REMINDERS_ENABLED: "false"
+
+  # HTTPS automático (Let's Encrypt) para <ip>.sslip.io, sin comprar dominio.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "80:80"
+      - "443:443"
+    command: caddy reverse-proxy --from ${API_HOST:?falta API_HOST} --to api:3000
+    volumes:
+      - caddy-data:/data
+
+volumes:
+  db-data:
+  caddy-data:
