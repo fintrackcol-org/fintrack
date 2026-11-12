@@ -24,7 +24,7 @@ const adminEmails = (process.env.ADMIN_EMAILS || '')
   .map((email) => email.trim().toLowerCase())
   .filter(Boolean);
 
-/** Correos que pueden usar el bot de WhatsApp, separados por coma. Vacío: nadie. */
+/** Correos que pueden usar el bot de WhatsApp, separados por coma; `*` es para todos. Vacío: nadie. */
 const whatsappAllowedEmails = (process.env.WHATSAPP_ALLOWED_EMAILS || '')
   .split(',')
   .map((email) => email.trim().toLowerCase())
