@@ -175,6 +175,19 @@ test('quien no está en la lista no ve el bot ni puede pedir un código', option
   });
 });
 
+test('con * en la lista, cualquiera ve el bot', options, async () => {
+  const user = await createUser({ allowed: false });
+  env.whatsappAllowedEmails.push('*');
+  try {
+    await withServer(async (base) => {
+      const status = await (await fetch(`${base}/link`, json(user.token))).json();
+      assert.equal(status.available, true);
+    });
+  } finally {
+    env.whatsappAllowedEmails.pop();
+  }
+});
+
 test('vincula el número, registra y desconecta', options, async () => {
   const user = await createUser();
   const phone = randomPhone();

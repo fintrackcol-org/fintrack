@@ -242,14 +242,16 @@ export function createWhatsappService(deps = {}) {
 
   /**
    * ¿Este usuario puede conectar el bot? Con el número de prueba, Meta solo deja responderles a
-   * cinco destinatarios: la lista evita ofrecerles el bot a los demás.
+   * cinco destinatarios: la lista evita ofrecerles el bot a los demás. Con el número real, `*`
+   * lo abre para todos.
    * @param {string} userId
    * @returns {Promise<boolean>}
    */
   async function canUse(userId) {
     if (!isAvailable()) return false;
     const user = await findUser(userId);
-    return Boolean(user) && env.whatsappAllowedEmails.includes(user.email.toLowerCase());
+    const allowed = env.whatsappAllowedEmails;
+    return Boolean(user) && (allowed.includes('*') || allowed.includes(user.email.toLowerCase()));
   }
 
   /**
