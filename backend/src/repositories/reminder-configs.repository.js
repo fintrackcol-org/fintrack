@@ -25,13 +25,14 @@ export async function saveReminderConfig(userId, type, id, { daysBefore, time, c
 }
 
 /**
- * Cómo avisar de cada cosa; las que no tienen configuración traen la de siempre.
+ * Cómo avisar de cada cosa; las que no tienen configuración traen la de siempre (o `fallback`).
  * @param {string} type
  * @param {string[]} ids
- * @returns {Promise<Map<string, ReminderConfig>>}
+ * @param {ReminderConfig|null} [fallback] Lo que se devuelve sin configuración; los compromisos usan `null` (no avisar).
+ * @returns {Promise<Map<string, ReminderConfig|null>>}
  */
-export async function findReminderConfigs(type, ids) {
-  const configs = new Map(ids.map((id) => [id, { ...DEFAULT_REMINDER }]));
+export async function findReminderConfigs(type, ids, fallback = DEFAULT_REMINDER) {
+  const configs = new Map(ids.map((id) => [id, fallback && { ...fallback }]));
   if (ids.length === 0) return configs;
   const { rows } = await pool.query(
     `SELECT origen_id AS id, dias_antes::int[] AS "daysBefore", to_char(hora, 'HH24:MI') AS time, canal AS channel

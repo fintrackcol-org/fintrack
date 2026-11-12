@@ -8,9 +8,9 @@ import usePageTitle from '@/hooks/usePageTitle';
 import { dayAndMonth } from '@/lib/moneyPlan';
 import { todayIso } from '@/lib/period';
 import { TRANSACTION_SAVED_EVENT, saveNewTransaction } from '@/offline/saveNewTransaction';
-import { CommitmentDialog, EMPTY_COMMITMENT, IncomeSection } from '@/pages/app/MiPlata';
+import { CommitmentDialog, EMPTY_COMMITMENT, IncomeSection, commitmentToForm } from '@/pages/app/MiPlata';
 import { deleteCommitment, getMoneyProfile, getPaymentCalendar, updateMoneyProfile } from '@/services/moneyProfileService';
-import { toProfileData } from '@/lib/moneyProfile';
+import { commitmentWhen, toProfileData } from '@/lib/moneyProfile';
 
 /**
  * Lo que falta y lo ya pagado este mes, a partir de los eventos del calendario.
@@ -78,6 +78,9 @@ export default function MoneyPayments() {
   }
 
   const commitmentById = Object.fromEntries(data.commitments.map((c) => [c.id, c]));
+  // Los anuales que no se cobran este mes no salen en el calendario; se listan aparte para poder editarlos.
+  const inCalendar = new Set(events.map((e) => e.id));
+  const otherMonths = data.commitments.filter((c) => c.frequency === 'yearly' && !inCalendar.has(c.id));
   const changed = () => {
     setForm(null);
     profile.reload();
@@ -102,6 +105,7 @@ export default function MoneyPayments() {
           <p className="truncate font-medium">{event.name}</p>
           <p className="text-sm tabular-nums text-ink/70">
             {formatMoney(event.amount)} · {dayAndMonth(event.date)}
+            {event.subscription && ' · suscripción'}
             {event.status === 'atrasado' && <span className="font-medium text-negative"> · atrasado</span>}
           </p>
         </div>
@@ -118,9 +122,7 @@ export default function MoneyPayments() {
             variant="ghost"
             size="icon"
             aria-label={`Editar ${event.name}`}
-            onClick={() =>
-              setForm({ id: commitment.id, name: commitment.name, amount: String(commitment.amount), dayOfMonth: String(commitment.dayOfMonth) })
-            }
+            onClick={() => setForm(commitmentToForm(commitment))}
           >
             <Pencil aria-hidden="true" />
           </Button>
@@ -163,11 +165,38 @@ export default function MoneyPayments() {
               <p className="text-lg font-semibold tabular-nums text-positive">{formatMoney(totals.paid)}</p>
             </div>
           </div>
+          {data.subscriptions?.count > 0 && (
+            <p className="text-sm text-ink/80">
+              Suscripciones: <b className="tabular-nums">{formatMoney(data.subscriptions.monthly)}</b> al mes
+              {data.subscriptions.count > 1 && <span className="text-ink/60"> ({data.subscriptions.count})</span>}
+            </p>
+          )}
           {events.length === 0 && (
-            <p className="text-sm text-ink/70">Agrega lo que pagas cada mes, como arriendo, internet o celular.</p>
+            <p className="text-sm text-ink/70">Agrega lo que pagas cada mes (arriendo, internet) y tus suscripciones (Netflix, Spotify).</p>
           )}
           {group('Por pagar', events.filter((e) => e.status !== 'pagado'))}
           {group('Pagados', events.filter((e) => e.status === 'pagado'))}
+          {otherMonths.length > 0 && (
+            <section aria-label="En otros meses">
+              <h2 className="mb-1.5 text-lg font-semibold tracking-tight">En otros meses</h2>
+              <ul className="divide-y divide-ink/10 rounded-2xl border border-ink/10 bg-surface px-3.5">
+                {otherMonths.map((c) => (
+                  <li key={c.id} className="flex items-center gap-2 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{c.name}</p>
+                      <p className="text-sm tabular-nums text-ink/70">
+                        {formatMoney(c.amount)} · {commitmentWhen(c)}
+                        {c.kind === 'subscription' && ' · suscripción'}
+                      </p>
+                    </div>
+                    <Button variant="ghost" size="icon" aria-label={`Editar ${c.name}`} onClick={() => setForm(commitmentToForm(c))}>
+                      <Pencil aria-hidden="true" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </>
       )}
       {error && (

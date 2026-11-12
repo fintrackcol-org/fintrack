@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import * as repo from '../repositories/money-profile.repository.js';
+import * as reminders from '../repositories/reminder-configs.repository.js';
 import { currentMoney } from './money-plan.service.js';
 import { MAX_COMMITMENTS } from '../validators/money-profile.validator.js';
 
@@ -27,6 +28,8 @@ export async function get(userId) {
     repo.movementTotals(userId),
     repo.changesSinceBalance(userId),
   ]);
+  // "Avisarme" de cada compromiso (FT-0067): `null` si no avisa.
+  const configs = await reminders.findReminderConfigs('compromiso', commitments.map((c) => c.id), null);
   return {
     incomeType: profile?.incomeType ?? null,
     payDays: profile?.payDays ?? [],
@@ -35,8 +38,20 @@ export async function get(userId) {
     money: currentMoney({ profile, changes, totals }),
     totals,
     welcomeDone: Boolean(profile?.welcomeAt),
-    commitments,
+    commitments: commitments.map((c) => ({ ...c, reminder: configs.get(c.id) ?? null })),
+    subscriptions: subscriptionsSummary(commitments),
   };
+}
+
+/**
+ * Cuánto se va en suscripciones al mes (FT-0067): las anuales cuentan su doceava parte.
+ * @param {Array<{ kind: string, frequency: string, amount: number }>} commitments
+ * @returns {{ count: number, monthly: number }}
+ */
+export function subscriptionsSummary(commitments) {
+  const subs = commitments.filter((c) => c.kind === 'subscription');
+  const monthly = subs.reduce((acc, c) => acc + (c.frequency === 'yearly' ? c.amount / 12 : c.amount), 0);
+  return { count: subs.length, monthly: Math.round(monthly) };
 }
 
 /**
@@ -91,7 +106,31 @@ export async function createCommitment(userId, data) {
   }
   const commitment = await repo.insertCommitment(userId, data);
   if (!commitment) throw duplicated();
-  return commitment;
+  return withReminder(userId, commitment, data.reminder);
+}
+
+/** Origen de los avisos de los compromisos en el motor de recordatorios (FT-0063). */
+const REMINDER_TYPE = 'compromiso';
+
+/**
+ * Guarda o quita el "Avisarme" de un compromiso (FT-0067) y lo devuelve junto al compromiso.
+ * `undefined`: no se tocó; `null` o sin días: no avisar.
+ * @param {string} userId
+ * @param {object} commitment
+ * @param {import('../validators/reminders.validator.js').ReminderConfig|null|undefined} reminder
+ * @returns {Promise<object>}
+ */
+async function withReminder(userId, commitment, reminder) {
+  if (reminder === null || (reminder && reminder.daysBefore.length === 0)) {
+    await reminders.deleteReminderConfig(REMINDER_TYPE, commitment.id);
+    return { ...commitment, reminder: null };
+  }
+  if (reminder) {
+    await reminders.saveReminderConfig(userId, REMINDER_TYPE, commitment.id, reminder);
+    return { ...commitment, reminder };
+  }
+  const configs = await reminders.findReminderConfigs(REMINDER_TYPE, [commitment.id], null);
+  return { ...commitment, reminder: configs.get(commitment.id) };
 }
 
 /**
@@ -107,7 +146,7 @@ export async function updateCommitment(userId, id, data) {
   const commitment = await repo.updateCommitment(id, userId, data);
   if (commitment === 'duplicate') throw duplicated();
   if (!commitment) throw notFound();
-  return commitment;
+  return withReminder(userId, commitment, data.reminder);
 }
 
 /**
@@ -119,4 +158,5 @@ export async function updateCommitment(userId, id, data) {
  */
 export async function removeCommitment(userId, id) {
   if (!UUID_RE.test(id) || !(await repo.deleteCommitment(id, userId))) throw notFound();
+  await reminders.deleteReminderConfig(REMINDER_TYPE, id);
 }

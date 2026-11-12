@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   MAX_PAY_DAYS,
   balanceProposal,
+  commitmentWhen,
   incomeSummary,
   readCommitmentForm,
   toProfileData,
@@ -65,7 +66,7 @@ describe('incomeSummary', () => {
 describe('readCommitmentForm', () => {
   it('limpia un compromiso válido', () => {
     expect(readCommitmentForm({ name: ' Arriendo ', amount: '350000', dayOfMonth: '30' })).toEqual({
-      data: { name: 'Arriendo', amount: 350000, dayOfMonth: 30 },
+      data: { name: 'Arriendo', amount: 350000, dayOfMonth: 30, kind: 'fixed', frequency: 'monthly', month: null },
     });
   });
 
@@ -74,5 +75,27 @@ describe('readCommitmentForm', () => {
     expect(readCommitmentForm({ name: 'Celular', amount: '', dayOfMonth: '1' }).error).toMatch(/Celular/);
     expect(readCommitmentForm({ name: 'Celular', amount: '1', dayOfMonth: '32' }).error).toMatch(/entre 1 y 31/);
     expect(readCommitmentForm({ name: 'Celular', amount: '1', dayOfMonth: '' }).error).toMatch(/entre 1 y 31/);
+  });
+});
+
+describe('suscripciones en los compromisos (FT-0067)', () => {
+  it('pago fijo mensual por defecto; anual exige el mes', () => {
+    expect(readCommitmentForm({ name: ' Netflix ', amount: '38900', dayOfMonth: '20', kind: 'subscription' }).data).toEqual({
+      name: 'Netflix',
+      amount: 38900,
+      dayOfMonth: 20,
+      kind: 'subscription',
+      frequency: 'monthly',
+      month: null,
+    });
+    expect(readCommitmentForm({ name: 'Antivirus', amount: '120000', dayOfMonth: '5', frequency: 'yearly' }).error).toBe(
+      'Elige en qué mes se cobra Antivirus.',
+    );
+    expect(readCommitmentForm({ name: 'Antivirus', amount: '120000', dayOfMonth: '5', frequency: 'yearly', month: '3' }).data.month).toBe(3);
+  });
+
+  it('dice cuándo se cobra', () => {
+    expect(commitmentWhen({ dayOfMonth: 20, frequency: 'monthly' })).toBe('día 20');
+    expect(commitmentWhen({ dayOfMonth: 5, frequency: 'yearly', month: 3 })).toBe('cada año, el 5 de marzo');
   });
 });

@@ -3,7 +3,7 @@ import { listDebts } from '../repositories/debts.repository.js';
 import * as repo from '../repositories/money-profile.repository.js';
 import { daysInMonth, shiftMonth } from './analytics.service.js';
 import { todayIso } from './insights.service.js';
-import { dateInMonth, getPlan, isPaymentOf, pendingCommitments } from './money-plan.service.js';
+import { dateInMonth, getPlan, isPaymentOf, occursInMonth, pendingCommitments } from './money-plan.service.js';
 import { list as listCards } from './cards.service.js';
 import { list as listVacas } from './vacas.service.js';
 
@@ -134,6 +134,7 @@ export function buildPaymentCalendar({
   // 3. Los eventos del mes que se muestra.
   const events = [];
   for (const c of commitments) {
+    if (!occursInMonth(c, month)) continue; // un pago anual solo sale en su mes (FT-0067)
     const date = dateInMonth(month, c.dayOfMonth);
     let status;
     if (month < currentMonth) status = isPaid(c.name, monthExpenses) ? 'pagado' : 'sin_registro';
@@ -145,6 +146,7 @@ export function buildPaymentCalendar({
       id: c.id,
       name: c.name,
       amount: c.amount,
+      subscription: c.kind === 'subscription', // FT-0067: el calendario la marca como suscripción
       status,
       ...projected(`compromiso:${c.id}:${date}`),
     });

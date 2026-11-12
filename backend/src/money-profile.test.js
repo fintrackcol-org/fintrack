@@ -76,6 +76,7 @@ test('un usuario nuevo tiene un perfil vacío y la bienvenida pendiente', option
       totals: { income: 0, expense: 0 },
       welcomeDone: false,
       commitments: [],
+      subscriptions: { count: 0, monthly: 0 },
     });
   });
 });

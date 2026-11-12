@@ -94,6 +94,7 @@ function EventRow({ event }) {
   let detail = income ? 'Te entra plata' : STATUS_TEXT[event.status];
   if (event.kind === 'vaca' && !paid) detail = `${detail} · tu aporte a la vaca`;
   if (event.kind === 'cuenta') detail = `${detail} · le debes`;
+  if (event.subscription) detail = `${detail} · suscripción`; // FT-0067
   if (receivable) detail = event.status === 'atrasado' ? 'Atrasado · te debe' : 'Te debe · no se suma a tu plata';
   return (
     <li>
@@ -345,7 +346,7 @@ export default function Calendar() {
               title="Pago de cada mes"
               text={`Arriendo, servicios, cuotas. Se repite el día ${Number(day.slice(8))} de cada mes.`}
               onClick={() => {
-                setCommitment({ ...EMPTY_COMMITMENT, dayOfMonth: String(Number(day.slice(8))) });
+                setCommitment({ ...EMPTY_COMMITMENT, dayOfMonth: String(Number(day.slice(8))), month: String(Number(day.slice(5, 7))) });
                 closeDay();
               }}
             />

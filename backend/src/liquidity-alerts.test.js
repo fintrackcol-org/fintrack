@@ -78,6 +78,7 @@ function setup({ last = null, whatsapp = async () => true } = {}) {
   const user = { id: 'u1', timezone: 'America/Bogota', time: '09:00', last };
   const scheduler = createReminderScheduler({
     listDueDebts: async () => [],
+    listCommitments: async () => [],
     listCandidates: async () => [],
     listCardUsers: async () => [],
     businessReminders: {

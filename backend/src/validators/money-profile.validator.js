@@ -1,4 +1,5 @@
 import { AppError } from '../errors/app-error.js';
+import { parseReminder } from './reminders.validator.js';
 
 const INCOME_TYPES = ['fecha_fija', 'sin_fecha'];
 
@@ -15,7 +16,20 @@ export const MAX_COMMITMENTS = 30;
 
 /** @typedef {{ field: string, problem: string }} FieldProblem */
 
-/** @typedef {{ name: string, amount: number, dayOfMonth: number }} NewCommitment */
+/**
+ * @typedef {object} NewCommitment
+ * @property {string} name
+ * @property {number} amount Lo que se paga cada vez (al mes, o al año si es anual).
+ * @property {number} dayOfMonth
+ * @property {'fixed'|'subscription'} [kind] Pago fijo (arriendo) o suscripción (Netflix). FT-0067.
+ * @property {'monthly'|'yearly'} [frequency]
+ * @property {number|null} [month] Mes del cobro (1 a 12) si es anual.
+ * @property {import('./reminders.validator.js').ReminderConfig|null} [reminder] "Avisarme"; `null` = no avisar.
+ */
+
+/** Tipos y frecuencias de un compromiso (FT-0067). */
+export const COMMITMENT_KINDS = ['fixed', 'subscription'];
+export const COMMITMENT_FREQUENCIES = ['monthly', 'yearly'];
 
 /** @typedef {{ incomeType: 'fecha_fija'|'sin_fecha'|null, payDays: number[], balance: number|null, resetBalance?: boolean }} ProfileData */
 
@@ -74,7 +88,19 @@ function readCommitment(source, details, prefix = '') {
   if (!isDayOfMonth(dayOfMonth)) {
     details.push({ field: `${prefix}dayOfMonth`, problem: 'Debe ser un día entre 1 y 31' });
   }
-  return { name: name?.trim?.(), amount: rounded, dayOfMonth };
+  // FT-0067: tipo y frecuencia. Sin ellos, como siempre: pago fijo mensual.
+  const { kind = 'fixed', frequency = 'monthly', month = null } = isObject(source) ? source : {};
+  if (!COMMITMENT_KINDS.includes(kind)) {
+    details.push({ field: `${prefix}kind`, problem: `Debe ser: ${COMMITMENT_KINDS.join(', ')}` });
+  }
+  if (!COMMITMENT_FREQUENCIES.includes(frequency)) {
+    details.push({ field: `${prefix}frequency`, problem: `Debe ser: ${COMMITMENT_FREQUENCIES.join(', ')}` });
+  }
+  const yearly = frequency === 'yearly';
+  if (yearly && !(Number.isInteger(month) && month >= 1 && month <= 12)) {
+    details.push({ field: `${prefix}month`, problem: 'Un pago anual necesita el mes del cobro (1 a 12)' });
+  }
+  return { name: name?.trim?.(), amount: rounded, dayOfMonth, kind, frequency, month: yearly ? month : null };
 }
 
 /**
@@ -155,6 +181,10 @@ export function parseCommitment(body) {
   if (!isObject(body)) throw invalidBody();
   const details = [];
   const commitment = readCommitment(body, details);
+  // "Avisarme" (FT-0067): opcional; `null` quita el aviso; sin el campo no se toca.
+  if ('reminder' in body) {
+    commitment.reminder = body.reminder === null ? null : parseReminder(body.reminder, details);
+  }
   throwIfInvalid(details);
   return commitment;
 }

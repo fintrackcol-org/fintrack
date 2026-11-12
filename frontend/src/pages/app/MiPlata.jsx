@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { CalendarDays, Download, Loader2, Pencil, Plus, ReceiptText, Sparkles, Trash2 } from 'lucide-react';
+import ChipGroup from '@/components/common/ChipGroup';
 import CircleActions from '@/components/common/CircleActions';
+import ReminderBlock from '@/components/common/ReminderBlock';
 import Sheet from '@/components/common/Sheet';
 import { MASK } from '@/components/dashboard/BalanceCard';
 import MoneyInput from '@/components/common/MoneyInput';
@@ -22,7 +24,18 @@ import useMediaQuery from '@/hooks/useMediaQuery';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { TRANSACTION_SAVED_EVENT } from '@/offline/saveNewTransaction';
-import { NOT_INCOME, balanceProposal, incomeSummary, readCommitmentForm, toProfileData } from '@/lib/moneyProfile';
+import {
+  COMMITMENT_FREQUENCY_OPTIONS,
+  COMMITMENT_KIND_OPTIONS,
+  MONTH_NAMES,
+  NOT_INCOME,
+  balanceProposal,
+  commitmentWhen,
+  incomeSummary,
+  readCommitmentForm,
+  toProfileData,
+} from '@/lib/moneyProfile';
+import { DEFAULT_REMINDER } from '@/lib/reminder';
 import {
   createCommitment,
   deleteCommitment,
@@ -32,7 +45,35 @@ import {
   updateMoneyProfile,
 } from '@/services/moneyProfileService';
 
-export const EMPTY_COMMITMENT = { id: null, name: '', amount: '', dayOfMonth: '' };
+export const EMPTY_COMMITMENT = {
+  id: null,
+  name: '',
+  amount: '',
+  dayOfMonth: '',
+  kind: 'fixed',
+  frequency: 'monthly',
+  month: '',
+  reminder: DEFAULT_REMINDER,
+};
+
+/**
+ * Un compromiso guardado, listo para el formulario de edición (FT-0067).
+ * @param {import('@/services/moneyProfileService').Commitment} c
+ * @returns {object}
+ */
+export function commitmentToForm(c) {
+  return {
+    id: c.id,
+    name: c.name,
+    amount: String(c.amount),
+    dayOfMonth: String(c.dayOfMonth),
+    kind: c.kind ?? 'fixed',
+    frequency: c.frequency ?? 'monthly',
+    month: c.month ? String(c.month) : '',
+    // Sin aviso guardado, el bloque arranca vacío (no avisar) para no activar nada sin querer.
+    reminder: c.reminder ?? { ...DEFAULT_REMINDER, daysBefore: [] },
+  };
+}
 
 /** Encabezado de una sección, con su botón a la derecha. */
 function SectionTitle({ id, title, action }) {
@@ -222,8 +263,9 @@ function CommitmentForm({ initial, onClose, onSaved, onDelete }) {
     setSaving(true);
     setError('');
     try {
-      if (form.id) await updateCommitment(form.id, data);
-      else await createCommitment(data);
+      const body = { ...data, reminder: form.reminder.daysBefore.length ? form.reminder : null };
+      if (form.id) await updateCommitment(form.id, body);
+      else await createCommitment(body);
       onSaved();
     } catch (err) {
       setError(err.message);
@@ -233,12 +275,21 @@ function CommitmentForm({ initial, onClose, onSaved, onDelete }) {
 
   return (
       <form onSubmit={save} className="space-y-4">
+        <div>
+          <ChipGroup
+            legend="¿Qué es?"
+            options={COMMITMENT_KIND_OPTIONS.map(({ value, label }) => ({ value, label }))}
+            value={form.kind}
+            onChange={(kind) => change({ kind })}
+          />
+          <p className="mt-1.5 text-sm text-ink/60">{COMMITMENT_KIND_OPTIONS.find((o) => o.value === form.kind).hint}</p>
+        </div>
         <div className="space-y-2">
           <Label htmlFor="commitment-name">Nombre</Label>
           <Input
             id="commitment-name"
             maxLength={60}
-            placeholder="Arriendo"
+            placeholder={form.kind === 'subscription' ? 'Netflix' : 'Arriendo'}
             value={form.name}
             onChange={(e) => change({ name: e.target.value })}
           />
@@ -265,6 +316,31 @@ function CommitmentForm({ initial, onClose, onSaved, onDelete }) {
             />
           </div>
         </div>
+        <ChipGroup
+          legend="¿Cada cuánto?"
+          options={COMMITMENT_FREQUENCY_OPTIONS}
+          value={form.frequency}
+          onChange={(frequency) => change({ frequency })}
+        />
+        {form.frequency === 'yearly' && (
+          <div className="space-y-2">
+            <Label htmlFor="commitment-month">Mes del cobro</Label>
+            <select
+              id="commitment-month"
+              value={form.month}
+              onChange={(e) => change({ month: e.target.value })}
+              className="h-11 w-full rounded-xl border border-ink/15 bg-surface px-3 text-base capitalize"
+            >
+              <option value="">Elige el mes</option>
+              {MONTH_NAMES.map((name, i) => (
+                <option key={name} value={String(i + 1)} className="capitalize">
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <ReminderBlock value={form.reminder} onChange={(reminder) => change({ reminder })} />
         <FormError message={error} />
         <div className="flex gap-2">
           <Button type="submit" disabled={saving}>
@@ -301,7 +377,7 @@ export function CommitmentDialog({ form, onClose, onSaved, onDelete }) {
  * Lista de pagos de cada mes. El formulario solo aparece en una ventana al agregar o editar.
  * @param {{ commitments: import('@/services/moneyProfileService').Commitment[], onChanged: () => void }} props
  */
-function PaymentsSection({ commitments, onChanged }) {
+function PaymentsSection({ commitments, subscriptions, onChanged }) {
   const [form, setForm] = useState(null);
   const [error, setError] = useState('');
 
@@ -315,14 +391,13 @@ function PaymentsSection({ commitments, onChanged }) {
     }
   };
 
-  const edit = ({ id, name, amount, dayOfMonth }) =>
-    setForm({ id, name, amount: String(amount), dayOfMonth: String(dayOfMonth) });
+  const edit = (commitment) => setForm(commitmentToForm(commitment));
 
   return (
     <Panel aria-labelledby="mi-plata-pagos">
       <SectionTitle
         id="mi-plata-pagos"
-        title="Pagos de cada mes"
+        title="Pagos fijos y suscripciones"
         action={
           <Button variant="soft" size="sm" onClick={() => setForm(EMPTY_COMMITMENT)}>
             <Plus aria-hidden="true" />
@@ -331,7 +406,9 @@ function PaymentsSection({ commitments, onChanged }) {
         }
       />
       {commitments.length === 0 ? (
-        <p className="mt-2 text-sm text-ink/60">Agrega lo que pagas cada mes, como arriendo, internet o celular.</p>
+        <p className="mt-2 text-sm text-ink/60">
+          Agrega lo que pagas cada mes (arriendo, internet) y tus suscripciones (Netflix, Spotify).
+        </p>
       ) : (
         <ul className="mt-2 divide-y divide-ink/10">
           {commitments.map((c) => (
@@ -339,7 +416,8 @@ function PaymentsSection({ commitments, onChanged }) {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{c.name}</p>
                 <p className="text-sm text-ink/60">
-                  {formatMoney(c.amount)} · día {c.dayOfMonth}
+                  {formatMoney(c.amount)} · {commitmentWhen(c)}
+                  {c.kind === 'subscription' && ' · suscripción'}
                 </p>
               </div>
               <Button variant="ghost" size="icon" aria-label={`Editar ${c.name}`} onClick={() => edit(c)}>
@@ -351,6 +429,12 @@ function PaymentsSection({ commitments, onChanged }) {
             </li>
           ))}
         </ul>
+      )}
+      {subscriptions?.count > 0 && (
+        <p className="mt-2 rounded-xl bg-ink/5 px-3 py-2 text-sm">
+          Suscripciones: <b className="tabular-nums">{formatMoney(subscriptions.monthly)}</b> al mes
+          {subscriptions.count > 1 && <span className="text-ink/60"> ({subscriptions.count})</span>}
+        </p>
       )}
       <FormError message={error} />
       <CommitmentDialog
@@ -527,7 +611,7 @@ export default function MiPlata() {
                 <IncomeOverview />
                 <BalanceSection key={data.money === null ? 'nuevo' : 'conocido'} profile={data} onSave={save} />
                 <div id="pagos" className="scroll-mt-4">
-                  <PaymentsSection commitments={data.commitments} onChanged={profile.reload} />
+                  <PaymentsSection commitments={data.commitments} subscriptions={data.subscriptions} onChanged={profile.reload} />
                 </div>
               </>
             )}
