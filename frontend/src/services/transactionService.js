@@ -18,6 +18,8 @@ import { db } from '@/offline/db';
  * @property {string|null} category Clave de la categoría, o `null` si está sin clasificar.
  * @property {'manual'|'ia'|'sin_clasificar'} source Cómo se asignó la categoría.
  * @property {string} date Fecha AAAA-MM-DD.
+ * @property {string|null} [emotion] Cómo se sintió con el gasto (FT-0070).
+ * @property {string|null} [kakeibo] Grupo Kakeibo del gasto (FT-0070).
  */
 
 /**
@@ -220,11 +222,35 @@ export function getTransaction(id) {
 /**
  * Modifica una transacción; solo se envían los campos que cambian.
  * @param {string} id
- * @param {Partial<{ amount: number, description: string, type: string, date: string, category: string|null }>} changes
+ * @param {Partial<{ amount: number, description: string, type: string, date: string, category: string|null, emotion: string|null, kakeibo: string|null }>} changes
  * @returns {Promise<TransactionWithAlert>}
  */
 export function updateTransaction(id, changes) {
   return request(`/transactions/${id}`, { method: 'PUT', body: changes });
+}
+
+/**
+ * @typedef {{ count: number, total: number }} CountTotal
+ * @typedef {object} WeekReflection Reflexión de la semana (FT-0070).
+ * @property {string} from Lunes AAAA-MM-DD.
+ * @property {string} to Domingo AAAA-MM-DD.
+ * @property {CountTotal} expenses Todos los gastos de la semana.
+ * @property {number} withEmotion Cuántos tienen emoción.
+ * @property {Array<CountTotal & { key: string }>} emotions Siempre las 4, en orden.
+ * @property {Array<CountTotal & { key: string }>} kakeibo Siempre los 4 grupos, en orden.
+ * @property {CountTotal} withoutKakeibo
+ * @property {Array<{ id: string, description: string, amount: number, date: string, emotion: string }>} regrets Hasta 3.
+ * @property {string[]} questions Hasta 3 preguntas para pensar.
+ */
+
+/**
+ * Gastos de la semana agrupados por emoción y por grupo Kakeibo, con preguntas para pensar
+ * (`GET /transactions/reflection`, FT-0070).
+ * @param {string} [date] Cualquier día de la semana (AAAA-MM-DD); por defecto, hoy.
+ * @returns {Promise<WeekReflection>}
+ */
+export function getReflection(date) {
+  return request(`/transactions/reflection${date ? `?date=${date}` : ''}`);
 }
 
 /**

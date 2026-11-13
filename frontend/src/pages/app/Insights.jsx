@@ -7,6 +7,7 @@ import AssistantChat from '@/components/insights/AssistantChat';
 import InsightCard from '@/components/insights/InsightCard';
 import MonthAnalytics from '@/components/insights/MonthAnalytics';
 import MonthHighlights from '@/components/insights/MonthHighlights';
+import WeeklyReflection from '@/components/insights/WeeklyReflection';
 import PageHeader from '@/components/layout/PageHeader';
 import Panel from '@/components/layout/Panel';
 import { formatMonth } from '@/components/budgets/month';
@@ -127,6 +128,9 @@ export default function Insights() {
           )}
         </section>
 
+        {/* FT-0070: reflexión de la semana con emociones y Kakeibo. */}
+        <WeeklyReflection className="mt-6 p-4" />
+
         <section aria-labelledby="pendiente" className="mt-6">
           <h2 id="pendiente" className="text-lg font-semibold tracking-tight">
             Para tener en cuenta
@@ -177,43 +181,48 @@ export default function Insights() {
       <MonthAnalytics />
 
       <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
-        <Panel aria-labelledby="insights-title">
-          <h2 id="insights-title" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <Sparkles className="size-5 text-brand" aria-hidden="true" />
-            <span className="first-letter:uppercase">
-              {data ? insightsTitle(data) : noHistory ? `${new Date().toLocaleDateString('es-CO', { month: 'long' })}, hasta hoy` : 'Este mes'}
-            </span>
-          </h2>
+        <div className="flex min-w-0 flex-col gap-6">
+          <Panel aria-labelledby="insights-title">
+            <h2 id="insights-title" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+              <Sparkles className="size-5 text-brand" aria-hidden="true" />
+              <span className="first-letter:uppercase">
+                {data ? insightsTitle(data) : noHistory ? `${new Date().toLocaleDateString('es-CO', { month: 'long' })}, hasta hoy` : 'Este mes'}
+              </span>
+            </h2>
 
-          <div className="mt-5" aria-busy={loading}>
-            {loading && !data ? (
-              <p className="flex items-center gap-2 py-10 text-ink/60">
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Analizando tus movimientos…
-              </p>
-            ) : noHistory ? (
-              <MonthHighlights message={error.message} />
-            ) : error ? (
-              <p role="alert" className="py-4 text-sm text-negative">
-                {!online
-                  ? 'Sin conexión. Los insights necesitan internet; vuelve a intentarlo cuando regreses.'
-                  : error.code === 'AI_UNAVAILABLE'
-                    ? 'Nuestro asistente no está disponible ahora mismo. Inténtalo de nuevo en unos minutos.'
-                    : error.message}{' '}
-                <button type="button" className="underline" onClick={retry}>
-                  Reintentar
-                </button>
-              </p>
-            ) : (
-              <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                {data.insights.map((insight) => (
-                  <li key={`${insight.type}-${insight.title}`}>
-                    <InsightCard insight={insight} className="h-full" />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </Panel>
+            <div className="mt-5" aria-busy={loading}>
+              {loading && !data ? (
+                <p className="flex items-center gap-2 py-10 text-ink/60">
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Analizando tus movimientos…
+                </p>
+              ) : noHistory ? (
+                <MonthHighlights message={error.message} />
+              ) : error ? (
+                <p role="alert" className="py-4 text-sm text-negative">
+                  {!online
+                    ? 'Sin conexión. Los insights necesitan internet; vuelve a intentarlo cuando regreses.'
+                    : error.code === 'AI_UNAVAILABLE'
+                      ? 'Nuestro asistente no está disponible ahora mismo. Inténtalo de nuevo en unos minutos.'
+                      : error.message}{' '}
+                  <button type="button" className="underline" onClick={retry}>
+                    Reintentar
+                  </button>
+                </p>
+              ) : (
+                <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                  {data.insights.map((insight) => (
+                    <li key={`${insight.type}-${insight.title}`}>
+                      <InsightCard insight={insight} className="h-full" />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </Panel>
+
+          {/* FT-0070: reflexión de la semana con emociones y Kakeibo. */}
+          <WeeklyReflection />
+        </div>
 
         <AssistantChat className="xl:sticky xl:top-6" />
       </div>
