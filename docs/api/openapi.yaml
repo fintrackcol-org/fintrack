@@ -586,6 +586,61 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /transactions/reflection:
+    get:
+      tags: [Transactions]
+      summary: Reflexión de la semana con emociones y Kakeibo (FT-0070)
+      description: |
+        Gastos de la semana (lunes a domingo) agrupados por cómo se sintió la persona y por grupo
+        Kakeibo, los que no la convencieron (hasta 3, del más grande) y hasta 3 preguntas para
+        pensar, ya redactadas. No cuenta lo apartado en ahorro. Sin gastos responde todo en 0 y
+        `questions` vacío. `withEmotion / expenses.count` es la métrica de la propuesta.
+      parameters:
+        - { name: date, in: query, required: false, description: "Cualquier día de la semana (por defecto hoy, America/Bogota).", schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: Reflexión de la semana
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [from, to, expenses, withEmotion, emotions, kakeibo, withoutKakeibo, regrets, questions]
+                properties:
+                  from: { type: string, format: date }
+                  to: { type: string, format: date }
+                  expenses: { $ref: "#/components/schemas/CountTotal" }
+                  withEmotion: { type: integer, description: Cuántos gastos tienen emoción. }
+                  emotions:
+                    type: array
+                    description: Siempre las 4 emociones, en orden, aunque estén en 0.
+                    items:
+                      allOf: [{ $ref: "#/components/schemas/CountTotal" }]
+                      properties: { key: { type: string, enum: [valio_la_pena, normal, no_lo_necesitaba, me_arrepiento] } }
+                  kakeibo:
+                    type: array
+                    description: Siempre los 4 grupos, en orden, aunque estén en 0.
+                    items:
+                      allOf: [{ $ref: "#/components/schemas/CountTotal" }]
+                      properties: { key: { type: string, enum: [necesidad, deseo, cultura, imprevisto] } }
+                  withoutKakeibo: { $ref: "#/components/schemas/CountTotal" }
+                  regrets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        description: { type: string }
+                        amount: { type: number }
+                        date: { type: string, format: date }
+                        emotion: { type: string, enum: [no_lo_necesitaba, me_arrepiento] }
+                  questions:
+                    type: array
+                    maxItems: 3
+                    items: { type: string }
+                    example: ["Esta semana 2 gastos por $80.000 no te convencieron. ¿Qué tenían en común?"]
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
   /transactions/attachment-limits:
     get:
       tags: [Transactions]
@@ -3477,6 +3532,24 @@ components:
           minimum: 1
           maximum: 48
           description: Cuotas del gasto con tarjeta; `null` si no usó tarjeta.
+        emotion: { $ref: "#/components/schemas/NullableEmotion" }
+        kakeibo: { $ref: "#/components/schemas/NullableKakeibo" }
+    CountTotal:
+      type: object
+      required: [count, total]
+      properties:
+        count: { type: integer }
+        total: { type: number }
+    NullableEmotion:
+      type: string
+      nullable: true
+      enum: [valio_la_pena, normal, no_lo_necesitaba, me_arrepiento, null]
+      description: "Cómo se sintió con el gasto (FT-0070): las 4 caras de \"¿Cómo te sentiste?\". Solo en gastos; `null` si no respondió."
+    NullableKakeibo:
+      type: string
+      nullable: true
+      enum: [necesidad, deseo, cultura, imprevisto, null]
+      description: "Grupo Kakeibo del gasto (FT-0070). Solo en gastos; `null` si no lo eligió."
     TransactionInput:
       type: object
       required: [amount, description, type, date]
@@ -3498,6 +3571,12 @@ components:
           minimum: 1
           maximum: 48
           description: Cuotas (1 por defecto con tarjeta). Se ignora si no hay `card`.
+        emotion:
+          allOf: [{ $ref: "#/components/schemas/NullableEmotion" }]
+          description: Opcional. En un ingreso responde 422 en el campo `emotion`.
+        kakeibo:
+          allOf: [{ $ref: "#/components/schemas/NullableKakeibo" }]
+          description: Opcional. En un ingreso responde 422 en el campo `kakeibo`.
         localId:
           type: string
           minLength: 1
@@ -3524,6 +3603,12 @@ components:
           minimum: 1
           maximum: 48
           description: Cuotas (1 por defecto con tarjeta). Se ignora si no hay `card`.
+        emotion:
+          allOf: [{ $ref: "#/components/schemas/NullableEmotion" }]
+          description: "`null` la quita. Al cambiar `type` a ingreso se quita sola; en un ingreso, 422."
+        kakeibo:
+          allOf: [{ $ref: "#/components/schemas/NullableKakeibo" }]
+          description: "`null` lo quita. Al cambiar `type` a ingreso se quita solo; en un ingreso, 422."
     TransactionWithAlert:
       type: object
       required: [transaction, alert]

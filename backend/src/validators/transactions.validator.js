@@ -9,6 +9,10 @@ const TYPES = ['ingreso', 'gasto'];
 const PERIODS = ['week', 'month', 'year'];
 const MAX_INSTALLMENTS = 48;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Cómo se sintió con el gasto (FT-0070). */
+export const EMOTIONS = ['valio_la_pena', 'normal', 'no_lo_necesitaba', 'me_arrepiento'];
+/** Grupos del Kakeibo (FT-0070). */
+export const KAKEIBO_GROUPS = ['necesidad', 'deseo', 'cultura', 'imprevisto'];
 
 function isValidPeriod(value) {
   return PERIODS.includes(value);
@@ -123,6 +127,18 @@ function readFields(body, details) {
     }
   }
 
+  // Emoción y grupo Kakeibo (FT-0070): opcionales; `null` los quita. Solo valen en gastos (lo
+  // decide el servicio, que conoce el tipo final del movimiento).
+  for (const [field, values] of [
+    ['emotion', EMOTIONS],
+    ['kakeibo', KAKEIBO_GROUPS],
+  ]) {
+    if (!(field in body)) continue;
+    if (body[field] === null) out[field] = null;
+    else if (values.includes(body[field])) out[field] = body[field];
+    else details.push({ field, problem: `Debe ser uno de: ${values.join(', ')}` });
+  }
+
   return out;
 }
 
@@ -163,7 +179,7 @@ export function parseCreateTransaction(body) {
  */
 export function parseUpdateTransaction(body) {
   const source = body && typeof body === 'object' ? body : {};
-  const known = ['amount', 'description', 'type', 'date', 'category', 'card', 'installments'];
+  const known = ['amount', 'description', 'type', 'date', 'category', 'card', 'installments', 'emotion', 'kakeibo'];
   const details = [];
   if (!known.some((field) => field in source)) {
     details.push({ field: 'body', problem: 'Envía al menos un campo para modificar' });
@@ -241,4 +257,19 @@ export function parseSummaryQuery(query) {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
   const date = query.date || today;
   return { period: query.period, date };
+}
+
+/**
+ * Valida los parámetros de `GET /transactions/reflection` (FT-0070). Sin `date`, la semana de hoy
+ * en Colombia.
+ * @param {Record<string, unknown>} query
+ * @returns {{ date: string }}
+ * @throws {AppError} 422 `VALIDATION_ERROR`.
+ */
+export function parseReflectionQuery(query) {
+  if (query.date !== undefined && !isValidDate(query.date)) {
+    throwIfInvalid([{ field: 'date', problem: 'Debe ser una fecha válida AAAA-MM-DD' }]);
+  }
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+  return { date: query.date || today };
 }

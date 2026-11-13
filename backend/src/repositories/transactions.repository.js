@@ -15,6 +15,8 @@ import { pool } from '../config/db.js';
  * @property {Date|null} deletedAt Fecha de borrado lógico (siempre `null` en lo que devuelve la API).
  * @property {{ id: string, name: string, last4: string, deleted: boolean }|null} card Tarjeta del gasto (también si ya se borró), o `null`.
  * @property {number|null} installments Cuotas (1–48) si el gasto lleva tarjeta; si no, `null`.
+ * @property {string|null} emotion Cómo se sintió con el gasto (FT-0070), o `null`.
+ * @property {string|null} kakeibo Grupo Kakeibo del gasto (FT-0070), o `null`.
  */
 
 export const COLUMNS = `t.id, t.usuario_id AS "userId", t.monto::float8 AS amount,
@@ -23,7 +25,7 @@ export const COLUMNS = `t.id, t.usuario_id AS "userId", t.monto::float8 AS amoun
   t.updated_at AS "updatedAt", t.deleted_at AS "deletedAt",
   CASE WHEN k.id IS NULL THEN NULL ELSE json_build_object('id', k.id, 'name', k.nombre,
     'last4', k.ultimos4, 'deleted', k.deleted_at IS NOT NULL) END AS card,
-  t.cuotas::int AS installments`;
+  t.cuotas::int AS installments, t.emocion AS emotion, t.kakeibo`;
 
 /** Une la transacción con su categoría (la clave) y con su tarjeta, incluso si se borró. */
 export const JOIN = `LEFT JOIN categorias c ON c.id = t.categoria_id
@@ -45,8 +47,8 @@ export async function insertTransaction(data, client = pool) {
   const { rows } = await client.query(
     `WITH ins AS (
        INSERT INTO transacciones
-         (usuario_id, categoria_id, monto, descripcion, tipo, fecha, origen, local_id, tarjeta_id, cuotas)
-       VALUES ($1, (SELECT id FROM categorias WHERE key = $2), $3, $4, $5, $6, $7, $8, $9, $10)
+         (usuario_id, categoria_id, monto, descripcion, tipo, fecha, origen, local_id, tarjeta_id, cuotas, emocion, kakeibo)
+       VALUES ($1, (SELECT id FROM categorias WHERE key = $2), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        ON CONFLICT (usuario_id, local_id) WHERE local_id IS NOT NULL DO NOTHING
        RETURNING *
      )
@@ -62,6 +64,8 @@ export async function insertTransaction(data, client = pool) {
       data.localId ?? null,
       data.card ?? null,
       data.card ? (data.installments ?? 1) : null,
+      data.emotion ?? null,
+      data.kakeibo ?? null,
     ],
   );
   // `undefined` solo si otra petición ya guardó ese `localId` (se busca con `findByLocalId`).
@@ -144,6 +148,8 @@ export async function updateTransaction(id, userId, changes) {
   if (changes.source !== undefined) set('origen', changes.source);
   if (changes.card !== undefined) set('tarjeta_id', changes.card);
   if (changes.installments !== undefined) set('cuotas', changes.installments);
+  if (changes.emotion !== undefined) set('emocion', changes.emotion);
+  if (changes.kakeibo !== undefined) set('kakeibo', changes.kakeibo);
   if (changes.category !== undefined) {
     params.push(changes.category);
     sets.push(`categoria_id = (SELECT id FROM categorias WHERE key = $${params.length})`);
@@ -213,6 +219,39 @@ export async function summarizeTransactions({ userId, from, to, groupBy }) {
     ),
   ]);
   return { byCategory: byCategory.rows, series: series.rows };
+}
+
+/**
+ * Gastos de la semana para la reflexión (FT-0070): cuántos y cuánto por emoción y por grupo
+ * Kakeibo (una fila por combinación; `null` si no se marcó), y los que no convencieron, del más
+ * grande al más chico. Sin lo apartado en ahorro (`SAVINGS_CATEGORY`), que no es un gasto.
+ * @param {{ userId: string, from: string, to: string }} range Fechas AAAA-MM-DD, incluidas.
+ * @returns {Promise<{ groups: Array<{ emotion: string|null, kakeibo: string|null, count: number, total: number }>, regrets: Array<{ id: string, description: string, amount: number, date: string, emotion: string }> }>}
+ */
+export async function reflectionTotals({ userId, from, to }) {
+  const where = `t.usuario_id = $1 AND t.deleted_at IS NULL AND t.tipo = 'gasto'
+    AND t.fecha BETWEEN $2 AND $3 AND c.key IS DISTINCT FROM $4`;
+  const params = [userId, from, to, SAVINGS_CATEGORY];
+  const [groups, regrets] = await Promise.all([
+    pool.query(
+      `SELECT t.emocion AS emotion, t.kakeibo, count(*)::int AS count,
+              round(sum(t.monto), 2)::float8 AS total
+       FROM transacciones t ${JOIN}
+       WHERE ${where}
+       GROUP BY t.emocion, t.kakeibo`,
+      params,
+    ),
+    pool.query(
+      `SELECT t.id, t.descripcion AS description, t.monto::float8 AS amount,
+              to_char(t.fecha, 'YYYY-MM-DD') AS date, t.emocion AS emotion
+       FROM transacciones t ${JOIN}
+       WHERE ${where} AND t.emocion IN ('no_lo_necesitaba', 'me_arrepiento')
+       ORDER BY t.monto DESC, t.fecha DESC
+       LIMIT 3`,
+      params,
+    ),
+  ]);
+  return { groups: groups.rows, regrets: regrets.rows };
 }
 
 /**

@@ -51,8 +51,8 @@ export async function insertFromDevice(data) {
   const { rows } = await pool.query(
     `WITH ins AS (
        INSERT INTO transacciones
-         (usuario_id, categoria_id, monto, descripcion, tipo, fecha, origen, local_id, tarjeta_id, cuotas)
-       VALUES ($1, (SELECT id FROM categorias WHERE key = $2), $3, $4, $5, $6, $7, $8, $9, $10)
+         (usuario_id, categoria_id, monto, descripcion, tipo, fecha, origen, local_id, tarjeta_id, cuotas, emocion, kakeibo)
+       VALUES ($1, (SELECT id FROM categorias WHERE key = $2), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        ON CONFLICT (usuario_id, local_id) WHERE local_id IS NOT NULL DO NOTHING
        RETURNING *
      )
@@ -68,6 +68,8 @@ export async function insertFromDevice(data) {
       data.localId,
       data.card ?? null,
       data.card ? (data.installments ?? 1) : null,
+      data.emotion ?? null,
+      data.kakeibo ?? null,
     ],
   );
   return rows[0] ?? null;
