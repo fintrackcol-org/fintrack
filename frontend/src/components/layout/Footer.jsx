@@ -56,7 +56,7 @@ export default function Footer() {
   const toTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   return (
-    <footer className="relative overflow-hidden bg-[linear-gradient(to_bottom,#6142ff,#000_10rem)] pt-16 text-white">
+    <footer className="relative overflow-hidden bg-black pt-16 text-white">
       <div className="container-page relative grid grid-cols-2 gap-x-6 gap-y-12 py-16 md:grid-cols-[1.5fr_repeat(4,1fr)] md:py-20">
         <div className="col-span-2 max-w-xs md:col-span-1">
           <Logo />
@@ -116,11 +116,11 @@ export default function Footer() {
       </div>
 
       {/*
-        Cierre: el nombre de la marca a todo el ancho, en violeta que se desvanece hacia abajo y
-        cortado por el borde inferior. Es decorativo; la máscara hace el desvanecido.
+        Cierre: el nombre de la marca a todo el ancho, en violeta y cortado por el borde inferior.
+        Es decorativo.
       */}
       <div aria-hidden="true" className="container-page relative mt-4 h-[17.5vw] max-h-56 select-none overflow-hidden">
-        <Wordmark className="h-auto w-full text-[#7a5cff] opacity-70 [mask-image:linear-gradient(to_bottom,#000,transparent_62%)]" />
+        <Wordmark className="h-auto w-full text-[#7a5cff] opacity-70" />
       </div>
     </footer>
   );

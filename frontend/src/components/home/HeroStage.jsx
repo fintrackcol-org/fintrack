@@ -1,6 +1,5 @@
-import { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowDown, ArrowRight, BarChart3, Play, Sparkles, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import FlyingLogo, { LogoArt } from './FlyingLogo';
@@ -13,19 +12,6 @@ const ABOUT_POINTS = [
   { icon: WifiOff, label: 'Funciona sin conexión' },
 ];
 
-/**
- * Colores del escenario en RGB: obsidiana del hero, violeta profundo de "Qué es" (oscuro para
- * que el logo violeta de la marca resalte encima) y lavanda de "Cómo funciona".
- */
-const BLACK = [0, 0, 0];
-const DEEP_VIOLET = [28, 18, 72];
-const LAVENDER = [246, 226, 248];
-const mixRgb = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
-const stageColor = ([toAbout, toHow]) => {
-  const [r, g, b] = mixRgb(mixRgb(BLACK, DEEP_VIOLET, toAbout), LAVENDER, toHow).map(Math.round);
-  return `rgb(${r}, ${g}, ${b})`;
-};
-
 /** Entrada escalonada del texto del hero. */
 const fadeUp = (delay) => ({
   initial: { opacity: 0, y: 24 },
@@ -34,9 +20,11 @@ const fadeUp = (delay) => ({
 });
 
 /**
- * Escenario del inicio: el hero, "Qué es" y "Cómo funciona" comparten una capa pegada (sticky)
- * con el logo de Rinde. Al bajar, el fondo pasa de negro a violeta y a lavanda, y el logo viaja
- * del centro a la derecha y aterriza en el celular. Todo es SVG y CSS: sin three.js.
+ * Escenario del inicio: el hero (negro), "Qué es" (violeta profundo) y "Cómo funciona" (lavanda),
+ * cada uno con su color sólido, comparten una capa pegada (sticky) con el logo de Rinde. Al
+ * bajar, el logo viaja del centro a la derecha y aterriza en el celular. Todo es SVG y CSS.
+ * Los fondos de las secciones no llevan `position`: así se pintan debajo del logo, y el texto
+ * (`relative z-10`) queda encima.
  * Con "reducir movimiento" el logo no viaja: queda quieto en el hero y otro en el celular.
  */
 export default function HeroStage() {
@@ -44,31 +32,14 @@ export default function HeroStage() {
   const reducedMotion = useReducedMotion() ?? false;
   const fly = !reducedMotion;
 
-  const aboutRef = useRef(null);
-  const howRef = useRef(null);
-  // Cada cambio de color va atado a la entrada de su sección, no al largo total del escenario.
-  const { scrollYProgress: toAbout } = useScroll({ target: aboutRef, offset: ['start end', 'start 0.35'] });
-  const { scrollYProgress: toHow } = useScroll({ target: howRef, offset: ['start end', 'start 0.4'] });
-  const background = useTransform([toAbout, toHow], stageColor);
-  const glowOpacity = useTransform(toAbout, [0, 0.6], [1, 0]);
-
   return (
-    <motion.div
-      data-stage-root
-      data-fly={fly ? 'on' : 'off'}
-      style={{ backgroundColor: background }}
-      className="group/stage relative text-white"
-    >
+    <div data-stage-root data-fly={fly ? 'on' : 'off'} className="group/stage relative bg-black text-white">
       {/*
         Capa del logo: del tamaño exacto del escenario (recortada con `overflow: clip`, que a
         diferencia de `hidden` no rompe el sticky) y dentro, una capa pegada arriba de la pantalla.
       */}
       <div data-scene-layer className="pointer-events-none absolute inset-0 [overflow:clip]" aria-hidden="true">
         <div className="sticky top-0 h-[100svh] overflow-hidden">
-          <motion.div
-            style={{ opacity: glowOpacity }}
-            className="absolute left-1/2 top-[30%] size-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet/30 blur-[140px]"
-          />
           {fly && <FlyingLogo />}
         </div>
       </div>
@@ -81,20 +52,20 @@ export default function HeroStage() {
       <section
         id="inicio"
         data-stage="hero"
-        className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center px-4 pb-12 pt-[calc(5.5rem+env(safe-area-inset-top))] text-center"
+        className="flex min-h-[100svh] flex-col items-center justify-center bg-black px-4 pb-12 pt-[calc(5.5rem+env(safe-area-inset-top))] text-center"
       >
         {/* Hueco del logo: el logo que viaja sale de aquí. Sin animación, queda uno quieto. */}
         <div data-logo-hero className="relative mb-8 size-[clamp(6.5rem,20svh,12rem)] shrink-0 md:mb-10">
-          {!fly && <LogoArt animateIn={false} className="size-full drop-shadow-[0_30px_60px_rgba(97,66,255,0.45)]" />}
+          {!fly && <LogoArt animateIn={false} className="size-full" />}
         </div>
-        <h1 className="max-w-5xl text-balance text-5xl font-semibold leading-[0.98] tracking-[-0.04em] sm:text-6xl md:text-7xl lg:text-[5.25rem]">
+        <h1 className="relative z-10 max-w-5xl text-balance text-5xl font-semibold leading-[0.98] tracking-[-0.04em] sm:text-6xl md:text-7xl lg:text-[5.25rem]">
           Todos tus ingresos y gastos en un solo lugar
         </h1>
-        <motion.p {...fadeUp(0.15)} className="mt-6 max-w-xl text-pretty text-lg text-white/70 md:text-xl">
+        <motion.p {...fadeUp(0.15)} className="relative z-10 mt-6 max-w-xl text-pretty text-lg text-white/70 md:text-xl">
           Registra tus movimientos en segundos, mira reportes claros de a dónde va tu dinero y recibe recomendaciones
           de ahorro con inteligencia artificial.
         </motion.p>
-        <motion.div {...fadeUp(0.3)} className="mt-9 flex flex-col items-center gap-4">
+        <motion.div {...fadeUp(0.3)} className="relative z-10 mt-9 flex flex-col items-center gap-4">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-orchid">Un minuto, con voz</p>
           <div className="flex flex-col items-center gap-3 sm:flex-row">
             {/* "Comenzar": la voz explica Rinde y la página baja sola, sección por sección. */}
@@ -126,12 +97,11 @@ export default function HeroStage() {
 
       {/* Qué es: texto a la izquierda; el logo llega por la derecha. */}
       <section
-        ref={aboutRef}
         id="que-es"
         data-stage="about"
-        className="relative z-10 flex min-h-[110svh] scroll-mt-20 items-center pb-[10svh] pt-[30svh] lg:pt-0"
+        className="flex min-h-[110svh] bg-[#1c1248] scroll-mt-20 items-center pb-[10svh] pt-[30svh] lg:pt-0"
       >
-        <div className="container-page">
+        <div className="container-page relative z-10">
           <div className="max-w-xl">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-mint">Qué es Rinde</p>
             <h2 className="mt-4 text-balance text-5xl font-semibold leading-[0.98] tracking-[-0.04em] md:text-6xl lg:text-7xl">
@@ -155,9 +125,7 @@ export default function HeroStage() {
         </div>
       </section>
 
-      <div ref={howRef} className="relative">
-        <HowItWorks />
-      </div>
-    </motion.div>
+      <HowItWorks />
+    </div>
   );
 }

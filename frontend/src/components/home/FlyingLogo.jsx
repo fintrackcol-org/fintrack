@@ -136,7 +136,7 @@ export default function FlyingLogo() {
       style={{ width: SIZE, height: SIZE }}
     >
       <div className="size-full animate-float group-data-[docked=true]/logo:animate-none">
-        <LogoArt className="size-full drop-shadow-[0_30px_60px_rgba(97,66,255,0.45)] group-data-[docked=true]/logo:drop-shadow-none" />
+        <LogoArt className="size-full" />
       </div>
     </div>
   );
