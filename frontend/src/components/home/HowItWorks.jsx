@@ -43,8 +43,9 @@ function PhoneDemo() {
   }, [inView]);
 
   return (
-    <div ref={ref} className="mx-auto w-full max-w-[330px] rounded-[3rem] bg-obsidian p-3 shadow-[0_40px_80px_-30px_rgba(20,20,20,0.55)]">
-      <div className="relative overflow-hidden rounded-[2.4rem] bg-white px-4 pb-5 pt-4 text-obsidian">
+    // Tamaño de un celular real: 300 px de ancho y proporción 9:19,5, siempre la misma.
+    <div ref={ref} className="mx-auto aspect-[9/19.5] w-[min(300px,78vw)] rounded-[3rem] bg-obsidian p-2.5 shadow-[0_40px_80px_-30px_rgba(20,20,20,0.55)]">
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[2.5rem] bg-white px-4 pb-5 pt-3 text-obsidian">
         <div className="mx-auto h-6 w-24 rounded-full bg-obsidian" aria-hidden="true" />
 
         {/* Hueco del logo: el logo que baja por la página aterriza aquí. */}
@@ -111,7 +112,7 @@ function PhoneDemo() {
         </ul>
 
         {/* Campo de registro rápido con el texto que se va escribiendo. */}
-        <div className="mt-5 flex items-center gap-2 rounded-full bg-card py-1.5 pl-4 pr-1.5">
+        <div className="mt-auto flex items-center gap-2 rounded-full bg-card py-1.5 pl-4 pr-1.5">
           <p className="min-h-5 flex-1 truncate text-sm" aria-live="polite">
             {TYPED.slice(0, chars)}
             {phase === 'typing' && <span className="ml-px inline-block h-4 w-px translate-y-0.5 animate-pulse bg-obsidian" />}
@@ -138,11 +139,10 @@ export default function HowItWorks() {
     <section
       id="como-funciona"
       data-stage="how"
-      // Fondo propio que se funde desde transparente: el texto oscuro nunca queda sobre el negro del
-      // escenario aunque el color animado aún no haya cambiado (p. ej. al saltar con un enlace).
-      className="relative z-10 scroll-mt-20 bg-[linear-gradient(to_bottom,transparent,#f6e2f8_20svh)] pb-24 pt-[20svh] text-obsidian md:pb-32"
+      // Fondo lavanda sólido y sin `position`: se pinta debajo del logo que aterriza en el celular.
+      className="scroll-mt-20 bg-pink py-24 text-obsidian md:py-32"
     >
-      <div className="container-page grid items-center gap-14 lg:grid-cols-2">
+      <div className="container-page relative z-10 grid items-center gap-14 lg:grid-cols-2">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-violet">Cómo funciona</p>
           <h2 className="mt-4 text-balance text-5xl font-semibold leading-[0.98] tracking-[-0.04em] md:text-6xl lg:text-7xl">
