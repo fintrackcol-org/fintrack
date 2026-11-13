@@ -1,87 +1,17 @@
-import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { ArrowDown, ArrowRight, BarChart3, Play, Sparkles, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import FlyingLogo, { LogoArt } from './FlyingLogo';
 import HowItWorks from './HowItWorks';
 import { useTour } from './tour/GuidedTour';
-
-const LandingScene = lazy(() => import('./scene/LandingScene'));
 
 const ABOUT_POINTS = [
   { icon: BarChart3, label: 'Reportes de ingresos y gastos' },
   { icon: Sparkles, label: 'Análisis con IA' },
   { icon: WifiOff, label: 'Funciona sin conexión' },
 ];
-
-/** Si el navegador no tiene WebGL, se queda el logo plano en vez de romper la página. */
-class SceneBoundary extends Component {
-  state = { failed: false };
-
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-
-  render() {
-    return this.state.failed ? this.props.fallback : this.props.children;
-  }
-}
-
-/**
- * Logo plano animado: lo que se ve antes de que cargue el 3D, y en su lugar en equipos
- * modestos, con ahorro de datos o con "reducir movimiento". Llena el espacio reservado del
- * hero, el mismo donde se ubica el logo 3D, así el cambio de uno a otro casi no se nota.
- */
-function FlatLogo({ animate }) {
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 transition-opacity duration-500 group-data-[scene=on]/stage:opacity-0"
-    >
-      <svg viewBox="0 0 32 32" className="size-full drop-shadow-[0_30px_60px_rgba(97,66,255,0.45)] motion-safe:animate-float">
-        <rect width="32" height="32" rx="8" fill="#6142ff" />
-        {/* Misma geometría que `LogoMark`: la r crece desde abajo y luego salta la moneda. */}
-        <motion.path
-          d="M9.75 21.5V16.25A5.75 5.75 0 0 1 15.5 10.5"
-          fill="none"
-          stroke="#fff"
-          strokeWidth="4.25"
-          strokeLinecap="round"
-          style={{ transformBox: 'fill-box', originY: 1 }}
-          initial={animate ? { scaleY: 0 } : false}
-          animate={{ scaleY: 1 }}
-          transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.3 }}
-        />
-        <motion.circle
-          cx="22"
-          cy="10.5"
-          r="2.375"
-          fill="#2fd6a3"
-          style={{ transformBox: 'fill-box' }}
-          initial={animate ? { scale: 0 } : false}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.6 }}
-        />
-      </svg>
-    </div>
-  );
-}
-
-/**
- * ¿Se intenta el 3D? Solo se respetan las decisiones de la persona: "reducir movimiento" y
- * ahorro de datos. No se adivina por núcleos ni memoria (Safari, por privacidad, reporta menos
- * núcleos de los reales): si el equipo no da la talla, la escena lo mide y vuelve al logo plano.
- */
-function canRun3D(reducedMotion) {
-  if (reducedMotion || typeof navigator === 'undefined') return false;
-  return !navigator.connection?.saveData;
-}
-
-/** Eventos que cuentan como "la persona ya está aquí" en computador: con eso se carga el 3D. */
-const FIRST_INTERACTION = ['pointermove', 'pointerdown', 'touchstart', 'wheel', 'scroll', 'keydown'];
-
-/** Pantallas táctiles (celulares y tablets): ahí el 3D no espera un toque para aparecer. */
-const isTouchScreen = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 
 /**
  * Colores del escenario en RGB: obsidiana del hero, violeta profundo de "Qué es" (oscuro para
@@ -104,16 +34,15 @@ const fadeUp = (delay) => ({
 });
 
 /**
- * Escenario del inicio: el hero y "Qué es" comparten un lienzo 3D fijo (sticky) con el logo
- * de Rinde y figuras de finanzas. Al bajar, el fondo pasa de negro a violeta y el logo
- * viaja del centro a la derecha. El lienzo solo vive dentro de este bloque, así nunca tapa
- * las secciones siguientes, y deja de dibujar cuando sale de pantalla.
+ * Escenario del inicio: el hero, "Qué es" y "Cómo funciona" comparten una capa pegada (sticky)
+ * con el logo de Rinde. Al bajar, el fondo pasa de negro a violeta y a lavanda, y el logo viaja
+ * del centro a la derecha y aterriza en el celular. Todo es SVG y CSS: sin three.js.
+ * Con "reducir movimiento" el logo no viaja: queda quieto en el hero y otro en el celular.
  */
 export default function HeroStage() {
-  const stageRef = useRef(null);
   const tour = useTour();
-  const [active, setActive] = useState(true);
   const reducedMotion = useReducedMotion() ?? false;
+  const fly = !reducedMotion;
 
   const aboutRef = useRef(null);
   const howRef = useRef(null);
@@ -123,81 +52,30 @@ export default function HeroStage() {
   const background = useTransform([toAbout, toHow], stageColor);
   const glowOpacity = useTransform(toAbout, [0, 0.6], [1, 0]);
 
-  useEffect(() => {
-    const el = stageRef.current;
-    if (!el) return undefined;
-    const io = new IntersectionObserver(([entry]) => setActive(entry.isIntersecting), { rootMargin: '100px' });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  // Cuándo se carga el 3D (≈225 KB y su compilación), sin competir con el titular:
-  // - en computador, con la primera interacción (apenas mover el mouse);
-  // - en celular, apenas la página termina de cargar y el navegador queda libre, para que la
-  //   animación ya esté al entrar (no todos tocan la pantalla antes de mirar).
-  // Si la escena mide que no va fluida (`tooSlow`), se desmonta y queda el logo plano animado.
-  const [load3D, setLoad3D] = useState(false);
-  const [sceneOn, setSceneOn] = useState(false);
-  const [tooSlow, setTooSlow] = useState(false);
-  useEffect(() => {
-    if (!canRun3D(reducedMotion)) return undefined;
-    const start = () => setLoad3D(true);
-    if (isTouchScreen()) {
-      let idle = 0;
-      const whenIdle = () => {
-        idle = window.requestIdleCallback ? window.requestIdleCallback(start, { timeout: 1500 }) : window.setTimeout(start, 300);
-      };
-      if (document.readyState === 'complete') whenIdle();
-      else window.addEventListener('load', whenIdle, { once: true });
-      return () => {
-        window.removeEventListener('load', whenIdle);
-        if (window.cancelIdleCallback) window.cancelIdleCallback(idle);
-        window.clearTimeout(idle);
-      };
-    }
-    FIRST_INTERACTION.forEach((type) => window.addEventListener(type, start, { once: true, passive: true }));
-    return () => FIRST_INTERACTION.forEach((type) => window.removeEventListener(type, start));
-  }, [reducedMotion]);
-
   return (
     <motion.div
-      ref={stageRef}
-      data-scene={sceneOn ? 'on' : 'off'}
+      data-stage-root
+      data-fly={fly ? 'on' : 'off'}
       style={{ backgroundColor: background }}
       className="group/stage relative text-white"
     >
       {/*
-        Lienzo 3D: una capa del tamaño exacto del escenario (recortada con `overflow: clip`, que a
-        diferencia de `hidden` no rompe el sticky) y dentro, el lienzo pegado arriba de la pantalla.
+        Capa del logo: del tamaño exacto del escenario (recortada con `overflow: clip`, que a
+        diferencia de `hidden` no rompe el sticky) y dentro, una capa pegada arriba de la pantalla.
       */}
       <div data-scene-layer className="pointer-events-none absolute inset-0 [overflow:clip]" aria-hidden="true">
         <div className="sticky top-0 h-[100svh] overflow-hidden">
-        <motion.div
-          style={{ opacity: glowOpacity }}
-          className="absolute left-1/2 top-[30%] size-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet/30 blur-[140px]"
-        />
-        {load3D && !tooSlow && (
-          <SceneBoundary fallback={null}>
-            <Suspense fallback={null}>
-              <LandingScene
-                stageRef={stageRef}
-                active={active}
-                reducedMotion={reducedMotion}
-                onReady={() => setSceneOn(true)}
-                onTooSlow={() => {
-                  setSceneOn(false);
-                  setTooSlow(true);
-                }}
-              />
-            </Suspense>
-          </SceneBoundary>
-        )}
+          <motion.div
+            style={{ opacity: glowOpacity }}
+            className="absolute left-1/2 top-[30%] size-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet/30 blur-[140px]"
+          />
+          {fly && <FlyingLogo />}
         </div>
       </div>
 
       {/*
         Hero: logo, titular y acciones en una sola columna centrada. El logo tiene su propio
-        espacio reservado (`data-logo-hero`) y el 3D se ubica justo ahí, así nunca tapa el texto,
+        espacio reservado (`data-logo-hero`) y el logo que viaja arranca justo ahí, así nunca tapa el texto,
         sea cual sea el tamaño de la pantalla. Si no cabe todo, el hero crece en vez de encimarse.
       */}
       <section
@@ -205,8 +83,9 @@ export default function HeroStage() {
         data-stage="hero"
         className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center px-4 pb-12 pt-[calc(5.5rem+env(safe-area-inset-top))] text-center"
       >
+        {/* Hueco del logo: el logo que viaja sale de aquí. Sin animación, queda uno quieto. */}
         <div data-logo-hero className="relative mb-8 size-[clamp(6.5rem,20svh,12rem)] shrink-0 md:mb-10">
-          <FlatLogo animate={!reducedMotion} />
+          {!fly && <LogoArt animateIn={false} className="size-full drop-shadow-[0_30px_60px_rgba(97,66,255,0.45)]" />}
         </div>
         <h1 className="max-w-5xl text-balance text-5xl font-semibold leading-[0.98] tracking-[-0.04em] sm:text-6xl md:text-7xl lg:text-[5.25rem]">
           Todos tus ingresos y gastos en un solo lugar
@@ -245,7 +124,7 @@ export default function HeroStage() {
         </motion.div>
       </section>
 
-      {/* Qué es: texto a la izquierda; el logo 3D llega por la derecha. */}
+      {/* Qué es: texto a la izquierda; el logo llega por la derecha. */}
       <section
         ref={aboutRef}
         id="que-es"
