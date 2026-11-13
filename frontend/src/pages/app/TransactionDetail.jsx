@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Loader2, Pencil, Trash2 } from 'lucide-react';
 import { cardMark } from '@/components/cards/cardFormat';
@@ -6,6 +6,7 @@ import ConfirmButton from '@/components/common/ConfirmButton';
 import { MASK } from '@/components/dashboard/BalanceCard';
 import Panel from '@/components/layout/Panel';
 import AttachmentsPanel from '@/components/transactions/AttachmentsPanel';
+import { EmotionPicker, KakeiboPicker } from '@/components/transactions/ReflectionPickers';
 import { formatDate, formatMoney, formatRelativeDay } from '@/components/transactions/format';
 import { Button } from '@/components/ui/button';
 import useAsync from '@/hooks/useAsync';
@@ -15,6 +16,7 @@ import usePageTitle from '@/hooks/usePageTitle';
 import { canGoBack } from '@/lib/backPath';
 import { cn } from '@/lib/utils';
 import { removeTransaction } from '@/offline/removeTransaction';
+import { saveTransactionChanges } from '@/offline/saveTransactionChanges';
 import { getTransaction } from '@/services/transactionService';
 
 /** "Hoy, 4 nov 2026" o, si no es hoy ni ayer, solo la fecha. */
@@ -42,7 +44,14 @@ export default function TransactionDetail() {
       }),
     [id],
   );
-  const t = fetched.data ?? passed;
+  // Lo que se cambia aquí mismo (emoción y Kakeibo) se ve al instante, sin volver a pedirlo.
+  const [local, setLocal] = useState(null);
+  const loaded = fetched.data ?? passed;
+  const t = loaded && local?.id === loaded.id ? { ...loaded, ...local } : loaded;
+  const feelingId = useId();
+  const kakeiboId = useId();
+  const [reflecting, setReflecting] = useState(false);
+  const [notice, setNotice] = useState('');
   const { names } = useCategoryNames();
   const [hidden] = useHiddenAmounts();
   const [error, setError] = useState('');
@@ -72,6 +81,24 @@ export default function TransactionDetail() {
       : [['Pagado con', t.card ? (t.card.deleted ? 'Tarjeta eliminada' : cardMark(t.card)) : 'Efectivo o débito']]),
     ...(t.card && t.installments > 1 ? [['Cuotas', String(t.installments)]] : []),
   ];
+
+  /** Guarda la emoción o el grupo Kakeibo (FT-0070); si falla, vuelve a como estaba. */
+  const reflect = async (changes) => {
+    const before = local;
+    setError('');
+    setNotice('');
+    setReflecting(true);
+    setLocal({ ...(local ?? {}), id: t.id, ...changes });
+    try {
+      const { offline } = await saveTransactionChanges(t, changes);
+      setNotice(offline ? 'Guardado sin conexión. Se sincronizará cuando vuelva internet.' : 'Guardado.');
+    } catch (err) {
+      setLocal(before);
+      setError(err.message);
+    } finally {
+      setReflecting(false);
+    }
+  };
 
   const remove = async () => {
     setError('');
@@ -104,6 +131,37 @@ export default function TransactionDetail() {
           ))}
         </dl>
       </Panel>
+
+      {/* FT-0070: cómo se sintió con el gasto y en qué grupo Kakeibo va. Ambos opcionales. */}
+      {!income && (
+        <Panel aria-label="Reflexión del gasto" className="flex flex-col gap-5">
+          <div>
+            <h2 id={feelingId} className="mb-3 text-[15px] font-semibold">
+              ¿Cómo te sentiste?
+            </h2>
+            <EmotionPicker
+              value={t.emotion ?? null}
+              onChange={(emotion) => reflect({ emotion })}
+              disabled={reflecting}
+              labelledBy={feelingId}
+            />
+          </div>
+          <div>
+            <h2 id={kakeiboId} className="mb-3 text-[15px] font-semibold">
+              Grupo Kakeibo
+            </h2>
+            <KakeiboPicker
+              value={t.kakeibo ?? null}
+              onChange={(kakeibo) => reflect({ kakeibo })}
+              disabled={reflecting}
+              labelledBy={kakeiboId}
+            />
+          </div>
+          <p role="status" className="-mt-2 min-h-5 text-[13px] text-ink/60">
+            {notice}
+          </p>
+        </Panel>
+      )}
 
       {/* Recibos (FT-0044): solo de movimientos que ya están en el servidor. */}
       <Panel>

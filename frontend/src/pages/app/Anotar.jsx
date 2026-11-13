@@ -3,6 +3,7 @@ import { Link, useNavigate, useNavigationType, useSearchParams } from 'react-rou
 import { Check, ChevronLeft, Delete, Loader2, Mic, Paperclip, Plus, Sparkles, X } from 'lucide-react';
 import CategoryIcon from '@/components/categories/CategoryIcon';
 import NewCategoryDialog from '@/components/categories/NewCategoryDialog';
+import FeelingPrompt from '@/components/transactions/FeelingPrompt';
 import ChipGroup from '@/components/common/ChipGroup';
 import Segmented from '@/components/common/Segmented';
 import { currentMonth } from '@/components/budgets/month';
@@ -262,6 +263,8 @@ export default function Anotar() {
             </p>
           )}
           <BudgetAlert className="mt-4" alert={alert} categoryName={names[category]} />
+          {/* FT-0070: solo con el gasto ya en el servidor (sin conexión aún no tiene id). */}
+          {values.type === 'gasto' && transaction && <FeelingPrompt className="mt-4" transaction={transaction} />}
         </div>
 
         <div className="flex flex-col gap-2">

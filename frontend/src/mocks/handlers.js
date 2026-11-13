@@ -499,6 +499,56 @@ export const handlers = [
     return HttpResponse.json({ synced, conflicts: [], serverChanges: [], syncedAt: new Date().toISOString() });
   }),
 
+  // Antes de `/transactions/:id`, que si no tomaría "reflection" como id (FT-0070).
+  http.get(`${API_V1}/transactions/reflection`, ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const day = new Date(`${new URL(request.url).searchParams.get('date') ?? new Date().toISOString().slice(0, 10)}T12:00:00`);
+    const monday = new Date(day);
+    monday.setDate(day.getDate() - ((day.getDay() + 6) % 7));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const iso = (d) => d.toISOString().slice(0, 10);
+    const [from, to] = [iso(monday), iso(sunday)];
+    const week = (transactions.get(user.id) ?? []).filter(
+      (t) => t.type === 'gasto' && !t.deletedAt && t.date >= from && t.date <= to,
+    );
+    const sum = (list) => ({ count: list.length, total: list.reduce((acc, t) => acc + t.amount, 0) });
+    const emotions = ['valio_la_pena', 'normal', 'no_lo_necesitaba', 'me_arrepiento'].map((key) => ({
+      key,
+      ...sum(week.filter((t) => t.emotion === key)),
+    }));
+    const kakeibo = ['necesidad', 'deseo', 'cultura', 'imprevisto'].map((key) => ({
+      key,
+      ...sum(week.filter((t) => t.kakeibo === key)),
+    }));
+    const regrets = week
+      .filter((t) => t.emotion === 'no_lo_necesitaba' || t.emotion === 'me_arrepiento')
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 3)
+      .map(({ id, description, amount, date, emotion }) => ({ id, description, amount, date, emotion }));
+    const regretTotal = regrets.reduce((acc, r) => acc + r.amount, 0);
+    const questions = [];
+    if (regrets.length)
+      questions.push(
+        `Esta semana ${regrets.length} ${regrets.length === 1 ? 'gasto' : 'gastos'} por $${regretTotal.toLocaleString('es-CO')} no te convencieron. ¿Qué tenían en común?`,
+      );
+    if (kakeibo[1].count) questions.push('¿Cuál de tus deseos de esta semana podrías dejar para la próxima?');
+    if (week.length && week.filter((t) => t.emotion).length < week.length)
+      questions.push('¿Qué gasto de esta semana te hizo sentir mejor, y por qué?');
+    return HttpResponse.json({
+      from,
+      to,
+      expenses: sum(week),
+      withEmotion: week.filter((t) => t.emotion).length,
+      emotions,
+      kakeibo,
+      withoutKakeibo: sum(week.filter((t) => !t.kakeibo)),
+      regrets,
+      questions: questions.slice(0, 3),
+    });
+  }),
+
   http.get(`${API_V1}/transactions/:id`, ({ request, params }) => {
     const user = authUser(request);
     if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
@@ -518,8 +568,10 @@ export const handlers = [
     if (invalid) return invalid;
     const type = body.type ?? current.type;
     const next = { ...current };
-    for (const field of ['amount', 'description', 'date']) if (field in body) next[field] = body[field];
+    for (const field of ['amount', 'description', 'date', 'emotion', 'kakeibo']) if (field in body) next[field] = body[field];
     next.type = type;
+    // Emoción y Kakeibo son solo de gastos (FT-0070): al pasar a ingreso se quitan.
+    if (type === 'ingreso') Object.assign(next, { emotion: null, kakeibo: null });
     if ('category' in body || type !== current.type) {
       const category = 'category' in body ? body.category : null;
       if (category) {
