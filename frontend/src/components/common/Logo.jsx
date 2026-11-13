@@ -7,7 +7,7 @@ const TILE = { brand: '#6142ff', light: '#a58bff' };
 /**
  * Isotipo de Rinde: una "r" blanca que suelta una moneda verde, sobre un cuadro violeta.
  * `tone="light"` aclara el cuadro para que el logo resalte sobre un fondo violeta.
- * La misma geometría (cuadrícula de 32) está en `LogoMark3D`, `HeroStage` y `scripts/generate-icons.mjs`.
+ * La misma geometría (cuadrícula de 32) está en `home/FlyingLogo` y `scripts/generate-icons.mjs`.
  * @param {{ className?: string, tone?: 'brand' | 'light' }} props
  */
 export function LogoMark({ className, tone = 'brand' }) {

@@ -19,7 +19,8 @@ const TYPED = 'almuerzo 18 mil';
 
 /**
  * Celular de demostración: se escribe "almuerzo 18 mil", la IA "piensa" y aparece el movimiento
- * ya categorizado. Arriba deja un hueco (`data-logo-slot`) donde aterriza el logo 3D.
+ * ya categorizado, en un espacio reservado para que el celular nunca cambie de tamaño.
+ * Arriba deja un hueco (`data-logo-slot`) donde aterriza el logo que baja por la página.
  */
 function PhoneDemo() {
   const ref = useRef(null);
@@ -46,38 +47,55 @@ function PhoneDemo() {
       <div className="relative overflow-hidden rounded-[2.4rem] bg-white px-4 pb-5 pt-4 text-obsidian">
         <div className="mx-auto h-6 w-24 rounded-full bg-obsidian" aria-hidden="true" />
 
-        {/* Hueco del logo: el 3D aterriza aquí al bajar. */}
+        {/* Hueco del logo: el logo que baja por la página aterriza aquí. */}
         <div className="mt-5 flex flex-col items-center gap-2">
           <div data-logo-slot className="size-16">
-            {/* Sin 3D (equipo modesto o aún cargando) se ve el logo plano; con 3D, aterriza el otro encima. */}
-            <LogoMark className="size-16 rounded-2xl transition-opacity duration-500 group-data-[scene=on]/stage:opacity-0" />
+            {/* Si el logo no viaja (movimiento reducido), se ve este; si viaja, aterriza encima. */}
+            <LogoMark className="size-16 rounded-2xl group-data-[fly=on]/stage:opacity-0" />
           </div>
           <p className="text-sm font-semibold">Rinde</p>
         </div>
 
         <ul className="mt-5 space-y-2">
-          <AnimatePresence initial={false}>
-            {phase === 'done' && (
-              <motion.li
-                key="nuevo"
-                initial={{ opacity: 0, y: -12, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-                className="flex items-center gap-3 rounded-2xl bg-pink/70 px-3 py-2.5 ring-1 ring-violet/25"
-              >
-                <span className="grid size-9 place-items-center rounded-xl bg-violet text-white">
-                  <UtensilsCrossed className="size-4" aria-hidden="true" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">Almuerzo</p>
-                  <p className="flex items-center gap-1 text-xs text-violet">
-                    <Sparkles className="size-3" aria-hidden="true" /> Alimentación
-                  </p>
-                </div>
-                <span className="text-sm font-semibold">-$18.000</span>
-              </motion.li>
-            )}
-          </AnimatePresence>
+          {/*
+            El espacio del gasto nuevo está reservado desde el inicio (alto fijo): así el celular
+            no se alarga cuando aparece. Mientras se escribe, se ve un hueco punteado.
+          */}
+          <li className="relative h-14">
+            <AnimatePresence initial={false}>
+              {phase === 'done' ? (
+                <motion.div
+                  key="nuevo"
+                  initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                  className="absolute inset-0 flex items-center gap-3 rounded-2xl bg-pink/70 px-3 ring-1 ring-violet/25"
+                >
+                  <span className="grid size-9 place-items-center rounded-xl bg-violet text-white">
+                    <UtensilsCrossed className="size-4" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">Almuerzo</p>
+                    <p className="flex items-center gap-1 text-xs text-violet">
+                      <Sparkles className="size-3" aria-hidden="true" /> Alimentación
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold">-$18.000</span>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="hueco"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute inset-0 rounded-2xl border-2 border-dashed border-obsidian/10"
+                  aria-hidden="true"
+                />
+              )}
+            </AnimatePresence>
+          </li>
           {HISTORY.map(({ icon: Icon, label, detail, amount, income }) => (
             <li key={label} className="flex items-center gap-3 rounded-2xl bg-card px-3 py-2.5">
               <span className={`grid size-9 place-items-center rounded-xl ${income ? 'bg-mint text-emerald-700' : 'bg-white text-obsidian'}`}>
@@ -112,7 +130,7 @@ function PhoneDemo() {
 }
 
 /**
- * "Cómo funciona": vive dentro del escenario 3D. El fondo ya es lavanda y el logo
+ * "Cómo funciona": vive dentro del escenario. El fondo ya es lavanda y el logo
  * baja hasta la pantalla del celular.
  */
 export default function HowItWorks() {
