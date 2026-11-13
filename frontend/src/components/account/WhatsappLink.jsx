@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import { CircleCheck, Loader2, MessageCircle, RefreshCw, Unlink } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CircleCheck, Clock, Loader2, MessageCircle, RefreshCw, Unlink } from 'lucide-react';
 import ConfirmButton from '@/components/common/ConfirmButton';
 import Panel from '@/components/layout/Panel';
 import { Button } from '@/components/ui/button';
 import useAsync from '@/hooks/useAsync';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
-import { createWhatsappCode, deleteWhatsappLink, getWhatsappLink } from '@/services/whatsappService';
+import {
+  createWhatsappCode,
+  deleteWhatsappLink,
+  getWhatsappLink,
+  requestWhatsappAccess,
+} from '@/services/whatsappService';
 
 /**
  * Enlace que abre el chat del bot con el código ya escrito.
@@ -42,7 +48,34 @@ function CodeStep({ pending, checking, onCheck }) {
 }
 
 /**
- * Conexión con el bot en Cuenta (FT-0029). Si el bot no está configurado no se muestra.
+ * Qué ve quien todavía no tiene acceso: el equipo lo aprueba para cuidar el cupo de respuestas.
+ */
+function AccessStep({ access, asking, online, onAsk }) {
+  if (access === 'pending') {
+    return (
+      <p className="flex items-start gap-2 text-sm">
+        <Clock className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden="true" />
+        Ya pediste acceso. Te avisamos por correo cuando esté listo.
+      </p>
+    );
+  }
+  if (access === 'rejected') {
+    return <p className="text-sm text-ink/60">Por ahora no hay cupo para tu cuenta.</p>;
+  }
+  return (
+    <>
+      <p className="text-sm text-ink/60">Lo estamos abriendo de a pocos. Pide acceso y te avisamos por correo.</p>
+      <Button onClick={onAsk} disabled={asking || !online}>
+        {asking ? <Loader2 className="animate-spin" aria-hidden="true" /> : <MessageCircle aria-hidden="true" />}
+        Pedir acceso
+      </Button>
+    </>
+  );
+}
+
+/**
+ * Conexión con el bot en Cuenta (FT-0029). Si el bot no está configurado no se muestra. Quien no
+ * tiene acceso lo pide aquí y el equipo lo aprueba.
  */
 export default function WhatsappLink() {
   const online = useOnlineStatus();
@@ -74,6 +107,19 @@ export default function WhatsappLink() {
     }
   };
 
+  const askAccess = async () => {
+    setCreating(true);
+    setCreateError('');
+    try {
+      await requestWhatsappAccess();
+      reload();
+    } catch (err) {
+      setCreateError(err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const unlink = async () => {
     await deleteWhatsappLink();
     setPending(null);
@@ -88,7 +134,9 @@ export default function WhatsappLink() {
       <p className="mt-1 text-sm text-ink/60">Registra movimientos desde el chat, como "almuerzo 15 mil".</p>
 
       <div className="mt-5 space-y-3">
-        {data.linked ? (
+        {(data.access ?? 'approved') !== 'approved' ? (
+          <AccessStep access={data.access} asking={creating} online={online} onAsk={askAccess} />
+        ) : data.linked ? (
           <>
             <p className="flex items-center gap-2 text-sm">
               <CircleCheck className="size-5 shrink-0 text-positive" aria-hidden="true" />
@@ -115,6 +163,11 @@ export default function WhatsappLink() {
           <p role="alert" className="text-sm text-negative">
             {createError}
           </p>
+        )}
+        {data.admin && (
+          <Link to="/app/whatsapp/admin" className="block text-sm font-medium text-brand hover:underline">
+            Ver uso y accesos del equipo
+          </Link>
         )}
       </div>
     </Panel>

@@ -620,6 +620,29 @@ export const MIGRATIONS = [
          CHECK (tipo = 'gasto' OR (emocion IS NULL AND kakeibo IS NULL))`,
     ],
   },
+  {
+    id: '032_whatsapp_control',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS whatsapp_accesos (
+         usuario_id UUID PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE,
+         estado VARCHAR(10) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'aprobado', 'rechazado')),
+         solicitado_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+         resuelto_at TIMESTAMPTZ NULL
+       )`,
+      `INSERT INTO whatsapp_accesos (usuario_id, estado, resuelto_at)
+       SELECT usuario_id, 'aprobado', now() FROM whatsapp_vinculos WHERE telefono IS NOT NULL
+       ON CONFLICT (usuario_id) DO NOTHING`,
+      `CREATE TABLE IF NOT EXISTS whatsapp_envios (
+         id BIGSERIAL PRIMARY KEY,
+         usuario_id UUID NULL REFERENCES usuarios(id) ON DELETE SET NULL,
+         telefono_hash VARCHAR(64) NOT NULL,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       )`,
+      'CREATE INDEX IF NOT EXISTS idx_whatsapp_envios_fecha ON whatsapp_envios(created_at)',
+      `CREATE INDEX IF NOT EXISTS idx_whatsapp_envios_telefono
+         ON whatsapp_envios(telefono_hash, created_at)`,
+    ],
+  },
 ];
 
 /**

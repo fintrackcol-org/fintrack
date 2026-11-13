@@ -19,8 +19,8 @@ const { pool } = await import('./config/db.js');
 const { env } = await import('./config/env.js');
 const { signAccessToken } = await import('./services/token.service.js');
 
-// Usa la base real: necesita el esquema de `db/init/` (o el parche 010).
-const { rows } = await pool.query("SELECT to_regclass('public.whatsapp_mensajes') AS tabla");
+// Usa la base real: necesita el esquema de `db/init/` (o los parches 010 y 032).
+const { rows } = await pool.query("SELECT to_regclass('public.whatsapp_envios') AS tabla");
 const options = {
   skip: rows[0].tabla ? false : 'Esquema no aplicado: ejecuta db/init/*.sql sobre la base de datos',
 };
@@ -43,16 +43,17 @@ after(async () => {
 
 /**
  * Crea un usuario de prueba.
- * @param {{ allowed?: boolean }} [options] `allowed: false` lo deja fuera de la lista del bot.
+ * @param {{ allowed?: boolean, admin?: boolean }} [options] `allowed: false` lo deja fuera de la lista del bot; `admin` lo pone en `ADMIN_EMAILS`.
  * @returns {Promise<{ id: string, token: string }>}
  */
-async function createUser({ allowed = true } = {}) {
+async function createUser({ allowed = true, admin = false } = {}) {
   const email = `${randomUUID()}${TEST_DOMAIN}`;
   const { rows: created } = await pool.query(
     'INSERT INTO usuarios (email, password_hash) VALUES ($1, $2) RETURNING id',
     [email, 'x'],
   );
   if (allowed) env.whatsappAllowedEmails.push(email);
+  if (admin) env.adminEmails.push(email);
   return { id: created[0].id, token: signAccessToken(created[0].id) };
 }
 
@@ -175,18 +176,71 @@ test('quien no está en la lista no ve el bot ni puede pedir un código', option
   });
 });
 
-test('con * en la lista, cualquiera ve el bot', options, async () => {
+test('con * en la lista, cualquiera pide acceso y el equipo lo aprueba', options, async () => {
   const user = await createUser({ allowed: false });
+  const admin = await createUser({ allowed: false, admin: true });
   env.whatsappAllowedEmails.push('*');
   try {
     await withServer(async (base) => {
       const status = await (await fetch(`${base}/link`, json(user.token))).json();
       assert.equal(status.available, true);
+      assert.equal(status.access, 'none');
+      assert.equal((await fetch(`${base}/link`, json(user.token, 'POST'))).status, 403);
+
+      const asked = await (await fetch(`${base}/link/request`, json(user.token, 'POST'))).json();
+      assert.equal(asked.access, 'pending');
+      assert.equal((await fetch(`${base}/link`, json(user.token, 'POST'))).status, 403);
+
+      assert.equal((await fetch(`${base}/admin`, json(user.token))).status, 403);
+      const panel = await (await fetch(`${base}/admin`, json(admin.token))).json();
+      assert.equal(typeof panel.month.sent, 'number');
+      assert.equal(panel.month.max, 900);
+      const row = panel.users.find((u) => u.userId === user.id);
+      assert.equal(row.status, 'pending');
+      assert.equal(row.linked, false);
+      assert.equal(row.monthSends, 0);
+
+      const patch = (id, body) =>
+        fetch(`${base}/admin/${id}`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${admin.token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      assert.equal((await patch(user.id, { status: 'otro' })).status, 422);
+      assert.equal((await patch(randomUUID(), { status: 'approved' })).status, 404);
+      assert.equal((await patch(user.id, { status: 'approved' })).status, 204);
+      assert.equal((await fetch(`${base}/link`, json(user.token, 'POST'))).status, 201);
+
+      assert.equal((await patch(user.id, { status: 'rejected' })).status, 204);
+      const after = await (await fetch(`${base}/link`, json(user.token))).json();
+      assert.equal(after.access, 'rejected');
     });
   } finally {
     env.whatsappAllowedEmails.pop();
   }
 });
+
+test(
+  'las respuestas se cuentan y a un desconocido se le responde pocas veces',
+  options,
+  async () => {
+    const phone = randomPhone();
+    const count = async () =>
+      (await pool.query('SELECT COUNT(*)::int AS n FROM whatsapp_envios')).rows[0].n;
+    await withServer(async (base) => {
+      const before = await count();
+      for (let i = 0; i < 5; i += 1) {
+        await postWebhook(base, incoming(phone, `hola ${i}`));
+        // Deja que el aviso termine de procesarse: se responde antes de procesar.
+        await new Promise((resolve) => {
+          setTimeout(resolve, 150);
+        });
+      }
+      assert.equal(outbox.filter((m) => m.to === phone).length, 3);
+      assert.equal((await count()) - before, 3);
+    });
+  },
+);
 
 test('vincula el número, registra y desconecta', options, async () => {
   const user = await createUser();
@@ -195,6 +249,8 @@ test('vincula el número, registra y desconecta', options, async () => {
     const before = await (await fetch(`${base}/link`, json(user.token))).json();
     assert.deepEqual(before, {
       available: true,
+      access: 'approved',
+      admin: false,
       linked: false,
       phone: null,
       botNumber: '15551234567',

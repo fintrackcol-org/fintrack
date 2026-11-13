@@ -287,6 +287,25 @@ CREATE TABLE whatsapp_mensajes (
 );
 CREATE INDEX idx_whatsapp_mensajes_usuario ON whatsapp_mensajes(usuario_id, created_at DESC);
 
+-- Acceso al bot aprobado por el equipo: una fila por usuario que lo pidió.
+CREATE TABLE whatsapp_accesos (
+  usuario_id UUID PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE,
+  estado VARCHAR(10) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'aprobado', 'rechazado')),
+  solicitado_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  resuelto_at TIMESTAMPTZ NULL
+);
+
+-- Una fila por respuesta enviada (las que Meta cobra). Del número solo se guarda el hash;
+-- `usuario_id` es NULL cuando se le respondió a un número sin conectar.
+CREATE TABLE whatsapp_envios (
+  id BIGSERIAL PRIMARY KEY,
+  usuario_id UUID NULL REFERENCES usuarios(id) ON DELETE SET NULL,
+  telefono_hash VARCHAR(64) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_whatsapp_envios_fecha ON whatsapp_envios(created_at);
+CREATE INDEX idx_whatsapp_envios_telefono ON whatsapp_envios(telefono_hash, created_at);
+
 -- Mi plata (FT-0036). Una fila por usuario, desde que responde u omite la bienvenida. `saldo_at` es
 -- el momento en que dijo cuánta plata tenía: lo registrado después se suma o se resta de ese saldo.
 CREATE TABLE perfiles_financieros (

@@ -1908,11 +1908,18 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [available, linked, phone, botNumber]
+                required: [available, access, admin, linked, phone, botNumber]
                 properties:
                   available:
                     type: boolean
-                    description: Si el bot está configurado y el usuario está en la lista autorizada
+                    description: Si el usuario ve el bot (tiene acceso, lo pidió, o `*` deja pedirlo a cualquiera)
+                  access:
+                    type: string
+                    enum: [approved, pending, rejected, none]
+                    description: Acceso aprobado por el equipo. Los correos de `WHATSAPP_ALLOWED_EMAILS` y `ADMIN_EMAILS` entran directo
+                  admin:
+                    type: boolean
+                    description: Si puede abrir el panel del equipo
                   linked:
                     type: boolean
                   phone:
@@ -1945,13 +1952,89 @@ paths:
                     type: string
                     nullable: true
         '403':
-          description: El usuario no está en la lista autorizada
+          description: El usuario no tiene acceso aprobado
     delete:
       tags: [WhatsApp]
       summary: Desconectar el número
       responses:
         '204':
           description: Número desconectado
+  /whatsapp/link/request:
+    post:
+      tags: [WhatsApp]
+      summary: Pedir acceso al bot
+      description: Guarda la solicitud y le avisa por correo al equipo (`ADMIN_EMAILS`). Pedirlo dos veces no cambia nada.
+      responses:
+        '200':
+          description: Estado de la conexión, igual que `GET /whatsapp/link`
+        '403':
+          description: El bot no está abierto a solicitudes
+  /whatsapp/admin:
+    get:
+      tags: [WhatsApp]
+      summary: Respuestas del mes y quién pidió acceso (solo `ADMIN_EMAILS`)
+      description: |
+        `month.sent` cuenta las respuestas enviadas en el mes (las que Meta cobra) y `month.max` es
+        `WHATSAPP_MONTHLY_MAX` (por defecto 900): al llegar, el bot deja de responder. El equipo
+        recibe un correo al 80 % y al llegar al tope.
+      responses:
+        '200':
+          description: Panel
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [month, users]
+                properties:
+                  month:
+                    type: object
+                    required: [sent, max]
+                    properties:
+                      sent: { type: integer }
+                      max: { type: integer }
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      required: [userId, email, name, status, requestedAt, linked, monthSends]
+                      properties:
+                        userId: { type: string, format: uuid }
+                        email: { type: string }
+                        name: { type: string, nullable: true }
+                        status: { type: string, enum: [approved, pending, rejected] }
+                        requestedAt: { type: string, format: date-time }
+                        linked: { type: boolean }
+                        monthSends: { type: integer }
+        '403':
+          description: No es administrador
+  /whatsapp/admin/{userId}:
+    patch:
+      tags: [WhatsApp]
+      summary: Aprobar o rechazar el acceso de un usuario (solo `ADMIN_EMAILS`)
+      description: Al aprobar, el usuario recibe un correo. A quien se le quita el acceso el bot deja de responderle.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [approved, rejected] }
+      responses:
+        '204':
+          description: Acceso actualizado
+        '403':
+          description: No es administrador
+        '404':
+          description: El usuario no existe
+        '422':
+          description: Id o estado inválido
   /sync/batch:
     post:
       tags: [Sync]
