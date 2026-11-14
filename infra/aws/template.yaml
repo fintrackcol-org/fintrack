@@ -1,0 +1,189 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Rinde - entorno de pruebas internas en AWS (FT-0064). Una instancia EC2 con la API y PostgreSQL
+  en contenedores, un bucket S3 privado para los soportes de pago y una alerta de presupuesto.
+  No toca producción. Se borra completo con infra/aws/destroy.sh.
+
+Parameters:
+  BudgetEmail:
+    Type: String
+    Description: Correo que recibe las alertas de presupuesto.
+    AllowedPattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+  BudgetUsd:
+    Type: Number
+    Default: 10
+    MinValue: 1
+    Description: Tope mensual en dólares. Avisa al 50 %, al 80 % y al 100 %, y si el pronóstico lo pasa.
+  InstanceType:
+    Type: String
+    Default: t4g.small
+    AllowedValues: [t4g.micro, t4g.small, t4g.medium]
+    Description: ARM (Graviton). t4g.small (2 GB) aguanta API + PostgreSQL con holgura.
+  GitBranch:
+    Type: String
+    Default: main
+    Description: Rama del repo que se despliega.
+  RepoUrl:
+    Type: String
+    Default: https://github.com/fintrackcol-org/fintrack.git
+  CorsOrigin:
+    Type: String
+    Default: http://localhost:5173
+    Description: Origen del frontend que puede llamar a esta API (sin barra final).
+  AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64
+
+Resources:
+  # ---------- Presupuesto: se crea primero, antes de que algo cobre ----------
+  Budget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: !Sub '${AWS::StackName}-mensual'
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit: { Amount: !Ref BudgetUsd, Unit: USD }
+      NotificationsWithSubscribers:
+        - Notification: { NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 50 }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref BudgetEmail }]
+        - Notification: { NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 80 }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref BudgetEmail }]
+        - Notification: { NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 100 }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref BudgetEmail }]
+        - Notification: { NotificationType: FORECASTED, ComparisonOperator: GREATER_THAN, Threshold: 100 }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref BudgetEmail }]
+
+  # ---------- Soportes de pago: bucket privado ----------
+  AttachmentsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+      # Es un entorno de pruebas: lo que se suba se borra solo a los 30 días.
+      LifecycleConfiguration:
+        Rules: [{ Id: borrar-a-los-30-dias, Status: Enabled, ExpirationInDays: 30 }]
+      Tags: [{ Key: Project, Value: !Ref AWS::StackName }]
+
+  AttachmentsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AttachmentsBucket
+      PolicyDocument:
+        Statement:
+          - Sid: SoloHttps
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: [!GetAtt AttachmentsBucket.Arn, !Sub '${AttachmentsBucket.Arn}/*']
+            Condition: { Bool: { 'aws:SecureTransport': 'false' } }
+
+  # ---------- Permisos de la instancia: solo su bucket y Session Manager (sin SSH) ----------
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: soportes
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource: !Sub '${AttachmentsBucket.Arn}/*'
+      Tags: [{ Key: Project, Value: !Ref AWS::StackName }]
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref InstanceRole]
+
+  # Solo HTTP/HTTPS (Caddy). Sin puerto 22: se entra con Session Manager. PostgreSQL no se expone.
+  ApiSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Rinde pruebas - solo HTTP y HTTPS
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
+      Tags: [{ Key: Project, Value: !Ref AWS::StackName }]
+
+  ApiIp:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags: [{ Key: Project, Value: !Ref AWS::StackName }]
+
+  ApiInstance:
+    Type: AWS::EC2::Instance
+    DependsOn: Budget
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref InstanceProfile
+      SecurityGroupIds: [!GetAtt ApiSecurityGroup.GroupId]
+      MetadataOptions: { HttpTokens: required }
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs: { VolumeSize: 20, VolumeType: gp3, Encrypted: true, DeleteOnTermination: true }
+      Tags:
+        - { Key: Name, Value: !Sub '${AWS::StackName}-api' }
+        - { Key: Project, Value: !Ref AWS::StackName }
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euxo pipefail
+          dnf install -y docker git
+          systemctl enable --now docker
+          mkdir -p /usr/local/lib/docker/cli-plugins
+          curl -fsSL "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-aarch64" \
+            -o /usr/local/lib/docker/cli-plugins/docker-compose
+          chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          # 2 GB de swap: el build de la imagen y PostgreSQL caben aunque la instancia sea pequeña.
+          fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+          echo '/swapfile swap swap defaults 0 0' >> /etc/fstab
+
+          git clone --branch ${GitBranch} ${RepoUrl} /opt/rinde
+          cd /opt/rinde/infra/aws
+          # Secretos generados aquí mismo: nunca pasan por el repo, la plantilla ni la consola.
+          umask 077
+          cat > .env <<ENV
+          DB_PASSWORD=$(openssl rand -hex 24)
+          JWT_SECRET=$(openssl rand -hex 48)
+          S3_BUCKET=${AttachmentsBucket}
+          AWS_REGION=${AWS::Region}
+          CORS_ORIGIN=${CorsOrigin}
+          API_HOST=${ApiIp}.sslip.io
+          ENV
+          docker compose up -d --build
+
+  ApiIpAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt ApiIp.AllocationId
+      InstanceId: !Ref ApiInstance
+
+Outputs:
+  ApiUrl:
+    Description: URL de la API de pruebas (HTTPS automático con Caddy).
+    Value: !Sub 'https://${ApiIp}.sslip.io'
+  HealthUrl:
+    Value: !Sub 'https://${ApiIp}.sslip.io/health'
+  InstanceId:
+    Description: Para entrar con `aws ssm start-session --target <id>`.
+    Value: !Ref ApiInstance
+  BucketName:
+    Value: !Ref AttachmentsBucket
