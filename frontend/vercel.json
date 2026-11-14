@@ -2,6 +2,14 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "fintrack-seven-delta.vercel.app" }],
+      "destination": "https://www.fintrackcol.online/$1",
+      "permanent": true
+    }
+  ],
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "headers": [
     { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
