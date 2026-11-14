@@ -2,9 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { env } from './config/env.js';
 import { parseSpokenTransaction } from './services/entry-parser.js';
 import {
   REPLIES,
+  STRANGER_DAILY_MAX,
   createWhatsappService,
   extractMessages,
   isValidSignature,
@@ -28,11 +30,16 @@ function setup(options = {}) {
   const saved = [];
   const queries = [];
   const claimed = new Set();
+  const mails = [];
   const service = createWhatsappService({
     repository: {
       findUserIdByPhone: async () => (linked ? 'usuario-1' : null),
       confirmLink: async () => 'linked',
       countRecentMessages: async () => recent,
+      findAccess: async () => options.access ?? 'aprobado',
+      countStrangerSends: async () => options.strangerSends ?? 0,
+      countMonthSends: async () => (options.monthSends ?? 0) + sent.length,
+      recordSend: async () => (options.monthSends ?? 0) + sent.length,
       claimMessage: async ({ messageId }) => {
         if (claimed.has(messageId)) return false;
         claimed.add(messageId);
@@ -55,10 +62,13 @@ function setup(options = {}) {
     getPlan: typeof plan === 'function' ? plan : async () => plan,
     getLiquidity: async () => options.liquidity ?? { ready: false },
     sendText: async (_to, body) => sent.push(body),
+    findUser: async () => ({ email: 'ana@ejemplo.co' }),
+    sendEmail: async (mail) => mails.push(mail),
+    monthlyMax: options.monthlyMax ?? 900,
     now: () => new Date('2026-11-02T15:00:00Z'),
     dailyMax: 3,
   });
-  return { service, sent, saved, queries };
+  return { service, sent, saved, queries, mails };
 }
 
 test('la copia del analizador es igual a la del frontend', async () => {
@@ -402,5 +412,38 @@ test('el analizador: "hice" + monto es lo que ganó; "hice mercado" sigue siendo
     assert.deepEqual({ type: t, amount: a, description: d }, { type, amount, description }, text);
   }
   assert.equal(parseSpokenTransaction('ayer hice 52 mil', now).date, '2026-11-02');
+});
+
+test('al llegar al tope del mes el bot deja de responder y avisa al equipo una vez', async () => {
+  env.adminEmails.push('equipo@ejemplo.co');
+  try {
+    const { service, sent, mails } = setup({ monthlyMax: 5, monthSends: 3 });
+    await service.handleMessage(message('almuerzo 15 mil', 'm1'));
+    assert.equal(mails.length, 1, 'aviso del 80 %');
+    await service.handleMessage(message('bus 3 mil', 'm2'));
+    await service.handleMessage(message('café 4 mil', 'm3'));
+    assert.equal(sent.length, 2);
+    assert.equal(mails.length, 2);
+    assert.match(mails[1].subject, /tope del mes/);
+  } finally {
+    env.adminEmails.pop();
+  }
+});
+
+test('a un número sin conectar le responde pocas veces al día', async () => {
+  const fresh = setup({ linked: false });
+  await fresh.service.handleMessage(message('hola'));
+  assert.deepEqual(fresh.sent, [REPLIES.unlinked]);
+  const spammer = setup({ linked: false, strangerSends: STRANGER_DAILY_MAX });
+  await spammer.service.handleMessage(message('hola'));
+  await spammer.service.handleMessage(message('FT-AB23CD45', 'm2'));
+  assert.deepEqual(spammer.sent, []);
+});
+
+test('a quien le quitaron el acceso no le responde ni le guarda', async () => {
+  const { service, sent, saved } = setup({ access: 'rechazado' });
+  await service.handleMessage(message('almuerzo 15 mil'));
+  assert.deepEqual(sent, []);
+  assert.deepEqual(saved, []);
 });
 

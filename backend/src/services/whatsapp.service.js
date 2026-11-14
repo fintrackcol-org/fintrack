@@ -1,5 +1,5 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import { env } from '../config/env.js';
+import { env, isAdminEmail } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
 import { listCategories } from '../repositories/categories.repository.js';
 import { findUserById } from '../repositories/users.repository.js';
@@ -7,6 +7,7 @@ import * as repo from '../repositories/whatsapp.repository.js';
 import { parseSpokenTransaction } from './entry-parser.js';
 import { todayIso } from './insights.service.js';
 import { liquidityLine } from './liquidity.logic.js';
+import { sendEmail } from './mail.service.js';
 import { getLiquidity } from './liquidity.service.js';
 import { getPlan } from './money-plan.service.js';
 import { create as createTransaction, summary as summarizePeriod } from './transactions.service.js';
@@ -19,6 +20,16 @@ export const LINK_CODE_MINUTES = 10;
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const CODE_LENGTH = 8;
 const CODE_RE = /^FT-[A-Z0-9]{8}$/;
+
+/** Respuestas por día a un número sin conectar: cada una se cobra y cualquiera puede escribir. */
+export const STRANGER_DAILY_MAX = 3;
+/** Parte del tope mensual en la que se avisa al equipo. */
+const WARN_RATIO = 0.8;
+/** Cada cuántas respuestas se deja el conteo del mes en los logs. */
+const LOG_EVERY = 50;
+
+const ACCESS = { aprobado: 'approved', pendiente: 'pending', rechazado: 'rejected' };
+const ACCESS_TO_DB = { approved: 'aprobado', rejected: 'rechazado' };
 
 /** Preguntas que entiende el bot, sobre el texto en minúsculas y sin tildes. */
 const BALANCE_QUESTION = /(?<!\p{L})(cuanto tengo|cuanta plata tengo|cuanto me queda|saldo|balance)(?!\p{L})/u;
@@ -217,7 +228,7 @@ export function planProgress(plan) {
 /**
  * Crea el servicio del bot. Las dependencias se inyectan para probarlo sin BD, IA ni Meta.
  * @param {object} [deps]
- * @param {Pick<typeof repo, 'findPhone'|'findUserIdByPhone'|'saveLinkCode'|'confirmLink'|'removeLink'|'claimMessage'|'countRecentMessages'>} [deps.repository]
+ * @param {typeof repo} [deps.repository]
  * @param {typeof createTransaction} [deps.createTransaction]
  * @param {typeof listCategories} [deps.listCategories]
  * @param {typeof summarizePeriod} [deps.summarize]
@@ -226,6 +237,8 @@ export function planProgress(plan) {
  * @param {typeof findUserById} [deps.findUser]
  * @param {() => Date} [deps.now]
  * @param {number} [deps.dailyMax]
+ * @param {number} [deps.monthlyMax]
+ * @param {typeof sendEmail} [deps.sendEmail]
  * @returns {{ status: (userId: string) => Promise<object>, createLinkCode: (userId: string) => Promise<object>, unlink: (userId: string) => Promise<void>, handleMessage: (message: { id: string, from: string, text: string|null }) => Promise<void>, handleWebhook: (payload: object) => Promise<void> }}
  */
 export function createWhatsappService(deps = {}) {
@@ -239,30 +252,98 @@ export function createWhatsappService(deps = {}) {
   const findUser = deps.findUser ?? findUserById;
   const now = deps.now ?? (() => new Date());
   const dailyMax = deps.dailyMax ?? env.whatsappDailyMax;
+  const monthlyMax = deps.monthlyMax ?? env.whatsappMonthlyMax;
+  const mail = deps.sendEmail ?? sendEmail;
 
   /**
-   * ¿Este usuario puede conectar el bot? Con el número de prueba, Meta solo deja responderles a
-   * cinco destinatarios: la lista evita ofrecerles el bot a los demás. Con el número real, `*`
-   * lo abre para todos.
+   * Le escribe al equipo (`ADMIN_EMAILS`). Un correo que falle no detiene nada.
+   * @param {string} subject
+   * @param {string} text
+   * @returns {Promise<void>}
+   */
+  async function mailAdmins(subject, text) {
+    await Promise.all(
+      env.adminEmails.map((to) =>
+        mail({ to, subject, text, html: `<p>${text.replaceAll('\n', '<br>')}</p>` }).catch(
+          (err) => {
+            console.error(`No se pudo avisar al equipo por correo (${err.message})`);
+          },
+        ),
+      ),
+    );
+  }
+
+  /**
+   * Envía una respuesta y la cuenta. Meta cobra cada una: al llegar al tope del mes no envía nada.
+   * @param {string} to
+   * @param {string} text
+   * @param {string|null} [userId] `null` si el número no está conectado.
+   * @returns {Promise<boolean>} `false` si el tope del mes ya se alcanzó.
+   */
+  async function deliver(to, text, userId = null) {
+    if ((await store.countMonthSends()) >= monthlyMax) {
+      console.warn(`WhatsApp: tope del mes alcanzado (${monthlyMax}); no se respondió`);
+      return false;
+    }
+    await send(to, text);
+    const total = await store.recordSend({ userId, phoneHash: hashCode(to) });
+    const warnAt = Math.floor(monthlyMax * WARN_RATIO);
+    if (total % LOG_EVERY === 0 || total === warnAt || total === monthlyMax) {
+      console.info(`WhatsApp: ${total} de ${monthlyMax} respuestas este mes`);
+    }
+    if (total === monthlyMax) {
+      await mailAdmins(
+        'Rinde: el bot de WhatsApp llegó al tope del mes',
+        `El bot ya envió ${total} respuestas este mes y dejó de responder hasta el otro mes.\nPara subir el tope, cambia WHATSAPP_MONTHLY_MAX en Render.`,
+      );
+    } else if (total === warnAt) {
+      await mailAdmins(
+        'Rinde: el bot de WhatsApp va en el 80 % del mes',
+        `El bot lleva ${total} de ${monthlyMax} respuestas este mes. Al llegar a ${monthlyMax} deja de responder.`,
+      );
+    }
+    return true;
+  }
+
+  /**
+   * Acceso del usuario al bot. Los correos de `WHATSAPP_ALLOWED_EMAILS` y el equipo entran
+   * directo; los demás lo piden y el equipo lo aprueba.
+   * @param {string} userId
+   * @returns {Promise<{ access: 'approved'|'pending'|'rejected'|'none', admin: boolean }>}
+   */
+  async function accessOf(userId) {
+    const user = await findUser(userId);
+    if (!user) return { access: 'none', admin: false };
+    const admin = isAdminEmail(user.email);
+    if (admin || env.whatsappAllowedEmails.includes(user.email.toLowerCase()))
+      return { access: 'approved', admin };
+    return { access: ACCESS[await store.findAccess(userId)] ?? 'none', admin };
+  }
+
+  /**
+   * ¿Este usuario puede usar el bot?
    * @param {string} userId
    * @returns {Promise<boolean>}
    */
   async function canUse(userId) {
-    if (!isAvailable()) return false;
-    const user = await findUser(userId);
-    const allowed = env.whatsappAllowedEmails;
-    return Boolean(user) && (allowed.includes('*') || allowed.includes(user.email.toLowerCase()));
+    return isAvailable() && (await accessOf(userId)).access === 'approved';
   }
 
   /**
-   * Estado de la conexión para la pantalla de Cuenta.
+   * Estado de la conexión para la pantalla de Cuenta. `available` es si el usuario ve el bot:
+   * ya tiene acceso, lo pidió, o `*` deja que cualquiera lo pida.
    * @param {string} userId
-   * @returns {Promise<{ available: boolean, linked: boolean, phone: string|null, botNumber: string|null }>}
+   * @returns {Promise<{ available: boolean, access: 'approved'|'pending'|'rejected'|'none', admin: boolean, linked: boolean, phone: string|null, botNumber: string|null }>}
    */
   async function status(userId) {
-    const phone = await store.findPhone(userId);
+    const [phone, { access, admin }] = await Promise.all([
+      store.findPhone(userId),
+      accessOf(userId),
+    ]);
     return {
-      available: await canUse(userId),
+      available: isAvailable() && (access !== 'none' || env.whatsappAllowedEmails.includes('*')),
+      access,
+      admin,
       linked: phone !== null,
       phone: phone && maskPhone(phone),
       botNumber: env.whatsappBotNumber ?? null,
@@ -270,10 +351,64 @@ export function createWhatsappService(deps = {}) {
   }
 
   /**
+   * Pide acceso al bot y le avisa al equipo por correo. Pedirlo dos veces no cambia nada.
+   * @param {string} userId
+   * @returns {Promise<object>} Estado de la conexión, como `status`.
+   * @throws {AppError} 403 si el bot no está abierto a solicitudes.
+   */
+  async function requestAccess(userId) {
+    const current = await status(userId);
+    if (!current.available) {
+      throw new AppError(403, 'FORBIDDEN', 'WhatsApp aún no está disponible para tu cuenta');
+    }
+    if (current.access !== 'none' || !(await store.requestAccess(userId))) return current;
+    const user = await findUser(userId);
+    await mailAdmins(
+      'Rinde: alguien pidió acceso al bot de WhatsApp',
+      `${user.email} pidió usar el bot de WhatsApp.\nApruébalo o recházalo en ${env.appUrl}/app/whatsapp/admin`,
+    );
+    return { ...current, access: 'pending' };
+  }
+
+  /**
+   * Panel del equipo: respuestas del mes y quién pidió acceso.
+   * @returns {Promise<{ month: { sent: number, max: number }, users: object[] }>}
+   */
+  async function adminOverview() {
+    const [sent, users] = await Promise.all([store.countMonthSends(), store.listAccess()]);
+    return {
+      month: { sent, max: monthlyMax },
+      users: users.map((u) => ({ ...u, status: ACCESS[u.status] })),
+    };
+  }
+
+  /**
+   * Aprueba o rechaza el acceso de un usuario y, si lo aprueba, le avisa por correo.
+   * @param {string} userId
+   * @param {'approved'|'rejected'} access
+   * @returns {Promise<void>}
+   * @throws {AppError} 404 si el usuario no existe.
+   */
+  async function setAccess(userId, access) {
+    const email = await store.setAccess(userId, ACCESS_TO_DB[access]);
+    if (!email) throw new AppError(404, 'NOT_FOUND', 'Usuario no encontrado');
+    if (access !== 'approved') return;
+    const text = `Ya puedes anotar tus movimientos por WhatsApp.\nConecta tu número en ${env.appUrl}/app/cuenta`;
+    await mail({
+      to: email,
+      subject: 'Ya tienes WhatsApp en Rinde',
+      text,
+      html: `<p>${text.replaceAll('\n', '<br>')}</p>`,
+    }).catch((err) => {
+      console.error(`No se pudo avisar la aprobación por correo (${err.message})`);
+    });
+  }
+
+  /**
    * Genera el código de un solo uso que el usuario le envía al bot.
    * @param {string} userId
    * @returns {Promise<{ code: string, expiresAt: Date, botNumber: string|null }>}
-   * @throws {AppError} 403 si el usuario no está en la lista.
+   * @throws {AppError} 403 si el usuario no tiene acceso.
    */
   async function createLinkCode(userId) {
     if (!(await canUse(userId))) {
@@ -358,14 +493,13 @@ export function createWhatsappService(deps = {}) {
    * mensajes fuera de la ventana de 24 horas: el error se deja al llamador.
    * @param {string} userId
    * @param {string} text
-   * @returns {Promise<boolean>} `false` si el usuario no tiene el bot.
+   * @returns {Promise<boolean>} `false` si el usuario no tiene el bot o ya se llegó al tope del mes.
    */
   async function notify(userId, text) {
     if (!(await canUse(userId))) return false;
     const phone = await store.findPhone(userId);
     if (!phone) return false;
-    await send(phone, text);
-    return true;
+    return deliver(phone, text, userId);
   }
 
   /**
@@ -433,37 +567,45 @@ export function createWhatsappService(deps = {}) {
   async function handleMessage(message) {
     const { from, text } = message;
     const candidate = text?.toUpperCase() ?? '';
-    if (CODE_RE.test(candidate)) {
-      const result = await store.confirmLink({ codeHash: hashCode(candidate), phone: from });
-      const replies = { linked: REPLIES.linked, invalid: REPLIES.invalidCode, taken: REPLIES.taken };
-      await send(from, replies[result]);
-      return;
-    }
-
-    const userId = await store.findUserIdByPhone(from);
+    const isCode = CODE_RE.test(candidate);
+    const userId = isCode ? null : await store.findUserIdByPhone(from);
     if (!userId) {
-      await send(from, REPLIES.unlinked);
+      // Cualquiera puede escribirle al número: a quien no está conectado se le responde poco.
+      if ((await store.countStrangerSends(hashCode(from))) >= STRANGER_DAILY_MAX) return;
+      if (!isCode) {
+        await deliver(from, REPLIES.unlinked);
+        return;
+      }
+      const result = await store.confirmLink({ codeHash: hashCode(candidate), phone: from });
+      const replies = {
+        linked: REPLIES.linked,
+        invalid: REPLIES.invalidCode,
+        taken: REPLIES.taken,
+      };
+      await deliver(from, replies[result]);
       return;
     }
+    // A quien se le quitó el acceso no se le responde: cada respuesta se cobra.
+    if ((await accessOf(userId)).access !== 'approved') return;
     const used = await store.countRecentMessages(userId);
     if (used >= dailyMax) {
       // Cada respuesta se cobra: el aviso va solo al primer mensaje de más (que queda contado) y
       // los siguientes se ignoran hasta que la ventana de 24 h libere cupo.
       if (used === dailyMax && (await store.claimMessage({ messageId: message.id, userId }))) {
-        await send(from, REPLIES.dailyLimit);
+        await deliver(from, REPLIES.dailyLimit, userId);
       }
       return;
     }
     if (!(await store.claimMessage({ messageId: message.id, userId }))) return;
     if (text === null) {
-      await send(from, REPLIES.textOnly);
+      await deliver(from, REPLIES.textOnly, userId);
       return;
     }
     const reply = await register(userId, { id: message.id, text }).catch((err) => {
       console.error(`No se pudo registrar un mensaje de WhatsApp (${err.message})`);
       return REPLIES.failed;
     });
-    await send(from, reply);
+    await deliver(from, reply, userId);
   }
 
   /**
@@ -479,7 +621,26 @@ export function createWhatsappService(deps = {}) {
     }
   }
 
-  return { status, createLinkCode, unlink, handleMessage, handleWebhook, notify };
+  return {
+    status,
+    requestAccess,
+    adminOverview,
+    setAccess,
+    createLinkCode,
+    unlink,
+    handleMessage,
+    handleWebhook,
+    notify,
+  };
 }
 
-export const { status, createLinkCode, unlink, handleWebhook, notify } = createWhatsappService();
+export const {
+  status,
+  requestAccess,
+  adminOverview,
+  setAccess,
+  createLinkCode,
+  unlink,
+  handleWebhook,
+  notify,
+} = createWhatsappService();

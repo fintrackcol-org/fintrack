@@ -20,6 +20,15 @@ const accessTokens = new Map();
 /** refresh token → email */
 const refreshTokens = new Map();
 let whatsappLinked = false;
+/** Acceso al bot del usuario de los mocks; `?whatsapp=pedir` en la URL lo deja sin pedir. */
+let whatsappAccess = new URLSearchParams(globalThis.location?.search).get('whatsapp') === 'pedir' ? 'none' : 'approved';
+/** Solicitudes de ejemplo del panel del equipo. */
+const whatsappRequests = [
+  { userId: 'wa-1', email: 'laura.gomez@ejemplo.co', name: 'Laura', status: 'pending', requestedAt: new Date().toISOString(), linked: false, monthSends: 0 },
+  { userId: 'wa-2', email: 'andres@ejemplo.co', name: 'Andrés', status: 'approved', requestedAt: new Date(Date.now() - 3 * 86400000).toISOString(), linked: true, monthSends: 41 },
+  { userId: 'wa-3', email: 'nicolas@ejemplo.co', name: null, status: 'approved', requestedAt: new Date(Date.now() - 5 * 86400000).toISOString(), linked: false, monthSends: 0 },
+  { userId: 'wa-4', email: 'desconocido@ejemplo.co', name: null, status: 'rejected', requestedAt: new Date(Date.now() - 9 * 86400000).toISOString(), linked: false, monthSends: 0 },
+];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -938,6 +947,8 @@ export const handlers = [
     if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
     return HttpResponse.json({
       available: true,
+      access: whatsappAccess,
+      admin: true,
       linked: whatsappLinked,
       phone: whatsappLinked ? '•••• 3374' : null,
       botNumber: '15551773374',
@@ -953,6 +964,25 @@ export const handlers = [
       { code: 'FT-AB23CD45', expiresAt: new Date(Date.now() + 600000).toISOString(), botNumber: '15551773374' },
       { status: 201 },
     );
+  }),
+
+  http.post(`${API_V1}/whatsapp/link/request`, ({ request }) => {
+    if (!authUser(request)) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    whatsappAccess = 'pending';
+    return HttpResponse.json({ available: true, access: 'pending', admin: true, linked: false, phone: null, botNumber: '15551773374' });
+  }),
+
+  http.get(`${API_V1}/whatsapp/admin`, ({ request }) => {
+    if (!authUser(request)) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    return HttpResponse.json({ month: { sent: 742, max: 900 }, users: whatsappRequests });
+  }),
+
+  http.patch(`${API_V1}/whatsapp/admin/:userId`, async ({ request, params }) => {
+    if (!authUser(request)) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const row = whatsappRequests.find(({ userId }) => userId === params.userId);
+    if (!row) return error(404, 'NOT_FOUND', 'Usuario no encontrado');
+    row.status = (await readJson(request)).status;
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.delete(`${API_V1}/whatsapp/link`, ({ request }) => {

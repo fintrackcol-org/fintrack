@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { CIRCLES } from '@/components/dashboard/QuickActions';
 import { LINKS } from '@/pages/app/Account';
 
-/** Rutas que no necesitan entrada: el inicio, redirecciones, flujos automáticos y la vista de administración. */
-const NO_ENTRY = ['/app', '/app/bienvenida', '/app/mes', '/app/transacciones', '/app/lo-que-viene/admin'];
+/** Rutas que no necesitan entrada: el inicio, redirecciones, flujos automáticos y las vistas de administración. */
+const NO_ENTRY = ['/app', '/app/bienvenida', '/app/mes', '/app/transacciones', '/app/lo-que-viene/admin', '/app/whatsapp/admin'];
 
 /** Entradas que están dentro de una pantalla, no en una lista. */
 const INSIDE_SCREENS = {

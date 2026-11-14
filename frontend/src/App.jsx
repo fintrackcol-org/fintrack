@@ -38,6 +38,7 @@ const Invite = lazy(() => import('@/pages/app/Invite'));
 const Plans = lazy(() => import('@/pages/app/Plans'));
 const Roadmap = lazy(() => import('@/pages/app/Roadmap'));
 const IdeasAdmin = lazy(() => import('@/pages/app/IdeasAdmin'));
+const WhatsappAdmin = lazy(() => import('@/pages/app/WhatsappAdmin'));
 const Vacas = lazy(() => import('@/pages/app/Vacas'));
 const Metas = lazy(() => import('@/pages/app/Metas'));
 const Cards = lazy(() => import('@/pages/app/Cards'));
@@ -90,6 +91,7 @@ function OldMovements() {
  * `/app/transacciones/exportar` descarga de movimientos · `/app/cuenta` tema, notificaciones y sesión ·
  * `/app/renta` enlaces a la DIAN · `/app/invitar` compartir Rinde · `/app/planes` planes de ejemplo ·
  * `/app/lo-que-viene` ideas y votos · `/app/lo-que-viene/admin` panel del equipo ·
+ * `/app/whatsapp/admin` respuestas del bot en el mes y quién puede usarlo (equipo) ·
  * `/app/metas` metas de ahorro personales (vacas de una sola persona) · `/app/metas/:id` su avance ·
  * `/app/vacas` metas de ahorro en grupo · `/app/vacas/:id` seguimiento de aportes · `/app/vacas/unirse/:code`
  * enlace de invitación (FT-0014/FT-0015) · `/app/negocios` emprendimientos compartidos · `/app/negocios/:id`
@@ -147,6 +149,7 @@ export default function App() {
                 <Route path="/app/planes" element={<Plans />} />
                 <Route path="/app/lo-que-viene" element={<Roadmap />} />
                 <Route path="/app/lo-que-viene/admin" element={<IdeasAdmin />} />
+                <Route path="/app/whatsapp/admin" element={<WhatsappAdmin />} />
                 <Route path="/app/tarjetas" element={<Cards />} />
                 <Route path="/app/tarjetas/:id" element={<CardDetail />} />
                 <Route path="/app/cuentas" element={<Debts />} />

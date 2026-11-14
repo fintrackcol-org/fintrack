@@ -24,7 +24,10 @@ const adminEmails = (process.env.ADMIN_EMAILS || '')
   .map((email) => email.trim().toLowerCase())
   .filter(Boolean);
 
-/** Correos que pueden usar el bot de WhatsApp, separados por coma; `*` es para todos. Vacío: nadie. */
+/**
+ * Correos con acceso directo al bot de WhatsApp, separados por coma. Con `*`, además, cualquiera
+ * puede pedir acceso y el equipo lo aprueba. Vacío: nadie.
+ */
 const whatsappAllowedEmails = (process.env.WHATSAPP_ALLOWED_EMAILS || '')
   .split(',')
   .map((email) => email.trim().toLowerCase())
@@ -115,8 +118,9 @@ if (nodeEnv === 'production' && !process.env.JWT_SECRET) {
  * @property {string|undefined} whatsappAppSecret Clave secreta de la app, valida la firma del webhook (`WHATSAPP_APP_SECRET`).
  * @property {string|undefined} whatsappVerifyToken Texto con el que Meta verifica el webhook (`WHATSAPP_VERIFY_TOKEN`).
  * @property {string|undefined} whatsappBotNumber Número del bot con indicativo, solo dígitos (`WHATSAPP_BOT_NUMBER`); arma el enlace para abrir el chat.
- * @property {string[]} whatsappAllowedEmails Correos que pueden conectar el bot (`WHATSAPP_ALLOWED_EMAILS`).
+ * @property {string[]} whatsappAllowedEmails Correos con acceso directo al bot; `*` deja pedir acceso a cualquiera (`WHATSAPP_ALLOWED_EMAILS`).
  * @property {number} whatsappDailyMax Mensajes al bot por usuario y día (`WHATSAPP_DAILY_MAX`, por defecto 30).
+ * @property {number} whatsappMonthlyMax Respuestas del bot por mes entre todos; al llegar, deja de responder (`WHATSAPP_MONTHLY_MAX`, por defecto 900).
  * @property {string[]} attachmentsAllowedEmails Quién puede adjuntar soportes (`ATTACHMENTS_ALLOWED_EMAILS`; `*` para todos).
  * @property {string[]} shortcutsAllowedEmails Quién puede mandar pagos desde Atajos del iPhone (`SHORTCUTS_ALLOWED_EMAILS`; `*` para todos).
  * @property {string|undefined} supabaseUrl URL del proyecto de Supabase para guardar los soportes (`SUPABASE_URL`).
@@ -164,6 +168,7 @@ export const env = {
   whatsappBotNumber: process.env.WHATSAPP_BOT_NUMBER?.replace(/\D/g, '') || undefined,
   whatsappAllowedEmails,
   whatsappDailyMax: Number(process.env.WHATSAPP_DAILY_MAX) || 30,
+  whatsappMonthlyMax: Number(process.env.WHATSAPP_MONTHLY_MAX) || 900,
   attachmentsAllowedEmails,
   shortcutsAllowedEmails,
   supabaseUrl: process.env.SUPABASE_URL?.trim().replace(/\/$/, '') || undefined,
