@@ -113,16 +113,19 @@ export function parseSpokenTransaction(text, now = new Date()) {
     text: match[0].trim(),
     value: toNumber(match[1]) * unitValue(match[1], match[2]),
     plain: !match[2], // sin unidad: puede ser una cantidad ("2 almuerzos")
+    index: match.index,
+    beforeWord: /^\s*\p{L}/u.test(lower.slice(match.index + match[0].length)), // "2 cabezas"
     atEnd: lower.slice(match.index + match[0].length).trim() === '',
   }));
   for (const [pattern, value] of SPOKEN_AMOUNTS) {
     const match = lower.match(pattern);
-    if (match) found.push({ text: match[0], value, plain: false, atEnd: false });
+    if (match) found.push({ text: match[0], value, plain: false, index: match.index, atEnd: false });
   }
   // "tres almuerzos de 15 mil": la cantidad en palabras cuenta como un número más. No se toma si
-  // va antes de "mil" o "millones" ("dos mil"), porque ahí es parte del monto.
+  // va antes de "mil" o "millones" ("dos mil"), porque ahí es parte del monto, ni si va después
+  // del monto: en "11.000 de tomate y dos cabezas de ajo" describe lo comprado, no el precio.
   const word = found.length === 1 && lower.match(QUANTITY_WORD);
-  if (word) found.push({ text: word[0], value: QUANTITY_WORDS.indexOf(word[1]) + 2, plain: true, atEnd: false });
+  if (word && word.index < found[0].index) found.push({ text: word[0], value: QUANTITY_WORDS.indexOf(word[1]) + 2, plain: true, atEnd: false });
 
   const biggest = found.reduce((best, item) => (item.value > (best?.value ?? 0) ? item : best), null);
   // El dictado a veces se come el "mil" ("3 almuerzos de 15"). Nadie paga $15 pesos: un número
@@ -130,8 +133,14 @@ export function parseSpokenTransaction(text, now = new Date()) {
   if (biggest?.plain && biggest.atEnd && biggest.value < 100) biggest.value *= 1000;
   const amount = biggest && biggest.value > 0 && biggest.value <= MAX_AMOUNT ? biggest.value : null;
 
+  // "11.000 de tomate y 2 cabezas de ajo", "2 libras de arroz y 3 tomates por 8 mil": las cantidades
+  // que van después del monto, o varias a la vez, describen lo comprado; no son precio ni total.
+  const counts = found.filter((item) => item !== biggest && isQuantity(item));
+  const described = counts.filter((item) => counts.length > 1 || (item.index > biggest.index && item.beforeWord));
+  const amounts = found.filter((item) => !described.includes(item));
+
   // "2 almuerzos de 12 mil": se ofrece el precio dicho y el total; la persona elige.
-  const quantity = found.length === 2 ? found.find((item) => item !== biggest && isQuantity(item)) : null;
+  const quantity = amounts.length === 2 ? amounts.find((item) => item !== biggest && isQuantity(item)) : null;
   const total = quantity && amount * quantity.value <= MAX_AMOUNT ? amount * quantity.value : null;
   const options = amount ? (total ? [amount, total] : [amount]) : [];
 
@@ -142,7 +151,7 @@ export function parseSpokenTransaction(text, now = new Date()) {
   if (description) description = description[0].toUpperCase() + description.slice(1);
   else if (type === 'ingreso') description = 'Pago recibido';
 
-  return { type, amount, options, description, date, ambiguous: found.length > 1 };
+  return { type, amount, options, description, date, ambiguous: amounts.length > 1 };
 }
 
 /**
