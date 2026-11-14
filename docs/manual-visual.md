@@ -91,6 +91,7 @@ Reglas: respetar `prefers-reduced-motion` (`motion-safe:`, `MotionConfig reduced
 - Cada gráfico responde **una pregunta** (¿en qué gasto?, ¿cuánto me queda?, ¿voy dentro del presupuesto?). Si no la responde, no se pone.
 - Ingresos y gastos usan `chart-income` / `chart-expense`; categorías usan `chart-cat-*`, con nombre y valor visibles.
 - Lo estimado o proyectado se rotula y no se presenta como dato cierto.
+- **Reportes exportados (Excel y PDF) y su vista previa en Exportar (FT-0012):** ingresos en `positive` y gastos en el violeta de marca; las categorías van todas en violeta, distinguidas por nombre y largo de barra, no por un color cada una. El rojo queda solo para alertas (presupuesto excedido, balance negativo). Es una excepción aprobada el 13-nov-2026 para los documentos; dentro de la app los gráficos siguen con `chart-income` / `chart-expense`. El logo va a color sobre `#F5F4F9`. Componente: `export/ReportPreview.jsx`.
 - **Semáforo del calendario (FT-0069):** `positive` te alcanza con holgura, `caution` te queda poco, `negative` no alcanza o está atrasado. Sale de lo que queda después de los pagos del día. Siempre con leyenda visible; el rojo lleva además el signo `!`. Un pago sin saldo calculado va en `ink/60` y lo que entra en `brand`, para no confundirlos con el verde.
 
 ## 9. Estados que toda pantalla debe resolver

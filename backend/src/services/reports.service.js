@@ -1,6 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import { listForExport } from '../repositories/transactions.repository.js';
-import { buildReport, isWholeMonth } from './report-data.service.js';
+import { buildReport, isWholeMonth, pointLabel } from './report-data.service.js';
 import { buildWorkbook } from './report-excel.service.js';
 import { buildPdf } from './report-pdf.service.js';
 
@@ -78,6 +78,54 @@ export function exportFilename(from, to, extension) {
   return `rinde_${period}.${extension}`;
 }
 
+/** Cuántas filas del CSV se muestran en la vista previa. */
+const PREVIEW_ROWS = 5;
+
+/**
+ * Vista previa del reporte del periodo: las cifras que traerán los archivos, antes de descargarlos.
+ * Sale de `buildReport`, el mismo modelo del Excel y el PDF, y el trozo de CSV lo arma `toCsv`:
+ * lo que se ve en pantalla es lo que queda en el archivo.
+ * @param {string} userId
+ * @param {{ from: string, to: string }} period Fechas ya validadas.
+ * @returns {Promise<object>} Totales, categorías, serie, hallazgos y las primeras filas del CSV.
+ * @throws {AppError} 422 `NO_DATA` si no hay movimientos en el periodo (REQ-033).
+ */
+export async function previewReport(userId, { from, to }) {
+  const report = await buildReport(userId, { from, to });
+  if (!report) throw noData();
+  const { granularity, points } = report.series;
+  const sample = report.rows.slice(0, PREVIEW_ROWS);
+  return {
+    period: report.period,
+    generatedOn: report.generatedOn,
+    totals: report.totals,
+    expenseByCategory: report.expenseByCategory,
+    series: {
+      granularity,
+      points: points.map((p) => ({
+        label: pointLabel(p, granularity),
+        income: p.income,
+        expense: p.expense,
+      })),
+    },
+    insights: report.insights,
+    hasBudgets: report.budgets.length > 0,
+    csv: {
+      columns: HEADER,
+      rows: sample.map((row) => [
+        row.date,
+        TYPE_LABELS[row.type],
+        row.categoryName ?? 'Sin clasificar',
+        row.description,
+        row.amount,
+        SOURCE_LABELS[row.source],
+      ]),
+      // El texto tal cual queda en el archivo (sin la marca invisible del inicio).
+      text: toCsv(sample).slice(BOM.length).trimEnd(),
+    },
+  };
+}
+
 /** @returns {AppError} 422 `NO_DATA`: no hay movimientos en el periodo (REQ-033). */
 function noData() {
   return new AppError(422, 'NO_DATA', 'No hay movimientos en el periodo seleccionado');
@@ -90,11 +138,12 @@ function noData() {
  * - `csv`: los movimientos en texto plano, para importarlos en otras herramientas.
  * Excel y PDF salen de `buildReport`, así sus cifras siempre coinciden.
  * @param {string} userId
- * @param {{ format: 'xlsx'|'csv'|'pdf', from: string, to: string }} query Datos ya validados.
+ * @param {{ format: 'xlsx'|'csv'|'pdf', from: string, to: string, detail?: boolean }} query Datos ya
+ *   validados. `detail: false` deja el PDF sin la tabla de movimientos.
  * @returns {Promise<{ filename: string, contentType: string, body: string|Buffer }>}
  * @throws {AppError} 422 `NO_DATA` si no hay movimientos en el periodo (REQ-033).
  */
-export async function exportTransactions(userId, { format, from, to }) {
+export async function exportTransactions(userId, { format, from, to, detail = true }) {
   if (format === 'xlsx' || format === 'pdf') {
     const report = await buildReport(userId, { from, to });
     if (!report) throw noData();
@@ -102,7 +151,7 @@ export async function exportTransactions(userId, { format, from, to }) {
     return {
       filename: exportFilename(from, to, format),
       contentType: pdf ? 'application/pdf' : XLSX_TYPE,
-      body: pdf ? await buildPdf(report) : await buildWorkbook(report),
+      body: pdf ? await buildPdf(report, { detail }) : await buildWorkbook(report),
     };
   }
 

@@ -1,8 +1,9 @@
 /**
- * Exportación de movimientos, según `docs/api/openapi.yaml` (`GET /reports/export`, FT-0012).
+ * Exportación de movimientos, según `docs/api/openapi.yaml` (`GET /reports/export` y
+ * `GET /reports/preview`, FT-0012).
  */
 import { authFetch } from '@/lib/authFetch';
-import { CONNECTION_ERROR, toApiError } from '@/lib/apiRequest';
+import { apiRequest, CONNECTION_ERROR, toApiError } from '@/lib/apiRequest';
 
 /**
  * Saca el nombre del archivo de `Content-Disposition: attachment; filename="rinde_2026-10.csv"`.
@@ -16,13 +17,25 @@ export function filenameFrom(header, fallback) {
 }
 
 /**
+ * Pide las cifras del reporte del periodo, para mostrarlas antes de descargar.
+ * @param {{ from: string, to: string }} range Fechas AAAA-MM-DD.
+ * @returns {Promise<object>} Totales, categorías, serie, hallazgos y las primeras filas del CSV.
+ * @throws {Error} Con `code` (`NO_DATA` si no hay movimientos en el periodo).
+ */
+export function previewReport({ from, to }) {
+  return apiRequest(`/reports/preview?${new URLSearchParams({ from, to })}`);
+}
+
+/**
  * Pide el archivo de exportación del periodo.
- * @param {{ format: 'csv'|'pdf', from: string, to: string }} options Fechas AAAA-MM-DD.
+ * @param {{ format: 'xlsx'|'csv'|'pdf', from: string, to: string, detail?: boolean }} options Fechas
+ *   AAAA-MM-DD. `detail: false` deja el PDF sin la tabla de movimientos.
  * @returns {Promise<{ blob: Blob, filename: string }>}
  * @throws {Error} Con `code` (`NO_DATA` si no hay movimientos en el periodo, REQ-033).
  */
-export async function exportTransactions({ format, from, to }) {
+export async function exportTransactions({ format, from, to, detail = true }) {
   const query = new URLSearchParams({ format, from, to });
+  if (!detail) query.set('detail', 'false');
   let res;
   try {
     res = await authFetch(`/reports/export?${query}`);

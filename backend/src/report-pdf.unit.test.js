@@ -61,8 +61,24 @@ test('buildPdf genera un PDF válido con su título', async () => {
   assert.ok(Buffer.isBuffer(pdf));
   assert.equal(pdf.subarray(0, 5).toString(), '%PDF-');
   assert.match(pdf.subarray(-8).toString(), /%%EOF/);
-  assert.match(pdf.toString('latin1'), /Reporte de movimientos/, 'el título va en los metadatos');
-  assert.equal(pageCount(pdf), 2, 'resumen y movimientos');
+  assert.match(pdf.toString('latin1'), /Reporte financiero/, 'el título va en los metadatos');
+  assert.equal(pageCount(pdf), 2, 'el resumen y, donde quepa, el detalle');
+});
+
+test('sin detalle, el PDF trae solo el resumen aunque haya muchos movimientos', async () => {
+  const rows = Array.from({ length: 200 }, (_, i) => tx({ description: `Movimiento ${i + 1}`, amount: 1000 + i }));
+  const full = pageCount(await buildPdf(report(rows)));
+  const summary = pageCount(await buildPdf(report(rows), { detail: false }));
+  assert.ok(full >= 6, 'con detalle la tabla ocupa varias páginas');
+  assert.ok(summary <= 2);
+});
+
+test('buildPdf funciona con solo ingresos, un solo día y un periodo que aún no empieza', async () => {
+  const income = tx({ type: 'ingreso', categoryName: 'Salario', amount: 5000 });
+  for (const options of [{}, { from: '2026-10-10', to: '2026-10-10' }, { from: '2026-12-01', to: '2026-12-31' }]) {
+    const pdf = await buildPdf(report([{ ...income, date: options.from ?? income.date }], options));
+    assert.equal(pdf.subarray(0, 5).toString(), '%PDF-');
+  }
 });
 
 test('la tabla de movimientos continúa en más páginas cuando no cabe', async () => {

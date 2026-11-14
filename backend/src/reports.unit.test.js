@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { escapeCell, exportFilename, formatAmount, toCsv } from './services/reports.service.js';
-import { parseExportQuery } from './validators/reports.validator.js';
+import { parseExportQuery, parsePreviewQuery } from './validators/reports.validator.js';
 
 /**
  * Comprueba que `fn` lance un 422 VALIDATION_ERROR con exactamente esos campos en `details`.
@@ -26,7 +26,7 @@ function assertInvalid(fn, fields) {
 test('parseExportQuery acepta csv y pdf y devuelve solo los campos conocidos', () => {
   assert.deepEqual(
     parseExportQuery({ format: 'csv', from: '2026-10-01', to: '2026-10-31', admin: 'true' }),
-    { format: 'csv', from: '2026-10-01', to: '2026-10-31' },
+    { format: 'csv', from: '2026-10-01', to: '2026-10-31', detail: true },
   );
   assert.equal(parseExportQuery({ format: 'pdf', from: '2026-10-01', to: '2026-10-01' }).format, 'pdf');
 });
@@ -46,6 +46,22 @@ test('parseExportQuery rechaza fechas que no existen o con otro formato', () => 
 
 test('parseExportQuery exige que from no sea posterior a to', () => {
   assertInvalid(() => parseExportQuery({ format: 'csv', from: '2026-10-31', to: '2026-10-01' }), ['to']);
+});
+
+test('parseExportQuery acepta detail=false y rechaza otros valores', () => {
+  const base = { format: 'pdf', from: '2026-10-01', to: '2026-10-31' };
+  assert.equal(parseExportQuery({ ...base, detail: 'false' }).detail, false);
+  assert.equal(parseExportQuery({ ...base, detail: 'true' }).detail, true);
+  assertInvalid(() => parseExportQuery({ ...base, detail: 'no' }), ['detail']);
+});
+
+test('parsePreviewQuery valida el rango y no pide formato', () => {
+  assert.deepEqual(parsePreviewQuery({ from: '2026-10-01', to: '2026-10-31', format: 'x' }), {
+    from: '2026-10-01',
+    to: '2026-10-31',
+  });
+  assertInvalid(() => parsePreviewQuery({ from: '2026-10-31', to: '2026-10-01' }), ['to']);
+  assertInvalid(() => parsePreviewQuery({}), ['from', 'to']);
 });
 
 // ---------------------------------------------------------------- armado del CSV

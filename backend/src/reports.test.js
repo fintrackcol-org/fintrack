@@ -120,11 +120,62 @@ test('exporta el reporte en Excel con resumen y movimientos', options, async () 
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(res.buffer);
-    assert.deepEqual(workbook.worksheets.map((w) => w.name), ['Resumen', 'Movimientos']);
+    assert.deepEqual(workbook.worksheets.map((w) => w.name), ['Resumen', 'Movimientos', 'Categorías', 'Evolución']);
     const summary = workbook.getWorksheet('Resumen');
     assert.equal(summary.getCell('B5').value.result, 350000);
-    assert.equal(summary.getCell('B6').value.result, 18000);
-    assert.equal(workbook.getWorksheet('Movimientos').rowCount, 4, 'encabezado, 2 movimientos y total');
+    assert.equal(summary.getCell('E5').value.result, 18000);
+    assert.equal(workbook.getWorksheet('Movimientos').rowCount, 5, 'encabezado, 2 movimientos y 2 totales');
+  });
+});
+
+test('la vista previa trae las mismas cifras que los archivos, solo del usuario', options, async () => {
+  await withApi(async (api) => {
+    const token = await newUser();
+    const other = await newUser();
+    await addTransaction(api, token, { type: 'ingreso', amount: 350000, description: 'Pago', category: 'salario', date: '2026-10-02' });
+    await addTransaction(api, token, { type: 'gasto', amount: 18000, description: 'Almuerzo; con postre', category: 'alimentacion', date: '2026-10-17' });
+    await addTransaction(api, other, { type: 'gasto', amount: 999, description: 'De otro', category: 'otros', date: '2026-10-07' });
+
+    const res = await api('/reports/preview?from=2026-10-01&to=2026-10-31', { token });
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('cache-control'), 'no-store');
+    const { totals, expenseByCategory, series, insights, csv } = res.body;
+    assert.deepEqual([totals.income, totals.expense, totals.balance, totals.count], [350000, 18000, 332000, 2]);
+    assert.deepEqual(expenseByCategory.map((c) => [c.name, c.amount]), [['Alimentación', 18000]]);
+    assert.equal(series.points.reduce((sum, p) => sum + p.expense, 0), 18000);
+    assert.ok(insights.length >= 2);
+    assert.deepEqual(csv.columns, ['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto', 'Origen']);
+    assert.deepEqual(csv.rows[1], ['2026-10-17', 'Gasto', 'Alimentación', 'Almuerzo; con postre', 18000, 'Manual']);
+
+    // El trozo de CSV es, letra por letra, el comienzo del archivo que se descarga.
+    const file = await api(EXPORT_OCT, { token });
+    assert.ok(file.text.replace(/^\uFEFF/, '').startsWith(csv.text));
+  });
+});
+
+test('la vista previa responde 422 sin movimientos o con fechas inválidas, y 401 sin token', options, async () => {
+  await withApi(async (api) => {
+    const token = await newUser();
+    const empty = await api('/reports/preview?from=2026-10-01&to=2026-10-31', { token });
+    assert.equal(empty.status, 422);
+    assert.equal(empty.body.error.code, 'NO_DATA');
+    const bad = await api('/reports/preview?from=2026-10-31&to=2026-10-01', { token });
+    assert.equal(bad.body.error.code, 'VALIDATION_ERROR');
+    assert.equal((await api('/reports/preview?from=2026-10-01&to=2026-10-31')).status, 401);
+  });
+});
+
+test('el PDF sin detalle es más corto que el completo', options, async () => {
+  await withApi(async (api) => {
+    const token = await newUser();
+    for (let day = 1; day <= 28; day += 1) {
+      await addTransaction(api, token, { type: 'gasto', amount: 1000 * day, description: `Gasto ${day}`, category: 'otros', date: `2026-10-${String(day).padStart(2, '0')}` });
+    }
+    const url = '/reports/export?format=pdf&from=2026-10-01&to=2026-10-31';
+    const full = await api(url, { token });
+    const summary = await api(`${url}&detail=false`, { token });
+    assert.equal(summary.status, 200);
+    assert.ok(summary.buffer.length < full.buffer.length);
   });
 });
 
