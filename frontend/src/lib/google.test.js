@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { chromeIntentUrl, inAppBrowser } from './google';
+import { describe, expect, it, vi } from 'vitest';
+import { chromeIntentUrl, credentialNonce, inAppBrowser, newGoogleNonce, takeGoogleNonce } from './google';
 
 const UA = {
   whatsappAndroid:
@@ -42,5 +42,29 @@ describe('chromeIntentUrl', () => {
     expect(url).toBe(
       'intent://rinde.app/login?a=1#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=https%3A%2F%2Frinde.app%2Flogin%3Fa%3D1;end',
     );
+  });
+});
+
+describe('nonce de Google', () => {
+  const tokenWith = (payload) =>
+    `h.${btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}.s`;
+
+  it('lee el nonce del token y tolera tokens dañados', () => {
+    expect(credentialNonce(tokenWith({ nonce: 'abc-123', email: 'ñandú@x.co' }))).toBe('abc-123');
+    expect(credentialNonce(tokenWith({ email: 'a@b.co' }))).toBeNull();
+    expect(credentialNonce('basura')).toBeNull();
+  });
+
+  it('el nonce guardado sirve una sola vez', () => {
+    const store = new Map();
+    vi.stubGlobal('localStorage', {
+      getItem: (k) => store.get(k) ?? null,
+      setItem: (k, v) => store.set(k, String(v)),
+      removeItem: (k) => store.delete(k),
+    });
+    const nonce = newGoogleNonce();
+    expect(takeGoogleNonce()).toBe(nonce);
+    expect(takeGoogleNonce()).toBeNull();
+    vi.unstubAllGlobals();
   });
 });

@@ -3,8 +3,16 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/auth/AuthContext';
-import { getReturnTo } from '@/auth/returnTo';
-import { GOOGLE_CLIENT_ID, chromeIntentUrl, inAppBrowser, loadGoogleIdentity } from '@/lib/google';
+import { getReturnTo, saveReturnTo } from '@/auth/returnTo';
+import {
+  GOOGLE_CLIENT_ID,
+  GOOGLE_REDIRECT_URI,
+  chromeIntentUrl,
+  inAppBrowser,
+  isInstalledApp,
+  loadGoogleIdentity,
+  newGoogleNonce,
+} from '@/lib/google';
 
 /** Logo oficial de Google en SVG. */
 function GoogleIcon() {
@@ -35,7 +43,9 @@ export default function SocialAuth({ mode = 'login' }) {
   const navigate = useNavigate();
   const { signInWithGoogle } = useAuth();
   const buttonRef = useRef(null);
-  const [inApp] = useState(() => inAppBrowser());
+  // La app instalada en iPhone no dice "Safari/" y parecería un navegador interno: se mira primero.
+  const [installed] = useState(isInstalledApp);
+  const [inApp] = useState(() => (installed ? null : inAppBrowser()));
   // loading | ready | failed | off | inapp
   const [status, setStatus] = useState(() => (!GOOGLE_CLIENT_ID ? 'off' : inApp ? 'inapp' : 'loading'));
   const [signingIn, setSigningIn] = useState(false);
@@ -61,11 +71,22 @@ export default function SocialAuth({ mode = 'login' }) {
     loadGoogleIdentity()
       .then((google) => {
         if (cancelled || !buttonRef.current) return;
-        google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: (response) => onCredential.current(response),
-          ux_mode: 'popup',
-        });
+        if (installed) {
+          // Redirección: Google vuelve a `/entrar/google` y esta página se pierde, con su estado.
+          saveReturnTo(location.state?.from);
+          google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            ux_mode: 'redirect',
+            login_uri: GOOGLE_REDIRECT_URI,
+            nonce: newGoogleNonce(),
+          });
+        } else {
+          google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: (response) => onCredential.current(response),
+            ux_mode: 'popup',
+          });
+        }
         google.accounts.id.renderButton(buttonRef.current, {
           type: 'standard',
           theme: 'filled_black',
@@ -85,7 +106,7 @@ export default function SocialAuth({ mode = 'login' }) {
     return () => {
       cancelled = true;
     };
-  }, [inApp]);
+  }, [installed, inApp]);
 
   return (
     <>

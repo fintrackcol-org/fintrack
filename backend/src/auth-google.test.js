@@ -155,3 +155,27 @@ test(
     }
   },
 );
+
+test('POST /auth/google/redirect devuelve el credential al frontend después de "#"', async () => {
+  const server = createApp().listen(0);
+  const post = (body) =>
+    fetch(`http://127.0.0.1:${server.address().port}/api/v1/auth/google/redirect`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(body),
+      redirect: 'manual',
+    });
+  try {
+    const ok = await post({ credential: 'aaa.bbb-1.c_c', g_csrf_token: 'x' });
+    assert.equal(ok.status, 303);
+    assert.equal(ok.headers.get('location'), `${env.appUrl}/entrar/google#credential=aaa.bbb-1.c_c`);
+
+    for (const body of [{}, { credential: 'no es un token' }, { credential: 'a.b.c#x' }]) {
+      const bad = await post(body);
+      assert.equal(bad.status, 303);
+      assert.equal(bad.headers.get('location'), `${env.appUrl}/entrar/google#error=google`);
+    }
+  } finally {
+    server.close();
+  }
+});
