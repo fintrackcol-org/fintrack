@@ -447,3 +447,25 @@ test('a quien le quitaron el acceso no le responde ni le guarda', async () => {
   assert.deepEqual(saved, []);
 });
 
+
+test('una cantidad en palabras después del monto describe la compra: no hace ambiguo el monto', () => {
+  const parsed = parseSpokenTransaction('11.000 de tomate ,papa amarilla ,y papa pastusa y dos cabezas de ajos.');
+  assert.equal(parsed.amount, 11_000);
+  assert.equal(parsed.ambiguous, false);
+  // Antes del monto sigue siendo una cantidad: se ofrece el precio y el total.
+  assert.deepEqual(parseSpokenTransaction('tres almuerzos de 15 mil').options, [15_000, 45_000]);
+});
+
+test('las cantidades con cifra que describen la compra tampoco hacen ambiguo el monto', () => {
+  for (const [text, amount] of [
+    ['11.000 de tomate, papa y 2 cabezas de ajo', 11_000],
+    ['compré 2 libras de arroz y 3 tomates por 8 mil', 8_000],
+  ]) {
+    const parsed = parseSpokenTransaction(text);
+    assert.equal(parsed.amount, amount, text);
+    assert.equal(parsed.ambiguous, false, text);
+  }
+  // Una sola cantidad antes del monto, o sola al final, sigue ofreciendo el total.
+  assert.equal(parseSpokenTransaction('2 almuerzos de 12 mil').ambiguous, true);
+  assert.equal(parseSpokenTransaction('almuerzo 12 mil x 2').ambiguous, true);
+});
