@@ -71,8 +71,8 @@ async function sendVerificationLink(user, mailer) {
     tokenHash: hashRefreshToken(token),
     expiresAt: new Date(Date.now() + VERIFY_TOKEN_HOURS * 60 * 60 * 1000),
   });
-  // Después de "#": el navegador no envía esa parte al servidor, así el token no queda en logs.
-  const link = `${env.appUrl}/verificar#token=${token}`;
+  // En ?token= y no en #token=: Brevo reescribe los enlaces para medir clics y pierde lo que va tras "#".
+  const link = `${env.appUrl}/verificar?token=${token}`;
   mailer({ to: user.email, link, hours: VERIFY_TOKEN_HOURS }).catch((err) => {
     console.error(`No se pudo enviar el correo de verificación (${err.message})`);
   });
@@ -205,8 +205,8 @@ export async function requestPasswordReset(email, mailer = sendPasswordResetEmai
     tokenHash: hashRefreshToken(token),
     expiresAt: new Date(Date.now() + RESET_TOKEN_MINUTES * 60 * 1000),
   });
-  // Después de "#": el navegador no envía esa parte al servidor, así el token no queda en logs.
-  const link = `${env.appUrl}/restablecer#token=${token}`;
+  // En ?token= y no en #token=: Brevo reescribe los enlaces para medir clics y pierde lo que va tras "#".
+  const link = `${env.appUrl}/restablecer?token=${token}`;
   mailer({ to: user.email, link, minutes: RESET_TOKEN_MINUTES }).catch((err) => {
     console.error(`No se pudo enviar el correo para recuperar la contraseña (${err.message})`);
   });

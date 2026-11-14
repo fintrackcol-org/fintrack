@@ -13,9 +13,9 @@ const backToLogin = (
 );
 
 /**
- * Pantalla del enlace para confirmar el correo (`/verificar#token=…`, FT-0016). Confirma el correo
- * apenas abre y entra a la app con la sesión que devuelve la API. El token viene después de "#",
- * que el navegador nunca envía al servidor; al leerlo se borra de la barra de direcciones.
+ * Pantalla del enlace para confirmar el correo (`/verificar?token=…`, FT-0016). Confirma el correo
+ * apenas abre y entra a la app con la sesión que devuelve la API. Acepta también `#token=` de los
+ * correos viejos; al leerlo se borra de la barra de direcciones.
  */
 export default function VerifyEmail() {
   usePageTitle('Confirmar correo');
@@ -23,7 +23,7 @@ export default function VerifyEmail() {
   const navigate = useNavigate();
   const { confirmEmail } = useAuth();
   // Se lee una sola vez, antes de limpiar la dirección.
-  const [token] = useState(() => new URLSearchParams(location.hash.slice(1)).get('token'));
+  const [token] = useState(() => new URLSearchParams(location.search || location.hash.slice(1)).get('token'));
   const [status, setStatus] = useState(token ? 'verifying' : 'expired');
   const [error, setError] = useState('');
   // En desarrollo React ejecuta los efectos dos veces: el segundo envío encontraría el enlace ya
@@ -31,8 +31,8 @@ export default function VerifyEmail() {
   const sent = useRef(false);
 
   useEffect(() => {
-    if (location.hash) navigate(location.pathname, { replace: true });
-  }, [location.hash, location.pathname, navigate]);
+    if (location.search || location.hash) navigate(location.pathname, { replace: true });
+  }, [location.search, location.hash, location.pathname, navigate]);
 
   const verify = useCallback(async () => {
     setStatus('verifying');

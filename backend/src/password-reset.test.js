@@ -69,7 +69,7 @@ async function requestToken(email) {
     mail = sent;
   });
   assert.ok(mail, 'debió enviarse el correo');
-  return { token: mail.link.split('#token=')[1], mail };
+  return { token: mail.link.split('?token=')[1], mail };
 }
 
 test(
@@ -84,8 +84,8 @@ test(
       assert.equal(mail.to, email);
       assert.equal(mail.minutes, RESET_TOKEN_MINUTES);
       assert.ok(
-        mail.link.startsWith(`${env.appUrl}/restablecer#token=`),
-        'el token va después de #',
+        mail.link.startsWith(`${env.appUrl}/restablecer?token=`),
+        'el token va en ?token= (Brevo borra lo que va después de #)',
       );
 
       // En la base solo queda la huella del token, nunca el token.

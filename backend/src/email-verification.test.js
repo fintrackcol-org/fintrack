@@ -73,7 +73,7 @@ async function captureLink(send) {
     mail = sent;
   });
   assert.ok(mail, 'debió enviarse el correo');
-  return { token: mail.link.split('#token=')[1], mail };
+  return { token: mail.link.split('?token=')[1], mail };
 }
 
 /**
@@ -95,7 +95,7 @@ test(
       const { token, mail } = await registerAndCapture(email);
       assert.equal(mail.to, email);
       assert.equal(mail.hours, VERIFY_TOKEN_HOURS);
-      assert.ok(mail.link.startsWith(`${env.appUrl}/verificar#token=`), 'el token va después de #');
+      assert.ok(mail.link.startsWith(`${env.appUrl}/verificar?token=`), 'el token va en ?token= (Brevo borra lo que va después de #)');
 
       // En la base solo queda la huella del token, nunca el token.
       const saved = await pool.query(
@@ -239,7 +239,7 @@ test(
       await requestPasswordReset(email, async (sent) => {
         mail = sent;
       });
-      const token = mail.link.split('#token=')[1];
+      const token = mail.link.split('?token=')[1];
       const reset = await api('/auth/reset-password', { token, password: 'clave-nueva-2' });
       assert.equal(reset.status, 204);
 
