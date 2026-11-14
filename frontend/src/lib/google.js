@@ -36,3 +36,28 @@ export function loadGoogleIdentity() {
   }
   return loading;
 }
+
+/**
+ * ¿La página está abierta en el navegador interno de una app (WhatsApp, Instagram, Facebook,
+ * TikTok…)? Ahí la ventana de Google no puede devolver el `credential` a la página y queda en
+ * blanco, aunque Google ya registró el acceso.
+ * @param {string} [ua] User agent; por defecto el del navegador.
+ * @returns {'android'|'ios'|null} El sistema si es un navegador interno; `null` si es uno normal.
+ */
+export function inAppBrowser(ua = navigator.userAgent) {
+  const named = /WhatsApp|Instagram|FBAN|FBAV|FB_IAB|Line\/|TikTok|musical_ly|BytedanceWebview|Snapchat/i.test(ua);
+  if (/Android/i.test(ua)) return named || /; wv\)/.test(ua) ? "android" : null;
+  // En iOS los navegadores de verdad dicen "Safari/" (Chrome y Firefox también); las vistas web de las apps no.
+  if (/iPhone|iPad|iPod/i.test(ua)) return named || !/Safari\//.test(ua) ? "ios" : null;
+  return named ? "android" : null;
+}
+
+/**
+ * Enlace que abre la dirección actual en Chrome desde un navegador interno de Android.
+ * @param {Location} [loc]
+ * @returns {string}
+ */
+export function chromeIntentUrl(loc = window.location) {
+  const fallback = encodeURIComponent(loc.href);
+  return `intent://${loc.host}${loc.pathname}${loc.search}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${fallback};end`;
+}
