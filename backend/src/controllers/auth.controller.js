@@ -1,3 +1,4 @@
+import { env } from '../config/env.js';
 import {
   login,
   loginWithGoogle,
@@ -52,6 +53,27 @@ export async function postLogin(req, res) {
 export async function postGoogle(req, res) {
   const session = await loginWithGoogle(parseGoogleCredential(req.body));
   res.json(session);
+}
+
+/** Forma de un id_token de Google (JWT): tres partes base64url separadas por puntos. */
+const JWT_SHAPE = /^[\w-]+\.[\w-]+\.[\w-]+$/;
+
+/**
+ * `POST /api/v1/auth/google/redirect`: aquí vuelve Google cuando se entra desde la app instalada
+ * (modo redirección; ahí la ventana emergente queda en blanco). Google envía un formulario con el
+ * `credential`; se devuelve tal cual al frontend después de "#" (el navegador no lo manda a ningún
+ * servidor) y el frontend inicia sesión con `POST /auth/google`, que es quien lo verifica.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {void}
+ */
+export function postGoogleRedirect(req, res) {
+  const credential = req.body?.credential;
+  const hash =
+    typeof credential === 'string' && credential.length < 8192 && JWT_SHAPE.test(credential)
+      ? `credential=${credential}`
+      : 'error=google';
+  res.redirect(303, `${env.appUrl}/entrar/google#${hash}`);
 }
 
 /**

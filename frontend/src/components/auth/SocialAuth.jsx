@@ -3,8 +3,16 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/auth/AuthContext';
-import { getReturnTo } from '@/auth/returnTo';
-import { GOOGLE_CLIENT_ID, loadGoogleIdentity } from '@/lib/google';
+import { getReturnTo, saveReturnTo } from '@/auth/returnTo';
+import {
+  GOOGLE_CLIENT_ID,
+  GOOGLE_REDIRECT_URI,
+  chromeIntentUrl,
+  inAppBrowser,
+  isInstalledApp,
+  loadGoogleIdentity,
+  newGoogleNonce,
+} from '@/lib/google';
 
 /** Logo oficial de Google en SVG. */
 function GoogleIcon() {
@@ -35,7 +43,11 @@ export default function SocialAuth({ mode = 'login' }) {
   const navigate = useNavigate();
   const { signInWithGoogle } = useAuth();
   const buttonRef = useRef(null);
-  const [status, setStatus] = useState(GOOGLE_CLIENT_ID ? 'loading' : 'off'); // loading | ready | failed | off
+  // La app instalada en iPhone no dice "Safari/" y parecería un navegador interno: se mira primero.
+  const [installed] = useState(isInstalledApp);
+  const [inApp] = useState(() => (installed ? null : inAppBrowser()));
+  // loading | ready | failed | off | inapp
+  const [status, setStatus] = useState(() => (!GOOGLE_CLIENT_ID ? 'off' : inApp ? 'inapp' : 'loading'));
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState('');
 
@@ -54,16 +66,27 @@ export default function SocialAuth({ mode = 'login' }) {
   };
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return undefined;
+    if (!GOOGLE_CLIENT_ID || inApp) return undefined;
     let cancelled = false;
     loadGoogleIdentity()
       .then((google) => {
         if (cancelled || !buttonRef.current) return;
-        google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: (response) => onCredential.current(response),
-          ux_mode: 'popup',
-        });
+        if (installed) {
+          // Redirección: Google vuelve a `/entrar/google` y esta página se pierde, con su estado.
+          saveReturnTo(location.state?.from);
+          google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            ux_mode: 'redirect',
+            login_uri: GOOGLE_REDIRECT_URI,
+            nonce: newGoogleNonce(),
+          });
+        } else {
+          google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: (response) => onCredential.current(response),
+            ux_mode: 'popup',
+          });
+        }
         google.accounts.id.renderButton(buttonRef.current, {
           type: 'standard',
           theme: 'filled_black',
@@ -83,7 +106,7 @@ export default function SocialAuth({ mode = 'login' }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [installed, inApp]);
 
   return (
     <>
@@ -95,7 +118,26 @@ export default function SocialAuth({ mode = 'login' }) {
         <span className="h-px flex-1 bg-white/10" />
       </div>
 
-      {status === 'off' ? (
+      {status === 'inapp' ? (
+        <div className="space-y-3 rounded-xl bg-white/5 px-4 py-4 text-center" role="note">
+          <p className="text-sm text-white/80">
+            Para entrar con Google, abre Rinde en {inApp === 'ios' ? 'Safari' : 'Chrome'}: el navegador de esta app
+            no lo permite. Con tu correo y contraseña sí puedes entrar aquí.
+          </p>
+          {inApp === 'android' ? (
+            <Button asChild variant="outline" size="lg" className="w-full text-base">
+              <a href={chromeIntentUrl()}>
+                <GoogleIcon />
+                Abrir en Chrome
+              </a>
+            </Button>
+          ) : (
+            <p className="text-xs text-white/60">
+              Toca el menú (··· o el ícono de compartir) y elige «Abrir en Safari».
+            </p>
+          )}
+        </div>
+      ) : status === 'off' ? (
         <Button type="button" variant="outline" size="lg" className="w-full text-base" disabled aria-describedby="google-soon">
           <GoogleIcon />
           Continuar con Google

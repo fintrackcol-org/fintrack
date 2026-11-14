@@ -1,8 +1,9 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import {
   postForgotPassword,
   postLogin,
   postGoogle,
+  postGoogleRedirect,
   postLogout,
   postRefresh,
   postRegister,
@@ -17,6 +18,7 @@ import { requireAuth } from '../middlewares/auth.middleware.js';
  * - `POST /register` → crea una cuenta y envía el correo de verificación (sin sesión).
  * - `POST /login`    → inicia sesión.
  * - `POST /google`   → inicia sesión (o crea la cuenta) con Google.
+ * - `POST /google/redirect` → vuelta de Google en modo redirección (app instalada): reenvía al frontend.
  * - `POST /refresh`  → renueva los tokens.
  * - `POST /logout`   → cierra la sesión (exige access token).
  * - `POST /forgot-password` → envía el enlace para recuperar la contraseña.
@@ -29,6 +31,8 @@ const router = Router();
 router.post('/register', postRegister);
 router.post('/login', postLogin);
 router.post('/google', postGoogle);
+// Google envía un formulario (no JSON) desde accounts.google.com.
+router.post('/google/redirect', express.urlencoded({ extended: false, limit: '16kb' }), postGoogleRedirect);
 router.post('/refresh', postRefresh);
 router.post('/logout', requireAuth, postLogout);
 router.post('/forgot-password', postForgotPassword);

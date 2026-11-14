@@ -15,6 +15,7 @@ const Privacy = lazy(() => import('@/pages/legal/Privacy'));
 const ForgotPassword = lazy(() => import('@/pages/auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('@/pages/auth/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/auth/VerifyEmail'));
+const GoogleReturn = lazy(() => import('@/pages/auth/GoogleReturn'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const Dashboard = lazy(() => import('@/pages/app/Dashboard'));
 const Welcome = lazy(() => import('@/pages/app/Welcome'));
@@ -85,7 +86,8 @@ function OldMovements() {
  * Rutas del frontend:
  * `/` landing · `/login` inicio de sesión · `/registro` crear cuenta · `/recuperar` pedir el enlace
  * para cambiar la contraseña · `/restablecer` contraseña nueva (enlace del correo) ·
- * `/verificar` confirmar el correo al registrarse (enlace del correo, FT-0016) · `*` 404.
+ * `/verificar` confirmar el correo al registrarse (enlace del correo, FT-0016) · `/entrar/google`
+ * vuelta de Google en la app instalada · `*` 404.
  * Zona privada, dentro del marco con menú (`AppShell`): `/app` inicio · `/app/mi-plata` saldo y movimientos · `/app/transacciones/nuevo` y `/app/transacciones/:id/editar` formulario completo ·
  * `/app/presupuestos` presupuestos por categoría y mes · `/app/insights` consejos con IA ·
  * `/app/transacciones/exportar` descarga de movimientos · `/app/cuenta` tema, notificaciones y sesión ·
@@ -120,6 +122,7 @@ export default function App() {
             <Route path="/recuperar" element={<ForgotPassword />} />
             <Route path="/restablecer" element={<ResetPassword />} />
             <Route path="/verificar" element={<VerifyEmail />} />
+            <Route path="/entrar/google" element={<GoogleReturn />} />
             <Route path="/terminos" element={<Terms />} />
             <Route path="/privacidad" element={<Privacy />} />
             <Route element={<ProtectedRoute />}>
