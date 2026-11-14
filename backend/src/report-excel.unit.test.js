@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import ExcelJS from 'exceljs';
-import { daysBetween, isWholeMonth, summarize } from './services/report-data.service.js';
+import JSZip from 'jszip';
+import { buildSeries, daysBetween, isWholeMonth, summarize } from './services/report-data.service.js';
 import { buildWorkbook } from './services/report-excel.service.js';
 import { parseExportQuery } from './validators/reports.validator.js';
 
@@ -113,6 +114,74 @@ test('summarize separa los totales por mes', () => {
   ]);
 });
 
+// ---------------------------------------------------------------- serie y hallazgos
+
+test('la serie va día por día, incluye los días sin movimientos y no pasa de hoy', () => {
+  const s = summarize(
+    [tx({ date: '2026-10-01', amount: 100 }), tx({ date: '2026-10-03', type: 'ingreso', categoryName: 'Salario', amount: 900 })],
+    { ...OCT, today: '2026-10-04' },
+  );
+  assert.equal(s.series.granularity, 'day');
+  assert.deepEqual(
+    s.series.points.map((p) => [p.from, p.income, p.expense]),
+    [
+      ['2026-10-01', 0, 100],
+      ['2026-10-02', 0, 0],
+      ['2026-10-03', 900, 0],
+      ['2026-10-04', 0, 0],
+    ],
+  );
+});
+
+test('la serie pasa a semanas y a meses en periodos largos, sin perder ni duplicar plata', () => {
+  const rows = [tx({ date: '2026-08-31', amount: 10 }), tx({ date: '2026-09-07', amount: 20 }), tx({ date: '2026-10-31', amount: 40 })];
+  const weekly = buildSeries(rows, '2026-08-31', '2026-10-31');
+  assert.equal(weekly.granularity, 'week');
+  assert.deepEqual([weekly.points[0].from, weekly.points[0].to, weekly.points[0].expense], ['2026-08-31', '2026-09-06', 10]);
+  assert.equal(weekly.points.at(-1).to, '2026-10-31', 'la última semana se corta en el fin del periodo');
+  assert.equal(weekly.points.reduce((sum, p) => sum + p.expense, 0), 70);
+
+  const monthly = buildSeries(rows, '2026-01-01', '2026-10-31');
+  assert.equal(monthly.granularity, 'month');
+  assert.equal(monthly.points.length, 10);
+  assert.deepEqual([monthly.points[7].from, monthly.points[7].to, monthly.points[7].expense], ['2026-08-01', '2026-08-31', 10]);
+});
+
+test('un periodo que todavía no empieza no tiene serie', () => {
+  assert.deepEqual(buildSeries([], '2026-12-01', '2026-11-13').points, []);
+});
+
+test('los hallazgos salen de las cifras del periodo y no opinan', () => {
+  const s = summarize(
+    [
+      tx({ date: '2026-10-02', type: 'ingreso', categoryName: 'Salario', amount: 1000 }),
+      tx({ date: '2026-10-05', categoryName: 'Vivienda', amount: 400 }),
+      tx({ date: '2026-10-05', categoryName: 'Transporte', amount: 100 }),
+      tx({ date: '2026-10-06', categoryName: 'Salud', amount: 60 }),
+      tx({ date: '2026-10-07', categoryName: 'Otros', amount: 40 }),
+    ],
+    OCT,
+  );
+  assert.deepEqual(s.topExpenseDay, { date: '2026-10-05', amount: 500, count: 2 });
+  assert.deepEqual(
+    s.insights.map((i) => i.kind),
+    ['top-category', 'balance', 'top-day', 'concentration'],
+  );
+  const text = (kind) => Object.values(s.insights.find((i) => i.kind === kind)).join(' ').replace(/\s/g, ' ');
+  assert.match(text('top-category'), /Vivienda .* 400, el 66,7 ?% de tus gastos/);
+  assert.match(text('balance'), /Entró más de lo que salió .* 400, el 40 ?% de tus ingresos.*no tu saldo/);
+  assert.match(text('top-day'), /El 5 de octubre .* 500 en 2 movimientos/);
+  assert.match(text('concentration'), /el 93,3 ?% del gasto Vivienda, Transporte, Salud/);
+});
+
+test('sin gastos no hay hallazgos de gasto, y con balance negativo se dice sin juzgar', () => {
+  const onlyIncome = summarize([tx({ type: 'ingreso', categoryName: 'Salario' })], OCT);
+  assert.deepEqual(onlyIncome.insights.map((i) => i.kind), ['balance']);
+  const negative = summarize([tx({ amount: 500 })], OCT).insights.find((i) => i.kind === 'balance');
+  assert.equal(negative.title, 'Salió más de lo que entró');
+  assert.doesNotMatch(negative.detail, /ingresos\.? de tus/);
+});
+
 // ---------------------------------------------------------------- libro de Excel
 
 /**
@@ -154,77 +223,154 @@ async function roundTrip(report) {
  */
 const shown = (cell) => (cell.value && typeof cell.value === 'object' && 'formula' in cell.value ? cell.value.result : cell.value);
 
-test('el libro tiene Resumen y Movimientos, en ese orden', async () => {
+/**
+ * Textos de una hoja, para buscar títulos y etiquetas sin depender de la celda exacta.
+ * @param {ExcelJS.Worksheet} ws
+ * @returns {string[]}
+ */
+function textsOf(ws) {
+  const texts = [];
+  ws.eachRow((row) => row.eachCell((cell) => typeof cell.value === 'string' && texts.push(cell.value)));
+  return texts;
+}
+
+test('el libro abre en Resumen y trae Movimientos, Categorías y Evolución', async () => {
   const wb = await roundTrip(sampleReport());
   assert.deepEqual(
     wb.worksheets.map((w) => w.name),
-    ['Resumen', 'Movimientos'],
+    ['Resumen', 'Movimientos', 'Categorías', 'Evolución'],
   );
 });
 
 test('los indicadores del resumen son fórmulas sobre Movimientos con el resultado ya calculado', async () => {
   const ws = (await roundTrip(sampleReport())).getWorksheet('Resumen');
-  assert.match(ws.getCell('B5').value.formula, /^SUM\(Movimientos!\$E\$2:\$E\$4\)$/);
+  assert.equal(ws.getCell('B5').value.formula, 'SUMIFS(Movimientos!$E$2:$E$4,Movimientos!$B$2:$B$4,"Ingreso")');
   assert.equal(shown(ws.getCell('B5')), 350000);
-  assert.equal(shown(ws.getCell('B6')), 20950);
-  assert.equal(ws.getCell('B7').value.formula, 'B5-B6');
-  assert.equal(shown(ws.getCell('B7')), 329050);
+  assert.equal(shown(ws.getCell('E5')), 20950);
+  assert.equal(ws.getCell('H5').value.formula, 'B5-E5');
+  assert.equal(shown(ws.getCell('H5')), 329050);
+  assert.equal(shown(ws.getCell('K5')), 3);
+  assert.equal(shown(ws.getCell('E6')), '2 movimientos');
   assert.equal(ws.getCell('B5').numFmt, '"$" #,##0;[Red]-"$" #,##0');
 });
 
-test('Movimientos separa ingreso y gasto y su total respeta los filtros', async () => {
+test('Movimientos trae las columnas del CSV, con fechas y montos que Excel puede operar', async () => {
   const ws = (await roundTrip(sampleReport())).getWorksheet('Movimientos');
-  assert.deepEqual(ws.getRow(1).values.slice(1), ['Fecha', 'Descripción', 'Categoría', 'Tipo', 'Ingreso', 'Gasto', 'Origen']);
-  assert.equal(ws.getCell('E2').value, 350000);
-  assert.equal(ws.getCell('F2').value, null);
-  assert.equal(ws.getCell('F5').value.formula, 'SUBTOTAL(109,F2:F4)');
+  assert.deepEqual(ws.getRow(1).values.slice(1), ['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto', 'Origen']);
+  assert.deepEqual(ws.getRow(2).values.slice(2), ['Ingreso', 'Salario', 'Pago', 350000, 'Manual']);
   assert.ok(ws.getCell('A2').value instanceof Date, 'las fechas son fechas de Excel, no texto');
+  assert.equal(typeof ws.getCell('E3').value, 'number');
+  assert.equal(ws.autoFilter, 'A1:F4');
+  assert.match(ws.getCell('E5').value.formula, /^SUMPRODUCT\(SUBTOTAL\(109,.*="Ingreso"\)\)$/, 'el total respeta los filtros');
+  assert.equal(shown(ws.getCell('E5')), 350000);
+  assert.equal(shown(ws.getCell('E6')), 20950);
 });
 
 test('una descripción que empieza por = queda como texto, no como fórmula', async () => {
   const ws = (await roundTrip(sampleReport())).getWorksheet('Movimientos');
-  assert.equal(ws.getCell('B3').value, '=HYPERLINK("http://x")');
-  assert.equal(ws.getCell('B3').type, ExcelJS.ValueType.String);
+  assert.equal(ws.getCell('D3').value, '=HYPERLINK("http://x")');
+  assert.equal(ws.getCell('D3').type, ExcelJS.ValueType.String);
 });
 
-test('el resumen incluye el top de gastos y los presupuestos con su estado', async () => {
-  const report = sampleReport({
-    budgets: [{ category: 'Transporte', limit: 2000, spent: 2950, available: -950, usage: 1.475, level: 'exceeded_100' }],
-  });
-  const ws = (await roundTrip(report)).getWorksheet('Resumen');
-  const texts = [];
-  ws.eachRow((row) => row.eachCell((cell) => typeof cell.value === 'string' && texts.push(cell.value)));
-  assert.ok(texts.includes('Top 2 gastos más grandes'));
-  assert.ok(texts.includes('1. =HYPERLINK("http://x")'));
-  assert.ok(texts.includes('Presupuestos de octubre de 2026'));
-  assert.ok(texts.includes('Excedido'));
+test('Categorías suma cada categoría de gasto con fórmulas, de mayor a menor', async () => {
+  const ws = (await roundTrip(sampleReport())).getWorksheet('Categorías');
+  assert.equal(ws.getCell('A6').value, 'Alimentación');
+  assert.equal(
+    ws.getCell('B6').value.formula,
+    'SUMIFS(Movimientos!$E$2:$E$4,Movimientos!$C$2:$C$4,"Alimentación",Movimientos!$B$2:$B$4,"Gasto")',
+  );
+  assert.equal(shown(ws.getCell('B6')), 18000);
+  assert.equal(shown(ws.getCell('B7')), 2950);
+  assert.equal(shown(ws.getCell('B8')), 20950, 'total');
+  assert.equal(shown(ws.getCell('D6')), 1);
+  assert.ok(textsOf(ws).includes('Ingresos por categoría'));
 });
 
-test('un presupuesto justo en el límite no sale como excedido', async () => {
-  const report = sampleReport({
-    budgets: [{ category: 'Vivienda', limit: 300000, spent: 300000, available: 0, usage: 1, level: 'at_limit' }],
-  });
-  const ws = (await roundTrip(report)).getWorksheet('Resumen');
-  const texts = [];
-  ws.eachRow((row) => row.eachCell((cell) => typeof cell.value === 'string' && texts.push(cell.value)));
-  assert.ok(texts.includes('En el límite'));
-  assert.ok(!texts.includes('Excedido'));
-});
+test('Evolución va día por día sin pasar de hoy, y por semanas en periodos largos', async () => {
+  const daily = (await roundTrip(sampleReport())).getWorksheet('Evolución');
+  assert.equal(shown(daily.getCell('B6')), 350000);
+  assert.equal(shown(daily.getCell('B8')), 329050);
+  assert.equal(daily.getCell('A13').value, '2 oct');
+  assert.equal(shown(daily.getCell('D13')), 350000);
+  assert.match(daily.getCell('E16').value.formula, /^SUMIFS\(.*"Gasto",.*">="&B16,.*"<="&C16\)$/);
+  assert.equal(daily.getCell('A31').value, '20 oct', 'hoy es el último día');
+  assert.equal(daily.getCell('A32').value, null);
 
-test('la hoja Por mes aparece solo si el periodo abarca varios meses', async () => {
   const twoMonths = sampleReport({
     from: '2026-09-01',
     to: '2026-10-31',
     rows: [tx({ date: '2026-09-15', amount: 100 }), tx({ date: '2026-10-15', amount: 300 })],
   });
-  const wb = await roundTrip(twoMonths);
-  assert.deepEqual(
-    wb.worksheets.map((w) => w.name),
-    ['Resumen', 'Movimientos', 'Por mes'],
-  );
-  const ws = wb.getWorksheet('Por mes');
-  assert.equal(ws.getCell('A2').value, 'Septiembre de 2026');
-  assert.equal(shown(ws.getCell('C3')), 300);
+  const weekly = (await roundTrip(twoMonths)).getWorksheet('Evolución');
+  assert.ok(textsOf(weekly).includes('Ingresos y gastos por semana'));
+  assert.equal(weekly.getCell('A14').value, '15 – 21 sep');
+  assert.equal(shown(weekly.getCell('E14')), 100);
+});
+
+test('el resumen incluye los hallazgos y el top de gastos', async () => {
+  const texts = textsOf((await roundTrip(sampleReport())).getWorksheet('Resumen'));
+  assert.ok(texts.includes('Lo que dicen tus números'));
+  assert.ok(texts.includes('Alimentación fue la categoría con más gasto'));
+  assert.ok(texts.includes('Top 2 gastos más grandes'));
+  assert.ok(texts.includes('1. =HYPERLINK("http://x")'));
+});
+
+test('la hoja Presupuestos aparece solo si hay presupuestos, con su estado', async () => {
+  assert.equal((await roundTrip(sampleReport())).getWorksheet('Presupuestos'), undefined);
+  const exceeded = sampleReport({
+    budgets: [{ category: 'Transporte', limit: 2000, spent: 2950, available: -950, usage: 1.475, level: 'exceeded_100' }],
+  });
+  const ws = (await roundTrip(exceeded)).getWorksheet('Presupuestos');
+  assert.ok(textsOf(ws).includes('Presupuestos de octubre de 2026'));
+  assert.ok(textsOf(ws).includes('Excedido'));
+  assert.equal(shown(ws.getCell('C6')), 2950);
+
+  const atLimit = sampleReport({
+    budgets: [{ category: 'Vivienda', limit: 300000, spent: 300000, available: 0, usage: 1, level: 'at_limit' }],
+  });
+  const texts = textsOf((await roundTrip(atLimit)).getWorksheet('Presupuestos'));
+  assert.ok(texts.includes('En el límite'));
+  assert.ok(!texts.includes('Excedido'), 'gastar justo el límite no es excederlo');
+});
+
+// ---------------------------------------------------------------- gráficos nativos
+
+/**
+ * Archivos de gráfico dentro del .xlsx, con su contenido.
+ * @param {object} report
+ * @returns {Promise<{ charts: string[], types: string }>}
+ */
+async function chartsOf(report) {
+  const zip = await JSZip.loadAsync(await buildWorkbook(report));
+  const paths = Object.keys(zip.files).filter((path) => /^xl\/charts\/chart\d+\.xml$/.test(path));
+  return {
+    charts: await Promise.all(paths.sort().map((path) => zip.file(path).async('string'))),
+    types: await zip.file('[Content_Types].xml').async('string'),
+  };
+}
+
+test('el libro lleva cinco gráficos nativos que leen sus datos de las celdas', async () => {
+  const { charts, types } = await chartsOf(sampleReport());
+  assert.equal(charts.length, 5, 'tres en Resumen, uno en Categorías y uno en Evolución');
+  assert.equal((types.match(/drawingml\.chart\+xml/g) ?? []).length, 5);
+  assert.ok(charts[0].includes("<c:f>'Evolución'!$B$6:$B$7</c:f>"), 'ingresos frente a gastos');
+  assert.ok(charts[1].includes("<c:f>'Categorías'!$B$6:$B$7</c:f>"), 'gastos por categoría');
+  assert.ok(charts[3].includes("<c:f>'Evolución'!$E$12:$E$31</c:f>"), 'gastos por día');
+  assert.ok(charts[1].includes('<c:pt idx="0"><c:v>18000</c:v></c:pt>'), 'lleva el valor ya calculado');
+});
+
+test('sin gastos no hay gráfico de categorías, y un texto con < o & no rompe el libro', async () => {
+  const report = sampleReport({ rows: [tx({ type: 'ingreso', categoryName: 'Ventas <A&B>', amount: 500 })] });
+  const { charts } = await chartsOf(report);
+  assert.equal(charts.length, 3);
+  const wb = await roundTrip(report);
+  assert.ok(textsOf(wb.getWorksheet('Resumen')).includes('Sin gastos en el periodo.'));
+  assert.equal(wb.getWorksheet('Categorías').getCell('A6').value, 'Ventas <A&B>');
+});
+
+test('una categoría con caracteres de XML llega bien escrita al gráfico', async () => {
+  const { charts } = await chartsOf(sampleReport({ rows: [tx({ categoryName: 'Café & "pan" <dulce>' })] }));
+  assert.ok(charts[1].includes('<c:v>Café &amp; &quot;pan&quot; &lt;dulce&gt;</c:v>'));
 });
 
 // ---------------------------------------------------------------- validador
