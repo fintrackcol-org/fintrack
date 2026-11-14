@@ -5,58 +5,16 @@
   "redirects": [
     {
       "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "fintrack-seven-delta.vercel.app"
-        }
-      ],
+      "has": [{ "type": "host", "value": "fintrack-seven-delta.vercel.app" }],
       "destination": "https://www.fintrackcol.online/$1",
       "permanent": true
     }
   ],
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "headers": [
-    {
-      "source": "/sw.js",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache"
-        }
-      ]
-    },
-    {
-      "source": "/push-sw.js",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache"
-        }
-      ]
-    },
-    {
-      "source": "/index.html",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache"
-        }
-      ]
-    },
-    {
-      "source": "/manifest.webmanifest",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache"
-        }
-      ]
-    }
+    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/push-sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/manifest.webmanifest", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
   ]
 }
