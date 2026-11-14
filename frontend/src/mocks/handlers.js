@@ -96,7 +96,7 @@ function sendVerificationLink(email) {
   for (const [token, owner] of verificationTokens) if (owner === email) verificationTokens.delete(token);
   const token = crypto.randomUUID();
   verificationTokens.set(token, email);
-  console.info(`[correo simulado] Para: ${email} | ${window.location.origin}/verificar#token=${token}`);
+  console.info(`[correo simulado] Para: ${email} | ${window.location.origin}/verificar?token=${token}`);
 }
 
 /** Respuesta de error con el esquema `Error` del contrato. */

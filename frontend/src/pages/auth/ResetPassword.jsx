@@ -13,22 +13,22 @@ import { resetPasswordSchema } from '@/lib/validation/auth';
 import { resetPassword } from '@/services/authService';
 
 /**
- * Pantalla del enlace del correo (`/restablecer#token=…`): pide la contraseña nueva y, al
- * guardarla, lleva al login. El token viene después de "#", que el navegador nunca envía al
- * servidor; al leerlo se borra de la barra de direcciones para que no quede en el historial.
+ * Pantalla del enlace del correo (`/restablecer?token=…`): pide la contraseña nueva y, al
+ * guardarla, lleva al login. Acepta también `#token=` de los correos viejos; al leerlo se borra
+ * de la barra de direcciones para que no quede en el historial.
  */
 export default function ResetPassword() {
   usePageTitle('Nueva contraseña');
   const location = useLocation();
   const navigate = useNavigate();
   // Se lee una sola vez, antes de limpiar la dirección.
-  const [token] = useState(() => new URLSearchParams(location.hash.slice(1)).get('token'));
+  const [token] = useState(() => new URLSearchParams(location.search || location.hash.slice(1)).get('token'));
   const [expired, setExpired] = useState(!token);
   const [serverError, setServerError] = useState('');
 
   useEffect(() => {
-    if (location.hash) navigate(location.pathname, { replace: true });
-  }, [location.hash, location.pathname, navigate]);
+    if (location.search || location.hash) navigate(location.pathname, { replace: true });
+  }, [location.search, location.hash, location.pathname, navigate]);
 
   const {
     register,
