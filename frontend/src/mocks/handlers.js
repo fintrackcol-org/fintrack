@@ -516,6 +516,9 @@ export const handlers = [
       type: body.type,
       date: body.date,
       ...resolve(body.category, body.description, body.type),
+      // FT-0070: solo en gastos.
+      emotion: body.type === 'gasto' ? (body.emotion ?? null) : null,
+      kakeibo: body.type === 'gasto' ? (body.kakeibo ?? null) : null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,

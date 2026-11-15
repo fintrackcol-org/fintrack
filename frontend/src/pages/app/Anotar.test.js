@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pressKey, toTransaction } from '@/pages/app/Anotar';
+import { pressKey, readText, toTransaction } from '@/pages/app/Anotar';
 
 describe('teclado de Anotar', () => {
   it('suma dígitos, 000 y borra el último', () => {
@@ -39,5 +39,28 @@ describe('toTransaction', () => {
 
   it('sin descripción devuelve el mismo error que el formulario', () => {
     expect(toTransaction({ ...base, description: '  ' }).error).toBe('Escribe una descripción');
+  });
+});
+
+describe('Anotar en una pantalla (Rinde v2)', () => {
+  it('lee monto y descripción de lo que se escribe', () => {
+    const read = readText('almuerzo 15 mil');
+    expect(read.amount).toBe('15000');
+    expect(read.description.toLowerCase()).toContain('almuerzo');
+    expect(read.type).toBe('gasto');
+  });
+
+  it('reconoce un ingreso por cómo se dice', () => {
+    expect(readText('me pagaron 300 mil').type).toBe('ingreso');
+  });
+
+  it('sin número no inventa un monto', () => {
+    expect(readText('almuerzo').amount).toBe('');
+  });
+
+  it('el grupo Kakeibo va solo en los gastos', () => {
+    const base = { amount: '15000', description: 'almuerzo', category: 'ia', date: '2026-11-10', card: 'cash', kakeibo: 'deseo' };
+    expect(toTransaction({ ...base, type: 'gasto' }).values.kakeibo).toBe('deseo');
+    expect(toTransaction({ ...base, type: 'ingreso' }).values.kakeibo).toBeUndefined();
   });
 });
