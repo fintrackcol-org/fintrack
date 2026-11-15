@@ -131,6 +131,12 @@ function seedDemo(user) {
     money: 412300,
     balanceAt: stamp,
     welcomeDone: true,
+    commitments: [
+      ['Netflix', 26900, 8, 'subscription'],
+      ['PILA: salud y pensión', 228000, 13, 'payment'],
+      ['Plan celular', 45000, 15, 'payment'],
+      ['Arriendo', 450000, 28, 'payment'],
+    ].map(([name, amount, dayOfMonth, kind]) => ({ id: crypto.randomUUID(), name, amount, dayOfMonth, frequency: 'monthly', kind })),
   });
 }
 
@@ -314,7 +320,67 @@ function moneyProfileOf(userId) {
 
 seedDemo(demoUser);
 
+/** user id → presupuestos `{ id, category, month, amount }` (el consumo se calcula al pedirlos). */
+const budgetsByUser = new Map([
+  [
+    demoUser.id,
+    [
+      ['alimentacion', 150000],
+      ['vivienda', 600000],
+      ['entretenimiento', 80000],
+      ['transporte', 60000],
+    ].map(([category, amount]) => ({ id: crypto.randomUUID(), category, month: new Date().toLocaleDateString('en-CA').slice(0, 7), amount })),
+  ],
+]);
+
+/** Presupuesto con lo gastado en su categoría y mes, y su alerta (RN-04). */
+function withConsumption(userId, budget) {
+  const consumed = (transactions.get(userId) ?? [])
+    .filter((t) => t.type === 'gasto' && !t.deletedAt && t.category === budget.category && t.date.startsWith(budget.month))
+    .reduce((sum, t) => sum + t.amount, 0);
+  const percentage = Math.round((consumed / budget.amount) * 1000) / 10;
+  const level = percentage >= 100 ? 'exceeded_100' : percentage >= 80 ? 'warning_80' : 'none';
+  return { ...budget, consumed, percentage, alert: { level, percentage } };
+}
+
 export const handlers = [
+  http.get(`${API_V1}/budgets`, ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const month = new URL(request.url).searchParams.get('month');
+    const list = (budgetsByUser.get(user.id) ?? []).filter((b) => !month || b.month === month);
+    return HttpResponse.json(list.map((b) => withConsumption(user.id, b)));
+  }),
+
+  http.post(`${API_V1}/budgets`, async ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const { category, month, amount } = await readJson(request);
+    const list = budgetsByUser.get(user.id) ?? [];
+    if (list.some((b) => b.category === category && b.month === month)) {
+      return error(409, 'BUDGET_EXISTS', 'Ya hay un presupuesto para esa categoría en ese mes');
+    }
+    const budget = { id: crypto.randomUUID(), category, month, amount };
+    budgetsByUser.set(user.id, [...list, budget]);
+    return HttpResponse.json(withConsumption(user.id, budget), { status: 201 });
+  }),
+
+  http.put(`${API_V1}/budgets/:id`, async ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const budget = (budgetsByUser.get(user.id) ?? []).find((b) => b.id === params.id);
+    if (!budget) return error(404, 'NOT_FOUND', 'Presupuesto no encontrado');
+    budget.amount = (await readJson(request)).amount;
+    return HttpResponse.json(withConsumption(user.id, budget));
+  }),
+
+  http.delete(`${API_V1}/budgets/:id`, ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    budgetsByUser.set(user.id, (budgetsByUser.get(user.id) ?? []).filter((b) => b.id !== params.id));
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.post(`${API_V1}/auth/register`, async ({ request }) => {
     const body = await readJson(request);
     await delay();
