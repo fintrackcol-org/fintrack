@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CalendarClock, Flag, Loader2, Plus } from 'lucide-react';
+import { Briefcase, CalendarClock, Flag, Loader2, PiggyBank, Plus } from 'lucide-react';
+import ShortcutGrid from '@/components/common/ShortcutGrid';
 import Sheet from '@/components/common/Sheet';
 import PageHeader from '@/components/layout/PageHeader';
 import Panel from '@/components/layout/Panel';
@@ -12,6 +13,12 @@ import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { cn } from '@/lib/utils';
 import { createVaca, listVacas } from '@/services/vacaService';
+
+/** Lo que se maneja con otras personas, dentro de la pestaña Metas. */
+const IN_GROUP = [
+  { to: '/app/vacas', label: 'Vacas', hint: 'Ahorrar con amigos', icon: PiggyBank },
+  { to: '/app/negocios', label: 'Negocios', hint: 'Cuentas con socios', icon: Briefcase },
+];
 
 /** Una meta es una vaca de una sola persona; las vacas en grupo salen en `/app/vacas`. */
 const isPersonal = (vaca) => Boolean(vaca.personal);
@@ -166,6 +173,11 @@ export default function Metas() {
           </ul>
         )
       )}
+
+      {/* Rinde v2: en el celular, las metas en grupo se abren desde aquí (antes, desde el menú lateral). */}
+      <div className="mt-8 md:hidden">
+        <ShortcutGrid id="metas-en-grupo" title="En grupo" items={IN_GROUP} />
+      </div>
 
       <Sheet open={creating} title="Nueva meta" onClose={() => setCreating(false)}>
         <VacaForm personal disabled={!online} onSubmit={handleCreate} onCancel={() => setCreating(false)} />

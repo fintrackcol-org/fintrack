@@ -66,9 +66,10 @@ const chipTone = (selected) => (selected ? 'border-2 border-brand bg-brand-soft 
 /**
  * Movimientos dentro de Mi plata: mes, buscador, filtros y la lista por día. Sin conexión muestra la copia
  * guardada en el dispositivo, y aquí mismo se ve lo que espera sincronizarse y lo que tuvo conflicto.
- * @param {{ names: Record<string, string>, hidden?: boolean }} props
+ * En la pestaña Movimientos (`standalone`) la página ya lleva el título: aquí queda solo para lectores de pantalla.
+ * @param {{ names: Record<string, string>, hidden?: boolean, standalone?: boolean }} props
  */
-export default function MovementList({ names, hidden = false }) {
+export default function MovementList({ names, hidden = false, standalone = false }) {
   const [text, setText] = useState('');
   const [month, setMonth] = useState(currentMonth);
   const [type, setType] = useState('');
@@ -198,8 +199,8 @@ export default function MovementList({ names, hidden = false }) {
 
   return (
     <section id="movimientos" ref={sectionRef} aria-labelledby="movimientos-title" className="scroll-mt-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 id="movimientos-title" className="text-lg font-semibold tracking-tight">
+      <div className={cn('flex items-center gap-2', standalone ? 'justify-end' : 'justify-between')}>
+        <h2 id="movimientos-title" className={cn('text-lg font-semibold tracking-tight', standalone && 'sr-only')}>
           Movimientos
         </h2>
         <div className="-mr-2 flex items-center text-sm font-medium text-brand">

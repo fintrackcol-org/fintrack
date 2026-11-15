@@ -1,8 +1,23 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { CalendarDays, Download, Loader2, Pencil, Plus, ReceiptText, Sparkles, Trash2 } from 'lucide-react';
+import {
+  CalendarDays,
+  CreditCard,
+  Download,
+  HandCoins,
+  Inbox,
+  Landmark,
+  Loader2,
+  Pencil,
+  Plus,
+  ReceiptText,
+  Sparkles,
+  Target,
+  Trash2,
+} from 'lucide-react';
 import ChipGroup from '@/components/common/ChipGroup';
 import CircleActions from '@/components/common/CircleActions';
+import ShortcutGrid from '@/components/common/ShortcutGrid';
 import ReminderBlock from '@/components/common/ReminderBlock';
 import Sheet from '@/components/common/Sheet';
 import { MASK } from '@/components/dashboard/BalanceCard';
@@ -499,6 +514,18 @@ function PlanLine({ plan, money, noFixedDate = false }) {
   );
 }
 
+/** Lo que se abre desde Mi plata en el celular (antes estaba en el menú lateral). */
+const MORE_OF_YOUR_MONEY = [
+  { to: '/app/presupuestos', label: 'Presupuestos', hint: 'Topes por categoría', icon: Target },
+  { to: '/app/calendario', label: 'Calendario', hint: 'Pagos fijos del mes', icon: CalendarDays },
+  { to: '/app/cuentas', label: 'Cuentas', hint: 'Lo que te deben y debes', icon: HandCoins },
+  { to: '/app/tarjetas', label: 'Tarjetas', hint: 'Cupo y fechas de pago', icon: CreditCard },
+  { to: '/app/por-confirmar', label: 'Por confirmar', hint: 'Gastos que llegaron solos', icon: Inbox },
+  { to: '/app/insights', label: 'Consejos', hint: 'Tu semana y la IA', icon: Sparkles },
+  { to: '/app/transacciones/exportar', label: 'Exportar', hint: 'Excel o PDF', icon: Download },
+  { to: '/app/renta', label: 'Renta y DIAN', hint: 'Si te toca declarar', icon: Landmark },
+];
+
 /**
  * Página privada `/app/mi-plata` (FT-0041): cómo recibe la plata el usuario y qué paga cada mes. De
  * aquí salen los números de la ficha del inicio. En el celular, además, el saldo, las acciones y los movimientos.
@@ -588,7 +615,8 @@ export default function MiPlata() {
         <CircleActions label="Acciones de Mi plata" actions={actions} />
         <IncomeOverview />
         {plan?.pending.length > 0 && <PendingPayments notice pending={plan.pending} />}
-        <MovementList names={names} hidden={hidden} />
+        {/* Rinde v2: los movimientos tienen su propia pestaña; aquí, lo demás de la plata. */}
+        <ShortcutGrid id="mas-de-tu-plata" title="Más de tu plata" items={MORE_OF_YOUR_MONEY} />
       </div>
       )}
 

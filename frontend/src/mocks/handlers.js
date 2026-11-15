@@ -80,7 +80,59 @@ function pendingFor(userId) {
   return pendingByUser.get(userId);
 }
 
-addUser('demo@fintrack.com', 'demo1234');
+const demoUser = addUser('demo@fintrack.com', 'demo1234');
+
+/**
+ * Datos de ejemplo de la cuenta demo, para ver las pantallas con contenido sin backend: movimientos
+ * del mes en curso y un saldo conocido. Las cuentas que se registran en el mock empiezan vacías.
+ * Se llama apenas existen los mapas de movimientos y perfiles (más abajo).
+ */
+function seedDemo(user) {
+  const now = new Date();
+  const day = (d) => {
+    const date = new Date(now.getFullYear(), now.getMonth(), Math.min(d, now.getDate()));
+    return date.toLocaleDateString('en-CA');
+  };
+  const rows = [
+    [700000, 'Pago diseño de logo', 'ingreso', 'freelance', 3],
+    [450000, 'Arriendo', 'gasto', 'vivienda', 1],
+    [68500, 'Mercado D1', 'gasto', 'alimentacion', 9],
+    [14000, 'Almuerzo', 'gasto', 'alimentacion', now.getDate()],
+    [3200, 'MIO', 'gasto', 'transporte', now.getDate() - 1],
+    [26900, 'Netflix', 'gasto', 'entretenimiento', 8],
+    [32000, 'Droguería', 'gasto', 'salud', 6],
+    [58100, 'Internet y luz', 'gasto', 'servicios_publicos', 5],
+    [18000, 'Almuerzo con el equipo', 'gasto', 'alimentacion', 7],
+    [9000, 'Taxi', 'gasto', 'transporte', 4],
+  ];
+  const stamp = now.toISOString();
+  transactions.set(
+    user.id,
+    rows.map(([amount, description, type, category, d]) => ({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      amount,
+      description,
+      type,
+      date: day(Math.max(d, 1)),
+      category,
+      source: 'manual',
+      emotion: null,
+      kakeibo: null,
+      createdAt: stamp,
+      updatedAt: stamp,
+      deletedAt: null,
+    })),
+  );
+  Object.assign(moneyProfileOf(user.id), {
+    incomeType: 'mensual',
+    payDays: [30],
+    balance: 412300,
+    money: 412300,
+    balanceAt: stamp,
+    welcomeDone: true,
+  });
+}
 
 function addUser(email, password, verified = true) {
   const user = { id: crypto.randomUUID(), email, password, timezone: 'America/Bogota', verified };
@@ -259,6 +311,8 @@ function moneyProfileOf(userId) {
   }
   return moneyProfiles.get(userId);
 }
+
+seedDemo(demoUser);
 
 export const handlers = [
   http.post(`${API_V1}/auth/register`, async ({ request }) => {
@@ -783,9 +837,27 @@ export const handlers = [
     return HttpResponse.json({ data: adjustments.get(user.id) ?? [] });
   }),
 
+  // Plan simplificado: con saldo conocido, cuántos días alcanza al ritmo de gasto del mes.
   http.get(`${API_V1}/money-profile/plan`, ({ request }) => {
-    if (!authUser(request)) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
-    return HttpResponse.json({ ready: false });
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const profile = moneyProfileOf(user.id);
+    if (typeof profile.money !== 'number') return HttpResponse.json({ ready: false });
+    const today = new Date();
+    const spent = (transactions.get(user.id) ?? [])
+      .filter((t) => t.type === 'gasto' && !t.deletedAt && t.date.slice(0, 7) === today.toLocaleDateString('en-CA').slice(0, 7))
+      .reduce((sum, t) => sum + t.amount, 0);
+    const pace = Math.round(spent / Math.max(today.getDate(), 1));
+    return HttpResponse.json({
+      ready: true,
+      mode: 'runway',
+      money: profile.money,
+      free: profile.money,
+      shortfall: 0,
+      pace,
+      runwayDays: pace > 0 ? Math.floor(profile.money / pace) : null,
+      pending: [],
+    });
   }),
 
   http.put(`${API_V1}/money-profile`, async ({ request }) => {

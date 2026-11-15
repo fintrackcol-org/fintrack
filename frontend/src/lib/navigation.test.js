@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CIRCLES } from '@/components/dashboard/QuickActions';
 import { LINKS } from '@/pages/app/Account';
+import { TABS } from '@/components/layout/MobileTabBar';
 
 /** Rutas que no necesitan entrada: el inicio, redirecciones, flujos automáticos y las vistas de administración. */
 const NO_ENTRY = ['/app', '/app/bienvenida', '/app/mes', '/app/transacciones', '/app/lo-que-viene/admin', '/app/whatsapp/admin'];
@@ -25,13 +26,14 @@ const INSIDE_SCREENS = {
 };
 
 describe('navegación en celular', () => {
-  it('toda ruta de la app tiene por dónde llegar, ya que no hay menú', () => {
+  it('toda ruta de la app tiene por dónde llegar desde la barra de pestañas o una pantalla', () => {
     const app = readFileSync('src/App.jsx', 'utf8');
     const routes = [...app.matchAll(/path="(\/app[^"]*)"/g)].map(([, path]) => path).filter((path) => !path.includes(':'));
     expect(routes.length).toBeGreaterThan(10);
 
     const entries = new Set([
       ...CIRCLES.map(({ to }) => to.split('?')[0]),
+      ...TABS.map(({ to }) => to),
       ...LINKS.map(({ to }) => to),
       ...Object.keys(INSIDE_SCREENS),
       ...NO_ENTRY,

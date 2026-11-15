@@ -18,12 +18,14 @@ import {
   UserPlus,
   Wallet,
   Flag,
+  List,
 } from 'lucide-react';
 import { LogoMark, Wordmark } from '@/components/common/Logo';
 import NotificationBell from '@/components/layout/NotificationBell';
 import { NotificationsProvider } from '@/components/layout/NotificationsProvider';
 import SyncStatus from '@/components/layout/SyncStatus';
 import QuickEntryBar from '@/components/transactions/QuickEntryBar';
+import MobileTabBar, { TABS, hasAddButton, hasTabBar } from '@/components/layout/MobileTabBar';
 import SplitIncomeSheet from '@/components/money/SplitIncomeSheet';
 import { useAuth } from '@/auth/AuthContext';
 import useOfflineSync from '@/hooks/useOfflineSync';
@@ -44,6 +46,7 @@ const NAV_GROUPS = [
     label: 'Mis finanzas',
     items: [
       { to: '/app', label: 'Inicio', icon: House, end: true },
+      { to: '/app/movimientos', label: 'Movimientos', icon: List },
       { to: '/app/presupuestos', label: 'Presupuestos', icon: Target },
       { to: '/app/metas', label: 'Metas', icon: Flag },
       { to: '/app/insights', label: 'Consejos', icon: Sparkles },
@@ -156,7 +159,7 @@ function Sidebar({ user }) {
 
 /**
  * Encabezado del celular. En el inicio, el avatar a la izquierda, con un punto si hay avisos sin leer (la
- * lista está en Cuenta). En las demás pantallas, el botón para volver: atrás en el historial o, si la
+ * lista está en Cuenta). En las otras pestañas, nada: la barra de abajo lleva a las demás. En las demás pantallas, el botón para volver: atrás en el historial o, si la
  * pantalla se abrió directo (un enlace, un aviso), a la pantalla de la que cuelga.
  */
 function MobileHeader() {
@@ -164,8 +167,8 @@ function MobileHeader() {
   const navigate = useNavigate();
   const parent = backPath(pathname);
 
-  // El inicio lleva el avatar dentro de su franja morada.
-  if (!parent) return null;
+  // El inicio lleva el avatar dentro de su franja morada, y las pestañas no tienen a dónde volver.
+  if (!parent || TABS.some((tab) => tab.to === pathname)) return null;
 
   return (
     <header className="flex items-center px-2 pb-1 pt-[max(0.5rem,env(safe-area-inset-top))] md:hidden">
@@ -225,6 +228,9 @@ function Shell() {
   const { pathname } = useLocation();
   const quickEntry = QUICK_ENTRY_PATHS.includes(pathname);
   const bottomBar = BOTTOM_BAR_PATHS.includes(pathname);
+  // Rinde v2: en el celular, la barra de pestañas flotante (y el botón Anotar encima, donde va).
+  const tabBar = hasTabBar(pathname);
+  const addButton = hasAddButton(pathname);
   useSyncProfile();
 
   return (
@@ -265,7 +271,12 @@ function Shell() {
           id="contenido"
           className={cn(
             'flex-1 px-4 pt-2 md:px-8 md:pt-8',
-            bottomBar ? 'pb-[calc(6rem+env(safe-area-inset-bottom))]' : 'pb-[calc(2rem+env(safe-area-inset-bottom))]',
+            // Que la barra flotante (y el botón Anotar) no tapen el final de la pantalla.
+            addButton
+              ? 'max-md:pb-[calc(10rem+env(safe-area-inset-bottom))]'
+              : tabBar || bottomBar
+                ? 'max-md:pb-[calc(6.5rem+env(safe-area-inset-bottom))]'
+                : 'max-md:pb-[calc(2rem+env(safe-area-inset-bottom))]',
             quickEntry ? 'md:pb-28' : 'md:pb-12',
           )}
         >
@@ -279,7 +290,13 @@ function Shell() {
         </main>
       </div>
 
-      {quickEntry && <QuickEntryBar />}
+      {/* En el celular se anota con el botón Anotar de la barra; la barra rápida queda para tablet y computador. */}
+      {quickEntry && (
+        <div className="max-md:hidden">
+          <QuickEntryBar />
+        </div>
+      )}
+      <MobileTabBar />
       {/* FT-0060: al registrar un ingreso grande, cómo repartirlo. */}
       <SplitIncomeSheet />
     </div>
