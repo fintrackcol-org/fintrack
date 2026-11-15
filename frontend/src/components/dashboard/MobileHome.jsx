@@ -19,6 +19,7 @@ import { daysLabel, runway, untilText } from '@/lib/runway';
 import { getDisplayName, getInitial } from '@/lib/displayName';
 import { pickHomeNotice } from '@/lib/homeNotice';
 import { cn } from '@/lib/utils';
+import RindeLine from '@/components/common/RindeLine';
 
 const RECENT = 3;
 const BUDGETS = 3;
@@ -50,17 +51,6 @@ function Total({ label, value, money, to, positive = false, period }) {
       </span>
       <span className="sr-only">, {totalLinkLabel(label.toLowerCase(), period).toLowerCase()}</span>
     </Link>
-  );
-}
-
-/** Línea que rinde: la barra con la moneda verde al final (manual de marca Rinde). */
-function RindeLine({ value, className }) {
-  const width = `${Math.round(Math.min(Math.max(value, 0), 1) * 100)}%`;
-  return (
-    <span aria-hidden="true" className={cn('relative block h-1 rounded-full bg-white/30', className)}>
-      <span className="absolute inset-y-0 left-0 rounded-full bg-white motion-safe:transition-[width] motion-safe:duration-500" style={{ width }} />
-      <span className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-success" style={{ left: width }} />
-    </span>
   );
 }
 

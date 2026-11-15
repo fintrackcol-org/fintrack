@@ -10,6 +10,7 @@ import { runway, untilText } from '@/lib/runway';
 import { cn } from '@/lib/utils';
 import { listBudgets } from '@/services/budgetService';
 import { getSummary } from '@/services/summaryService';
+import RindeLine from '@/components/common/RindeLine';
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -36,17 +37,6 @@ export function firstUncovered(commitments, r, today = new Date()) {
 /** Los pagos de cada mes (los anuales solo cuentan en su mes). */
 function monthly(commitments, today = new Date()) {
   return commitments.filter((c) => c.frequency !== 'yearly' || c.month === today.getMonth() + 1);
-}
-
-/** Línea que rinde sobre fondo violeta. */
-function RindeLine({ value }) {
-  const width = `${Math.round(Math.min(Math.max(value, 0), 1) * 100)}%`;
-  return (
-    <span aria-hidden="true" className="relative block h-1 rounded-full bg-white/30">
-      <span className="absolute inset-y-0 left-0 rounded-full bg-white" style={{ width }} />
-      <span className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-success" style={{ left: width }} />
-    </span>
-  );
 }
 
 /**

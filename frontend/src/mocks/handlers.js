@@ -1,6 +1,7 @@
 import { http, HttpResponse, delay } from 'msw';
 import { API_V1 } from '@/lib/api';
 import { plainText } from '@/lib/plainText';
+import { progress } from '@/lib/debtSchedule';
 
 /**
  * Handlers de MSW que simulan auth, categorías y transacciones mientras se desarrolla sin backend.
@@ -319,6 +320,112 @@ function moneyProfileOf(userId) {
 }
 
 seedDemo(demoUser);
+
+/** Cuenta como la devuelve la API: con lo pagado, lo que falta y la próxima cuota (FT-0064). */
+function presentDebt(d) {
+  const payments = d.payments ?? [];
+  const p = progress(d, payments.reduce((sum, x) => sum + x.amount, 0));
+  return {
+    ...d,
+    payments: [...payments].sort((a, b) => b.date.localeCompare(a.date)),
+    paid: p.paid,
+    pending: d.settledAt ? 0 : p.pending,
+    paidInstallments: p.paidInstallments,
+    nextInstallment: d.settledAt ? null : p.next,
+    // Con cuotas, la fecha límite es la de la próxima cuota (así avisa cada una).
+    dueDate: d.installments && p.next ? p.next.date : d.dueDate,
+  };
+}
+
+/** Cuentas de ejemplo del usuario demo: una en cuotas con un abono, una de una sola fecha y una que debe. */
+function seedDemoDebts(userId) {
+  const now = new Date();
+  const iso = (offset) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset).toLocaleDateString('en-CA');
+  const base = { note: null, settledAt: null, transactionId: null, reminder: { daysBefore: [1], time: null, channel: 'push' } };
+  debtsByUser.set(userId, [
+    {
+      ...base,
+      id: 'debt-demo-1',
+      kind: 'receivable',
+      person: 'Laura Gómez',
+      amount: 200000,
+      loanDate: iso(-20),
+      installments: 4,
+      frequency: 'biweekly',
+      firstDueDate: iso(-5),
+      dueDate: iso(-5),
+      note: 'Para el arriendo',
+      payments: [{ id: 'pay-demo-1', amount: 50000, date: iso(-5), transactionId: null }],
+    },
+    {
+      ...base,
+      id: 'debt-demo-2',
+      kind: 'receivable',
+      person: 'Andrés',
+      amount: 35000,
+      loanDate: iso(-3),
+      installments: null,
+      frequency: null,
+      firstDueDate: null,
+      dueDate: iso(4),
+      payments: [],
+    },
+    {
+      ...base,
+      id: 'debt-demo-3',
+      kind: 'payable',
+      person: 'Mamá',
+      amount: 300000,
+      loanDate: iso(-40),
+      installments: 3,
+      frequency: 'monthly',
+      firstDueDate: iso(-10),
+      dueDate: iso(-10),
+      payments: [{ id: 'pay-demo-2', amount: 100000, date: iso(-10), transactionId: null }],
+    },
+  ]);
+}
+seedDemoDebts(demoUser.id);
+
+/** Tarjetas por usuario (solo lo que piden las pantallas; el cálculo de cupo real vive en el backend). */
+const cardsByUser = new Map();
+
+/** `expiry` como lo devuelve la API (FT-0065): "03/27", si ya venció y si vence en 60 días o menos. */
+function cardExpiry({ expiryMonth, expiryYear }) {
+  if (!expiryMonth || !expiryYear) return null;
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysLeft = Math.round((Date.UTC(expiryYear, expiryMonth - 1, 1) - today) / 86_400_000);
+  const expired = today >= Date.UTC(expiryYear, expiryMonth, 1);
+  return {
+    label: `${String(expiryMonth).padStart(2, '0')}/${String(expiryYear).slice(2)}`,
+    expired,
+    soon: !expired && daysLeft <= 60,
+  };
+}
+
+/** Tarjeta como la devuelve la API, con el próximo pago calculado a partir del día de pago. */
+function presentCard(card) {
+  const now = new Date();
+  let next = new Date(now.getFullYear(), now.getMonth(), card.paymentDay);
+  if (next < new Date(now.getFullYear(), now.getMonth(), now.getDate())) next = new Date(now.getFullYear(), now.getMonth() + 1, card.paymentDay);
+  return {
+    ...card,
+    available: card.limit - card.used,
+    nextPaymentDate: next.toLocaleDateString('en-CA'),
+    daysToPayment: Math.round((next - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86_400_000),
+    paidThisCycle: false,
+    statementTotal: null,
+    statementDueDate: null,
+    expiry: cardExpiry(card),
+  };
+}
+
+const soon = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+cardsByUser.set(demoUser.id, [
+  { id: 'card-demo-1', name: 'Visa Gold ••8456', network: 'visa', tier: 'gold', last4: '8456', limit: 3000000, used: 816000, paymentDay: 15, cutoffDay: 30, expiryMonth: soon.getMonth() + 1, expiryYear: soon.getFullYear(), expiryNotified: [] },
+  { id: 'card-demo-2', name: 'Mastercard ••1290', network: 'mastercard', tier: 'clasica', last4: '1290', limit: 1500000, used: 230000, paymentDay: 5, cutoffDay: null, expiryMonth: 9, expiryYear: 2029, expiryNotified: [] },
+]);
 
 /** user id → presupuestos `{ id, category, month, amount }` (el consumo se calcula al pedirlos). */
 const budgetsByUser = new Map([
@@ -975,13 +1082,14 @@ export const handlers = [
         return { date, kind: 'compromiso', id: c.id, name: c.name, amount: c.amount, status: status(date) };
       }),
       ...(debtsByUser.get(user.id) ?? [])
+        .map(presentDebt)
         .filter((d) => d.dueDate?.startsWith(month) && !d.settledAt)
         .map((d) => ({
           date: d.dueDate,
           kind: d.kind === 'payable' ? 'cuenta' : 'cobro',
           id: d.id,
           name: d.person,
-          amount: d.amount,
+          amount: d.nextInstallment?.amount ?? d.pending,
           status: status(d.dueDate),
         })),
     ].sort((a, b) => a.date.localeCompare(b.date));
@@ -1157,12 +1265,57 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
+  http.get(`${API_V1}/cards`, ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    return HttpResponse.json((cardsByUser.get(user.id) ?? []).map(presentCard));
+  }),
+
+  http.get(`${API_V1}/cards/:id`, ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const card = (cardsByUser.get(user.id) ?? []).find((c) => c.id === params.id);
+    return card ? HttpResponse.json(presentCard(card)) : error(404, 'NOT_FOUND', 'Tarjeta no encontrada');
+  }),
+
+  http.get(`${API_V1}/cards/:id/movements`, () => HttpResponse.json([])),
+
+  http.post(`${API_V1}/cards`, async ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const body = await request.json();
+    const card = {
+      id: crypto.randomUUID(),
+      name: body.name ?? `${body.network} ••${body.last4}`,
+      cutoffDay: null,
+      expiryMonth: null,
+      expiryYear: null,
+      expiryNotified: [],
+      ...body,
+      used: body.limit - body.available,
+    };
+    delete card.available;
+    cardsByUser.set(user.id, [...(cardsByUser.get(user.id) ?? []), card]);
+    return HttpResponse.json(presentCard(card), { status: 201 });
+  }),
+
+  http.put(`${API_V1}/cards/:id`, async ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const card = (cardsByUser.get(user.id) ?? []).find((c) => c.id === params.id);
+    if (!card) return error(404, 'NOT_FOUND', 'Tarjeta no encontrada');
+    const body = await request.json();
+    if (body.expiryMonth !== card.expiryMonth || body.expiryYear !== card.expiryYear) card.expiryNotified = [];
+    Object.assign(card, body);
+    return HttpResponse.json(presentCard(card));
+  }),
+
   http.get(`${API_V1}/debts`, ({ request }) => {
     const user = authUser(request);
     if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
-    const items = debtsByUser.get(user.id) ?? [];
+    const items = (debtsByUser.get(user.id) ?? []).map(presentDebt);
     const totals = { receivable: 0, payable: 0 };
-    for (const d of items) if (!d.settledAt) totals[d.kind] += d.amount;
+    for (const d of items) if (!d.settledAt) totals[d.kind] += d.pending;
     const sorted = [...items].sort(
       (a, b) =>
         Boolean(a.settledAt) - Boolean(b.settledAt) ||
@@ -1185,6 +1338,11 @@ export const handlers = [
       person: body.person.trim(),
       amount: body.amount,
       dueDate: body.dueDate ?? null,
+      loanDate: body.loanDate ?? null,
+      installments: body.installments ?? null,
+      frequency: body.frequency ?? null,
+      firstDueDate: body.installments ? body.dueDate : null,
+      payments: [],
       note: body.note ?? null,
       reminder: body.reminder ?? { daysBefore: [1], time: null, channel: 'push' },
       settledAt: null,
@@ -1193,7 +1351,7 @@ export const handlers = [
       updatedAt: now,
     };
     debtsByUser.set(user.id, [...(debtsByUser.get(user.id) ?? []), debt]);
-    return HttpResponse.json(debt, { status: 201 });
+    return HttpResponse.json(presentDebt(debt), { status: 201 });
   }),
 
   http.put(`${API_V1}/debts/:id`, async ({ request, params }) => {
@@ -1202,8 +1360,10 @@ export const handlers = [
     const debt = (debtsByUser.get(user.id) ?? []).find((d) => d.id === params.id);
     if (!debt) return error(404, 'NOT_FOUND', 'Cuenta no encontrada');
     if (debt.settledAt) return error(409, 'ALREADY_SETTLED', 'Esta cuenta ya está saldada');
-    Object.assign(debt, await request.json(), { updatedAt: new Date().toISOString() });
-    return HttpResponse.json(debt);
+    const body = await request.json();
+    Object.assign(debt, body, { updatedAt: new Date().toISOString() });
+    if ('installments' in body) debt.firstDueDate = body.installments ? (body.dueDate ?? debt.firstDueDate) : null;
+    return HttpResponse.json(presentDebt(debt));
   }),
 
   http.delete(`${API_V1}/debts/:id`, ({ request, params }) => {
@@ -1224,7 +1384,43 @@ export const handlers = [
     const { createTransaction = true } = (await request.json().catch(() => ({}))) ?? {};
     debt.settledAt = new Date().toISOString();
     debt.transactionId = createTransaction ? crypto.randomUUID() : null;
-    return HttpResponse.json({ debt, transaction: createTransaction ? { id: debt.transactionId } : null });
+    return HttpResponse.json({ debt: presentDebt(debt), transaction: createTransaction ? { id: debt.transactionId } : null });
+  }),
+
+  http.post(`${API_V1}/debts/:id/payments`, async ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const debt = (debtsByUser.get(user.id) ?? []).find((d) => d.id === params.id);
+    if (!debt) return error(404, 'NOT_FOUND', 'Cuenta no encontrada');
+    if (debt.settledAt) return error(409, 'ALREADY_SETTLED', 'Esta cuenta ya está saldada');
+    const body = await request.json();
+    const { pending } = presentDebt(debt);
+    if (!(body.amount > 0)) return error(422, 'VALIDATION_ERROR', 'Datos inválidos', [{ field: 'amount', problem: 'Debe ser mayor que 0' }]);
+    if (body.amount > pending + 0.004) {
+      return error(422, 'VALIDATION_ERROR', 'Datos inválidos', [{ field: 'amount', problem: `No puede pasar de lo pendiente (${pending})` }]);
+    }
+    const createTransaction = body.createTransaction !== false;
+    const payment = {
+      id: crypto.randomUUID(),
+      amount: body.amount,
+      date: body.date ?? new Date().toLocaleDateString('en-CA'),
+      transactionId: createTransaction ? crypto.randomUUID() : null,
+    };
+    debt.payments = [...(debt.payments ?? []), payment];
+    if (pending - body.amount < 0.005) debt.settledAt = new Date().toISOString();
+    return HttpResponse.json(
+      { debt: presentDebt(debt), payment, transaction: payment.transactionId ? { id: payment.transactionId } : null },
+      { status: 201 },
+    );
+  }),
+
+  http.delete(`${API_V1}/debts/:id/payments/:paymentId`, ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const debt = (debtsByUser.get(user.id) ?? []).find((d) => d.id === params.id);
+    if (!debt?.payments?.some((p) => p.id === params.paymentId)) return error(404, 'NOT_FOUND', 'Abono no encontrado');
+    debt.payments = debt.payments.filter((p) => p.id !== params.paymentId);
+    return HttpResponse.json(presentDebt(debt));
   }),
 
   http.get(`${API_V1}/pending-payments/token`, ({ request }) => {

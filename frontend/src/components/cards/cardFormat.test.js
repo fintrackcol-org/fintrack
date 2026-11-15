@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { syncPreview } from '@/components/cards/cardFormat';
+import { expiryNotice, syncPreview } from '@/components/cards/cardFormat';
 
 describe('syncPreview', () => {
   const card = { limit: 3000000, used: 616000 };
@@ -16,5 +16,14 @@ describe('syncPreview', () => {
   it('sin un disponible válido no dice nada', () => {
     expect(syncPreview(card, '', String)).toBe('');
     expect(syncPreview(card, 'abc', String)).toBe('');
+  });
+});
+
+describe('expiryNotice', () => {
+  it('avisa si está vencida o por vencer, y nada si falta', () => {
+    expect(expiryNotice({ expiry: { label: '03/26', expired: true, soon: false } }).tone).toBe('negative');
+    expect(expiryNotice({ expiry: { label: '01/27', expired: false, soon: true } }).text).toMatch(/Vence pronto \(01\/27\)/);
+    expect(expiryNotice({ expiry: { label: '01/29', expired: false, soon: false } })).toBeNull();
+    expect(expiryNotice({ expiry: null })).toBeNull();
   });
 });
