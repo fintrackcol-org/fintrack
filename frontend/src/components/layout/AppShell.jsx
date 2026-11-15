@@ -249,7 +249,7 @@ function Shell() {
       <div
         aria-hidden="true"
         data-status-edge
-        className={cn('fixed inset-x-0 top-0 z-40 h-[max(env(safe-area-inset-top),0.75rem)] md:hidden', pathname === '/app' ? 'bg-violet' : 'bg-canvas')}
+        className="fixed inset-x-0 top-0 z-40 h-[max(env(safe-area-inset-top),0.75rem)] bg-canvas md:hidden"
       />
 
       <Sidebar user={user} />

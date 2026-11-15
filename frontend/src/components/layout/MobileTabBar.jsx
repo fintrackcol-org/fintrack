@@ -8,10 +8,15 @@ import { cn } from '@/lib/utils';
  * avatar del inicio. Cuatro pestañas caben con su nombre y se alcanzan con el pulgar.
  */
 export const TABS = [
-  { to: '/app', label: 'Inicio', icon: House, end: true },
-  { to: '/app/movimientos', label: 'Movimientos', icon: List },
-  { to: '/app/mi-plata', label: 'Mi plata', icon: Wallet },
-  { to: '/app/metas', label: 'Metas', icon: Flag },
+  { to: '/app', label: 'Inicio', icon: House, end: true, inside: ['/app/gastos', '/app/ingresos'] },
+  { to: '/app/movimientos', label: 'Movimientos', icon: List, inside: [] },
+  {
+    to: '/app/mi-plata',
+    label: 'Mi plata',
+    icon: Wallet,
+    inside: ['/app/presupuestos', '/app/calendario', '/app/cuentas', '/app/tarjetas', '/app/por-confirmar', '/app/renta'],
+  },
+  { to: '/app/metas', label: 'Metas', icon: Flag, inside: ['/app/vacas', '/app/negocios'] },
 ];
 
 /**
@@ -69,15 +74,17 @@ export default function MobileTabBar() {
         aria-label="Secciones"
         className="fixed inset-x-3 z-30 grid h-16 grid-cols-4 gap-1 rounded-[22px] bg-surface p-1.5 shadow-[0_6px_20px_rgba(20,20,20,0.10)] ring-1 ring-ink/10 bottom-[max(env(safe-area-inset-bottom),12px)] md:hidden"
       >
-        {TABS.map(({ to, label, icon: Icon, end }) => (
+        {TABS.map(({ to, label, icon: Icon, end, inside }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
+            // Lo que se abre desde una pestaña la deja marcada: así se sabe dónde se está.
+            aria-current={inside.includes(pathname) ? 'page' : undefined}
             className={({ isActive }) =>
               cn(
                 'flex flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-semibold leading-tight transition-colors focus-visible:outline-2 focus-visible:outline-violet',
-                isActive ? 'bg-brand-soft text-brand' : 'text-ink/60 hover:text-ink',
+                isActive || inside.includes(pathname) ? 'bg-brand-soft text-brand' : 'text-ink/60 hover:text-ink',
               )
             }
           >
