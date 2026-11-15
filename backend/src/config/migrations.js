@@ -643,6 +643,36 @@ export const MIGRATIONS = [
          ON whatsapp_envios(telefono_hash, created_at)`,
     ],
   },
+  {
+    id: '033_abonos_y_vencimiento',
+    statements: [
+      'ALTER TABLE cuentas_personales ADD COLUMN IF NOT EXISTS fecha_prestamo DATE NULL',
+      'ALTER TABLE cuentas_personales ADD COLUMN IF NOT EXISTS cuotas SMALLINT NULL',
+      'ALTER TABLE cuentas_personales ADD COLUMN IF NOT EXISTS frecuencia VARCHAR(10) NULL',
+      'ALTER TABLE cuentas_personales ADD COLUMN IF NOT EXISTS primera_cuota DATE NULL',
+      'ALTER TABLE cuentas_personales DROP CONSTRAINT IF EXISTS cuentas_personales_cuotas_check',
+      `ALTER TABLE cuentas_personales ADD CONSTRAINT cuentas_personales_cuotas_check CHECK (
+         (cuotas IS NULL AND frecuencia IS NULL AND primera_cuota IS NULL)
+         OR (cuotas BETWEEN 2 AND 60 AND frecuencia IN ('semanal', 'quincenal', 'mensual') AND primera_cuota IS NOT NULL))`,
+      `CREATE TABLE IF NOT EXISTS abonos_cuenta (
+         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         cuenta_id UUID NOT NULL REFERENCES cuentas_personales(id) ON DELETE CASCADE,
+         usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+         monto NUMERIC(12,2) NOT NULL CHECK (monto > 0),
+         fecha DATE NOT NULL,
+         transaccion_id UUID NULL REFERENCES transacciones(id) ON DELETE SET NULL,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       )`,
+      'CREATE INDEX IF NOT EXISTS idx_abonos_cuenta_cuenta ON abonos_cuenta(cuenta_id, fecha)',
+      'ALTER TABLE tarjetas ADD COLUMN IF NOT EXISTS vence_mes SMALLINT NULL',
+      'ALTER TABLE tarjetas ADD COLUMN IF NOT EXISTS vence_anio SMALLINT NULL',
+      `ALTER TABLE tarjetas ADD COLUMN IF NOT EXISTS aviso_vencimiento_enviado SMALLINT[] NOT NULL DEFAULT '{}'`,
+      'ALTER TABLE tarjetas DROP CONSTRAINT IF EXISTS tarjetas_vencimiento_check',
+      `ALTER TABLE tarjetas ADD CONSTRAINT tarjetas_vencimiento_check CHECK (
+         (vence_mes IS NULL AND vence_anio IS NULL)
+         OR (vence_mes BETWEEN 1 AND 12 AND vence_anio BETWEEN 2000 AND 2099))`,
+    ],
+  },
 ];
 
 /**

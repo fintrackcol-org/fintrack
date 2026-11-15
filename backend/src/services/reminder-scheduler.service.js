@@ -1,3 +1,4 @@
+import { dueExpiryNotice, expiryReminderPayload } from './card-expiry.js';
 import {
   listCardReminderUsers,
   listLiquidityReminderUsers,
@@ -16,6 +17,7 @@ import { addDays, liquidityAlertDue, liquidityAlertPayload } from './liquidity.l
 import { dateInMonth, occursInMonth } from './money-plan.service.js';
 import { getLiquidity } from './liquidity.service.js';
 import { money, notify as notifyWhatsapp } from './whatsapp.service.js';
+import { todayIso } from './insights.service.js';
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
@@ -182,6 +184,7 @@ export function checkReminderDue({ time, timezone, now, windowMinutes = 5 }) {
  * @param {typeof listCardReminderUsers} [deps.listCardUsers]
  * @param {typeof cardsService.list} [deps.listUserCards]
  * @param {(cardId: string, userId: string, date: string) => Promise<unknown>} [deps.markCardReminded]
+ * @param {(cardId: string, userId: string, notified: number[]) => Promise<unknown>} [deps.markExpiryNotified] Avisos de vencimiento ya enviados (FT-0065).
  * @param {typeof listDebtsDueTomorrow} [deps.listDueDebts]
  * @param {ReminderSource[]} [deps.reminderSources] Qué cosas con fecha avisan por el motor (FT-0063).
  * @param {typeof markReminderSent} [deps.markReminderSent]
@@ -203,6 +206,8 @@ export function createReminderScheduler(deps = {}) {
   const markCardReminded =
     deps.markCardReminded ??
     ((id, userId, date) => updateCard(id, userId, { reminderSentFor: date }));
+  const markExpiryNotified =
+    deps.markExpiryNotified ?? ((id, userId, notified) => updateCard(id, userId, { expiryNotified: notified }));
   // Para sumar tarjetas, suscripciones o el calendario al motor basta agregar su fuente aquí.
   const sources = deps.reminderSources ?? [
     { type: 'cuenta', list: deps.listDueDebts ?? listDebtsDueTomorrow, payload: debtReminderPayload },
@@ -246,7 +251,15 @@ export function createReminderScheduler(deps = {}) {
           windowMinutes,
         });
         if (!due) continue;
+        const today = todayIso(moment, user.timezone);
         for (const card of await listUserCards(user.id)) {
+          // FT-0065: el plástico que vence en 60 o 30 días, una vez cada aviso.
+          const notice = dueExpiryNotice(card, today);
+          if (notice) {
+            await sendToUser(user.id, expiryReminderPayload(card, today));
+            await markExpiryNotified(card.id, user.id, [...new Set([...(card.expiryNotified ?? []), notice, ...(notice === 30 ? [60] : [])])]);
+            sent += 1;
+          }
           if (
             card.daysToPayment !== CARD_REMINDER_DAYS ||
             card.paidThisCycle ||

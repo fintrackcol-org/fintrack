@@ -308,3 +308,124 @@ test('validaciones y cálculos sin base', () => {
     { receivable: 0.3, payable: 0 },
   );
 });
+
+// FT-0064: cuotas y abonos, con la base real.
+test(
+  'a cuotas: abonos parciales mueven la próxima cuota y el último salda la cuenta',
+  options,
+  async () => {
+    await withApi(async (api) => {
+      const me = await newUser();
+      const created = await api('/debts', {
+        method: 'POST',
+        token: me.token,
+        body: {
+          kind: 'receivable',
+          person: 'Camila',
+          amount: 300000,
+          loanDate: '2026-10-02',
+          installments: 3,
+          frequency: 'monthly',
+          dueDate: '2026-10-15',
+        },
+      });
+      assert.equal(created.status, 201);
+      assert.equal(created.body.installments, 3);
+      assert.equal(created.body.frequency, 'monthly');
+      assert.equal(created.body.loanDate, '2026-10-02');
+      assert.equal(created.body.firstDueDate, '2026-10-15');
+      assert.equal(created.body.pending, 300000);
+      assert.deepEqual(created.body.nextInstallment, { number: 1, date: '2026-10-15', amount: 100000 });
+
+      const id = created.body.id;
+      const first = await api(`/debts/${id}/payments`, {
+        method: 'POST',
+        token: me.token,
+        body: { amount: 100000, date: '2026-10-15' },
+      });
+      assert.equal(first.status, 201);
+      assert.equal(first.body.transaction.type, 'ingreso');
+      assert.equal(first.body.transaction.amount, 100000);
+      assert.equal(first.body.debt.paid, 100000);
+      assert.equal(first.body.debt.pending, 200000);
+      assert.equal(first.body.debt.paidInstallments, 1);
+      // La fecha límite pasa a la próxima cuota: así el motor de avisos avisa cada una.
+      assert.equal(first.body.debt.dueDate, '2026-11-15');
+      assert.equal(first.body.debt.payments.length, 1);
+
+      // No se puede abonar más de lo pendiente.
+      const tooMuch = await api(`/debts/${id}/payments`, {
+        method: 'POST',
+        token: me.token,
+        body: { amount: 250000, date: '2026-10-20' },
+      });
+      assert.equal(tooMuch.status, 422);
+
+      const last = await api(`/debts/${id}/payments`, {
+        method: 'POST',
+        token: me.token,
+        body: { amount: 200000, date: '2026-10-20', createTransaction: false },
+      });
+      assert.equal(last.status, 201);
+      assert.equal(last.body.transaction, null);
+      assert.ok(last.body.debt.settledAt, 'queda saldada al completar el monto');
+      assert.equal(last.body.debt.pending, 0);
+      assert.equal(last.body.debt.nextInstallment, null);
+
+      const listed = await api('/debts', { token: me.token });
+      assert.deepEqual(listed.body.totals, { receivable: 0, payable: 0 });
+    });
+  },
+);
+
+test('borrar un abono vuelve a dejar pendiente su parte; nadie abona en la cuenta de otro', options, async () => {
+  await withApi(async (api) => {
+    const me = await newUser();
+    const other = await newUser();
+    const created = await api('/debts', {
+      method: 'POST',
+      token: me.token,
+      body: { kind: 'payable', person: 'Mateo', amount: 60000, dueDate: '2026-11-30' },
+    });
+    const id = created.body.id;
+    const paid = await api(`/debts/${id}/payments`, {
+      method: 'POST',
+      token: me.token,
+      body: { amount: 20000, date: '2026-10-10' },
+    });
+    assert.equal(paid.body.transaction.type, 'gasto');
+    assert.equal(paid.body.debt.pending, 40000);
+    assert.deepEqual(paid.body.debt.nextInstallment, { number: 1, date: '2026-11-30', amount: 40000 });
+
+    assert.equal(
+      (await api(`/debts/${id}/payments`, { method: 'POST', token: other.token, body: { amount: 1000 } })).status,
+      404,
+    );
+
+    const undone = await api(`/debts/${id}/payments/${paid.body.payment.id}`, { method: 'DELETE', token: me.token });
+    assert.equal(undone.status, 200);
+    assert.equal(undone.body.pending, 60000);
+    assert.equal(undone.body.payments.length, 0);
+
+    // Saldar lo que falta crea el movimiento solo por lo pendiente.
+    await api(`/debts/${id}/payments`, { method: 'POST', token: me.token, body: { amount: 10000, date: '2026-10-11' } });
+    const settled = await api(`/debts/${id}/settle`, { method: 'POST', token: me.token, body: { date: '2026-10-12' } });
+    assert.equal(settled.status, 200);
+    assert.equal(settled.body.transaction.amount, 50000);
+  });
+});
+
+test('valida cuotas y abonos', () => {
+  assert.throws(
+    () => parseNewDebt({ kind: 'receivable', person: 'A', amount: 100, installments: 3 }),
+    (err) => err.details.some((d) => d.field === 'frequency') && err.details.some((d) => d.field === 'dueDate'),
+  );
+  assert.throws(
+    () => parseNewDebt({ kind: 'receivable', person: 'A', amount: 100, installments: 1, frequency: 'monthly', dueDate: '2026-11-01' }),
+    (err) => err.details.some((d) => d.field === 'installments'),
+  );
+  assert.throws(
+    () => parseNewDebt({ kind: 'receivable', person: 'A', amount: 100, loanDate: '2026-12-01', dueDate: '2026-11-01' }),
+    (err) => err.details.some((d) => d.field === 'loanDate'),
+  );
+});

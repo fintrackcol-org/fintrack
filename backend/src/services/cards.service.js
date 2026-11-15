@@ -1,3 +1,4 @@
+import { expiryStatus } from './card-expiry.js';
 import { pool } from '../config/db.js';
 import { AppError } from '../errors/app-error.js';
 import * as repo from '../repositories/cards.repository.js';
@@ -66,7 +67,22 @@ async function present(card, today) {
     paidDueDate: state.paidDueDate,
     paidAmount: state.paidAmount,
     reminderSentFor: card.reminderSentFor,
+    // FT-0065: el vencimiento del plástico ("03/27"), si se sabe, y si ya venció o vence pronto.
+    expiryMonth: card.expiryMonth ?? null,
+    expiryYear: card.expiryYear ?? null,
+    expiry: expiryOf(card, today),
+    expiryNotified: card.expiryNotified ?? [],
   };
+}
+
+/**
+ * @param {{ expiryMonth: number|null, expiryYear: number|null }} card
+ * @param {string} today
+ * @returns {{ label: string, expired: boolean, soon: boolean }|null} `soon`: vence en 60 días o menos.
+ */
+function expiryOf(card, today) {
+  const status = expiryStatus(card, today);
+  return status && { label: status.label, expired: status.expired, soon: !status.expired && status.daysLeft <= 60 };
 }
 
 /**
@@ -159,6 +175,10 @@ export async function update(userId, id, changes) {
   // Un nombre que sigue siendo el de por defecto se rehace con los datos nuevos.
   if (changes.name === undefined && card.name === defaultName(card)) {
     changes = { ...changes, name: defaultName({ ...card, ...changes }) };
+  }
+  // Con otra fecha de vencimiento se vuelve a poder avisar (FT-0065).
+  if (changes.expiryMonth !== undefined && (changes.expiryMonth !== card.expiryMonth || changes.expiryYear !== card.expiryYear)) {
+    changes = { ...changes, expiryNotified: [] };
   }
   const updated = await guardDuplicate(() => repo.updateCard(id, userId, changes));
   if (!updated) throw notFound();

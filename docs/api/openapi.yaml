@@ -2245,6 +2245,56 @@ paths:
         "409": { description: "ALREADY_SETTLED: ya estaba saldada" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /debts/{id}/payments:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Debts]
+      summary: Registra un abono (FT-0064)
+      description: >
+        No puede pasar de lo pendiente. Con `createTransaction` (por defecto true) crea en la misma
+        transacción SQL un ingreso "Abono de {persona}" o un gasto "Abono a {persona}". Si con el abono
+        se completa el monto, la cuenta queda saldada; si es a cuotas, dueDate pasa a la próxima cuota.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: number, exclusiveMinimum: true, minimum: 0 }
+                date: { type: string, format: date, description: "Por defecto hoy. No puede ser futura." }
+                createTransaction: { type: boolean, default: true }
+      responses:
+        "201":
+          description: Abono registrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  debt: { $ref: "#/components/schemas/Debt" }
+                  payment: { $ref: "#/components/schemas/DebtPayment" }
+                  transaction: { type: object, nullable: true, allOf: [{ $ref: "#/components/schemas/Transaction" }] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: "ALREADY_SETTLED: ya estaba saldada" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /debts/{id}/payments/{paymentId}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: paymentId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [Debts]
+      summary: Borra un abono de una cuenta pendiente (para corregir un error)
+      description: El movimiento creado con el abono no se borra.
+      responses:
+        "200": { description: La cuenta como queda, content: { application/json: { schema: { $ref: "#/components/schemas/Debt" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /pending-payments/token:
     get:
       tags: [PendingPayments]
@@ -3310,6 +3360,8 @@ components:
         available: { type: number, minimum: 0, description: "Solo al crear; 0 ≤ available ≤ limit." }
         paymentDay: { type: integer, minimum: 1, maximum: 31 }
         cutoffDay: { type: integer, minimum: 1, maximum: 31, nullable: true }
+        expiryMonth: { type: integer, minimum: 1, maximum: 12, nullable: true, description: "FT-0065: mes en que vence el plástico. Va con expiryYear; null en los dos lo quita." }
+        expiryYear: { type: integer, nullable: true, description: "Año de vencimiento: 27 o 2027 (2000-2099). Nunca se guarda el número completo ni el CVV." }
         name: { type: string, maxLength: 40, description: "Si no se da (o se editan dígitos o nivel de una tarjeta con el nombre por defecto), se usa \"Amex Blue ••1234\"." }
     Card:
       type: object
@@ -3332,6 +3384,17 @@ components:
         paidDueDate: { type: string, format: date, nullable: true, description: "Vencimiento del último ciclo pagado (el calendario lo muestra pagado en esa fecha)." }
         paidAmount: { type: number, description: "Suma de los pagos de ese ciclo; 0 si no hay." }
         reminderSentFor: { type: string, format: date, nullable: true, description: Fecha de pago ya avisada por push }
+        expiryMonth: { type: integer, nullable: true }
+        expiryYear: { type: integer, nullable: true }
+        expiry:
+          type: object
+          nullable: true
+          description: "FT-0065: el vencimiento del plástico. Se avisa a 60 y a 30 días del mes en que vence."
+          properties:
+            label: { type: string, example: "03/27" }
+            expired: { type: boolean, description: Ya pasó el último día del mes }
+            soon: { type: boolean, description: Vence en 60 días o menos }
+        expiryNotified: { type: array, items: { type: integer, enum: [60, 30] }, description: Avisos de vencimiento ya enviados }
     Amount:
       type: number
       format: double
@@ -3511,9 +3574,35 @@ components:
         note: { type: string, nullable: true }
         settledAt: { type: string, format: date-time, nullable: true }
         transactionId: { type: string, format: uuid, nullable: true, description: Movimiento creado al saldarla }
+        loanDate: { type: string, format: date, nullable: true, description: "FT-0064: cuándo se prestó" }
+        installments: { type: integer, minimum: 2, maximum: 60, nullable: true, description: "Número de cuotas; null = fecha fija" }
+        frequency: { type: string, enum: [weekly, biweekly, monthly], nullable: true, description: "Cada cuánto es una cuota (quincenal = cada 15 días)" }
+        firstDueDate: { type: string, format: date, nullable: true, description: "Fecha de la primera cuota. Con cuotas, dueDate es la de la próxima pendiente (así se avisa cada una)." }
+        paid: { type: number, description: Suma de los abonos }
+        pending: { type: number, description: "Monto menos abonos; 0 si está saldada" }
+        paidInstallments: { type: integer }
+        nextInstallment:
+          type: object
+          nullable: true
+          properties:
+            number: { type: integer }
+            date: { type: string, format: date }
+            amount: { type: number, description: Lo que falta de esa cuota }
+        payments:
+          type: array
+          description: Abonos, del más reciente al más viejo
+          items: { $ref: "#/components/schemas/DebtPayment" }
         reminder: { $ref: "#/components/schemas/Reminder" }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+    DebtPayment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        amount: { type: number }
+        date: { type: string, format: date }
+        transactionId: { type: string, format: uuid, nullable: true, description: Ingreso o gasto creado con el abono }
+        createdAt: { type: string, format: date-time }
     Reminder:
       type: object
       description: |

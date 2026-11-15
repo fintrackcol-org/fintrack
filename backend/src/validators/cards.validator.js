@@ -107,6 +107,25 @@ function readCommon(body, details) {
   if (body.cutoffDay !== undefined) {
     out.cutoffDay = body.cutoffDay === null ? null : readDay(body.cutoffDay, 'cutoffDay', details);
   }
+  // FT-0065: mes y año en que vence el plástico (MM/AA). Van juntos; null los quita.
+  if (body.expiryMonth !== undefined || body.expiryYear !== undefined) {
+    if (body.expiryMonth === null && body.expiryYear === null) {
+      out.expiryMonth = null;
+      out.expiryYear = null;
+    } else {
+      const month = body.expiryMonth;
+      const rawYear = body.expiryYear;
+      const year = Number.isInteger(rawYear) && rawYear >= 0 && rawYear <= 99 ? 2000 + rawYear : rawYear;
+      if (!Number.isInteger(month) || month < 1 || month > 12) {
+        details.push({ field: 'expiryMonth', problem: 'Debe ser un mes entre 1 y 12' });
+      } else if (!Number.isInteger(year) || year < 2000 || year > 2099) {
+        details.push({ field: 'expiryYear', problem: 'Debe ser el año, como 27 o 2027' });
+      } else {
+        out.expiryMonth = month;
+        out.expiryYear = year;
+      }
+    }
+  }
   if (body.name !== undefined) {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (name.length >= 1 && name.length <= 40) out.name = name;
@@ -134,7 +153,7 @@ export function checkTier(network, tier, details) {
 /**
  * Valida `POST /cards`.
  * @param {unknown} body
- * @returns {{ network: string, tier: string, last4: string, limit: number, available: number, paymentDay: number, name?: string, cutoffDay?: number|null }}
+ * @returns {{ network: string, tier: string, last4: string, limit: number, available: number, paymentDay: number, name?: string, cutoffDay?: number|null, expiryMonth?: number|null, expiryYear?: number|null }}
  */
 export function parseNewCard(body) {
   requireObject(body);
