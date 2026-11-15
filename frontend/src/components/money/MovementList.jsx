@@ -10,6 +10,8 @@ import useCategoryNames from '@/hooks/useCategoryNames';
 import { monthRange } from '@/services/summaryService';
 import AdjustmentRow from '@/components/money/AdjustmentRow';
 import MovementRow from '@/components/transactions/MovementRow';
+import SwipeRow from '@/components/transactions/SwipeRow';
+import { removeTransaction } from '@/offline/removeTransaction';
 import ConflictList from '@/components/transactions/ConflictList';
 import { CachedNotice, PendingList } from '@/components/transactions/SyncNotices';
 import { formatDate, formatMoney, formatRelativeDay } from '@/components/transactions/format';
@@ -64,6 +66,19 @@ const CHIP = 'flex h-11 shrink-0 items-center gap-1 rounded-full border px-3 tex
 const chipTone = (selected) => (selected ? 'border-2 border-brand bg-brand-soft font-semibold text-brand' : 'border-ink/15 bg-surface');
 
 /**
+ * "7 movimientos · gastos $ 144.600 · ingresos $ 700.000", de lo que muestra la lista.
+ * @param {Array<{ type?: string, amount?: number, adjustment?: boolean }>} rows
+ * @param {boolean} hidden
+ */
+export function summaryLine(rows, hidden) {
+  const list = rows.filter((r) => !r.adjustment);
+  const sum = (type) => list.filter((r) => r.type === type).reduce((a, r) => a + r.amount, 0);
+  const money = (v) => (hidden ? '••••' : formatMoney(v));
+  const count = list.length === 1 ? '1 movimiento' : `${list.length} movimientos`;
+  return `${count} · gastos ${money(sum('gasto'))} · ingresos ${money(sum('ingreso'))}`;
+}
+
+/**
  * Movimientos dentro de Mi plata: mes, buscador, filtros y la lista por día. Sin conexión muestra la copia
  * guardada en el dispositivo, y aquí mismo se ve lo que espera sincronizarse y lo que tuvo conflicto.
  * En la pestaña Movimientos (`standalone`) la página ya lleva el título: aquí queda solo para lectores de pantalla.
@@ -91,6 +106,8 @@ export default function MovementList({ names, hidden = false, standalone = false
   const [version, setVersion] = useState(0);
   const [adjustments, setAdjustments] = useState([]);
   const [opened, setOpened] = useState(null); // ajuste abierto en la ventana
+  const [deleting, setDeleting] = useState(null); // movimiento por eliminar (deslizando la fila)
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     const id = setTimeout(() => (setQ(text.trim()), setPage(1)), SEARCH_DELAY_MS);
@@ -296,9 +313,37 @@ export default function MovementList({ names, hidden = false, standalone = false
         </p>
       ) : (
         <div aria-busy={busy} className={cn('transition-opacity duration-150', busy && 'opacity-50')}>
+          {/* Rinde v2: cuántos movimientos y cuánto suman, antes de la lista. */}
+          {standalone && rows.length > 0 && <p className="mt-3 text-[13px] text-ink/60">{summaryLine(rows, hidden)}</p>}
           {groups.map(({ date, day, items }) => (
           <div key={date}>
-            <h3 className="mb-1 mt-4 text-sm font-medium text-ink/60">{day}</h3>
+            <h3 className={cn('mb-1 mt-4 text-sm font-medium text-ink/60', standalone && 'text-xs font-semibold uppercase tracking-[0.08em]')}>{day}</h3>
+            {standalone ? (
+              // En la pestaña Movimientos cada fila es una tarjeta que se desliza para editar o eliminar.
+              <ul className="flex flex-col gap-1.5">
+                {items.map((t) =>
+                  t.adjustment || syncStatus.get(t.id) ? (
+                    t.adjustment ? (
+                      <AdjustmentRow key={t.id} adjustment={t} hidden={hidden} onOpen={setOpened} />
+                    ) : (
+                      <MovementRow key={t.id} transaction={t} names={names} hidden={hidden} icon fresh={fresh.has(t.id)} syncStatus={syncStatus.get(t.id)} />
+                    )
+                  ) : (
+                    <SwipeRow
+                      key={t.id}
+                      label={t.description}
+                      editTo={`/app/transacciones/${t.id}/editar`}
+                      editState={{ transaction: t }}
+                      onDelete={() => (setDeleteError(''), setDeleting(t))}
+                    >
+                      <div className="rounded-2xl px-3 ring-1 ring-inset ring-ink/10">
+                        <MovementRow transaction={t} names={names} hidden={hidden} icon fresh={fresh.has(t.id)} />
+                      </div>
+                    </SwipeRow>
+                  ),
+                )}
+              </ul>
+            ) : (
             <ul className="divide-y divide-ink/10">
               {items.map((t) =>
                 t.adjustment ? (
@@ -308,10 +353,47 @@ export default function MovementList({ names, hidden = false, standalone = false
                 ),
               )}
             </ul>
+            )}
           </div>
           ))}
+          {standalone && rows.length > 0 && (
+            <p className="mt-4 text-center text-[13px] text-ink/60 md:hidden">Desliza una fila a la izquierda para editarla o eliminarla.</p>
+          )}
         </div>
       )}
+
+      <Sheet
+        open={deleting !== null}
+        title="¿Eliminar este movimiento?"
+        description={deleting ? `${deleting.description} · ${hidden ? '••••' : formatMoney(deleting.amount)}. Se quita de tus totales.` : undefined}
+        onClose={() => setDeleting(null)}
+      >
+        {deleteError && (
+          <p role="alert" className="mb-3 text-sm text-negative">
+            {deleteError}
+          </p>
+        )}
+        <div className="flex flex-col gap-2">
+          <Button
+            size="lg"
+            className="bg-negative text-white hover:bg-negative/90"
+            onClick={async () => {
+              try {
+                await removeTransaction(deleting);
+                setDeleting(null);
+                setVersion((v) => v + 1);
+              } catch (err) {
+                setDeleteError(err.message);
+              }
+            }}
+          >
+            Sí, eliminar
+          </Button>
+          <Button size="lg" variant="ghost" onClick={() => setDeleting(null)}>
+            Cancelar
+          </Button>
+        </div>
+      </Sheet>
 
       <Sheet
         open={opened !== null}

@@ -20,7 +20,7 @@ export default function Movements() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
-        title="Movimientos"
+        title="¿En qué se te fue?"
         actions={
           <>
             <Button asChild variant="soft">
