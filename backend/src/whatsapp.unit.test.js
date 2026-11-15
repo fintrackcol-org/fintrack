@@ -4,6 +4,7 @@ import { createHmac } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { env } from './config/env.js';
 import { parseSpokenTransaction } from './services/entry-parser.js';
+import { sendText } from './services/whatsapp-client.service.js';
 import {
   REPLIES,
   STRANGER_DAILY_MAX,
@@ -24,17 +25,31 @@ const message = (text, id = 'wamid.1') => ({ id, from: PHONE, text });
  * @returns {{ service: ReturnType<typeof createWhatsappService>, sent: string[], saved: object[], queries: object[] }}
  */
 function setup(options = {}) {
-  const { linked = true, recent = 0, save, income = 0, expense = 0, savings = 0, byCategory = [], summary } = options;
+  const {
+    linked = true,
+    recent = 0,
+    save,
+    income = 0,
+    expense = 0,
+    savings = 0,
+    byCategory = [],
+    summary,
+  } = options;
   const plan = options.plan ?? { ready: false };
   const sent = [];
   const saved = [];
   const queries = [];
   const claimed = new Set();
   const mails = [];
+  const links = [];
+  const recipients = [];
   const service = createWhatsappService({
     repository: {
-      findUserIdByPhone: async () => (linked ? 'usuario-1' : null),
-      confirmLink: async () => 'linked',
+      findUserIdBySender: async () => (linked ? 'usuario-1' : null),
+      confirmLink: async (data) => {
+        links.push(data);
+        return 'linked';
+      },
       countRecentMessages: async () => recent,
       findAccess: async () => options.access ?? 'aprobado',
       countStrangerSends: async () => options.strangerSends ?? 0,
@@ -57,18 +72,25 @@ function setup(options = {}) {
       summary ??
       (async (_userId, query) => {
         queries.push(query);
-        return { income: { total: income }, expense: { total: expense, byCategory }, savings: { total: savings } };
+        return {
+          income: { total: income },
+          expense: { total: expense, byCategory },
+          savings: { total: savings },
+        };
       }),
     getPlan: typeof plan === 'function' ? plan : async () => plan,
     getLiquidity: async () => options.liquidity ?? { ready: false },
-    sendText: async (_to, body) => sent.push(body),
+    sendText: async (to, body) => {
+      recipients.push(to);
+      sent.push(body);
+    },
     findUser: async () => ({ email: 'ana@ejemplo.co' }),
     sendEmail: async (mail) => mails.push(mail),
     monthlyMax: options.monthlyMax ?? 900,
     now: () => new Date('2026-11-02T15:00:00Z'),
     dailyMax: 3,
   });
-  return { service, sent, saved, queries, mails };
+  return { service, sent, saved, queries, mails, links, recipients };
 }
 
 test('la copia del analizador es igual a la del frontend', async () => {
@@ -110,7 +132,9 @@ test('la firma solo es válida con la clave y el cuerpo correctos', () => {
 });
 
 test('extractMessages ignora avisos de estado y otros números', () => {
-  const value = (id, extra) => ({ changes: [{ value: { metadata: { phone_number_id: id }, ...extra } }] });
+  const value = (id, extra) => ({
+    changes: [{ value: { metadata: { phone_number_id: id }, ...extra } }],
+  });
   const text = { id: 'm1', from: '+57 300', type: 'text', text: { body: ' hola ' } };
   const payload = {
     entry: [
@@ -120,10 +144,61 @@ test('extractMessages ignora avisos de estado y otros números', () => {
     ],
   };
   assert.deepEqual(extractMessages(payload, 'bot'), [
-    { id: 'm1', from: '57300', text: 'hola' },
-    { id: 'm2', from: '57300', text: null },
+    { id: 'm1', from: '57300', bsuid: null, text: 'hola' },
+    { id: 'm2', from: '57300', bsuid: null, text: null },
   ]);
   assert.deepEqual(extractMessages({}, 'bot'), []);
+});
+
+test('extractMessages acepta a quien llega sin número, solo con su BSUID', () => {
+  const value = {
+    metadata: { phone_number_id: 'bot' },
+    contacts: [{ profile: { username: 'jose' }, user_id: 'CO.555' }],
+    messages: [
+      { id: 'm1', from_user_id: 'CO.555', type: 'text', text: { body: 'FT-AB23CD45' } },
+      { id: 'm2', type: 'text', text: { body: 'hola' } },
+    ],
+  };
+  assert.deepEqual(extractMessages({ entry: [{ changes: [{ value }] }] }, 'bot'), [
+    { id: 'm1', from: null, bsuid: 'CO.555', text: 'FT-AB23CD45' },
+    { id: 'm2', from: null, bsuid: 'CO.555', text: 'hola' },
+  ]);
+  const nobody = {
+    ...value,
+    contacts: [],
+    messages: [{ id: 'm3', type: 'text', text: { body: 'x' } }],
+  };
+  assert.deepEqual(extractMessages({ entry: [{ changes: [{ value: nobody }] }] }, 'bot'), []);
+});
+
+test('conecta y le responde por BSUID a quien no trae número', async () => {
+  const { service, sent, links, recipients } = setup({ linked: false });
+  await service.handleMessage({ id: 'm1', from: null, bsuid: 'CO.555', text: 'FT-AB23CD45' });
+  assert.equal(links[0].phone, null);
+  assert.equal(links[0].bsuid, 'CO.555');
+  assert.deepEqual(sent, [REPLIES.linked]);
+  assert.deepEqual(recipients, ['CO.555']);
+});
+
+test('sendText usa recipient para un BSUID y to para un número', async () => {
+  const bodies = [];
+  const http = async (_url, init) => {
+    bodies.push(JSON.parse(init.body));
+    return { ok: true };
+  };
+  await sendText('CO.555', 'hola', http);
+  await sendText('573001112233', 'hola', http);
+  assert.equal(bodies[0].recipient, 'CO.555');
+  assert.equal(bodies[0].recipient_type, 'individual');
+  assert.equal(bodies[0].to, undefined);
+  assert.equal(bodies[1].to, '573001112233');
+  assert.equal(bodies[1].recipient, undefined);
+  const failing = async () => ({
+    ok: false,
+    status: 400,
+    json: async () => ({ error: { code: 131062 } }),
+  });
+  await assert.rejects(sendText('CO.555', 'hola', failing), /Meta respondió 400 \(131062\)/);
 });
 
 test('maskPhone solo deja los últimos cuatro dígitos', () => {
@@ -189,10 +264,18 @@ test('después del aviso de límite, el bot no responde más ese día', async ()
 });
 
 test('responde el balance del mes con varias formas de preguntarlo', async () => {
-  for (const [i, text] of ['Cuánto tengo hasta ahora en total?', 'cuanto tengo', 'cuánto me queda', 'saldo'].entries()) {
+  for (const [i, text] of [
+    'Cuánto tengo hasta ahora en total?',
+    'cuanto tengo',
+    'cuánto me queda',
+    'saldo',
+  ].entries()) {
     const { service, sent, saved, queries } = setup({ income: 1_200_000, expense: 450_000 });
     await service.handleMessage(message(text, `m${i}`));
-    assert.equal(sent[0], 'En noviembre llevas:\nIngresos: $1.200.000\nGastos: $450.000\nBalance: $750.000');
+    assert.equal(
+      sent[0],
+      'En noviembre llevas:\nIngresos: $1.200.000\nGastos: $450.000\nBalance: $750.000',
+    );
     assert.equal(saved.length, 0);
     assert.deepEqual(queries, [{ period: 'month', date: '2026-11-02' }]);
   }
@@ -219,12 +302,18 @@ test('responde los gastos del mes y la categoría que más pesa', async () => {
     byCategory: [{ category: 'alimentacion', total: 180_000 }],
   });
   await service.handleMessage(message('Cuánto he gastado este mes'));
-  assert.equal(sent[0], 'En noviembre has gastado $450.000.\nLo que más pesa: Alimentación, $180.000.');
+  assert.equal(
+    sent[0],
+    'En noviembre has gastado $450.000.\nLo que más pesa: Alimentación, $180.000.',
+  );
   assert.equal(saved.length, 0);
 });
 
 test('los gastos sin categoría salen como Sin clasificar', async () => {
-  const { service, sent } = setup({ expense: 50_000, byCategory: [{ category: null, total: 50_000 }] });
+  const { service, sent } = setup({
+    expense: 50_000,
+    byCategory: [{ category: null, total: 50_000 }],
+  });
   await service.handleMessage(message('cuánto gasté'));
   assert.match(sent[0], /Lo que más pesa: Sin clasificar, \$50\.000\.$/);
 });
@@ -307,7 +396,15 @@ test('Mi plata en el bot (FT-0038): avance del día según cómo le entra la pla
   assert.equal(planProgress({ ready: false }), null);
   assert.equal(planProgress(null), null);
 
-  const daily = { ready: true, mode: 'daily', shortfall: 0, perDay: 30000, leftToday: 12000, overBy: 0, days: 5 };
+  const daily = {
+    ready: true,
+    mode: 'daily',
+    shortfall: 0,
+    perDay: 30000,
+    leftToday: 12000,
+    overBy: 0,
+    days: 5,
+  };
   assert.equal(
     planProgress({ ...daily, dayStatus: 'ok' }),
     'Hoy puedes gastar $12.000 más; faltan 5 días para tu pago.',
@@ -336,8 +433,14 @@ test('Mi plata en el bot (FT-0038): avance del día según cómo le entra la pla
     planProgress({ ...runway, runwayDays: 9 }),
     'Ya cubres tus pagos. Lo que tienes te alcanza para 9 días a tu ritmo.',
   );
-  assert.equal(planProgress({ ...runway, runwayDays: null }), 'Ya cubres tus pagos. Tienes libres $200.000.');
-  assert.match(planProgress({ ...runway, shortfall: 5000, runwayDays: 0 }), /^Te faltan \$5\.000\./);
+  assert.equal(
+    planProgress({ ...runway, runwayDays: null }),
+    'Ya cubres tus pagos. Tienes libres $200.000.',
+  );
+  assert.match(
+    planProgress({ ...runway, shortfall: 5000, runwayDays: 0 }),
+    /^Te faltan \$5\.000\./,
+  );
 });
 
 test('"hice 38 mil" se guarda como ingreso y responde el avance del día', async () => {
@@ -447,9 +550,10 @@ test('a quien le quitaron el acceso no le responde ni le guarda', async () => {
   assert.deepEqual(saved, []);
 });
 
-
 test('una cantidad en palabras después del monto describe la compra: no hace ambiguo el monto', () => {
-  const parsed = parseSpokenTransaction('11.000 de tomate ,papa amarilla ,y papa pastusa y dos cabezas de ajos.');
+  const parsed = parseSpokenTransaction(
+    '11.000 de tomate ,papa amarilla ,y papa pastusa y dos cabezas de ajos.',
+  );
   assert.equal(parsed.amount, 11_000);
   assert.equal(parsed.ambiguous, false);
   // Antes del monto sigue siendo una cantidad: se ofrece el precio y el total.

@@ -643,6 +643,14 @@ export const MIGRATIONS = [
          ON whatsapp_envios(telefono_hash, created_at)`,
     ],
   },
+  {
+    id: '033_whatsapp_bsuid',
+    statements: [
+      'ALTER TABLE whatsapp_vinculos ADD COLUMN IF NOT EXISTS wa_usuario VARCHAR(100) NULL',
+      `CREATE UNIQUE INDEX IF NOT EXISTS ux_whatsapp_vinculos_wa_usuario
+         ON whatsapp_vinculos(wa_usuario)`,
+    ],
+  },
 ];
 
 /**

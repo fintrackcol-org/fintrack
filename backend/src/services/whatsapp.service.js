@@ -32,8 +32,10 @@ const ACCESS = { aprobado: 'approved', pendiente: 'pending', rechazado: 'rejecte
 const ACCESS_TO_DB = { approved: 'aprobado', rejected: 'rechazado' };
 
 /** Preguntas que entiende el bot, sobre el texto en minúsculas y sin tildes. */
-const BALANCE_QUESTION = /(?<!\p{L})(cuanto tengo|cuanta plata tengo|cuanto me queda|saldo|balance)(?!\p{L})/u;
-const EXPENSE_QUESTION = /(?<!\p{L})(cuanto (he gastado|llevo gastado|gaste)|mis gastos|gastos del mes)(?!\p{L})/u;
+const BALANCE_QUESTION =
+  /(?<!\p{L})(cuanto tengo|cuanta plata tengo|cuanto me queda|saldo|balance)(?!\p{L})/u;
+const EXPENSE_QUESTION =
+  /(?<!\p{L})(cuanto (he gastado|llevo gastado|gaste)|mis gastos|gastos del mes)(?!\p{L})/u;
 const PROGRESS_QUESTION =
   /(?<!\p{L})(como voy|como vamos|como va mi dia|mi meta|meta de hoy|cuanto puedo gastar|cuanto me falta|cuanto (tengo|debo|necesito) (que )?hacer|me alcanza|avance)(?!\p{L})/u;
 const ANY_QUESTION = /\?|^¿?\s*(cuanto|cuanta|que|como|cual)(?!\p{L})/u;
@@ -137,18 +139,24 @@ export function maskPhone(phone) {
  * Mensajes entrantes de un aviso de Meta. Los avisos de estado (entregado, leído) no traen ninguno.
  * @param {object} payload
  * @param {string|undefined} [phoneNumberId] Solo se aceptan los dirigidos a este número.
- * @returns {Array<{ id: string, from: string, text: string|null }>} `text` es `null` si no es texto.
+ * Desde 2026 Meta omite el número (`from`) de quien usa nombre de usuario en WhatsApp y solo manda su
+ * identificador por negocio (BSUID, `from_user_id`): se acepta cualquiera de los dos.
+ * @returns {Array<{ id: string, from: string|null, bsuid: string|null, text: string|null }>} `text` es `null` si no es texto.
  */
 export function extractMessages(payload, phoneNumberId = env.whatsappPhoneNumberId) {
   const messages = [];
   for (const entry of payload?.entry ?? []) {
     for (const { value } of entry?.changes ?? []) {
       if (value?.metadata?.phone_number_id !== phoneNumberId) continue;
+      const onlyContact = value?.contacts?.length === 1 ? value.contacts[0]?.user_id : undefined;
       for (const message of value?.messages ?? []) {
-        if (typeof message?.id !== 'string' || typeof message?.from !== 'string') continue;
+        const phone = typeof message?.from === 'string' ? message.from.replace(/\D/g, '') : '';
+        const bsuid = message?.from_user_id ?? onlyContact;
+        if (typeof message?.id !== 'string' || (!phone && typeof bsuid !== 'string')) continue;
         messages.push({
           id: message.id,
-          from: message.from.replace(/\D/g, ''),
+          from: phone || null,
+          bsuid: typeof bsuid === 'string' ? bsuid : null,
           text: message.type === 'text' ? String(message.text?.body ?? '').trim() : null,
         });
       }
@@ -171,7 +179,9 @@ export function money(value) {
  * @returns {string} Nombre del mes, p. ej. "noviembre".
  */
 function monthName(date) {
-  return new Intl.DateTimeFormat('es-CO', { month: 'long', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`));
+  return new Intl.DateTimeFormat('es-CO', { month: 'long', timeZone: 'UTC' }).format(
+    new Date(`${date}T12:00:00Z`),
+  );
 }
 
 /**
@@ -186,9 +196,11 @@ const daysText = (days) => (days === 1 ? '1 día' : `${days} días`);
  * @returns {string}
  */
 function dayAndMonth(date) {
-  return new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(
-    new Date(`${date}T12:00:00Z`),
-  );
+  return new Intl.DateTimeFormat('es-CO', {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T12:00:00Z`));
 }
 
 /**
@@ -239,7 +251,7 @@ export function planProgress(plan) {
  * @param {number} [deps.dailyMax]
  * @param {number} [deps.monthlyMax]
  * @param {typeof sendEmail} [deps.sendEmail]
- * @returns {{ status: (userId: string) => Promise<object>, createLinkCode: (userId: string) => Promise<object>, unlink: (userId: string) => Promise<void>, handleMessage: (message: { id: string, from: string, text: string|null }) => Promise<void>, handleWebhook: (payload: object) => Promise<void> }}
+ * @returns {{ status: (userId: string) => Promise<object>, createLinkCode: (userId: string) => Promise<object>, unlink: (userId: string) => Promise<void>, handleMessage: (message: { id: string, from: string|null, bsuid?: string|null, text: string|null }) => Promise<void>, handleWebhook: (payload: object) => Promise<void> }}
  */
 export function createWhatsappService(deps = {}) {
   const store = deps.repository ?? repo;
@@ -336,16 +348,16 @@ export function createWhatsappService(deps = {}) {
    * @returns {Promise<{ available: boolean, access: 'approved'|'pending'|'rejected'|'none', admin: boolean, linked: boolean, phone: string|null, botNumber: string|null }>}
    */
   async function status(userId) {
-    const [phone, { access, admin }] = await Promise.all([
-      store.findPhone(userId),
+    const [contact, { access, admin }] = await Promise.all([
+      store.findContact(userId),
       accessOf(userId),
     ]);
     return {
       available: isAvailable() && (access !== 'none' || env.whatsappAllowedEmails.includes('*')),
       access,
       admin,
-      linked: phone !== null,
-      phone: phone && maskPhone(phone),
+      linked: Boolean(contact?.phone || contact?.bsuid),
+      phone: contact?.phone ? maskPhone(contact.phone) : null,
       botNumber: env.whatsappBotNumber ?? null,
     };
   }
@@ -449,7 +461,8 @@ export function createWhatsappService(deps = {}) {
   async function balanceReply(userId, today) {
     const month = monthName(today);
     const { income, expense, savings } = await summarize(userId, { period: 'month', date: today });
-    if (income.total === 0 && expense.total === 0 && savings.total === 0) return REPLIES.noMovements(month);
+    if (income.total === 0 && expense.total === 0 && savings.total === 0)
+      return REPLIES.noMovements(month);
     const balance = Math.round((income.total - expense.total - savings.total) * 100) / 100;
     const saved = savings.total > 0 ? `\nAhorro: ${money(savings.total)}` : '';
     return `En ${month} llevas:\nIngresos: ${money(income.total)}\nGastos: ${money(expense.total)}${saved}\nBalance: ${money(balance)}`;
@@ -497,9 +510,10 @@ export function createWhatsappService(deps = {}) {
    */
   async function notify(userId, text) {
     if (!(await canUse(userId))) return false;
-    const phone = await store.findPhone(userId);
-    if (!phone) return false;
-    return deliver(phone, text, userId);
+    const contact = await store.findContact(userId);
+    const address = contact?.phone ?? contact?.bsuid;
+    if (!address) return false;
+    return deliver(address, text, userId);
   }
 
   /**
@@ -561,28 +575,30 @@ export function createWhatsappService(deps = {}) {
 
   /**
    * Procesa un mensaje y responde. Quien no está vinculado solo puede enviar su código.
-   * @param {{ id: string, from: string, text: string|null }} message
+   * @param {{ id: string, from: string|null, bsuid?: string|null, text: string|null }} message
    * @returns {Promise<void>}
    */
   async function handleMessage(message) {
-    const { from, text } = message;
+    const { from, bsuid = null, text } = message;
+    // Se responde al número si Meta lo mandó; si no, al BSUID.
+    const address = from ?? bsuid;
     const candidate = text?.toUpperCase() ?? '';
     const isCode = CODE_RE.test(candidate);
-    const userId = isCode ? null : await store.findUserIdByPhone(from);
+    const userId = isCode ? null : await store.findUserIdBySender({ phone: from, bsuid });
     if (!userId) {
       // Cualquiera puede escribirle al número: a quien no está conectado se le responde poco.
-      if ((await store.countStrangerSends(hashCode(from))) >= STRANGER_DAILY_MAX) return;
+      if ((await store.countStrangerSends(hashCode(address))) >= STRANGER_DAILY_MAX) return;
       if (!isCode) {
-        await deliver(from, REPLIES.unlinked);
+        await deliver(address, REPLIES.unlinked);
         return;
       }
-      const result = await store.confirmLink({ codeHash: hashCode(candidate), phone: from });
+      const result = await store.confirmLink({ codeHash: hashCode(candidate), phone: from, bsuid });
       const replies = {
         linked: REPLIES.linked,
         invalid: REPLIES.invalidCode,
         taken: REPLIES.taken,
       };
-      await deliver(from, replies[result]);
+      await deliver(address, replies[result]);
       return;
     }
     // A quien se le quitó el acceso no se le responde: cada respuesta se cobra.
@@ -592,20 +608,20 @@ export function createWhatsappService(deps = {}) {
       // Cada respuesta se cobra: el aviso va solo al primer mensaje de más (que queda contado) y
       // los siguientes se ignoran hasta que la ventana de 24 h libere cupo.
       if (used === dailyMax && (await store.claimMessage({ messageId: message.id, userId }))) {
-        await deliver(from, REPLIES.dailyLimit, userId);
+        await deliver(address, REPLIES.dailyLimit, userId);
       }
       return;
     }
     if (!(await store.claimMessage({ messageId: message.id, userId }))) return;
     if (text === null) {
-      await deliver(from, REPLIES.textOnly, userId);
+      await deliver(address, REPLIES.textOnly, userId);
       return;
     }
     const reply = await register(userId, { id: message.id, text }).catch((err) => {
       console.error(`No se pudo registrar un mensaje de WhatsApp (${err.message})`);
       return REPLIES.failed;
     });
-    await deliver(from, reply, userId);
+    await deliver(address, reply, userId);
   }
 
   /**
