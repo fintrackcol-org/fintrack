@@ -10,21 +10,17 @@ const render = () =>
     </MemoryRouter>,
   );
 
-describe('DashboardEmpty (FT-0004)', () => {
-  it('invita a registrar el primer movimiento', () => {
+describe('DashboardEmpty (FT-0004, Rinde v2)', () => {
+  it('invita a anotar lo primero del mes', () => {
     const html = render();
-    expect(html).toContain('Registra tu primer movimiento');
-    expect(html).toContain('Aún no tienes gastos ni ingresos');
+    expect(html).toContain('Todavía no has anotado nada este mes');
+    expect(html).toContain('Anotar mi primer gasto');
   });
 
-  it('lleva al formulario con el tipo ya elegido', () => {
+  it('lleva a anotar con el tipo ya elegido, o a conectar WhatsApp', () => {
     const html = render();
     expect(html).toContain('href="/app/anotar?tipo=gasto"');
     expect(html).toContain('href="/app/anotar?tipo=ingreso"');
-  });
-
-  it('anticipa lo que verá el usuario: balance, categorías y presupuestos', () => {
-    const html = render();
-    for (const title of ['Tu balance', 'En qué gastas', 'Tus límites']) expect(html).toContain(title);
+    expect(html).toContain('href="/app/cuenta#whatsapp"');
   });
 });

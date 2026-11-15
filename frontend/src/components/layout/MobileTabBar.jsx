@@ -52,6 +52,9 @@ export function hasAddButton(pathname) {
   return WITH_ADD.some((pattern) => pattern.test(path));
 }
 
+/** Pestañas que el tutorial resalta (FT-0071). */
+const TOUR_ANCHORS = { '/app/metas': 'metas', '/app/mi-plata': 'mi-plata' };
+
 /**
  * Barra de pestañas del celular: un rectángulo con esquinas redondeadas que flota sobre la pantalla,
  * separado de los bordes y por encima de la zona del gesto de inicio. La pestaña abierta lleva fondo.
@@ -64,6 +67,7 @@ export default function MobileTabBar() {
       {hasAddButton(pathname) && (
         <Link
           to="/app/anotar"
+          data-tour="anotar"
           className="fixed right-4 z-30 inline-flex h-[52px] items-center gap-2 rounded-full bg-brand pl-4 pr-5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(20,20,20,0.22)] transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet motion-safe:active:scale-[0.97] bottom-[calc(max(env(safe-area-inset-bottom),12px)+80px)] md:hidden"
         >
           <Plus className="size-5" strokeWidth={2.25} aria-hidden="true" />
@@ -79,6 +83,7 @@ export default function MobileTabBar() {
             key={to}
             to={to}
             end={end}
+            data-tour={TOUR_ANCHORS[to]}
             // Lo que se abre desde una pestaña la deja marcada: así se sabe dónde se está.
             aria-current={inside.includes(pathname) ? 'page' : undefined}
             className={({ isActive }) =>

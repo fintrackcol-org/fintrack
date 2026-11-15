@@ -21,6 +21,7 @@ import { apiRequest } from '@/lib/apiRequest';
  * @property {number|null} money Plata actual: `balance` más lo registrado después.
  * @property {{ income: number, expense: number }} totals Todo lo registrado.
  * @property {boolean} welcomeDone `true` si ya respondió u omitió la bienvenida.
+ * @property {boolean} tutorialDone `true` si ya terminó u omitió el tutorial de primera vez (FT-0071).
  * @property {Commitment[]} commitments
  */
 
@@ -71,6 +72,14 @@ export function updateMoneyProfile(data) {
  */
 export function finishWelcome(answers = {}) {
   return apiRequest('/money-profile/welcome', { method: 'POST', body: answers });
+}
+
+/**
+ * Marca el tutorial de primera vez como visto, para que no vuelva a salir en ningún dispositivo.
+ * @returns {Promise<MoneyProfile>}
+ */
+export function finishTutorial() {
+  return apiRequest('/money-profile/tutorial', { method: 'POST' });
 }
 
 /**

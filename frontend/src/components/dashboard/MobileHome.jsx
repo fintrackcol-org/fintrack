@@ -36,7 +36,7 @@ const Skeleton = ({ className }) => (
  * Ingresos o gastos del mes en una tarjeta pequeña que lleva a su detalle; la flecha dice que se puede
  * tocar (FT-0068).
  */
-function Total({ label, value, money, to, positive = false, period }) {
+export function Total({ label, value, money, to, positive = false, period }) {
   return (
     <Link
       to={to}
@@ -57,12 +57,17 @@ function Total({ label, value, money, to, positive = false, period }) {
 /**
  * La tarjeta violeta de Mi plata: el saldo y hasta cuándo alcanza al ritmo del mes. Lleva a Mi plata.
  */
-function MoneyCard({ balance, monthExpense, money, monthLabel }) {
+export function MoneyCard({ balance, monthExpense, money, monthLabel, className }) {
   const r = typeof balance === 'number' ? runway({ balance, monthExpense }) : null;
   return (
     <Link
       to="/app/mi-plata"
-      className="relative flex flex-col gap-3 overflow-hidden rounded-3xl bg-brand p-5 text-white transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet motion-safe:active:scale-[0.99]"
+      data-tour="saldo"
+      aria-busy={balance === undefined || undefined}
+      className={cn(
+        'relative flex flex-col gap-3 overflow-hidden rounded-3xl bg-brand p-5 text-white transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet motion-safe:active:scale-[0.99]',
+        className,
+      )}
     >
       <span aria-hidden="true" className="absolute -right-16 -top-16 size-40 rounded-full border-[32px] border-white/15" />
       <span className="relative flex items-center justify-between">
@@ -80,10 +85,18 @@ function MoneyCard({ balance, monthExpense, money, monthLabel }) {
             <span className="text-white/85">{untilText(r)}</span>
           </span>
         </>
+      ) : balance === undefined ? (
+        <>
+          <span aria-hidden="true" className="relative block h-1 overflow-hidden rounded-full bg-white/30">
+            <span className="absolute inset-y-0 left-0 w-1/2 rounded-full bg-white/80 motion-safe:animate-pulse" />
+          </span>
+          <span className="text-[13px] leading-[18px] text-white/85">Calculando hasta cuándo te alcanza…</span>
+        </>
       ) : (
-        balance !== undefined && (
-          <span className="text-[13px] leading-[18px] text-white/85">Anota tus gastos y te diremos hasta cuándo te alcanza.</span>
-        )
+        <>
+          <RindeLine value={0} />
+          <span className="text-[13px] leading-[18px] text-white/85">Anota tu primer ingreso para saber hasta cuándo te alcanza.</span>
+        </>
       )}
       <span className="sr-only">, ver Mi plata</span>
     </Link>
@@ -118,7 +131,7 @@ function ChartCard({ expense, budgets, names, money }) {
     { key: 'presupuestos', label: 'Tus presupuestos' },
   ];
   return (
-    <section aria-label="Resumen en gráficos" className="flex flex-col gap-3 rounded-2xl bg-surface px-4 pb-3.5 pt-3 ring-1 ring-ink/10">
+    <section data-tour="graficos" aria-label="Resumen en gráficos" className="flex flex-col gap-3 rounded-2xl bg-surface px-4 pb-3.5 pt-3 ring-1 ring-ink/10">
       <div role="tablist" aria-label="Qué gráfico ver" className="grid grid-cols-2 gap-1 rounded-full bg-canvas p-1">
         {tabs.map(({ key, label }) => (
           <button
@@ -279,6 +292,7 @@ export default function MobileHome({
           </button>
           <Link
             to="/app/cuenta"
+            data-tour="cuenta"
             aria-label={name ? `Tu cuenta, ${name}` : 'Tu cuenta'}
             className="ml-1 grid size-10 place-items-center rounded-full bg-orchid font-bold text-obsidian focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet"
           >
@@ -300,7 +314,7 @@ export default function MobileHome({
         )}
       </div>
 
-      <div className="-mt-2 grid grid-cols-2 gap-3">
+      <div data-tour="totales" className="-mt-2 grid grid-cols-2 gap-3">
         <Total label="Ingresos" to="/app/ingresos" value={totals?.income} money={money} positive period={monthLabel} />
         <Total label="Gastos" to="/app/gastos" value={totals?.expense} money={money} period={monthLabel} />
       </div>

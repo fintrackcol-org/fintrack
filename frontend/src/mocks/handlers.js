@@ -313,6 +313,7 @@ function moneyProfileOf(userId) {
       money: null,
       totals: { income: 0, expense: 0 },
       welcomeDone: false,
+      tutorialDone: false,
       commitments: [],
     });
   }
@@ -386,6 +387,57 @@ function seedDemoDebts(userId) {
   ]);
 }
 seedDemoDebts(demoUser.id);
+
+/** Metas personales (vacas de una sola persona) por usuario; la proyección se calcula como el backend. */
+const vacasByUser = new Map();
+
+function presentVaca(v) {
+  const total = v.contributions.reduce((sum, c) => sum + c.amount, 0);
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysLeft = v.deadline ? Math.round((Date.parse(`${v.deadline}T00:00:00Z`) - today) / 86_400_000) : null;
+  const remaining = Math.max(0, v.goal - total);
+  const first = v.contributions.length ? Math.min(...v.contributions.map((c) => Date.parse(`${c.date}T00:00:00Z`))) : today;
+  const elapsed = Math.max(1, Math.round((today - first) / 86_400_000));
+  const averagePerDay = v.contributions.length ? total / elapsed : 0;
+  const neededPerDay = daysLeft > 0 ? remaining / daysLeft : null;
+  const status = remaining === 0 ? 'completada' : daysLeft !== null && daysLeft < 0 ? 'vencida' : 'activa';
+  const estimated = averagePerDay > 0 ? new Date(today + Math.ceil(remaining / averagePerDay) * 86_400_000).toISOString().slice(0, 10) : null;
+  return {
+    ...v,
+    code: null,
+    personal: true,
+    role: 'admin',
+    split: 'igual',
+    total,
+    percentage: Math.min(100, Math.round((total / v.goal) * 1000) / 10),
+    status,
+    membersCount: 1,
+    myQuota: v.goal,
+    myContributed: total,
+    myRemaining: remaining,
+    myStatus: remaining === 0 ? 'cumplido' : 'al_dia',
+    projection: {
+      remaining,
+      averagePerDay,
+      estimatedDate: estimated,
+      daysLeft,
+      neededPerDay,
+      neededPerWeek: neededPerDay === null ? null : neededPerDay * 7,
+      onTrack: daysLeft === null || remaining === 0 ? null : estimated !== null && estimated <= v.deadline,
+    },
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+{
+  const d = (offset) => new Date(Date.now() + offset * 86_400_000).toLocaleDateString('en-CA');
+  vacasByUser.set(demoUser.id, [
+    { id: 'meta-demo-1', name: 'Fondo de emergencia', description: null, goal: 3600000, deadline: null, contributions: [{ id: 'c1', amount: 720000, date: d(-60) }] },
+    { id: 'meta-demo-2', name: 'Viaje a Santa Marta', description: null, goal: 1200000, deadline: d(30), contributions: [{ id: 'c2', amount: 400000, date: d(-40) }, { id: 'c3', amount: 240000, date: d(-6) }] },
+    { id: 'meta-demo-3', name: 'Portátil nuevo', description: null, goal: 2800000, deadline: d(130), contributions: [{ id: 'c4', amount: 380000, date: d(-23) }] },
+  ]);
+}
 
 /** Tarjetas por usuario (solo lo que piden las pantallas; el cálculo de cupo real vive en el backend). */
 const cardsByUser = new Map();
@@ -495,7 +547,8 @@ export const handlers = [
     if (invalid) return invalid;
     const email = body.email.trim().toLowerCase();
     if (users.has(email)) return error(409, 'EMAIL_TAKEN', 'El correo ya está registrado');
-    addUser(email, body.password, false);
+    const user = addUser(email, body.password, false);
+    if (typeof body.name === 'string' && body.name.trim()) user.name = body.name.trim().replace(/\s+/g, ' ');
     sendVerificationLink(email);
     return HttpResponse.json({ email, verificationRequired: true }, { status: 201 });
   }),
@@ -1058,6 +1111,14 @@ export const handlers = [
     return HttpResponse.json(profile);
   }),
 
+  http.post(`${API_V1}/money-profile/tutorial`, ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const profile = moneyProfileOf(user.id);
+    profile.tutorialDone = true;
+    return HttpResponse.json(profile);
+  }),
+
   http.post(`${API_V1}/money-profile/welcome`, async ({ request }) => {
     const user = authUser(request);
     if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
@@ -1263,6 +1324,35 @@ export const handlers = [
     if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
     for (const item of inboxes.get(user.id) ?? []) item.read = true;
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.get(`${API_V1}/vacas`, ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    return HttpResponse.json((vacasByUser.get(user.id) ?? []).map(presentVaca));
+  }),
+
+  http.post(`${API_V1}/vacas`, async ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const body = await request.json();
+    const vaca = { id: crypto.randomUUID(), name: body.name, description: body.description ?? null, goal: body.goal, deadline: body.deadline ?? null, contributions: [] };
+    vacasByUser.set(user.id, [vaca, ...(vacasByUser.get(user.id) ?? [])]);
+    return HttpResponse.json(presentVaca(vaca), { status: 201 });
+  }),
+
+  http.post(`${API_V1}/vacas/:id/contributions`, async ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const vaca = (vacasByUser.get(user.id) ?? []).find((v) => v.id === params.id);
+    if (!vaca) return error(404, 'NOT_FOUND', 'Vaca no encontrada');
+    const body = await request.json();
+    const contribution = { id: crypto.randomUUID(), amount: body.amount, date: body.date, note: body.note ?? null };
+    vaca.contributions.push(contribution);
+    return HttpResponse.json(
+      { contribution: { ...contribution, userId: user.id, name: 'Tú', isMe: true, createdAt: new Date().toISOString() }, transaction: { id: crypto.randomUUID(), type: 'gasto', amount: body.amount, description: `Ahorro: ${vaca.name}`, category: 'ahorro_inversion', date: body.date, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, vaca: presentVaca(vaca) },
+      { status: 201 },
+    );
   }),
 
   http.get(`${API_V1}/cards`, ({ request }) => {
