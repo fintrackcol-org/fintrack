@@ -87,7 +87,8 @@ export default function Register() {
 
   return (
     <AuthLayout
-      title="Crea tu cuenta"
+      mode="register"
+      title="Crea tu cuenta gratis"
       subtitle="Empieza a registrar tus gastos en menos de un minuto."
       footer={
         <>
