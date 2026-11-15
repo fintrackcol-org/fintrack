@@ -166,7 +166,7 @@ export default function WhatsappAdmin() {
                       {user.linked && (
                         <p className="mt-1 flex items-center gap-1 text-xs text-ink/60">
                           <CircleCheck className="size-3.5 text-positive" aria-hidden="true" />
-                          Número conectado
+                          WhatsApp conectado
                         </p>
                       )}
                       <div className="mt-2 flex flex-wrap gap-2">

@@ -217,7 +217,7 @@ export async function listAccess() {
   const { rows } = await pool.query(
     `SELECT a.usuario_id AS "userId", u.email, u.nombre AS name, a.estado AS status,
             a.solicitado_at AS "requestedAt",
-            COALESCE(v.telefono IS NOT NULL, false) AS linked,
+            COALESCE(v.telefono IS NOT NULL OR v.wa_usuario IS NOT NULL, false) AS linked,
             (SELECT COUNT(*)::int FROM whatsapp_envios e
               WHERE e.usuario_id = a.usuario_id AND e.created_at >= ${MONTH_START}) AS "monthSends"
      FROM whatsapp_accesos a
