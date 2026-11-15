@@ -74,6 +74,7 @@
   --animate-float: float 6s ease-in-out infinite;
   --animate-fade-up: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-page-in: page-in 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+  --animate-switch-in: switch-in 0.24s cubic-bezier(0.32, 0.72, 0, 1);
   --animate-page-back: page-back 0.24s cubic-bezier(0.32, 0.72, 0, 1);
   --animate-screen-up: screen-up 0.34s cubic-bezier(0.32, 0.72, 0, 1);
   --animate-done-in: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
@@ -110,6 +111,13 @@
     from {
       opacity: 0;
       transform: translateY(24px);
+    }
+  }
+
+  /* Pieza del selector de login/registro: llega desde la otra opción. */
+  @keyframes switch-in {
+    from {
+      transform: translateX(var(--switch-from));
     }
   }
 

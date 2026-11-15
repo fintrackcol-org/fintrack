@@ -81,17 +81,18 @@ export default function Login() {
 
   return (
     <AuthLayout
+      mode="login"
       title="Inicia sesión en tu cuenta"
       subtitle="Ingresa tus datos para continuar con tus finanzas."
       footer={
         <>
-          <span className="text-white/55">¿No tienes cuenta? </span>
+          <span className="text-white/55">¿Primera vez en Rinde? </span>
           <Link
             to="/registro"
             state={location.state?.from ? { from: location.state.from } : undefined}
             className="font-medium text-violet-light transition-colors hover:text-white"
           >
-            Regístrate
+            Crea tu cuenta gratis
           </Link>
         </>
       }
