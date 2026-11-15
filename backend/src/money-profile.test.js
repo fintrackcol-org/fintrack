@@ -75,6 +75,7 @@ test('un usuario nuevo tiene un perfil vacío y la bienvenida pendiente', option
       money: null,
       totals: { income: 0, expense: 0 },
       welcomeDone: false,
+      tutorialDone: false,
       commitments: [],
       subscriptions: { count: 0, monthly: 0 },
     });
@@ -373,5 +374,19 @@ test('sin saldo: la compra con tarjeta no baja la plata en mano y el pago sí', 
     assert.equal((await api('/money-profile', { token })).body.totals.expense, 0);
     await api(`/cards/${c.id}/payments`, { method: 'POST', token, body: { amount: 16000 } });
     assert.deepEqual((await api('/money-profile', { token })).body.totals, { income: 100000, expense: 16000 });
+  });
+});
+
+test('el tutorial se marca como visto una vez y queda en el perfil (FT-0071)', options, async () => {
+  await withApi(async (api) => {
+    const token = await newUserToken();
+    const seen = await api('/money-profile/tutorial', { method: 'POST', token });
+    assert.equal(seen.status, 200);
+    assert.equal(seen.body.tutorialDone, true);
+    assert.equal(seen.body.welcomeDone, false, 'ver el tutorial no marca la bienvenida');
+    const again = await api('/money-profile/tutorial', { method: 'POST', token });
+    assert.equal(again.body.tutorialDone, true);
+    const unauth = await api('/money-profile/tutorial', { method: 'POST' });
+    assert.equal(unauth.status, 401);
   });
 });

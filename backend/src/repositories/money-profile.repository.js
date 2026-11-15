@@ -19,6 +19,7 @@ import { pool } from '../config/db.js';
  * @property {Date|null} balanceAt Cuándo lo dijo.
  * @property {boolean} balanceCorrected `true` si el usuario fijó ese saldo a propósito.
  * @property {Date|null} welcomeAt Cuándo respondió u omitió la bienvenida.
+ * @property {Date|null} tutorialAt Cuándo terminó u omitió el tutorial (FT-0071).
  */
 
 const COMMITMENT_COLUMNS = `id, nombre AS name, monto::float8 AS amount, dia_mes::int AS "dayOfMonth",
@@ -57,7 +58,8 @@ export async function findProfile(userId) {
   const { rows } = await pool.query(
     `SELECT tipo_ingreso AS "incomeType", dias_pago::int[] AS "payDays",
             saldo_inicial::float8 AS balance, saldo_at AS "balanceAt",
-            saldo_corregido AS "balanceCorrected", bienvenida_at AS "welcomeAt"
+            saldo_corregido AS "balanceCorrected", bienvenida_at AS "welcomeAt",
+            tutorial_at AS "tutorialAt"
      FROM perfiles_financieros WHERE usuario_id = $1`,
     [userId],
   );
@@ -298,4 +300,18 @@ export async function listCommitmentsWithReminder() {
      WHERE cardinality(a.dias_antes) > 0`,
   );
   return rows;
+}
+
+/**
+ * Marca el tutorial de primera vez como visto (FT-0071). Crea la fila si el usuario aún no tiene
+ * perfil; si ya lo había visto, conserva la primera fecha.
+ * @param {string} userId
+ * @returns {Promise<void>}
+ */
+export async function markTutorialSeen(userId) {
+  await pool.query(
+    `INSERT INTO perfiles_financieros (usuario_id, tutorial_at) VALUES ($1, now())
+     ON CONFLICT (usuario_id) DO UPDATE SET tutorial_at = COALESCE(perfiles_financieros.tutorial_at, now()), updated_at = now()`,
+    [userId],
+  );
 }

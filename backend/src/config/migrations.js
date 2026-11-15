@@ -673,6 +673,10 @@ export const MIGRATIONS = [
          OR (vence_mes BETWEEN 1 AND 12 AND vence_anio BETWEEN 2000 AND 2099))`,
     ],
   },
+  {
+    id: '034_tutorial_visto',
+    statements: ['ALTER TABLE perfiles_financieros ADD COLUMN IF NOT EXISTS tutorial_at TIMESTAMPTZ NULL'],
+  },
 ];
 
 /**

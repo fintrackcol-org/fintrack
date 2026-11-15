@@ -1432,6 +1432,18 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /money-profile/tutorial:
+    post:
+      tags: [MoneyProfile]
+      summary: Marca el tutorial de primera vez como visto (FT-0071)
+      description: Se guarda en el servidor para que no vuelva a salir en otro dispositivo. Repetirlo desde Cuenta no lo borra.
+      responses:
+        "200":
+          description: El perfil, con `tutorialDone` en true
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MoneyProfile" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /money-profile/welcome:
     post:
       tags: [MoneyProfile]
@@ -3469,6 +3481,11 @@ components:
               type: boolean
               enum: [true]
               description: Aceptó los términos de uso y la política de privacidad (FT-0017).
+            name:
+              type: string
+              nullable: true
+              maxLength: 60
+              description: Cómo se llama, para saludarlo. Opcional; vacío se guarda como null.
     RefreshTokenRequest:
       type: object
       required: [refreshToken]
@@ -3958,7 +3975,7 @@ components:
           description: "Solo en `PUT`: el usuario corrigió el saldo; lo registrado antes de ahora deja de sumarse."
     MoneyProfile:
       type: object
-      required: [incomeType, payDays, balance, balanceAt, money, totals, welcomeDone, commitments]
+      required: [incomeType, payDays, balance, balanceAt, money, totals, welcomeDone, tutorialDone, commitments]
       properties:
         incomeType: { type: string, nullable: true, enum: [fecha_fija, sin_fecha] }
         payDays:
@@ -3974,6 +3991,7 @@ components:
             income: { type: number }
             expense: { type: number }
         welcomeDone: { type: boolean }
+        tutorialDone: { type: boolean, description: "Ya terminó u omitió el tutorial de primera vez (FT-0071)" }
         commitments:
           type: array
           items: { $ref: "#/components/schemas/Commitment" }
