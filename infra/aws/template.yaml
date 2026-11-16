@@ -32,10 +32,13 @@ Parameters:
     Description: >
       Orígenes del frontend que pueden llamar a esta API, separados por coma y sin barra final
       (p. ej. el frontend de pruebas en Vercel y http://localhost:5173).
-  GitHubRepo:
+  GitHubSubject:
     Type: String
-    Default: fintrackcol-org/fintrack
-    Description: Repositorio (dueño/nombre) cuyo GitHub Actions puede desplegar en esta instancia.
+    Default: repo:fintrackcol-org@353897067/fintrack@1389800786
+    Description: >
+      Cómo se identifica el repo ante AWS (claim `sub` del token OIDC, sin `:ref:...`). Este repo usa
+      el sujeto inmutable de GitHub (dueño@id/repo@id); se consulta con
+      `gh api repos/<dueño>/<repo>/actions/oidc/customization/sub` (campo sub_claim_prefix).
   CreateGitHubOidcProvider:
     Type: String
     Default: 'true'
@@ -212,7 +215,7 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: !Sub 'repo:${GitHubRepo}:ref:refs/heads/develop'
+                token.actions.githubusercontent.com:sub: !Sub '${GitHubSubject}:ref:refs/heads/develop'
       Policies:
         - PolicyName: desplegar-pruebas
           PolicyDocument:
