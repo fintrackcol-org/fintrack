@@ -40,6 +40,11 @@ const PROGRESS_QUESTION =
   /(?<!\p{L})(como voy|como vamos|como va mi dia|mi meta|meta de hoy|cuanto puedo gastar|cuanto me falta|cuanto (tengo|debo|necesito) (que )?hacer|me alcanza|avance)(?!\p{L})/u;
 const ANY_QUESTION = /\?|^¿?\s*(cuanto|cuanta|que|como|cual)(?!\p{L})/u;
 
+/** Desde este monto el bot pregunta antes de guardar; la app usa el mismo (`BigAmountWarning.jsx`). */
+export const BIG_AMOUNT = 5_000_000;
+/** "sí" al inicio del mensaje confirma un monto muy alto: "sí carro 50 millones". */
+const CONFIRM_PREFIX = /^\s*s[ií](?![\p{L}\d])[\s,.:;!]*/iu;
+
 export const REPLIES = {
   unlinked: 'Hola. Para usar este chat, conecta tu número en Rinde, en Cuenta → WhatsApp.',
   linked: 'Listo, tu número quedó conectado. Escríbeme algo como "almuerzo 15 mil".',
@@ -56,6 +61,8 @@ export const REPLIES = {
   queryFailed: 'No pude consultar tus movimientos. Inténtalo de nuevo en un momento.',
   noMovements: (month) => `En ${month} aún no tienes movimientos.`,
   noExpenses: (month) => `En ${month} aún no tienes gastos.`,
+  bigAmount: (amount, text) =>
+    `¿Seguro que son ${money(amount)}? Es un monto muy alto, revisa que no sobre un cero. Si está bien, envíalo de nuevo empezando con "sí", así: "sí ${text.trim()}".`,
 };
 
 /**
@@ -545,10 +552,16 @@ export function createWhatsappService(deps = {}) {
    */
   async function register(userId, { id, text }) {
     const today = todayIso(now());
-    const parsed = parseSpokenTransaction(text, new Date(`${today}T12:00:00`));
+    // Sin estado: el "sí" viene en el mismo mensaje que el monto, no en uno aparte.
+    const confirmed = CONFIRM_PREFIX.test(text);
+    const parsed = parseSpokenTransaction(
+      confirmed ? text.replace(CONFIRM_PREFIX, '') : text,
+      new Date(`${today}T12:00:00`),
+    );
     if (parsed.amount === null) return answer(userId, text, today);
     if (parsed.ambiguous) return REPLIES.severalAmounts;
     if (!parsed.description) return REPLIES.noDescription;
+    if (parsed.amount >= BIG_AMOUNT && !confirmed) return REPLIES.bigAmount(parsed.amount, text);
 
     const saved = await save(userId, {
       amount: parsed.amount,
