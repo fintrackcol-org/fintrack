@@ -1,11 +1,12 @@
-# Integración continua: se ejecuta en cada Pull Request y en cada push a main.
-# Solo verifica (tests y build); el despliegue lo hacen Render y Vercel desde main.
+# Integración continua: se ejecuta en cada Pull Request y en cada push a main o develop.
+# Solo verifica (tests y build). Despliegan: Render y Vercel desde main (producción) y
+# el job deploy-qa desde develop (pruebas en AWS), solo si las pruebas pasan.
 name: CI
 
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, develop]
 
 # Cancela la ejecución anterior de la misma rama si llega un push nuevo.
 concurrency:
@@ -89,3 +90,36 @@ jobs:
           echo "::warning title=npm audit (${PWD##*/})::Hay vulnerabilidades altas o críticas en herramientas de desarrollo (no llegan al despliegue). Revisa 'npm audit' en ${PWD##*/}."
       - run: npm test
       - run: npm run build
+
+  # Ambiente de pruebas (QA) en AWS (FT-0072): solo con push a develop y si las pruebas pasaron.
+  # Entra a AWS sin llaves guardadas: GitHub entrega un token OIDC de corta duración y AWS lo cambia
+  # por el rol GitHubDeployRole (infra/aws/template.yaml), que solo acepta la rama develop de este
+  # repo y solo puede mandar comandos a la instancia de pruebas. Producción no se toca.
+  # Configuración (una vez), en Settings > Secrets and variables > Actions > Variables:
+  #   AWS_DEPLOY_ROLE_ARN  la salida DeployRoleArn de `./infra/aws/aws.sh status`
+  #   AWS_REGION           opcional; por defecto us-east-1
+  # Sin AWS_DEPLOY_ROLE_ARN el job se salta.
+  deploy-qa:
+    name: Desplegar en QA (AWS)
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop' && vars.AWS_DEPLOY_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      id-token: write
+      contents: read
+    concurrency:
+      group: deploy-qa
+      cancel-in-progress: false
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      - name: Desplegar y esperar a que la API responda
+        run: ./infra/aws/aws.sh deploy develop
+      - name: Prueba rápida (health y registro)
+        run: ./infra/aws/aws.sh smoke

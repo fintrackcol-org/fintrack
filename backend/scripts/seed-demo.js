@@ -425,8 +425,9 @@ async function main() {
 
     const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     const { rows } = await client.query(
-      `INSERT INTO usuarios (email, nombre, password_hash, timezone)
-       VALUES ($1, 'Demo Rinde', $2, 'America/Bogota') RETURNING id`,
+      // Nace verificada: es una cuenta de pruebas y sin esto no puede entrar (FT-0016).
+      `INSERT INTO usuarios (email, nombre, password_hash, timezone, email_verificado_at)
+       VALUES ($1, 'Demo Rinde', $2, 'America/Bogota', now()) RETURNING id`,
       [email, hash],
     );
     const userId = rows[0].id;

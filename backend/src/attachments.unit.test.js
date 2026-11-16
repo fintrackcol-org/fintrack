@@ -6,6 +6,7 @@ import path from 'node:path';
 import {
   createDiskStorage,
   createSupabaseStorage,
+  createS3Storage,
   selectStorage,
 } from './services/attachment-storage.service.js';
 import { cleanName, createAttachmentsService, detectType } from './services/attachments.service.js';
@@ -73,6 +74,35 @@ test('en producción sin Supabase no hay almacenamiento: nunca el disco de Rende
     supabaseServiceKey: 'k',
   };
   assert.equal(selectStorage(withSupabase).kind, 'supabase');
+  // En el entorno de pruebas de AWS (FT-0064) gana S3.
+  assert.equal(selectStorage({ ...withSupabase, s3Bucket: 'rinde-pruebas', awsRegion: 'us-east-1' }).kind, 's3');
+});
+
+test('S3 guarda, lee y borra con el bucket y la clave correctos', async () => {
+  const sent = [];
+  const client = {
+    async send(command) {
+      sent.push([command.constructor.name, command.input]);
+      if (command.constructor.name === 'GetObjectCommand') {
+        return { Body: { transformToByteArray: async () => new Uint8Array(PDF) } };
+      }
+      return {};
+    },
+  };
+  const s3 = createS3Storage({ bucket: 'b', region: 'us-east-1', client });
+  await s3.save('u/a.pdf', PDF, 'application/pdf');
+  assert.deepEqual(await s3.read('u/a.pdf'), PDF);
+  await s3.remove([]);
+  await s3.remove(['u/a.pdf']);
+  assert.deepEqual(
+    sent.map(([name, input]) => [name, input.Bucket, input.Key ?? input.Delete.Objects.map((o) => o.Key).join()]),
+    [
+      ['PutObjectCommand', 'b', 'u/a.pdf'],
+      ['GetObjectCommand', 'b', 'u/a.pdf'],
+      ['DeleteObjectsCommand', 'b', 'u/a.pdf'],
+    ],
+  );
+  assert.equal(sent[0][1].ContentType, 'application/pdf');
 });
 
 test('el disco guarda, lee y borra (y borrar dos veces no falla)', async () => {
