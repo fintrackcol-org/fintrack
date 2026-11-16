@@ -12,6 +12,7 @@ import Panel from '@/components/layout/Panel';
 import IncomeFields from '@/components/money/IncomeFields';
 import IncomeOverview from '@/components/money/IncomeOverview';
 import MovementList from '@/components/money/MovementList';
+import NegativeBalanceNote from '@/components/money/NegativeBalanceNote';
 import PendingPayments from '@/components/money/PendingPayments';
 import { formatMoney } from '@/components/transactions/format';
 import { Button } from '@/components/ui/button';
@@ -459,6 +460,7 @@ function PlanHero({ plan, hidden, noFixedDate }) {
     <div>
       <p className="text-[15px] text-ink/70">Saldo disponible</p>
       <p className="mt-1 text-[42px] font-semibold leading-tight tracking-tight tabular-nums">{money(plan.money)}</p>
+      <NegativeBalanceNote money={plan.money} className="mt-2 text-negative" />
       <PlanLine plan={plan} money={money} noFixedDate={noFixedDate} />
     </div>
   );
@@ -581,6 +583,7 @@ export default function MiPlata() {
               <p className="mt-1 text-[42px] font-semibold leading-tight tracking-tight tabular-nums">
                 {hidden ? '$ ••••••' : formatMoney(data.money)}
               </p>
+              <NegativeBalanceNote money={data.money} className="mt-2 text-negative" />
               <PlanLine plan={null} noFixedDate={data.incomeType === 'sin_fecha'} />
             </div>
           )

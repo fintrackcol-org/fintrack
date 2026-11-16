@@ -8,6 +8,7 @@ import ChipGroup from '@/components/common/ChipGroup';
 import Segmented from '@/components/common/Segmented';
 import { currentMonth } from '@/components/budgets/month';
 import AttachmentPicker from '@/components/transactions/AttachmentPicker';
+import BigAmountWarning, { isBigAmount } from '@/components/transactions/BigAmountWarning';
 import BudgetAlert from '@/components/transactions/BudgetAlert';
 import DateQuickPick from '@/components/transactions/DateQuickPick';
 import VoiceEntry from '@/components/transactions/VoiceEntry';
@@ -105,6 +106,7 @@ export default function Anotar() {
   const [result, setResult] = useState(null); // lo que devolvió `saveNewTransaction`
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [askBig, setAskBig] = useState(null); // monto grande que espera el segundo toque
   const [allCategories, setAllCategories] = useState(false);
   const [voice, setVoice] = useState(false);
   const shownDone = useRef(false); // ya se vio "listo": volver atrás empieza de nuevo
@@ -137,6 +139,7 @@ export default function Anotar() {
       shownDone.current = false;
       setForm(empty(startCard));
       setResult(null);
+      setAskBig(null);
       setAllCategories(false);
       if (step !== '1') setParams(keep, { replace: true });
     }
@@ -166,6 +169,8 @@ export default function Anotar() {
     const { values, error: invalid } = toTransaction({ ...form, card: cardOk ? form.card : CASH });
     if (invalid) return setError(invalid);
     setError('');
+    // Monto grande: el primer toque pregunta, el segundo guarda. Si cambia el monto, vuelve a preguntar.
+    if (isBigAmount(values.amount) && askBig !== values.amount) return setAskBig(values.amount);
     setSaving(true);
     try {
       const saved = await saveNewTransaction(values);
@@ -495,9 +500,10 @@ export default function Anotar() {
               {error}
             </p>
           )}
+          {askBig === amount && <BigAmountWarning amount={amount} className="mt-4" />}
           <Button size="lg" className="mt-auto" disabled={saving} onClick={save}>
             {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-            {expense ? 'Guardar gasto' : 'Guardar ingreso'}
+            {askBig === amount ? 'Sí, guardar' : expense ? 'Guardar gasto' : 'Guardar ingreso'}
           </Button>
         </>
       )}
