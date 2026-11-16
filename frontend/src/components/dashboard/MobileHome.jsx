@@ -12,6 +12,7 @@ import DashboardEmpty from '@/components/dashboard/DashboardEmpty';
 import { useNotifications } from '@/components/layout/NotificationsProvider';
 import Panel from '@/components/layout/Panel';
 import MoneyInvite from '@/components/money/MoneyInvite';
+import NegativeBalanceNote from '@/components/money/NegativeBalanceNote';
 import MoneySetupLink from '@/components/money/MoneySetupLink';
 import MovementRow from '@/components/transactions/MovementRow';
 import { formatMoney } from '@/components/transactions/format';
@@ -173,6 +174,7 @@ export default function MobileHome({
             </span>
             <ChevronRight className="mb-2 size-6 shrink-0" aria-hidden="true" />
           </Link>
+          <NegativeBalanceNote money={balance} className="mt-2 rounded-xl bg-white/15 px-3 py-2.5" />
           {/* FT-0057: quien no anotó la plata que ya tenía ve un saldo que no es el real. */}
           {balance !== undefined && (
             <Link

@@ -14,6 +14,14 @@ describe('LiquidityCard (FT-0059)', () => {
     expect(msg.detail).toBe('Si gastas máximo $20000 al día, llegas.');
   });
 
+  it('rojo sin margen: si ni gastando $0 llega, no promete que llega', () => {
+    const msg = liquidityMessage(
+      { ...base, safeDailySpend: 0, risk: 'falta', firstShortfall: { date: '2026-11-15', missing: 50500000 } },
+      money,
+    );
+    expect(msg.detail).toBeNull();
+  });
+
   it('amarillo: justo, con el día más bajo', () => {
     expect(liquidityMessage({ ...base, risk: 'riesgo', firstShortfall: null }, money).title).toBe(
       'Justo: el 18 de noviembre te quedan $40000',
