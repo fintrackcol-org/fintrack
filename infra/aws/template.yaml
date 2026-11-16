@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   Rinde - entorno de pruebas internas en AWS (FT-0064). Una instancia EC2 con la API y PostgreSQL
   en contenedores, un bucket S3 privado para los soportes de pago y una alerta de presupuesto.
-  No toca producción. Se borra completo con infra/aws/destroy.sh.
+  No toca producción. Se borra completo con `infra/aws/aws.sh down`.
 
 Parameters:
   BudgetEmail:
@@ -21,18 +21,34 @@ Parameters:
     Description: ARM (Graviton). t4g.small (2 GB) aguanta API + PostgreSQL con holgura.
   GitBranch:
     Type: String
-    Default: main
-    Description: Rama del repo que se despliega.
+    Default: develop
+    Description: Rama del repo que se despliega (develop = ambiente de pruebas).
   RepoUrl:
     Type: String
     Default: https://github.com/fintrackcol-org/fintrack.git
   CorsOrigin:
     Type: String
     Default: http://localhost:5173
-    Description: Origen del frontend que puede llamar a esta API (sin barra final).
+    Description: >
+      Orígenes del frontend que pueden llamar a esta API, separados por coma y sin barra final
+      (p. ej. el frontend de pruebas en Vercel y http://localhost:5173).
+  GitHubRepo:
+    Type: String
+    Default: fintrackcol-org/fintrack
+    Description: Repositorio (dueño/nombre) cuyo GitHub Actions puede desplegar en esta instancia.
+  CreateGitHubOidcProvider:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: >
+      'true' crea el proveedor OIDC de GitHub en la cuenta. Usa 'false' si la cuenta ya lo tiene
+      (solo puede existir uno por cuenta).
   AmiId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64
+
+Conditions:
+  CreateOidc: !Equals [!Ref CreateGitHubOidcProvider, 'true']
 
 Resources:
   # ---------- Presupuesto: se crea primero, antes de que algo cobre ----------
@@ -170,6 +186,50 @@ Resources:
           ENV
           docker compose up -d --build
 
+  # ---------- Despliegue automático desde GitHub Actions (sin llaves guardadas) ----------
+  # GitHub demuestra quién es con un token OIDC de corta duración; AWS solo lo acepta si viene de
+  # la rama develop de este repositorio. El rol solo puede mandar comandos a ESTA instancia.
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateOidc
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+
+  GitHubDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - CreateOidc
+                - !Ref GitHubOidcProvider
+                - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub 'repo:${GitHubRepo}:ref:refs/heads/develop'
+      Policies:
+        - PolicyName: desplegar-pruebas
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: ssm:SendCommand
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${ApiInstance}'
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}::document/AWS-RunShellScript'
+              - Effect: Allow
+                Action: [ssm:GetCommandInvocation, ssm:ListCommandInvocations]
+                Resource: '*'
+              - Effect: Allow
+                Action: cloudformation:DescribeStacks
+                Resource: !Ref AWS::StackId
+      Tags: [{ Key: Project, Value: !Ref AWS::StackName }]
+
   ApiIpAssociation:
     Type: AWS::EC2::EIPAssociation
     Properties:
@@ -187,3 +247,6 @@ Outputs:
     Value: !Ref ApiInstance
   BucketName:
     Value: !Ref AttachmentsBucket
+  DeployRoleArn:
+    Description: Va en GitHub como variable AWS_DEPLOY_ROLE_ARN (Settings > Secrets and variables > Actions > Variables).
+    Value: !GetAtt GitHubDeployRole.Arn
