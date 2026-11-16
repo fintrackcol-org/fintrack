@@ -7,7 +7,13 @@
 #   ./infra/aws/aws.sh deploy [rama]                    llevar una rama a la instancia (por defecto develop)
 #   ./infra/aws/aws.sh smoke                            probar /health y el registro de punta a punta
 #   ./infra/aws/aws.sh cors <origen1,origen2>           qué frontends pueden llamar a la API de pruebas
-#   ./infra/aws/aws.sh verify <correo>                  verificar una cuenta de prueba (QA no manda correos)
+#   ./infra/aws/aws.sh config <NOMBRE> <valor>          variable NO secreta para la API de QA (p. ej. GOOGLE_CLIENT_ID)
+#   ./infra/aws/aws.sh secret <NOMBRE>                  variable secreta: la pide sin mostrarla (p. ej. EMAIL_API_KEY)
+#   ./infra/aws/aws.sh vapid                            par de llaves nuevo para las notificaciones push de QA
+#   ./infra/aws/aws.sh env                              qué variables tiene QA (solo los nombres)
+#   ./infra/aws/aws.sh unset <NOMBRE>                   quitar una variable
+#   ./infra/aws/aws.sh reload                           aplicar las variables sin redesplegar el código
+#   ./infra/aws/aws.sh verify <correo>                  verificar una cuenta de prueba sin abrir el correo
 #   ./infra/aws/aws.sh seed                             cuenta demo con 3 meses de datos
 #   ./infra/aws/aws.sh logs [líneas]                    últimas líneas del log de la API
 #   ./infra/aws/aws.sh tunnel                           túnel a PostgreSQL en localhost:5435 (para npm test)
@@ -21,7 +27,11 @@ set -euo pipefail
 
 STACK="${STACK:-rinde-pruebas}"
 REGION="${AWS_REGION:-us-east-1}"
-HERE="$(cd "$(dirname "$0")" && pwd)"
+# En Git Bash (Windows): ruta con letra de unidad para aws.exe y sin convertir /rinde-pruebas/... en
+# una ruta de Windows.
+HERE="$(cd "$(dirname "$0")" && (pwd -W 2>/dev/null || pwd))"
+export MSYS_NO_PATHCONV=1
+PARAM_PATH="/$STACK"
 aws_() { aws --region "$REGION" "$@"; }
 output() {
   aws_ cloudformation describe-stacks --stack-name "$STACK" \
@@ -48,6 +58,31 @@ remote() {
   [ "$status" = "Success" ] || { echo "El comando terminó en: $status" >&2; return 1; }
 }
 
+# Script (en la instancia) que arma infra/aws/secrets.env con lo guardado en Parameter Store.
+# Sin REMINDERS_ENABLED explícito, los recordatorios quedan apagados.
+WRITE_SECRETS="set -o pipefail
+cd /opt/rinde/infra/aws
+umask 077
+aws ssm get-parameters-by-path --region $REGION --path $PARAM_PATH --with-decryption \\
+  --query 'Parameters[].[Name,Value]' --output text | sed 's#^$PARAM_PATH/##; s#\t#=#' > secrets.env.new
+grep -q '^REMINDERS_ENABLED=' secrets.env.new || echo REMINDERS_ENABLED=false >> secrets.env.new
+mv secrets.env.new secrets.env
+echo Variables de QA: \$(cut -d= -f1 secrets.env | sort | tr '\n' ' ')"
+
+valid_name() {
+  [[ "$1" =~ ^[A-Z][A-Z0-9_]*$ ]] || { echo "Nombre inválido: usa MAYUSCULAS_CON_GUIONES" >&2; exit 1; }
+  case "$1" in
+    DATABASE_URL | JWT_SECRET | PORT | NODE_ENV | S3_BUCKET | AWS_REGION | CORS_ORIGIN | TRUST_PROXY)
+      echo "$1 lo maneja la plantilla (o 'aws.sh cors'); no se cambia aquí." >&2
+      exit 1
+      ;;
+  esac
+}
+put_param() { # nombre tipo valor
+  aws_ ssm put-parameter --name "$PARAM_PATH/$1" --type "$2" --value "$3" --overwrite >/dev/null
+  echo "$1 guardada ($2). Aplica con: ./infra/aws/aws.sh reload"
+}
+
 case "${1:-}" in
   up)
     email="${2:?Uso: aws.sh up <correo-alertas> [tope-usd]}"
@@ -72,7 +107,7 @@ case "${1:-}" in
 cd /opt/rinde
 git fetch origin $branch
 git checkout -B $branch origin/$branch
-cd infra/aws
+$WRITE_SECRETS
 docker compose up -d --build
 docker image prune -f
 echo Desplegado: \$(git log -1 --format='%h %s')"
@@ -109,8 +144,40 @@ sed -i 's#^CORS_ORIGIN=.*#CORS_ORIGIN=$origins#' .env
 docker compose up -d api
 grep ^CORS_ORIGIN= .env"
     ;;
+  config)
+    valid_name "${2:?Uso: aws.sh config <NOMBRE> <valor>}"
+    put_param "$2" String "${3?Uso: aws.sh config <NOMBRE> <valor>}"
+    ;;
+  secret)
+    valid_name "${2:?Uso: aws.sh secret <NOMBRE>}"
+    read -r -s -p "Valor de $2 (no se muestra): " value
+    echo
+    [ -n "$value" ] || { echo "Vacío: no se guardó." >&2; exit 1; }
+    put_param "$2" SecureString "$value"
+    ;;
+  vapid)
+    # Llaves propias de QA: una suscripción de prueba nunca recibe push de producción ni al revés.
+    keys="$(cd "$HERE/../../backend" && node -e "console.log(JSON.stringify(require('web-push').generateVAPIDKeys()))")"
+    public="$(node -e "console.log(JSON.parse(process.argv[1]).publicKey)" "$keys")"
+    private="$(node -e "console.log(JSON.parse(process.argv[1]).privateKey)" "$keys")"
+    put_param VAPID_PUBLIC_KEY String "$public"
+    put_param VAPID_PRIVATE_KEY SecureString "$private"
+    ;;
+  env)
+    aws_ ssm get-parameters-by-path --path "$PARAM_PATH" \
+      --query 'Parameters[].[Name, Type]' --output text | sed "s#^$PARAM_PATH/##" | sort
+    ;;
+  unset)
+    valid_name "${2:?Uso: aws.sh unset <NOMBRE>}"
+    aws_ ssm delete-parameter --name "$PARAM_PATH/$2" && echo "$2 eliminada. Aplica con: ./infra/aws/aws.sh reload"
+    ;;
+  reload)
+    remote "set -e
+$WRITE_SECRETS
+docker compose up -d api"
+    ;;
   verify)
-    # En QA no hay correo real: el enlace de verificación solo sale en el log. Esto lo salta.
+    # Para entrar rápido con una cuenta de prueba sin abrir el correo de verificación.
     email="$(printf '%s' "${2:?Uso: aws.sh verify <correo>}" | tr '[:upper:]' '[:lower:]')"
     [[ "$email" =~ ^[a-z0-9._%+-]+@[a-z0-9.-]+$ ]] || { echo "Correo inválido" >&2; exit 1; }
     remote "cd /opt/rinde/infra/aws && docker compose exec -T db psql -U rinde -d rinde -v ON_ERROR_STOP=1 \
@@ -156,7 +223,7 @@ grep ^CORS_ORIGIN= .env"
     echo "Borrado. Revisa en Billing que no quede nada cobrando."
     ;;
   *)
-    sed -n '2,19p' "$0"
+    sed -n '2,25p' "$0"
     exit 1
     ;;
 esac
