@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { listBudgets } from '@/services/budgetService';
 import { getSummary } from '@/services/summaryService';
 import RindeLine from '@/components/common/RindeLine';
+import NegativeBalanceNote from '@/components/money/NegativeBalanceNote';
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -72,6 +73,7 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
         <span className="relative text-[40px] font-extrabold leading-[44px] tracking-[-0.02em] tabular-nums">
           {balance === undefined ? '…' : money(balance ?? 0)}
         </span>
+        <NegativeBalanceNote money={balance} className="relative rounded-xl bg-white/15 px-3 py-2.5 text-white" />
         {r && (
           <>
             <RindeLine value={(today.getDate() + Math.min(r.days, lastDay - today.getDate())) / lastDay} />

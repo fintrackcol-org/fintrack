@@ -8,6 +8,9 @@ name: Deploy frontend (Vercel)
 #   VERCEL_TOKEN       token de la cuenta dueña del proyecto (vercel.com/account/tokens)
 #   VERCEL_ORG_ID      "orgId" de frontend/.vercel/project.json tras `vercel link`
 #   VERCEL_PROJECT_ID  "projectId" del mismo archivo
+#
+# Sin VERCEL_TOKEN el despliegue queda "omitido" (gris) en vez de fallar: la integración de Git
+# de Vercel sigue publicando sola. Así no se acostumbra el equipo a ver una cruz roja en cada fusión.
 
 on:
   push:
@@ -20,7 +23,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # `if` no puede leer `secrets` directamente: se revisa en un paso y se pasa como salida.
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.token.outputs.ready }}
+    steps:
+      - id: token
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -n "$VERCEL_TOKEN" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Falta el secreto VERCEL_TOKEN: no se despliega desde Actions (Vercel publica por su integración de Git)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
   deploy:
+    needs: check
+    if: needs.check.outputs.ready == 'true'
     runs-on: ubuntu-latest
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

@@ -1,4 +1,4 @@
--- FinTrack — parche 033: abonos y cuotas en las cuentas con personas (FT-0064) y vencimiento del
+-- FinTrack — parche 034: abonos y cuotas en las cuentas con personas (FT-0064) y vencimiento del
 -- plástico de las tarjetas (FT-0065).
 -- Para bases ya creadas (Supabase y volúmenes locales existentes); las nuevas lo toman de db/init.
 -- Es idempotente: se puede ejecutar más de una vez sin error.

@@ -9,6 +9,7 @@ import ChipGroup from '@/components/common/ChipGroup';
 import Segmented from '@/components/common/Segmented';
 import { currentMonth } from '@/components/budgets/month';
 import AttachmentPicker from '@/components/transactions/AttachmentPicker';
+import BigAmountWarning, { isBigAmount } from '@/components/transactions/BigAmountWarning';
 import BudgetAlert from '@/components/transactions/BudgetAlert';
 import DateQuickPick from '@/components/transactions/DateQuickPick';
 import VoiceEntry from '@/components/transactions/VoiceEntry';
@@ -128,6 +129,7 @@ export default function Anotar() {
   const [result, setResult] = useState(null); // lo que devolvió `saveNewTransaction`
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [askBig, setAskBig] = useState(null); // monto grande que espera el segundo toque
   const [allCategories, setAllCategories] = useState(false);
   const [voice, setVoice] = useState(false);
   const textField = useRef(null);
@@ -162,6 +164,7 @@ export default function Anotar() {
   const reset = () => {
     setForm(empty(startCard));
     setResult(null);
+    setAskBig(null);
     setOptions([]);
     setManualAmount(false);
     setKeypad(false);
@@ -175,6 +178,8 @@ export default function Anotar() {
     const { values, error: invalid } = toTransaction({ ...form, card: cardOk ? form.card : CASH });
     if (invalid) return setError(invalid);
     setError('');
+    // Monto grande: el primer toque pregunta, el segundo guarda. Si cambia el monto, vuelve a preguntar.
+    if (isBigAmount(values.amount) && askBig !== values.amount) return setAskBig(values.amount);
     setSaving(true);
     try {
       const saved = await saveNewTransaction(values);
@@ -563,9 +568,10 @@ export default function Anotar() {
           {error}
         </p>
       )}
+      {askBig === amount && <BigAmountWarning amount={amount} />}
       <Button size="lg" className="mt-auto" disabled={saving || Boolean(missing)} onClick={save}>
         {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {missing || `${expense ? 'Guardar gasto' : 'Guardar ingreso'} · ${formatMoney(amount)}`}
+        {missing || (askBig === amount ? `Sí, guardar ${formatMoney(amount)}` : `${expense ? 'Guardar gasto' : 'Guardar ingreso'} · ${formatMoney(amount)}`)}
       </Button>
 
       <VoiceEntry

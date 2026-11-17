@@ -26,8 +26,8 @@ let whatsappAccess = new URLSearchParams(globalThis.location?.search).get('whats
 /** Solicitudes de ejemplo del panel del equipo. */
 const whatsappRequests = [
   { userId: 'wa-1', email: 'laura.gomez@ejemplo.co', name: 'Laura', status: 'pending', requestedAt: new Date().toISOString(), linked: false, monthSends: 0 },
-  { userId: 'wa-2', email: 'andres@ejemplo.co', name: 'Andrés', status: 'approved', requestedAt: new Date(Date.now() - 3 * 86400000).toISOString(), linked: true, monthSends: 41 },
-  { userId: 'wa-3', email: 'nicolas@ejemplo.co', name: null, status: 'approved', requestedAt: new Date(Date.now() - 5 * 86400000).toISOString(), linked: false, monthSends: 0 },
+  { userId: 'wa-2', email: 'andres@ejemplo.co', name: 'Andrés', status: 'approved', requestedAt: new Date(Date.now() - 3 * 86400000).toISOString(), linked: true, hasPhone: true, monthSends: 41 },
+  { userId: 'wa-3', email: 'nicolas@ejemplo.co', name: null, status: 'approved', requestedAt: new Date(Date.now() - 5 * 86400000).toISOString(), linked: true, hasPhone: false, monthSends: 0 },
   { userId: 'wa-4', email: 'desconocido@ejemplo.co', name: null, status: 'rejected', requestedAt: new Date(Date.now() - 9 * 86400000).toISOString(), linked: false, monthSends: 0 },
 ];
 

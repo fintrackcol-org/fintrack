@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Sparkles } from 'lucide-react';
 import FormField from '@/components/auth/FormField';
 import CategoryPicker, { AUTO_CATEGORY } from '@/components/categories/CategoryPicker';
+import BigAmountWarning, { isBigAmount } from '@/components/transactions/BigAmountWarning';
 import DateQuickPick from '@/components/transactions/DateQuickPick';
 import { Button } from '@/components/ui/button';
 import ChipGroup from '@/components/common/ChipGroup';
@@ -71,6 +72,7 @@ export default function TransactionForm({
   children = null,
 }) {
   const [serverError, setServerError] = useState('');
+  const [askBig, setAskBig] = useState(null); // monto grande que espera el segundo toque
   // Cambia en cada reinicio del formulario para que la fecha vuelva a "Hoy".
   const [resetKey, setResetKey] = useState(0);
   const {
@@ -114,6 +116,7 @@ export default function TransactionForm({
   }, [draft, reset]);
 
   const type = watch('type');
+  const confirming = askBig !== null && askBig === Number(watch('amount'));
   const options = type === 'gasto' ? categories.expense : categories.income;
 
   const pickType = (value) => {
@@ -129,8 +132,11 @@ export default function TransactionForm({
 
   const submit = handleSubmit(async (values) => {
     setServerError('');
+    // Monto grande: el primer toque pregunta, el segundo guarda. Si cambia el monto, vuelve a preguntar.
+    if (isBigAmount(values.amount, initial?.amount) && askBig !== values.amount) return setAskBig(values.amount);
     try {
       await onSubmit({ ...values, category: values.category || null });
+      setAskBig(null); // el siguiente movimiento vuelve a preguntar
       if (!initial) {
         reset(toDefaults(null, defaultType));
         setResetKey((k) => k + 1);
@@ -243,11 +249,20 @@ export default function TransactionForm({
           {serverError}
         </p>
       )}
+      {confirming && <BigAmountWarning amount={askBig} />}
 
       <div className="flex gap-3">
         <Button type="submit" size="lg" className="flex-1" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-          {isSubmitting ? 'Guardando…' : initial ? 'Guardar cambios' : type === 'ingreso' ? 'Guardar ingreso' : 'Guardar gasto'}
+          {isSubmitting
+            ? 'Guardando…'
+            : confirming
+              ? 'Sí, guardar'
+              : initial
+                ? 'Guardar cambios'
+                : type === 'ingreso'
+                  ? 'Guardar ingreso'
+                  : 'Guardar gasto'}
         </Button>
         {onCancel && (
           <Button type="button" variant="outline" size="lg" onClick={onCancel} disabled={isSubmitting}>

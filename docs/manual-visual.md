@@ -67,6 +67,7 @@ Reglas:
 | **AdjustmentRow** | `money/AdjustmentRow.jsx` | Fila gris de "Ajuste de saldo" en el historial (FT-0062): no es ingreso ni gasto, por eso no usa `positive` ni `negative` |
 | **MonthGrid** | `common/MonthGrid.jsx` | Cuadrícula de un mes. Con `onSelect` cada día es un botón de 48 px de alto con su texto para lector de pantalla; `footer` lleva la leyenda |
 | **Segmented** | `common/Segmented.jsx` | Opciones excluyentes en una franja (Gasto/Ingreso, Semana/Mes/Año); 44 px de alto |
+| **Selector de acceso** | `auth/AuthLayout.jsx` (`mode`) | Franja "Iniciar sesión \| Crear cuenta" arriba del formulario en `/login` y `/registro`. Son enlaces (no botones) de 44 px; la elegida lleva `aria-current` y la pieza clara. Es la versión para páginas públicas de `Segmented`; no usar en `/app` |
 | **Sheet** | `common/Sheet.jsx` | Ventana que sube desde abajo en celular y se centra desde tablet; arrastrable, atrapa el foco, Escape cierra, devuelve el foco al abrir |
 | **ConfirmButton** | `common/ConfirmButton.jsx` | Confirmación en dos pasos para acciones destructivas |
 | **Gráficos** | `charts/`, `dashboard/` | Ver sección 8 |
@@ -78,6 +79,7 @@ Tokens en `@theme` (`--animate-*`). Curvas: salida `cubic-bezier(0.22, 1, 0.36, 
 | Animación | Duración | Uso |
 |---|---|---|
 | `page-in` / `page-back` | 240 ms | cambio de pantalla, desde la derecha al avanzar y desde la izquierda al volver |
+| `switch-in` | 240 ms | la pieza del selector de acceso llega desde la otra opción; el formulario entra con `page-in` |
 | `screen-up` | 340 ms | pantalla completa que sube |
 | `pop` | 420 ms | confirmación de éxito |
 | `row-in` | 900 ms | movimiento recién agregado: se abre y queda resaltado |

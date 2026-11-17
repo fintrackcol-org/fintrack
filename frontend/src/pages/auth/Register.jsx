@@ -87,6 +87,7 @@ export default function Register() {
 
   return (
     <AuthLayout
+      mode="register"
       title="Que tu plata alcance"
       subtitle="Crea tu cuenta en un minuto. Los campos con * son obligatorios."
       footer={

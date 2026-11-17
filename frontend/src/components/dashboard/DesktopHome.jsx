@@ -6,6 +6,7 @@ import DashboardEmpty from '@/components/dashboard/DashboardEmpty';
 import { MoneyCard } from '@/components/dashboard/MobileHome';
 import MoneyInvite from '@/components/money/MoneyInvite';
 import MoneySetupLink from '@/components/money/MoneySetupLink';
+import NegativeBalanceNote from '@/components/money/NegativeBalanceNote';
 import { kakeiboOf } from '@/components/transactions/reflection';
 import { formatMoney, formatRelativeDay } from '@/components/transactions/format';
 import { displayLevel } from '@/lib/budgetLevel';
@@ -249,6 +250,7 @@ export default function DesktopHome({
         </button>
       </header>
 
+      <NegativeBalanceNote money={balance} className="rounded-xl bg-negative/10 px-4 py-3 text-negative" />
       {welcomePending ? <MoneyInvite onDone={onWelcomeDone} /> : setupPending ? <MoneySetupLink /> : null}
 
       <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr_1.15fr] lg:grid-cols-2">

@@ -4,29 +4,43 @@ import { pool } from '../config/db.js';
 const UNIQUE_VIOLATION = '23505';
 
 /**
- * Número vinculado de un usuario.
+ * Con qué se vinculó el usuario: su número, su BSUID o ambos.
  * @param {string} userId
- * @returns {Promise<string|null>}
+ * @returns {Promise<{ phone: string|null, bsuid: string|null }|null>} `null` si nunca pidió un código.
  */
-export async function findPhone(userId) {
+export async function findContact(userId) {
   const { rows } = await pool.query(
-    'SELECT telefono AS phone FROM whatsapp_vinculos WHERE usuario_id = $1',
+    'SELECT telefono AS phone, wa_usuario AS bsuid FROM whatsapp_vinculos WHERE usuario_id = $1',
     [userId],
   );
-  return rows[0]?.phone ?? null;
+  return rows[0] ?? null;
 }
 
 /**
- * Dueño de un número vinculado.
- * @param {string} phone
+ * Dueño del remitente, por número o por BSUID. De paso guarda el dato que le faltaba, para
+ * reconocerlo aunque Meta deje de mandar el número (quien adopta nombre de usuario).
+ * @param {{ phone: string|null, bsuid: string|null }} sender
  * @returns {Promise<string|null>}
  */
-export async function findUserIdByPhone(phone) {
-  const { rows } = await pool.query(
-    'SELECT usuario_id AS "userId" FROM whatsapp_vinculos WHERE telefono = $1',
-    [phone],
-  );
-  return rows[0]?.userId ?? null;
+export async function findUserIdBySender({ phone, bsuid }) {
+  try {
+    const { rows } = await pool.query(
+      `UPDATE whatsapp_vinculos
+       SET wa_usuario = COALESCE(wa_usuario, $2), telefono = COALESCE(telefono, $1)
+       WHERE wa_usuario = $2 OR telefono = $1
+       RETURNING usuario_id AS "userId"`,
+      [phone, bsuid],
+    );
+    return rows[0]?.userId ?? null;
+  } catch (err) {
+    // El dato que faltaba ya es de otra fila: se reconoce sin guardarlo.
+    if (err.code !== UNIQUE_VIOLATION) throw err;
+    const { rows } = await pool.query(
+      'SELECT usuario_id AS "userId" FROM whatsapp_vinculos WHERE wa_usuario = $2 OR telefono = $1',
+      [phone, bsuid],
+    );
+    return rows[0]?.userId ?? null;
+  }
 }
 
 /**
@@ -45,17 +59,17 @@ export async function saveLinkCode({ userId, codeHash, expiresAt }) {
 }
 
 /**
- * Gasta un código vigente y le asigna el número a su usuario, en una sola sentencia.
- * @param {{ codeHash: string, phone: string }} data
- * @returns {Promise<'linked'|'invalid'|'taken'>} `taken` si el número es de otra cuenta.
+ * Gasta un código vigente y le asigna el remitente a su usuario, en una sola sentencia.
+ * @param {{ codeHash: string, phone: string|null, bsuid?: string|null }} data
+ * @returns {Promise<'linked'|'invalid'|'taken'>} `taken` si el número o el BSUID es de otra cuenta.
  */
-export async function confirmLink({ codeHash, phone }) {
+export async function confirmLink({ codeHash, phone, bsuid = null }) {
   try {
     const { rowCount } = await pool.query(
       `UPDATE whatsapp_vinculos
-       SET telefono = $2, codigo_hash = NULL, codigo_expira = NULL
+       SET telefono = $2, wa_usuario = $3, codigo_hash = NULL, codigo_expira = NULL
        WHERE codigo_hash = $1 AND codigo_expira > now()`,
-      [codeHash, phone],
+      [codeHash, phone, bsuid],
     );
     return rowCount > 0 ? 'linked' : 'invalid';
   } catch (err) {
@@ -203,7 +217,8 @@ export async function listAccess() {
   const { rows } = await pool.query(
     `SELECT a.usuario_id AS "userId", u.email, u.nombre AS name, a.estado AS status,
             a.solicitado_at AS "requestedAt",
-            COALESCE(v.telefono IS NOT NULL, false) AS linked,
+            COALESCE(v.telefono IS NOT NULL OR v.wa_usuario IS NOT NULL, false) AS linked,
+            COALESCE(v.telefono IS NOT NULL, false) AS "hasPhone",
             (SELECT COUNT(*)::int FROM whatsapp_envios e
               WHERE e.usuario_id = a.usuario_id AND e.created_at >= ${MONTH_START}) AS "monthSends"
      FROM whatsapp_accesos a

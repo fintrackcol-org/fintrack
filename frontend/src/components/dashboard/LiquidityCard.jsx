@@ -34,7 +34,8 @@ const TONES = {
 export function liquidityMessage(liquidity, money) {
   const { risk, firstShortfall, lowest, until, safeDailySpend, pace } = liquidity;
   if (risk === 'falta') {
-    const reach = pace !== null && safeDailySpend < pace
+    // Con $0 al día tampoco llega: decir "gasta máximo $0 y llegas" sería mentirle.
+    const reach = safeDailySpend > 0 && pace !== null && safeDailySpend < pace
       ? `Si gastas máximo ${money(safeDailySpend)} al día, llegas.`
       : null;
     return { title: `El ${longDay(firstShortfall.date)} te faltan ${money(firstShortfall.missing)}`, detail: reach };

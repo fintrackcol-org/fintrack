@@ -9,6 +9,7 @@ import DashboardEmpty from '@/components/dashboard/DashboardEmpty';
 import { useNotifications } from '@/components/layout/NotificationsProvider';
 import Panel from '@/components/layout/Panel';
 import MoneyInvite from '@/components/money/MoneyInvite';
+import NegativeBalanceNote from '@/components/money/NegativeBalanceNote';
 import MoneySetupLink from '@/components/money/MoneySetupLink';
 import MovementRow from '@/components/transactions/MovementRow';
 import { formatMoney } from '@/components/transactions/format';
@@ -303,6 +304,7 @@ export default function MobileHome({
 
       <div className="flex flex-col gap-1.5">
         <MoneyCard balance={balance} monthExpense={totals?.expense} money={money} monthLabel={monthLabel} />
+        <NegativeBalanceNote money={balance} className="rounded-xl bg-negative/10 px-3 py-2.5 text-negative" />
         {/* FT-0057: quien no anotó la plata que ya tenía ve un saldo que no es el real. */}
         {balance !== undefined && (
           <Link

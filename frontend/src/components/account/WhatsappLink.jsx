@@ -140,7 +140,7 @@ export default function WhatsappLink() {
           <>
             <p className="flex items-center gap-2 text-sm">
               <CircleCheck className="size-5 shrink-0 text-positive" aria-hidden="true" />
-              Conectado con {data.phone}
+              {data.phone ? `Conectado con ${data.phone}` : 'Conectado con tu WhatsApp'}
             </p>
             <ConfirmButton
               label="Desconectar"

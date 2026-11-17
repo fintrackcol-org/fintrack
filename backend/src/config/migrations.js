@@ -644,7 +644,15 @@ export const MIGRATIONS = [
     ],
   },
   {
-    id: '033_abonos_y_vencimiento',
+    id: '033_whatsapp_bsuid',
+    statements: [
+      'ALTER TABLE whatsapp_vinculos ADD COLUMN IF NOT EXISTS wa_usuario VARCHAR(100) NULL',
+      `CREATE UNIQUE INDEX IF NOT EXISTS ux_whatsapp_vinculos_wa_usuario
+         ON whatsapp_vinculos(wa_usuario)`,
+    ],
+  },
+  {
+    id: '034_abonos_y_vencimiento',
     statements: [
       'ALTER TABLE cuentas_personales ADD COLUMN IF NOT EXISTS fecha_prestamo DATE NULL',
       'ALTER TABLE cuentas_personales ADD COLUMN IF NOT EXISTS cuotas SMALLINT NULL',
@@ -674,7 +682,7 @@ export const MIGRATIONS = [
     ],
   },
   {
-    id: '034_tutorial_visto',
+    id: '035_tutorial_visto',
     statements: ['ALTER TABLE perfiles_financieros ADD COLUMN IF NOT EXISTS tutorial_at TIMESTAMPTZ NULL'],
   },
 ];

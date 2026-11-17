@@ -274,6 +274,8 @@ CREATE TABLE idea_votos (
 CREATE TABLE whatsapp_vinculos (
   usuario_id UUID PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE,
   telefono VARCHAR(20) UNIQUE NULL,
+  -- BSUID de Meta: identifica a quien usa nombre de usuario y llega sin número.
+  wa_usuario VARCHAR(100) UNIQUE NULL,
   codigo_hash VARCHAR(64) UNIQUE NULL,
   codigo_expira TIMESTAMPTZ NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
