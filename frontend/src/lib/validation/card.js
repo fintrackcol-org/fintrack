@@ -16,6 +16,8 @@ const base = z.object({
   limit: money('El cupo debe ser mayor que 0'),
   paymentDay: day,
   cutoffDay: z.union([z.literal(''), day]),
+  // Solo mes y año del plástico (FT-0065): nunca el número completo ni el CVV.
+  expiry: z.string().trim().regex(/^((0[1-9]|1[0-2])\/\d{2})?$/, 'Escribe el mes y el año: MM/AA').optional(),
 });
 
 const tierMatchesNetwork = (v) => TIERS[v.network]?.includes(v.tier);

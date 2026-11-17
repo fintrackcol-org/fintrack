@@ -4,6 +4,8 @@ import { parseReminder } from './reminders.validator.js';
 /** Lo máximo que cabe en `numeric(12,2)`. */
 const MAX_AMOUNT = 9_999_999_999.99;
 const KINDS = ['receivable', 'payable'];
+/** Cada cuánto es una cuota (FT-0064). */
+const FREQUENCIES = ['weekly', 'biweekly', 'monthly'];
 const cents = (n) => Math.round(n * 100) / 100;
 
 /** @typedef {{ field: string, problem: string }} FieldProblem */
@@ -64,12 +66,44 @@ function readFields(body, details) {
     else if (typeof note === 'string' && note.length <= 200) out.note = note;
     else details.push({ field: 'note', problem: 'Máximo 200 caracteres' });
   }
+  // FT-0064: cuándo se prestó y, si es a cuotas, cuántas y cada cuánto.
+  if (body.loanDate !== undefined) {
+    if (body.loanDate === null || body.loanDate === '') out.loanDate = null;
+    else if (isDate(body.loanDate)) out.loanDate = body.loanDate;
+    else details.push({ field: 'loanDate', problem: 'Debe ser una fecha AAAA-MM-DD' });
+  }
+  if (body.installments !== undefined) {
+    if (body.installments === null) out.installments = null;
+    else if (Number.isInteger(body.installments) && body.installments >= 2 && body.installments <= 60) out.installments = body.installments;
+    else details.push({ field: 'installments', problem: 'Debe ser un entero entre 2 y 60, o null para fecha fija' });
+  }
+  if (body.frequency !== undefined) {
+    if (body.frequency === null) out.frequency = null;
+    else if (FREQUENCIES.includes(body.frequency)) out.frequency = body.frequency;
+    else details.push({ field: 'frequency', problem: `Debe ser: ${FREQUENCIES.join(', ')}` });
+  }
   // Bloque "Avisarme" (FT-0063): cuándo, a qué hora y por dónde.
   if (body.reminder !== undefined) {
     const reminder = parseReminder(body.reminder, details);
     if (reminder) out.reminder = reminder;
   }
   return out;
+}
+
+/**
+ * A cuotas hace falta cuántas, cada cuánto y la fecha de la primera (`dueDate`); y el préstamo no
+ * puede ser después de la primera cuota.
+ * @param {object} data Lo leído por `readFields`.
+ * @param {FieldProblem[]} details
+ */
+function checkInstallments(data, details) {
+  if (data.installments) {
+    if (!data.frequency) details.push({ field: 'frequency', problem: 'Es obligatoria con cuotas' });
+    if (!data.dueDate) details.push({ field: 'dueDate', problem: 'Con cuotas es la fecha de la primera cuota' });
+  }
+  if (data.loanDate && data.dueDate && data.loanDate > data.dueDate) {
+    details.push({ field: 'loanDate', problem: 'No puede ser después de la fecha de pago' });
+  }
 }
 
 /**
@@ -87,6 +121,7 @@ export function parseNewDebt(body) {
   for (const f of ['person', 'amount']) {
     if (body[f] === undefined) details.push({ field: f, problem: 'Es obligatorio' });
   }
+  checkInstallments(data, details);
   throwIfInvalid(details);
   return { kind: body.kind, ...data };
 }
@@ -106,6 +141,8 @@ export function parseDebtChanges(body) {
   if (Object.keys(data).length === 0 && details.length === 0) {
     details.push({ field: 'body', problem: 'No hay nada que cambiar' });
   }
+  // Pasar a cuotas se pide completo: cuántas, cada cuánto y la primera fecha.
+  if (data.installments) checkInstallments(data, details);
   throwIfInvalid(details);
   return data;
 }
@@ -128,6 +165,30 @@ export function parseSettle(body) {
   if (input.date !== undefined) {
     if (isDate(input.date)) out.date = input.date;
     else details.push({ field: 'date', problem: 'Debe ser una fecha AAAA-MM-DD' });
+  }
+  throwIfInvalid(details);
+  return out;
+}
+
+/**
+ * Valida `POST /debts/:id/payments` (FT-0064): un abono.
+ * @param {unknown} body
+ * @returns {{ amount: number, date?: string, createTransaction: boolean }}
+ */
+export function parsePayment(body) {
+  requireObject(body);
+  const details = [];
+  const out = { createTransaction: true };
+  const ok = typeof body.amount === 'number' && Number.isFinite(body.amount);
+  if (ok && cents(body.amount) > 0 && body.amount <= MAX_AMOUNT) out.amount = cents(body.amount);
+  else details.push({ field: 'amount', problem: 'Debe ser un número mayor que 0' });
+  if (body.date !== undefined) {
+    if (isDate(body.date)) out.date = body.date;
+    else details.push({ field: 'date', problem: 'Debe ser una fecha AAAA-MM-DD' });
+  }
+  if (body.createTransaction !== undefined) {
+    if (typeof body.createTransaction === 'boolean') out.createTransaction = body.createTransaction;
+    else details.push({ field: 'createTransaction', problem: 'Debe ser true o false' });
   }
   throwIfInvalid(details);
   return out;

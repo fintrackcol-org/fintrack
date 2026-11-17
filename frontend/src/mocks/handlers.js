@@ -1,6 +1,7 @@
 import { http, HttpResponse, delay } from 'msw';
 import { API_V1 } from '@/lib/api';
 import { plainText } from '@/lib/plainText';
+import { progress } from '@/lib/debtSchedule';
 
 /**
  * Handlers de MSW que simulan auth, categorías y transacciones mientras se desarrolla sin backend.
@@ -80,7 +81,65 @@ function pendingFor(userId) {
   return pendingByUser.get(userId);
 }
 
-addUser('demo@fintrack.com', 'demo1234');
+const demoUser = addUser('demo@fintrack.com', 'demo1234');
+
+/**
+ * Datos de ejemplo de la cuenta demo, para ver las pantallas con contenido sin backend: movimientos
+ * del mes en curso y un saldo conocido. Las cuentas que se registran en el mock empiezan vacías.
+ * Se llama apenas existen los mapas de movimientos y perfiles (más abajo).
+ */
+function seedDemo(user) {
+  const now = new Date();
+  const day = (d) => {
+    const date = new Date(now.getFullYear(), now.getMonth(), Math.min(d, now.getDate()));
+    return date.toLocaleDateString('en-CA');
+  };
+  const rows = [
+    [700000, 'Pago diseño de logo', 'ingreso', 'freelance', 3],
+    [450000, 'Arriendo', 'gasto', 'vivienda', 1],
+    [68500, 'Mercado D1', 'gasto', 'alimentacion', 9],
+    [14000, 'Almuerzo', 'gasto', 'alimentacion', now.getDate()],
+    [3200, 'MIO', 'gasto', 'transporte', now.getDate() - 1],
+    [26900, 'Netflix', 'gasto', 'entretenimiento', 8],
+    [32000, 'Droguería', 'gasto', 'salud', 6],
+    [58100, 'Internet y luz', 'gasto', 'servicios_publicos', 5],
+    [18000, 'Almuerzo con el equipo', 'gasto', 'alimentacion', 7],
+    [9000, 'Taxi', 'gasto', 'transporte', 4],
+  ];
+  const stamp = now.toISOString();
+  transactions.set(
+    user.id,
+    rows.map(([amount, description, type, category, d]) => ({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      amount,
+      description,
+      type,
+      date: day(Math.max(d, 1)),
+      category,
+      source: 'manual',
+      emotion: null,
+      kakeibo: null,
+      createdAt: stamp,
+      updatedAt: stamp,
+      deletedAt: null,
+    })),
+  );
+  Object.assign(moneyProfileOf(user.id), {
+    incomeType: 'mensual',
+    payDays: [30],
+    balance: 412300,
+    money: 412300,
+    balanceAt: stamp,
+    welcomeDone: true,
+    commitments: [
+      ['Netflix', 26900, 8, 'subscription'],
+      ['PILA: salud y pensión', 228000, 13, 'payment'],
+      ['Plan celular', 45000, 15, 'payment'],
+      ['Arriendo', 450000, 28, 'payment'],
+    ].map(([name, amount, dayOfMonth, kind]) => ({ id: crypto.randomUUID(), name, amount, dayOfMonth, frequency: 'monthly', kind })),
+  });
+}
 
 function addUser(email, password, verified = true) {
   const user = { id: crypto.randomUUID(), email, password, timezone: 'America/Bogota', verified };
@@ -254,13 +313,233 @@ function moneyProfileOf(userId) {
       money: null,
       totals: { income: 0, expense: 0 },
       welcomeDone: false,
+      tutorialDone: false,
       commitments: [],
     });
   }
   return moneyProfiles.get(userId);
 }
 
+seedDemo(demoUser);
+
+/** Cuenta como la devuelve la API: con lo pagado, lo que falta y la próxima cuota (FT-0064). */
+function presentDebt(d) {
+  const payments = d.payments ?? [];
+  const p = progress(d, payments.reduce((sum, x) => sum + x.amount, 0));
+  return {
+    ...d,
+    payments: [...payments].sort((a, b) => b.date.localeCompare(a.date)),
+    paid: p.paid,
+    pending: d.settledAt ? 0 : p.pending,
+    paidInstallments: p.paidInstallments,
+    nextInstallment: d.settledAt ? null : p.next,
+    // Con cuotas, la fecha límite es la de la próxima cuota (así avisa cada una).
+    dueDate: d.installments && p.next ? p.next.date : d.dueDate,
+  };
+}
+
+/** Cuentas de ejemplo del usuario demo: una en cuotas con un abono, una de una sola fecha y una que debe. */
+function seedDemoDebts(userId) {
+  const now = new Date();
+  const iso = (offset) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset).toLocaleDateString('en-CA');
+  const base = { note: null, settledAt: null, transactionId: null, reminder: { daysBefore: [1], time: null, channel: 'push' } };
+  debtsByUser.set(userId, [
+    {
+      ...base,
+      id: 'debt-demo-1',
+      kind: 'receivable',
+      person: 'Laura Gómez',
+      amount: 200000,
+      loanDate: iso(-20),
+      installments: 4,
+      frequency: 'biweekly',
+      firstDueDate: iso(-5),
+      dueDate: iso(-5),
+      note: 'Para el arriendo',
+      payments: [{ id: 'pay-demo-1', amount: 50000, date: iso(-5), transactionId: null }],
+    },
+    {
+      ...base,
+      id: 'debt-demo-2',
+      kind: 'receivable',
+      person: 'Andrés',
+      amount: 35000,
+      loanDate: iso(-3),
+      installments: null,
+      frequency: null,
+      firstDueDate: null,
+      dueDate: iso(4),
+      payments: [],
+    },
+    {
+      ...base,
+      id: 'debt-demo-3',
+      kind: 'payable',
+      person: 'Mamá',
+      amount: 300000,
+      loanDate: iso(-40),
+      installments: 3,
+      frequency: 'monthly',
+      firstDueDate: iso(-10),
+      dueDate: iso(-10),
+      payments: [{ id: 'pay-demo-2', amount: 100000, date: iso(-10), transactionId: null }],
+    },
+  ]);
+}
+seedDemoDebts(demoUser.id);
+
+/** Metas personales (vacas de una sola persona) por usuario; la proyección se calcula como el backend. */
+const vacasByUser = new Map();
+
+function presentVaca(v) {
+  const total = v.contributions.reduce((sum, c) => sum + c.amount, 0);
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysLeft = v.deadline ? Math.round((Date.parse(`${v.deadline}T00:00:00Z`) - today) / 86_400_000) : null;
+  const remaining = Math.max(0, v.goal - total);
+  const first = v.contributions.length ? Math.min(...v.contributions.map((c) => Date.parse(`${c.date}T00:00:00Z`))) : today;
+  const elapsed = Math.max(1, Math.round((today - first) / 86_400_000));
+  const averagePerDay = v.contributions.length ? total / elapsed : 0;
+  const neededPerDay = daysLeft > 0 ? remaining / daysLeft : null;
+  const status = remaining === 0 ? 'completada' : daysLeft !== null && daysLeft < 0 ? 'vencida' : 'activa';
+  const estimated = averagePerDay > 0 ? new Date(today + Math.ceil(remaining / averagePerDay) * 86_400_000).toISOString().slice(0, 10) : null;
+  return {
+    ...v,
+    code: null,
+    personal: true,
+    role: 'admin',
+    split: 'igual',
+    total,
+    percentage: Math.min(100, Math.round((total / v.goal) * 1000) / 10),
+    status,
+    membersCount: 1,
+    myQuota: v.goal,
+    myContributed: total,
+    myRemaining: remaining,
+    myStatus: remaining === 0 ? 'cumplido' : 'al_dia',
+    projection: {
+      remaining,
+      averagePerDay,
+      estimatedDate: estimated,
+      daysLeft,
+      neededPerDay,
+      neededPerWeek: neededPerDay === null ? null : neededPerDay * 7,
+      onTrack: daysLeft === null || remaining === 0 ? null : estimated !== null && estimated <= v.deadline,
+    },
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+{
+  const d = (offset) => new Date(Date.now() + offset * 86_400_000).toLocaleDateString('en-CA');
+  vacasByUser.set(demoUser.id, [
+    { id: 'meta-demo-1', name: 'Fondo de emergencia', description: null, goal: 3600000, deadline: null, contributions: [{ id: 'c1', amount: 720000, date: d(-60) }] },
+    { id: 'meta-demo-2', name: 'Viaje a Santa Marta', description: null, goal: 1200000, deadline: d(30), contributions: [{ id: 'c2', amount: 400000, date: d(-40) }, { id: 'c3', amount: 240000, date: d(-6) }] },
+    { id: 'meta-demo-3', name: 'Portátil nuevo', description: null, goal: 2800000, deadline: d(130), contributions: [{ id: 'c4', amount: 380000, date: d(-23) }] },
+  ]);
+}
+
+/** Tarjetas por usuario (solo lo que piden las pantallas; el cálculo de cupo real vive en el backend). */
+const cardsByUser = new Map();
+
+/** `expiry` como lo devuelve la API (FT-0065): "03/27", si ya venció y si vence en 60 días o menos. */
+function cardExpiry({ expiryMonth, expiryYear }) {
+  if (!expiryMonth || !expiryYear) return null;
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysLeft = Math.round((Date.UTC(expiryYear, expiryMonth - 1, 1) - today) / 86_400_000);
+  const expired = today >= Date.UTC(expiryYear, expiryMonth, 1);
+  return {
+    label: `${String(expiryMonth).padStart(2, '0')}/${String(expiryYear).slice(2)}`,
+    expired,
+    soon: !expired && daysLeft <= 60,
+  };
+}
+
+/** Tarjeta como la devuelve la API, con el próximo pago calculado a partir del día de pago. */
+function presentCard(card) {
+  const now = new Date();
+  let next = new Date(now.getFullYear(), now.getMonth(), card.paymentDay);
+  if (next < new Date(now.getFullYear(), now.getMonth(), now.getDate())) next = new Date(now.getFullYear(), now.getMonth() + 1, card.paymentDay);
+  return {
+    ...card,
+    available: card.limit - card.used,
+    nextPaymentDate: next.toLocaleDateString('en-CA'),
+    daysToPayment: Math.round((next - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86_400_000),
+    paidThisCycle: false,
+    statementTotal: null,
+    statementDueDate: null,
+    expiry: cardExpiry(card),
+  };
+}
+
+const soon = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+cardsByUser.set(demoUser.id, [
+  { id: 'card-demo-1', name: 'Visa Gold ••8456', network: 'visa', tier: 'gold', last4: '8456', limit: 3000000, used: 816000, paymentDay: 15, cutoffDay: 30, expiryMonth: soon.getMonth() + 1, expiryYear: soon.getFullYear(), expiryNotified: [] },
+  { id: 'card-demo-2', name: 'Mastercard ••1290', network: 'mastercard', tier: 'clasica', last4: '1290', limit: 1500000, used: 230000, paymentDay: 5, cutoffDay: null, expiryMonth: 9, expiryYear: 2029, expiryNotified: [] },
+]);
+
+/** user id → presupuestos `{ id, category, month, amount }` (el consumo se calcula al pedirlos). */
+const budgetsByUser = new Map([
+  [
+    demoUser.id,
+    [
+      ['alimentacion', 150000],
+      ['vivienda', 600000],
+      ['entretenimiento', 80000],
+      ['transporte', 60000],
+    ].map(([category, amount]) => ({ id: crypto.randomUUID(), category, month: new Date().toLocaleDateString('en-CA').slice(0, 7), amount })),
+  ],
+]);
+
+/** Presupuesto con lo gastado en su categoría y mes, y su alerta (RN-04). */
+function withConsumption(userId, budget) {
+  const consumed = (transactions.get(userId) ?? [])
+    .filter((t) => t.type === 'gasto' && !t.deletedAt && t.category === budget.category && t.date.startsWith(budget.month))
+    .reduce((sum, t) => sum + t.amount, 0);
+  const percentage = Math.round((consumed / budget.amount) * 1000) / 10;
+  const level = percentage >= 100 ? 'exceeded_100' : percentage >= 80 ? 'warning_80' : 'none';
+  return { ...budget, consumed, percentage, alert: { level, percentage } };
+}
+
 export const handlers = [
+  http.get(`${API_V1}/budgets`, ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const month = new URL(request.url).searchParams.get('month');
+    const list = (budgetsByUser.get(user.id) ?? []).filter((b) => !month || b.month === month);
+    return HttpResponse.json(list.map((b) => withConsumption(user.id, b)));
+  }),
+
+  http.post(`${API_V1}/budgets`, async ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const { category, month, amount } = await readJson(request);
+    const list = budgetsByUser.get(user.id) ?? [];
+    if (list.some((b) => b.category === category && b.month === month)) {
+      return error(409, 'BUDGET_EXISTS', 'Ya hay un presupuesto para esa categoría en ese mes');
+    }
+    const budget = { id: crypto.randomUUID(), category, month, amount };
+    budgetsByUser.set(user.id, [...list, budget]);
+    return HttpResponse.json(withConsumption(user.id, budget), { status: 201 });
+  }),
+
+  http.put(`${API_V1}/budgets/:id`, async ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const budget = (budgetsByUser.get(user.id) ?? []).find((b) => b.id === params.id);
+    if (!budget) return error(404, 'NOT_FOUND', 'Presupuesto no encontrado');
+    budget.amount = (await readJson(request)).amount;
+    return HttpResponse.json(withConsumption(user.id, budget));
+  }),
+
+  http.delete(`${API_V1}/budgets/:id`, ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    budgetsByUser.set(user.id, (budgetsByUser.get(user.id) ?? []).filter((b) => b.id !== params.id));
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.post(`${API_V1}/auth/register`, async ({ request }) => {
     const body = await readJson(request);
     await delay();
@@ -268,7 +547,8 @@ export const handlers = [
     if (invalid) return invalid;
     const email = body.email.trim().toLowerCase();
     if (users.has(email)) return error(409, 'EMAIL_TAKEN', 'El correo ya está registrado');
-    addUser(email, body.password, false);
+    const user = addUser(email, body.password, false);
+    if (typeof body.name === 'string' && body.name.trim()) user.name = body.name.trim().replace(/\s+/g, ' ');
     sendVerificationLink(email);
     return HttpResponse.json({ email, verificationRequired: true }, { status: 201 });
   }),
@@ -462,6 +742,9 @@ export const handlers = [
       type: body.type,
       date: body.date,
       ...resolve(body.category, body.description, body.type),
+      // FT-0070: solo en gastos.
+      emotion: body.type === 'gasto' ? (body.emotion ?? null) : null,
+      kakeibo: body.type === 'gasto' ? (body.kakeibo ?? null) : null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -783,9 +1066,27 @@ export const handlers = [
     return HttpResponse.json({ data: adjustments.get(user.id) ?? [] });
   }),
 
+  // Plan simplificado: con saldo conocido, cuántos días alcanza al ritmo de gasto del mes.
   http.get(`${API_V1}/money-profile/plan`, ({ request }) => {
-    if (!authUser(request)) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
-    return HttpResponse.json({ ready: false });
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const profile = moneyProfileOf(user.id);
+    if (typeof profile.money !== 'number') return HttpResponse.json({ ready: false });
+    const today = new Date();
+    const spent = (transactions.get(user.id) ?? [])
+      .filter((t) => t.type === 'gasto' && !t.deletedAt && t.date.slice(0, 7) === today.toLocaleDateString('en-CA').slice(0, 7))
+      .reduce((sum, t) => sum + t.amount, 0);
+    const pace = Math.round(spent / Math.max(today.getDate(), 1));
+    return HttpResponse.json({
+      ready: true,
+      mode: 'runway',
+      money: profile.money,
+      free: profile.money,
+      shortfall: 0,
+      pace,
+      runwayDays: pace > 0 ? Math.floor(profile.money / pace) : null,
+      pending: [],
+    });
   }),
 
   http.put(`${API_V1}/money-profile`, async ({ request }) => {
@@ -807,6 +1108,14 @@ export const handlers = [
       money: balance,
       balanceAt: balance === null ? null : new Date().toISOString(),
     });
+    return HttpResponse.json(profile);
+  }),
+
+  http.post(`${API_V1}/money-profile/tutorial`, ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const profile = moneyProfileOf(user.id);
+    profile.tutorialDone = true;
     return HttpResponse.json(profile);
   }),
 
@@ -834,13 +1143,14 @@ export const handlers = [
         return { date, kind: 'compromiso', id: c.id, name: c.name, amount: c.amount, status: status(date) };
       }),
       ...(debtsByUser.get(user.id) ?? [])
+        .map(presentDebt)
         .filter((d) => d.dueDate?.startsWith(month) && !d.settledAt)
         .map((d) => ({
           date: d.dueDate,
           kind: d.kind === 'payable' ? 'cuenta' : 'cobro',
           id: d.id,
           name: d.person,
-          amount: d.amount,
+          amount: d.nextInstallment?.amount ?? d.pending,
           status: status(d.dueDate),
         })),
     ].sort((a, b) => a.date.localeCompare(b.date));
@@ -1016,12 +1326,86 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
+  http.get(`${API_V1}/vacas`, ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    return HttpResponse.json((vacasByUser.get(user.id) ?? []).map(presentVaca));
+  }),
+
+  http.post(`${API_V1}/vacas`, async ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const body = await request.json();
+    const vaca = { id: crypto.randomUUID(), name: body.name, description: body.description ?? null, goal: body.goal, deadline: body.deadline ?? null, contributions: [] };
+    vacasByUser.set(user.id, [vaca, ...(vacasByUser.get(user.id) ?? [])]);
+    return HttpResponse.json(presentVaca(vaca), { status: 201 });
+  }),
+
+  http.post(`${API_V1}/vacas/:id/contributions`, async ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const vaca = (vacasByUser.get(user.id) ?? []).find((v) => v.id === params.id);
+    if (!vaca) return error(404, 'NOT_FOUND', 'Vaca no encontrada');
+    const body = await request.json();
+    const contribution = { id: crypto.randomUUID(), amount: body.amount, date: body.date, note: body.note ?? null };
+    vaca.contributions.push(contribution);
+    return HttpResponse.json(
+      { contribution: { ...contribution, userId: user.id, name: 'Tú', isMe: true, createdAt: new Date().toISOString() }, transaction: { id: crypto.randomUUID(), type: 'gasto', amount: body.amount, description: `Ahorro: ${vaca.name}`, category: 'ahorro_inversion', date: body.date, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, vaca: presentVaca(vaca) },
+      { status: 201 },
+    );
+  }),
+
+  http.get(`${API_V1}/cards`, ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    return HttpResponse.json((cardsByUser.get(user.id) ?? []).map(presentCard));
+  }),
+
+  http.get(`${API_V1}/cards/:id`, ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const card = (cardsByUser.get(user.id) ?? []).find((c) => c.id === params.id);
+    return card ? HttpResponse.json(presentCard(card)) : error(404, 'NOT_FOUND', 'Tarjeta no encontrada');
+  }),
+
+  http.get(`${API_V1}/cards/:id/movements`, () => HttpResponse.json([])),
+
+  http.post(`${API_V1}/cards`, async ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const body = await request.json();
+    const card = {
+      id: crypto.randomUUID(),
+      name: body.name ?? `${body.network} ••${body.last4}`,
+      cutoffDay: null,
+      expiryMonth: null,
+      expiryYear: null,
+      expiryNotified: [],
+      ...body,
+      used: body.limit - body.available,
+    };
+    delete card.available;
+    cardsByUser.set(user.id, [...(cardsByUser.get(user.id) ?? []), card]);
+    return HttpResponse.json(presentCard(card), { status: 201 });
+  }),
+
+  http.put(`${API_V1}/cards/:id`, async ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const card = (cardsByUser.get(user.id) ?? []).find((c) => c.id === params.id);
+    if (!card) return error(404, 'NOT_FOUND', 'Tarjeta no encontrada');
+    const body = await request.json();
+    if (body.expiryMonth !== card.expiryMonth || body.expiryYear !== card.expiryYear) card.expiryNotified = [];
+    Object.assign(card, body);
+    return HttpResponse.json(presentCard(card));
+  }),
+
   http.get(`${API_V1}/debts`, ({ request }) => {
     const user = authUser(request);
     if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
-    const items = debtsByUser.get(user.id) ?? [];
+    const items = (debtsByUser.get(user.id) ?? []).map(presentDebt);
     const totals = { receivable: 0, payable: 0 };
-    for (const d of items) if (!d.settledAt) totals[d.kind] += d.amount;
+    for (const d of items) if (!d.settledAt) totals[d.kind] += d.pending;
     const sorted = [...items].sort(
       (a, b) =>
         Boolean(a.settledAt) - Boolean(b.settledAt) ||
@@ -1044,6 +1428,11 @@ export const handlers = [
       person: body.person.trim(),
       amount: body.amount,
       dueDate: body.dueDate ?? null,
+      loanDate: body.loanDate ?? null,
+      installments: body.installments ?? null,
+      frequency: body.frequency ?? null,
+      firstDueDate: body.installments ? body.dueDate : null,
+      payments: [],
       note: body.note ?? null,
       reminder: body.reminder ?? { daysBefore: [1], time: null, channel: 'push' },
       settledAt: null,
@@ -1052,7 +1441,7 @@ export const handlers = [
       updatedAt: now,
     };
     debtsByUser.set(user.id, [...(debtsByUser.get(user.id) ?? []), debt]);
-    return HttpResponse.json(debt, { status: 201 });
+    return HttpResponse.json(presentDebt(debt), { status: 201 });
   }),
 
   http.put(`${API_V1}/debts/:id`, async ({ request, params }) => {
@@ -1061,8 +1450,10 @@ export const handlers = [
     const debt = (debtsByUser.get(user.id) ?? []).find((d) => d.id === params.id);
     if (!debt) return error(404, 'NOT_FOUND', 'Cuenta no encontrada');
     if (debt.settledAt) return error(409, 'ALREADY_SETTLED', 'Esta cuenta ya está saldada');
-    Object.assign(debt, await request.json(), { updatedAt: new Date().toISOString() });
-    return HttpResponse.json(debt);
+    const body = await request.json();
+    Object.assign(debt, body, { updatedAt: new Date().toISOString() });
+    if ('installments' in body) debt.firstDueDate = body.installments ? (body.dueDate ?? debt.firstDueDate) : null;
+    return HttpResponse.json(presentDebt(debt));
   }),
 
   http.delete(`${API_V1}/debts/:id`, ({ request, params }) => {
@@ -1083,7 +1474,44 @@ export const handlers = [
     const { createTransaction = true } = (await request.json().catch(() => ({}))) ?? {};
     debt.settledAt = new Date().toISOString();
     debt.transactionId = createTransaction ? crypto.randomUUID() : null;
-    return HttpResponse.json({ debt, transaction: createTransaction ? { id: debt.transactionId } : null });
+    return HttpResponse.json({ debt: presentDebt(debt), transaction: createTransaction ? { id: debt.transactionId } : null });
+  }),
+
+  http.post(`${API_V1}/debts/:id/payments`, async ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const debt = (debtsByUser.get(user.id) ?? []).find((d) => d.id === params.id);
+    if (!debt) return error(404, 'NOT_FOUND', 'Cuenta no encontrada');
+    if (debt.settledAt) return error(409, 'ALREADY_SETTLED', 'Esta cuenta ya está saldada');
+    const body = await request.json();
+    const { pending } = presentDebt(debt);
+    if (!(body.amount > 0)) return error(422, 'VALIDATION_ERROR', 'Datos inválidos', [{ field: 'amount', problem: 'Debe ser mayor que 0' }]);
+    if (body.amount > pending + 0.004) {
+      return error(422, 'VALIDATION_ERROR', 'Datos inválidos', [{ field: 'amount', problem: `No puede pasar de lo pendiente (${pending})` }]);
+    }
+    const createTransaction = body.createTransaction !== false;
+    const payment = {
+      id: crypto.randomUUID(),
+      amount: body.amount,
+      date: body.date ?? new Date().toLocaleDateString('en-CA'),
+      transactionId: createTransaction ? crypto.randomUUID() : null,
+    };
+    debt.payments = [...(debt.payments ?? []), payment];
+    if (pending - body.amount < 0.005) debt.settledAt = new Date().toISOString();
+    return HttpResponse.json(
+      { debt: presentDebt(debt), payment, transaction: payment.transactionId ? { id: payment.transactionId } : null },
+      { status: 201 },
+    );
+  }),
+
+  http.delete(`${API_V1}/debts/:id/payments/:paymentId`, ({ request, params }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const debt = (debtsByUser.get(user.id) ?? []).find((d) => d.id === params.id);
+    if (!debt?.payments?.some((p) => p.id === params.paymentId)) return error(404, 'NOT_FOUND', 'Abono no encontrado');
+    debt.payments = debt.payments.filter((p) => p.id !== params.paymentId);
+    // Como el backend: el movimiento que se anotó con el abono también se borra.
+    return HttpResponse.json(presentDebt(debt));
   }),
 
   http.get(`${API_V1}/pending-payments/token`, ({ request }) => {

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Loader2, Plus, Target } from 'lucide-react';
-import CircleActions from '@/components/common/CircleActions';
+import { ChevronLeft, ChevronRight, Loader2, Plus } from 'lucide-react';
 import Sheet from '@/components/common/Sheet';
 import { BudgetAlert } from '@/components/dashboard/BudgetOverview';
 import BudgetForm from '@/components/budgets/BudgetForm';
@@ -9,12 +8,44 @@ import BudgetList from '@/components/budgets/BudgetList';
 import PageHeader from '@/components/layout/PageHeader';
 import Panel from '@/components/layout/Panel';
 import { currentMonth, formatMonth, shiftMonth } from '@/components/budgets/month';
+import { formatMoney } from '@/components/transactions/format';
 import { Button } from '@/components/ui/button';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { createBudget, deleteBudget, listBudgets, updateBudget } from '@/services/budgetService';
 import { CATEGORIES_CHANGED_EVENT, applyCategoryChange, getCategories } from '@/services/transactionService';
+
+/**
+ * Suma de los topes del mes y cuánto va gastado en ellos, con la línea de avance.
+ * @param {{ budgets: Array<{ amount: number, consumed: number }> }} props
+ */
+function BudgetsTotal({ budgets }) {
+  const limit = budgets.reduce((sum, b) => sum + b.amount, 0);
+  const spent = budgets.reduce((sum, b) => sum + b.consumed, 0);
+  const share = limit > 0 ? Math.min(spent / limit, 1) : 0;
+  return (
+    <div className="flex flex-col gap-2.5 rounded-2xl bg-surface p-4 ring-1 ring-ink/10">
+      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink/60">Topes del mes</p>
+      <p className="flex items-baseline justify-between gap-3">
+        <span className="text-[22px] font-extrabold tracking-tight tabular-nums">{formatMoney(limit)}</span>
+        <span className="text-[13px] text-ink/60 tabular-nums">
+          llevas {formatMoney(spent)} · {Math.round(share * 100)} %
+        </span>
+      </p>
+      <span
+        role="meter"
+        aria-label="Gastado de todos los topes"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(share * 100)}
+        className="relative block h-1 rounded-full bg-ink/10"
+      >
+        <span className="absolute inset-y-0 left-0 rounded-full bg-brand" style={{ width: `${share * 100}%` }} />
+      </span>
+    </div>
+  );
+}
 
 /**
  * Página privada `/app/presupuestos`: crear, editar y eliminar presupuestos por categoría y
@@ -129,28 +160,26 @@ export default function Budgets() {
         />
       </div>
       <div className="mb-5 md:hidden">
-        <h1 className="text-[28px] font-semibold tracking-tight">Presupuestos</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Tus presupuestos</h1>
         <div className="-ml-2 flex items-center gap-1 text-[15px] text-ink/70">
-          <button type="button" className="grid size-9 place-items-center" onClick={() => changeMonth(-1)} aria-label="Mes anterior">
+          <button type="button" className="grid size-11 place-items-center" onClick={() => changeMonth(-1)} aria-label="Mes anterior">
             <ChevronLeft className="size-4" aria-hidden="true" />
           </button>
           <span className="first-letter:uppercase">{monthLabel}</span>
-          <button type="button" className="grid size-9 place-items-center" onClick={() => changeMonth(1)} aria-label="Mes siguiente">
+          <button type="button" className="grid size-11 place-items-center" onClick={() => changeMonth(1)} aria-label="Mes siguiente">
             <ChevronRight className="size-4" aria-hidden="true" />
           </button>
         </div>
       </div>
 
-      {/* En el celular: acciones en círculos y un solo aviso arriba; el formulario va después de la lista. */}
+      {/* Rinde v2, celular: cuánto suman los topes y cuánto va, el aviso más importante y el botón de crear. */}
       <div className="mb-5 flex flex-col gap-4 md:hidden">
-        <CircleActions
-          label="Acciones de Presupuestos"
-          actions={[
-            { to: '/app/anotar', label: 'Anotar', icon: Plus, primary: true },
-            { onClick: () => (setEditing(null), showForm()), label: 'Crear límite', icon: Target },
-          ]}
-        />
+        {budgets.length > 0 && <BudgetsTotal budgets={budgets} />}
         <BudgetAlert budgets={budgets} names={categoryNames} linked={false} />
+        <Button size="lg" onClick={() => (setEditing(null), showForm())} disabled={!online}>
+          <Plus aria-hidden="true" />
+          Nuevo presupuesto
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">

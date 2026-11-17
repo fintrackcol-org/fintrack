@@ -51,3 +51,15 @@ export function dueText(card) {
 export function cardMark({ name, last4 }) {
   return name.includes(`••${last4}`) ? name : `${name} ••${last4}`;
 }
+
+/**
+ * Aviso del vencimiento del plástico (FT-0065), con `card.expiry` que calcula el backend.
+ * @param {{ expiry?: { label: string, expired: boolean, soon: boolean }|null }} card
+ * @returns {{ text: string, tone: 'negative'|'caution' }|null} `null` si no vence pronto.
+ */
+export function expiryNotice(card) {
+  if (!card.expiry) return null;
+  if (card.expiry.expired) return { text: `Vencida (${card.expiry.label}) · actualiza la fecha`, tone: 'negative' };
+  if (card.expiry.soon) return { text: `Vence pronto (${card.expiry.label}) · pide la nueva al banco`, tone: 'caution' };
+  return null;
+}

@@ -85,12 +85,13 @@ async function sendVerificationLink(user, mailer) {
  * @param {typeof sendVerificationEmail} [mailer] Envía el correo; las pruebas pasan uno falso.
  * @returns {Promise<{ email: string, verificationRequired: true }>}
  */
-export async function register({ email, password }, mailer = sendVerificationEmail) {
+export async function register({ email, password, name = null }, mailer = sendVerificationEmail) {
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
   // Llega aquí solo si aceptó los términos (parseNewCredentials): se guarda la versión vigente.
   const user = await createUser({
     email: email.trim().toLowerCase(),
     passwordHash,
+    name,
     termsVersion: LEGAL_VERSION,
   });
   if (!user) {

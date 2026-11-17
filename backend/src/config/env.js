@@ -126,6 +126,8 @@ if (nodeEnv === 'production' && !process.env.JWT_SECRET) {
  * @property {string|undefined} supabaseUrl URL del proyecto de Supabase para guardar los soportes (`SUPABASE_URL`).
  * @property {string|undefined} supabaseServiceKey Clave `service_role` de Supabase; solo vive en el backend (`SUPABASE_SERVICE_KEY`).
  * @property {string} attachmentsBucket Espacio privado de Supabase para los soportes (`ATTACHMENTS_BUCKET`, por defecto `soportes`).
+ * @property {string|undefined} s3Bucket Bucket privado de S3 para los soportes en el entorno de pruebas de AWS (`S3_BUCKET`, FT-0064). Si está, gana sobre Supabase.
+ * @property {string} awsRegion Región de AWS del bucket (`AWS_REGION`, por defecto `us-east-1`).
  * @property {string} uploadsDir Carpeta de los soportes en desarrollo, relativa a `backend/` (`UPLOADS_DIR`, por defecto `uploads`).
  */
 export const env = {
@@ -174,6 +176,8 @@ export const env = {
   supabaseUrl: process.env.SUPABASE_URL?.trim().replace(/\/$/, '') || undefined,
   supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY?.trim() || undefined,
   attachmentsBucket: process.env.ATTACHMENTS_BUCKET?.trim() || 'soportes',
+  s3Bucket: process.env.S3_BUCKET?.trim() || undefined,
+  awsRegion: process.env.AWS_REGION?.trim() || 'us-east-1',
   uploadsDir: process.env.UPLOADS_DIR?.trim() || 'uploads',
 };
 

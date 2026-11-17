@@ -1,4 +1,5 @@
 import { AppError } from '../errors/app-error.js';
+import { MAX_NAME_LENGTH } from './users.validator.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -24,7 +25,7 @@ export function parseCredentials(body) {
  * Igual que `parseCredentials`, y además exige las reglas de una cuenta nueva (registro), entre
  * ellas aceptar los términos y la política de privacidad (`acceptTerms: true`, FT-0017).
  * @param {unknown} body
- * @returns {{ email: string, password: string }}
+ * @returns {{ email: string, password: string, name: string|null }}
  */
 export function parseNewCredentials(body) {
   const { email, password } = parseCredentials(body);
@@ -41,10 +42,19 @@ export function parseNewCredentials(body) {
   if (password.length < MIN_PASSWORD_LENGTH) {
     details.push({ field: 'password', problem: 'Debe tener al menos 8 caracteres' });
   }
+  // Rinde v2: el nombre es opcional al registrarse (así se saluda desde el primer día).
+  let name = null;
+  if (body.name !== undefined && body.name !== null) {
+    if (typeof body.name !== 'string') details.push({ field: 'name', problem: 'Debe ser un texto' });
+    else {
+      name = body.name.trim().replace(/\s+/g, ' ') || null;
+      if (name && name.length > MAX_NAME_LENGTH) details.push({ field: 'name', problem: `Máximo ${MAX_NAME_LENGTH} caracteres` });
+    }
+  }
   if (details.length > 0) {
     throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
   }
-  return { email, password };
+  return { email, password, name };
 }
 
 /**

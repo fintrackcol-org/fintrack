@@ -430,7 +430,7 @@ function Saved({ titleId, draft, result, names, onAgain, onDone }) {
   return (
     <>
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
+        initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', duration: 0.45, bounce: 0.3 }}
         className="mx-auto grid size-20 place-items-center rounded-full bg-positive/15 text-positive"

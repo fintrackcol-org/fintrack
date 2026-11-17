@@ -38,6 +38,7 @@ export async function get(userId) {
     money: currentMoney({ profile, changes, totals }),
     totals,
     welcomeDone: Boolean(profile?.welcomeAt),
+    tutorialDone: Boolean(profile?.tutorialAt),
     commitments: commitments.map((c) => ({ ...c, reminder: configs.get(c.id) ?? null })),
     subscriptions: subscriptionsSummary(commitments),
   };
@@ -90,6 +91,16 @@ export async function finishWelcome(userId, data) {
   // Omitir no borra lo que ya estaba: quien ya respondió pudo cambiarlo en Cuenta.
   const answered = data.incomeType !== null || data.balance !== null;
   await repo.saveWelcome(userId, answered || !current ? data : { ...current, commitments: data.commitments });
+  return get(userId);
+}
+
+/**
+ * El usuario terminó u omitió el tutorial de primera vez (FT-0071): no vuelve a salir solo.
+ * @param {string} userId
+ * @returns {Promise<object>} El perfil, con `tutorialDone: true`.
+ */
+export async function finishTutorial(userId) {
+  await repo.markTutorialSeen(userId);
   return get(userId);
 }
 

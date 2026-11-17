@@ -1,69 +1,235 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CalendarClock, Flag, Loader2, Plus } from 'lucide-react';
+import { Briefcase, Loader2, PiggyBank, Plus } from 'lucide-react';
+import FormField from '@/components/auth/FormField';
+import MoneyInput from '@/components/common/MoneyInput';
+import RindeLine from '@/components/common/RindeLine';
+import ShortcutGrid from '@/components/common/ShortcutGrid';
 import Sheet from '@/components/common/Sheet';
 import PageHeader from '@/components/layout/PageHeader';
-import Panel from '@/components/layout/Panel';
 import { Button } from '@/components/ui/button';
+import { DEFAULT_CATEGORY } from '@/components/vacas/ContributionForm';
 import VacaForm from '@/components/vacas/VacaForm';
-import VacaProgress from '@/components/vacas/VacaProgress';
-import { VACA_STATUS, deadlineText, formatPercent, formatPesos } from '@/components/vacas/vacaFormat';
+import { deadlineText, formatPercent, formatPesos, todayIso } from '@/components/vacas/vacaFormat';
+import useAsync from '@/hooks/useAsync';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { cn } from '@/lib/utils';
+import { cushion, isCushionGoal, monthlyFixed, shortDate } from '@/lib/goalPlan';
+import { runway, untilText } from '@/lib/runway';
+import { getMoneyProfile } from '@/services/moneyProfileService';
+import { getSummary } from '@/services/summaryService';
 import { createVaca, listVacas } from '@/services/vacaService';
+
+/** Lo que se maneja con otras personas, dentro de la pestaña Metas. */
+const IN_GROUP = [
+  { to: '/app/vacas', label: 'Vacas', hint: 'Ahorrar con amigos', icon: PiggyBank },
+  { to: '/app/negocios', label: 'Negocios', hint: 'Cuentas con socios', icon: Briefcase },
+];
 
 /** Una meta es una vaca de una sola persona; las vacas en grupo salen en `/app/vacas`. */
 const isPersonal = (vaca) => Boolean(vaca.personal);
 
 /**
- * Tarjeta de una meta: cuánto lleva, cuánto le falta y si va a tiempo.
- * @param {{ meta: import('@/services/vacaService').Vaca }} props
+ * El colchón (lienzo «Metas»): la meta de 3 meses de gastos fijos y cuántos días se aguanta hoy sin
+ * ingresos. Si aún no hay una meta de emergencia, invita a crearla con la cifra ya puesta.
+ * @param {{ fixed: number, meta: object|undefined, onCreate: () => void, online: boolean }} props
  */
-function MetaCard({ meta }) {
-  const status = VACA_STATUS[meta.status];
-  return (
-    <li className="min-w-0">
-      <Link
-        to={`/app/metas/${meta.id}`}
-        className="group block rounded-2xl border border-ink/10 bg-surface p-4 transition-colors hover:border-brand/40 sm:p-5"
-      >
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 break-words font-semibold tracking-tight sm:text-lg">{meta.name}</p>
-            <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-ink/60">
-              <CalendarClock className="size-3.5" aria-hidden="true" /> {deadlineText(meta, { withDate: false })}
-            </p>
-          </div>
-          <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-xs font-medium', status.chip)}>
-            {status.label}
-          </span>
-        </div>
+function CushionCard({ fixed, meta, onCreate, online }) {
+  const saved = meta?.total ?? 0;
+  const c = cushion({ fixed, saved });
+  if (!c) {
+    return (
+      <section className="rounded-3xl bg-obsidian p-5 text-white ring-1 ring-white/10">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-success">Tu colchón</p>
+        <h2 className="mt-1 text-lg font-semibold">Fondo de emergencia</h2>
+        <p className="mt-2 text-sm text-white/75">
+          Anota tus pagos fijos en Mi plata y te decimos cuánto necesitas para aguantar 3 meses sin ingresos.
+        </p>
+        <Link to="/app/mi-plata/pagos" className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-success">
+          Anotar pagos fijos
+        </Link>
+      </section>
+    );
+  }
+  const goal = meta?.goal ?? c.goal;
+  const body = (
+    <>
+      <span className="flex items-start justify-between gap-3">
+        <span>
+          <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-success">Tu colchón</span>
+          <span className="mt-1 block text-lg font-semibold">{meta?.name ?? 'Fondo de emergencia'}</span>
+        </span>
+        <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold">Meta: 3 meses</span>
+      </span>
+      <span className="mt-3 flex items-baseline gap-1.5 tabular-nums">
+        <b className="text-[28px] font-extrabold tracking-tight">{formatPesos(saved)}</b>
+        <span className="text-sm text-white/70">de {formatPesos(goal)}</span>
+      </span>
+      <RindeLine value={goal > 0 ? saved / goal : 0} className="mt-2" />
+      <span className="mt-3 block text-sm text-white/80">
+        {saved > 0 ? (
+          <>
+            Hoy aguantas <b className="font-semibold text-white">{c.days === 1 ? '1 día' : `${c.days} días`}</b> sin ingresos.{' '}
+          </>
+        ) : (
+          'Aún no tienes colchón. '
+        )}
+        La meta es 3 meses de tus gastos fijos ({formatPesos(fixed)} al mes).
+      </span>
+    </>
+  );
+  return meta ? (
+    <Link
+      to={`/app/metas/${meta.id}`}
+      className="block rounded-3xl bg-obsidian p-5 text-white ring-1 ring-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet"
+    >
+      {body}
+    </Link>
+  ) : (
+    <section className="rounded-3xl bg-obsidian p-5 text-white ring-1 ring-white/10">
+      {body}
+      <Button className="mt-4 rounded-full bg-white text-obsidian hover:bg-white/90" onClick={onCreate} disabled={!online}>
+        Crear mi colchón
+      </Button>
+    </section>
+  );
+}
 
-        <p className="mt-4 flex flex-wrap items-baseline gap-x-1.5 tabular-nums text-ink/60">
-          <span className="text-2xl font-semibold tracking-tight text-ink">{formatPesos(meta.total)}</span>
-          <span className="text-sm">de {formatPesos(meta.goal)}</span>
-        </p>
-        <div className="mt-2">
-          <VacaProgress
-            value={meta.percentage}
-            barClass={status.bar}
-            label={`Avance de ${meta.name}`}
-            valueText={`${formatPercent(meta.percentage)}: ${formatPesos(meta.total)} de ${formatPesos(meta.goal)}`}
-          />
+/** "Vas bien" / "Vas lento" / "Cumplida" según la proyección. */
+function paceChip(meta) {
+  if (meta.status === 'completada') return { label: 'Cumplida', className: 'bg-success/15 text-positive', dot: true };
+  if (meta.status === 'vencida') return { label: 'Venció', className: 'bg-negative/10 text-negative' };
+  if (meta.projection.onTrack === true) return { label: 'Vas bien', className: 'bg-success/15 text-positive', dot: true };
+  if (meta.projection.onTrack === false) return { label: 'Vas lento', className: 'bg-brand-soft text-brand' };
+  return null;
+}
+
+/** Qué hacer para llegar: el plan por semana, cuándo se completa a este ritmo o cómo empezar. */
+function adviceText(meta) {
+  const p = meta.projection;
+  if (meta.status === 'completada') return 'Ya completaste la meta.';
+  if (meta.deadline && p.neededPerWeek > 0) return `Si apartas ${formatPesos(Math.ceil(p.neededPerWeek / 1000) * 1000)} cada semana, llegas a tiempo.`;
+  if (p.estimatedDate) return `A tu ritmo la completas el ${shortDate(p.estimatedDate)}.`;
+  return 'Aparta algo hoy para arrancar.';
+}
+
+/**
+ * Tarjeta de una meta (lienzo «Metas»): para cuándo, cuánto lleva, si va a tiempo, qué hacer y el botón
+ * para apartar plata sin entrar al detalle.
+ * @param {{ meta: import('@/services/vacaService').Vaca, onSave: () => void, online: boolean }} props
+ */
+function MetaCard({ meta, onSave }) {
+  const chip = paceChip(meta);
+  const days = meta.projection.daysLeft;
+  return (
+    <li className="relative min-w-0 rounded-3xl bg-surface p-5 ring-1 ring-ink/10">
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="line-clamp-2 break-words text-lg font-semibold tracking-tight">
+            {/* El enlace cubre la tarjeta; el botón de apartar queda encima. */}
+            <Link to={`/app/metas/${meta.id}`} className="after:absolute after:inset-0 after:rounded-3xl focus-visible:outline-2 focus-visible:outline-violet">
+              {meta.name}
+            </Link>
+          </h3>
+          <p className="mt-0.5 text-sm text-ink/60">
+            {meta.deadline
+              ? `Para el ${shortDate(meta.deadline)}${days > 0 ? ` · faltan ${days === 1 ? '1 día' : `${days} días`}` : ''}`
+              : deadlineText(meta, { withDate: false })}
+          </p>
         </div>
-        <p className="mt-3 text-sm text-ink/60">
-          {meta.projection.remaining > 0 ? (
-            <>
-              Te faltan{' '}
-              <span className="font-medium tabular-nums text-ink">{formatPesos(meta.projection.remaining)}</span>
-            </>
-          ) : (
-            'Ya completaste la meta'
-          )}
-        </p>
-      </Link>
+        {chip && (
+          <span className={cn('inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold', chip.className)}>
+            {chip.dot && <span aria-hidden="true" className="size-1.5 rounded-full bg-success" />}
+            {chip.label}
+          </span>
+        )}
+      </div>
+      <p className="mt-4 flex flex-wrap items-baseline gap-x-1.5 tabular-nums">
+        <span className="text-[26px] font-extrabold tracking-tight">{formatPesos(meta.total)}</span>
+        <span className="text-sm text-ink/60">de {formatPesos(meta.goal)}</span>
+      </p>
+      <RindeLine tone="surface" value={meta.goal > 0 ? meta.total / meta.goal : 0} className="mt-2" />
+      <span className="sr-only">
+        Avance: {formatPercent(meta.percentage)}
+      </span>
+      <p className="mt-3 text-sm text-ink/70">{adviceText(meta)}</p>
+      {meta.status === 'activa' && (
+        <Button variant="outline" className="relative z-10 mt-3 rounded-full" onClick={onSave}>
+          Apartar plata
+        </Button>
+      )}
     </li>
+  );
+}
+
+/**
+ * Hoja «Apartar plata» (lienzo «Apartar»): cuánto apartar hoy (propone el plan de la semana), cómo
+ * queda la meta y hasta cuándo alcanzaría Mi plata después. El aporte queda como gasto de ahorro y
+ * funciona sin conexión (se envía solo al volver).
+ * @param {{ meta: object, balance: number|null|undefined, monthExpense: number|undefined, onDone: (result: object) => void }} props
+ */
+function SaveSheet({ meta, balance, monthExpense, onDone }) {
+  const suggested = meta.projection.neededPerWeek > 0 ? Math.ceil(meta.projection.neededPerWeek / 1000) * 1000 : null;
+  const [amount, setAmount] = useState(suggested ? String(Math.min(suggested, meta.projection.remaining)) : '');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const value = Number(amount) || 0;
+  const after = meta.total + value;
+  const pct = meta.goal > 0 ? Math.min(100, Math.round((after / meta.goal) * 100)) : 0;
+  const now = typeof balance === 'number' ? runway({ balance, monthExpense }) : null;
+  const then = typeof balance === 'number' ? runway({ balance: balance - value, monthExpense }) : null;
+
+  const save = async (event) => {
+    event.preventDefault();
+    if (!(value > 0)) return setError('Escribe cuánto vas a apartar');
+    setBusy(true);
+    setError('');
+    try {
+      const queue = await import('@/offline/vacaQueue');
+      const result = await queue.saveContribution(meta.id, { amount: value, date: todayIso(), note: null, category: DEFAULT_CATEGORY });
+      onDone(result, value);
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={save} noValidate className="space-y-4" aria-label={`Apartar para ${meta.name}`}>
+      <FormField id="apartar-monto" label="¿Cuánto apartas hoy?" error={error}>
+        <MoneyInput name="amount" value={amount} onChange={setAmount} placeholder="0" disabled={busy} />
+      </FormField>
+      {suggested && (
+        <button
+          type="button"
+          onClick={() => setAmount(String(Math.min(suggested, meta.projection.remaining)))}
+          className="-mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-brand-soft px-3 text-sm font-semibold text-brand"
+        >
+          {formatPesos(Math.min(suggested, meta.projection.remaining))} · tu plan
+        </button>
+      )}
+      <div className="rounded-2xl bg-ink/5 p-4">
+        <p className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.08em] text-ink/60">
+          La meta queda en <span className="text-lg font-extrabold tracking-tight text-ink tabular-nums">{pct} %</span>
+        </p>
+        <RindeLine tone="surface" value={pct / 100} className="mt-2" />
+        <p className="mt-2 text-sm tabular-nums text-ink/70">
+          <b className="font-semibold text-ink">{formatPesos(after)}</b> de {formatPesos(meta.goal)}
+        </p>
+      </div>
+      {then && now && value > 0 && (
+        <p className="text-[15px]">
+          <b className="font-semibold">Mi plata te alcanzaría {then.lasts ? 'hasta después de fin de mes' : untilText(then)}</b>{' '}
+          <span className="text-ink/60">(hoy: {now.lasts ? 'pasa el fin de mes' : untilText(now).replace('hasta el ', '')}).</span>{' '}
+          {then.days < now.days ? 'Apartar también es gastar: revisa que te quede para el mes.' : 'Sigues cubierto.'}
+        </p>
+      )}
+      <Button type="submit" size="lg" className="w-full rounded-full" disabled={busy}>
+        {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
+        {value > 0 ? `Apartar ${formatPesos(value)}` : 'Apartar'}
+      </Button>
+    </form>
   );
 }
 
@@ -79,7 +245,15 @@ export default function Metas() {
   const [metas, setMetas] = useState(null);
   const [error, setError] = useState('');
   const [fromCache, setFromCache] = useState(false);
+  /** `false` cerrado; `{}` meta nueva; `{ name, goal }` el colchón con la cifra puesta. */
   const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(null);
+  const [notice, setNotice] = useState('');
+  const profile = useAsync(getMoneyProfile, [online]);
+  const summary = useAsync(() => getSummary('month', todayIso()), [online]);
+  const fixed = monthlyFixed(profile.data?.commitments);
+  const income = summary.data?.income.total ?? 0;
+  const weeklyIncome = income > 0 ? Math.round(income / Math.max(1, new Date().getDate() / 7)) : null;
   const [version, setVersion] = useState(0);
   const reload = useCallback(() => setVersion((v) => v + 1), []);
 
@@ -112,6 +286,18 @@ export default function Metas() {
     };
   }, [version, online]);
 
+  const cushionMeta = metas?.find(isCushionGoal);
+  const others = metas?.filter((m) => m !== cushionMeta) ?? [];
+  const handleSaved = (result, value) => {
+    setSaving(null);
+    setNotice(
+      result.queued
+        ? 'Sin conexión: lo que apartaste quedó en el dispositivo y se envía solo al volver internet.'
+        : `Apartaste ${formatPesos(value)}. También quedó en tus movimientos.`,
+    );
+    reload();
+  };
+
   const handleCreate = async (values) => {
     const meta = await createVaca({ ...values, personal: true });
     navigate(`/app/metas/${meta.id}`, { state: { created: true } });
@@ -119,18 +305,15 @@ export default function Metas() {
 
   return (
     <>
-      <PageHeader
-        title="Metas"
-        description="Ahorra para lo tuyo, a tu ritmo. Cada aporte se aparta de tu saldo."
-        actions={
-          <Button onClick={() => setCreating(true)} disabled={!online}>
-            <Plus aria-hidden="true" /> Nueva meta
-          </Button>
-        }
-      />
+      <PageHeader title="¿Para qué estás ahorrando?" description="Cada peso que apartas sale de tu plata disponible." />
 
       {fromCache && (
         <p className="mb-3 text-sm text-ink/60">Sin conexión: es la última lista guardada en este dispositivo.</p>
+      )}
+      {notice && (
+        <p role="status" className="mb-3 rounded-xl bg-success/10 px-4 py-2.5 text-sm">
+          {notice}
+        </p>
       )}
       {error && (
         <p role="alert" className="mb-3 text-sm text-negative">
@@ -142,33 +325,66 @@ export default function Metas() {
       )}
 
       {metas === null && !error ? (
-        <p className="flex items-center gap-2 py-10 text-ink/60">
-          <Loader2 className="animate-spin" aria-hidden="true" /> Cargando…
-        </p>
-      ) : metas?.length === 0 ? (
-        <Panel className="mx-auto max-w-xl text-center">
-          <Flag className="mx-auto size-10 text-brand" aria-hidden="true" />
-          <p className="mt-3 text-lg font-semibold">Aún no tienes metas</p>
-          <p className="mx-auto mt-1 max-w-md text-ink/60">
-            Ponle nombre y valor a lo que quieres (la moto, el semestre, un viaje) y ve apartando plata. Rinde te
-            dice si vas a tiempo.
-          </p>
-          <Button className="mt-4" onClick={() => setCreating(true)} disabled={!online}>
-            Crear mi primera meta
-          </Button>
-        </Panel>
+        <div className="space-y-3" aria-busy="true">
+          <div className="h-44 animate-pulse rounded-3xl bg-ink/10" />
+          <div className="h-48 animate-pulse rounded-3xl bg-ink/5" />
+        </div>
       ) : (
         metas && (
-          <ul aria-label="Mis metas" className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-            {metas.map((meta) => (
-              <MetaCard key={meta.id} meta={meta} />
-            ))}
-          </ul>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="lg:col-span-2 xl:col-span-1">
+              <CushionCard
+                fixed={fixed}
+                meta={cushionMeta}
+                online={online}
+                onCreate={() => setCreating({ name: 'Fondo de emergencia', goal: fixed * 3 })}
+              />
+            </div>
+            {others.length > 0 ? (
+              <ul aria-label="Mis metas" className="contents">
+                {others.map((meta) => (
+                  <MetaCard key={meta.id} meta={meta} onSave={() => setSaving(meta)} />
+                ))}
+              </ul>
+            ) : (
+              <p className="rounded-3xl bg-surface p-5 text-ink/70 ring-1 ring-ink/10">
+                Ponle nombre y fecha a lo que quieres (la moto, el semestre, un viaje) y Rinde te dice cuánto apartar cada
+                semana.
+              </p>
+            )}
+          </div>
         )
       )}
 
-      <Sheet open={creating} title="Nueva meta" onClose={() => setCreating(false)}>
-        <VacaForm personal disabled={!online} onSubmit={handleCreate} onCancel={() => setCreating(false)} />
+      <Button size="lg" className="mt-4 w-full rounded-full lg:w-auto" onClick={() => setCreating({})} disabled={!online}>
+        <Plus aria-hidden="true" /> Nueva meta
+      </Button>
+
+      {/* Rinde v2: en el celular, las metas en grupo se abren desde aquí (antes, desde el menú lateral). */}
+      <div className="mt-8 md:hidden">
+        <ShortcutGrid id="metas-en-grupo" title="En grupo" items={IN_GROUP} />
+      </div>
+
+      <Sheet open={Boolean(creating)} title="¿Para qué quieres ahorrar?" onClose={() => setCreating(false)}>
+        <VacaForm
+          personal
+          prefill={creating || undefined}
+          weeklyIncome={weeklyIncome}
+          disabled={!online}
+          onSubmit={handleCreate}
+          onCancel={() => setCreating(false)}
+        />
+      </Sheet>
+      <Sheet open={saving !== null} title={saving ? `Apartar para ${saving.name}` : ''} onClose={() => setSaving(null)}>
+        {saving && (
+          <SaveSheet
+            key={saving.id}
+            meta={saving}
+            balance={profile.data?.money}
+            monthExpense={summary.data?.expense.total}
+            onDone={handleSaved}
+          />
+        )}
       </Sheet>
     </>
   );

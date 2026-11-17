@@ -105,7 +105,7 @@ export default function DeleteAccount() {
       </div>
       <Button
         variant="outline"
-        className="border-destructive/40 text-destructive hover:bg-destructive/10"
+        className="border-negative/40 text-negative hover:bg-negative/10"
         onClick={() => setOpen(true)}
       >
         <Trash2 aria-hidden="true" />

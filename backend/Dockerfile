@@ -1,4 +1,4 @@
-# Imagen del backend de FinTrack (desarrollo local con docker compose).
+# Imagen del backend de FinTrack (docker compose local y ambiente de pruebas en AWS).
 FROM node:20-alpine
 
 WORKDIR /app
@@ -8,6 +8,8 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY src ./src
+# Scripts de apoyo (p. ej. la cuenta demo del ambiente de pruebas: infra/aws/aws.sh seed).
+COPY scripts ./scripts
 
 ENV NODE_ENV=production
 EXPOSE 3000

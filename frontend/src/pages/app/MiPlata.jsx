@@ -1,18 +1,31 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { CalendarDays, Download, Loader2, Pencil, Plus, ReceiptText, Sparkles, Trash2 } from 'lucide-react';
+import {
+  CalendarDays,
+  CreditCard,
+  Download,
+  HandCoins,
+  Inbox,
+  Landmark,
+  Loader2,
+  Pencil,
+  Plus,
+  Sparkles,
+  Target,
+  Trash2,
+  TrendingUp,
+} from 'lucide-react';
 import ChipGroup from '@/components/common/ChipGroup';
-import CircleActions from '@/components/common/CircleActions';
+import ShortcutGrid from '@/components/common/ShortcutGrid';
 import ReminderBlock from '@/components/common/ReminderBlock';
 import Sheet from '@/components/common/Sheet';
-import { MASK } from '@/components/dashboard/BalanceCard';
 import MoneyInput from '@/components/common/MoneyInput';
 import PageHeader from '@/components/layout/PageHeader';
 import Panel from '@/components/layout/Panel';
 import IncomeFields from '@/components/money/IncomeFields';
 import IncomeOverview from '@/components/money/IncomeOverview';
+import MiPlataMobile from '@/components/money/MiPlataMobile';
 import MovementList from '@/components/money/MovementList';
-import NegativeBalanceNote from '@/components/money/NegativeBalanceNote';
 import PendingPayments from '@/components/money/PendingPayments';
 import { formatMoney } from '@/components/transactions/format';
 import { Button } from '@/components/ui/button';
@@ -450,56 +463,18 @@ function PaymentsSection({ commitments, subscriptions, onChanged }) {
   );
 }
 
-/**
- * Saldo de Mi plata en el celular: cuánta plata hay y cuánto falta para el sueldo o para los pagos.
- * @param {{ plan: object, hidden: boolean, noFixedDate?: boolean }} props Plan con `ready: true`; `hidden` oculta los montos.
- */
-function PlanHero({ plan, hidden, noFixedDate }) {
-  const money = (value) => (hidden ? MASK : formatMoney(value));
-  return (
-    <div>
-      <p className="text-[15px] text-ink/70">Saldo disponible</p>
-      <p className="mt-1 text-[42px] font-semibold leading-tight tracking-tight tabular-nums">{money(plan.money)}</p>
-      <NegativeBalanceNote money={plan.money} className="mt-2 text-negative" />
-      <PlanLine plan={plan} money={money} noFixedDate={noFixedDate} />
-    </div>
-  );
-}
-
-/**
- * Debajo del saldo: si le falta plata para sus pagos, eso primero; si se sabe cuándo le pagan, cuánto
- * falta; si no, un consejo sencillo.
- * @param {{ plan: object|null, money?: (value: number) => string, noFixedDate?: boolean }} props
- */
-function PlanLine({ plan, money, noFixedDate = false }) {
-  if (plan?.shortfall > 0) {
-    return (
-      <p className="mt-2 text-[15px] text-negative">
-        Te faltan <strong className="font-semibold tabular-nums">{money(plan.shortfall)}</strong> para tus pagos
-      </p>
-    );
-  }
-  if (plan?.mode === 'daily') {
-    if (plan.days <= 0) return <p className="mt-2 text-[15px]">Hoy te pagan</p>;
-    return <p className="mt-2 text-[15px]">Faltan {plan.days === 1 ? '1 día' : `${plan.days} días`} para tu sueldo</p>;
-  }
-  return (
-    <p className="mt-2 flex items-start gap-2 text-[15px]">
-      <Sparkles className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
-      {noFixedDate ? (
-        <span>Consejo: anota cada ingreso apenas te llegue para que tu saldo siempre esté al día.</span>
-      ) : (
-        <span>
-          Consejo:{' '}
-          <Link to="/app/mi-plata/pagos" className="underline underline-offset-2">
-            agrega el día en que te pagan
-          </Link>{' '}
-          para saber cuánto te debe durar la plata.
-        </span>
-      )}
-    </p>
-  );
-}
+/** Lo que se abre desde Mi plata en el celular (antes estaba en el menú lateral). */
+const MORE_OF_YOUR_MONEY = [
+  { to: '/app/presupuestos', label: 'Presupuestos', hint: 'Topes por categoría', icon: Target },
+  { to: '/app/calendario', label: 'Calendario', hint: 'Pagos fijos del mes', icon: CalendarDays },
+  { to: '/app/cuentas', label: 'Cuentas', hint: 'Lo que te deben y debes', icon: HandCoins },
+  { to: '/app/tarjetas', label: 'Tarjetas', hint: 'Cupo y fechas de pago', icon: CreditCard },
+  { to: '/app/por-confirmar', label: 'Por confirmar', hint: 'Gastos que llegaron solos', icon: Inbox },
+  { to: '/app/insights', label: 'Consejos', hint: 'Tu semana y la IA', icon: Sparkles },
+  { to: '/app/transacciones/exportar', label: 'Exportar', hint: 'Excel o PDF', icon: Download },
+  { to: '/app/renta', label: 'Renta y DIAN', hint: 'Si te toca declarar', icon: Landmark },
+  { to: '/app/liquidez', label: 'Próximos días', hint: 'Lo que entra y sale', icon: TrendingUp },
+];
 
 /**
  * Página privada `/app/mi-plata` (FT-0041): cómo recibe la plata el usuario y qué paga cada mes. De
@@ -537,12 +512,6 @@ export default function MiPlata() {
     profile.reload();
   };
 
-  const actions = [
-    { to: '/app/anotar', label: 'Anotar', icon: Plus, primary: true },
-    { to: '/app/mi-plata/corregir', label: 'Corregir saldo', icon: Pencil },
-    { to: '/app/mi-plata/pagos', label: 'Pagos del mes', icon: ReceiptText },
-    { to: '/app/calendario', label: 'Calendario', icon: CalendarDays },
-  ];
 
   return (
     <div className="mx-auto max-w-3xl lg:max-w-6xl">
@@ -574,24 +543,13 @@ export default function MiPlata() {
       {/* En el celular, Mi plata es donde se ve la plata: saldo, acciones, pagos y movimientos (como en el diseño). */}
       {mobile && (
       <div className="flex flex-col gap-5 md:hidden">
-        {plan ? (
-          <PlanHero plan={plan} hidden={hidden} noFixedDate={data?.incomeType === 'sin_fecha'} />
-        ) : (
-          typeof data?.money === 'number' && (
-            <div>
-              <p className="text-[15px] text-ink/70">Saldo disponible</p>
-              <p className="mt-1 text-[42px] font-semibold leading-tight tracking-tight tabular-nums">
-                {hidden ? '$ ••••••' : formatMoney(data.money)}
-              </p>
-              <NegativeBalanceNote money={data.money} className="mt-2 text-negative" />
-              <PlanLine plan={null} noFixedDate={data.incomeType === 'sin_fecha'} />
-            </div>
-          )
-        )}
-        <CircleActions label="Acciones de Mi plata" actions={actions} />
+        {/* Rinde v2: ¿hasta cuándo te alcanza?, presupuestos y pagos fijos, como en el lienzo. */}
+        <MiPlataMobile money={plan?.money ?? data?.money} commitments={data?.commitments ?? []} hidden={hidden}>
+          {plan?.pending.length > 0 && <PendingPayments notice pending={plan.pending} />}
+        </MiPlataMobile>
         <IncomeOverview />
-        {plan?.pending.length > 0 && <PendingPayments notice pending={plan.pending} />}
-        <MovementList names={names} hidden={hidden} />
+        {/* Rinde v2: los movimientos tienen su propia pestaña; aquí, lo demás de la plata. */}
+        <ShortcutGrid id="mas-de-tu-plata" title="Más de tu plata" items={MORE_OF_YOUR_MONEY} />
       </div>
       )}
 

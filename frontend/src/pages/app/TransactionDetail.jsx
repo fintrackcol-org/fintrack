@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Loader2, Pencil, Trash2 } from 'lucide-react';
 import { cardMark } from '@/components/cards/cardFormat';
 import ConfirmButton from '@/components/common/ConfirmButton';
@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { removeTransaction } from '@/offline/removeTransaction';
 import { saveTransactionChanges } from '@/offline/saveTransactionChanges';
 import { getTransaction } from '@/services/transactionService';
+import { listBudgets } from '@/services/budgetService';
 
 /** "Hoy, 4 nov 2026" o, si no es hoy ni ayer, solo la fecha. */
 function longDay(iso) {
@@ -49,6 +50,12 @@ export default function TransactionDetail() {
   const loaded = fetched.data ?? passed;
   const t = loaded && local?.id === loaded.id ? { ...loaded, ...local } : loaded;
   const feelingId = useId();
+  // El presupuesto del mes del gasto, si su categoría tiene uno.
+  const budgetMonth = loaded?.date?.slice(0, 7);
+  const budgets = useAsync(
+    () => (budgetMonth && loaded?.type === 'gasto' && loaded?.category ? listBudgets(budgetMonth) : Promise.resolve([])),
+    [budgetMonth, loaded?.category],
+  );
   const kakeiboId = useId();
   const [reflecting, setReflecting] = useState(false);
   const [notice, setNotice] = useState('');
@@ -73,13 +80,25 @@ export default function TransactionDetail() {
   }
 
   const income = t.type === 'ingreso';
+  const categoryName = t.category ? (names[t.category] ?? t.category) : 'Sin clasificar';
+  const budget = budgets.data?.find((b) => b.category === t.category);
   const rows = [
-    ['Categoría', t.category ? (names[t.category] ?? t.category) : 'Sin clasificar'],
-    ['Fecha', longDay(t.date)],
+    ['Cuándo', longDay(t.date)],
     ...(income
       ? []
       : [['Pagado con', t.card ? (t.card.deleted ? 'Tarjeta eliminada' : cardMark(t.card)) : 'Efectivo o débito']]),
     ...(t.card && t.installments > 1 ? [['Cuotas', String(t.installments)]] : []),
+    // Rinde v2: en qué presupuesto cuenta el gasto, y cómo va, con enlace al presupuesto.
+    ...(!income && budget
+      ? [
+          [
+            'Cuenta en el presupuesto',
+            <Link key="presupuesto" to={`/app/presupuestos/${budget.category}`} className="font-semibold text-brand underline-offset-2 hover:underline">
+              {categoryName} · {Math.round(budget.percentage)} %
+            </Link>,
+          ],
+        ]
+      : []),
   ];
 
   /** Guarda la emoción o el grupo Kakeibo (FT-0070); si falla, vuelve a como estaba. */
@@ -105,7 +124,7 @@ export default function TransactionDetail() {
     try {
       await removeTransaction(t);
       if (canGoBack(window.history.state)) navigate(-1);
-      else navigate('/app/mi-plata', { replace: true });
+      else navigate('/app/movimientos', { replace: true });
     } catch (err) {
       setError(err.message);
     }
@@ -113,12 +132,22 @@ export default function TransactionDetail() {
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">
-      <div>
-        <h1 className="text-[15px] text-ink/60">{t.description}</h1>
-        <p className={cn('mt-1 text-[42px] font-semibold leading-tight tracking-tight tabular-nums', income && 'text-positive')}>
-          <span className="sr-only">{income ? 'Ingreso de ' : 'Gasto de '}</span>
-          {hidden ? MASK : `${income ? '+' : '−'}${formatMoney(t.amount)}`}
+      {/* Rinde v2: el tipo y la categoría arriba en pequeño, la descripción como título y el monto grande. */}
+      <div className="flex flex-col gap-2">
+        <p className="text-[13px] text-ink/60">
+          {income ? 'Ingreso' : 'Gasto'} · {categoryName}
         </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t.description}</h1>
+        <p className={cn('text-[40px] font-extrabold leading-[44px] tracking-[-0.02em] tabular-nums', income && 'text-positive')}>
+          <span className="sr-only">{income ? 'Ingreso de ' : 'Gasto de '}</span>
+          {hidden ? MASK : `${income ? '+ ' : '− '}${formatMoney(t.amount)}`}
+        </p>
+        {t.category && (
+          <span className="inline-flex min-h-9 items-center gap-1 self-start rounded-lg bg-brand px-3 text-[13px] font-semibold text-white">
+            {categoryName}
+            {t.source === 'ia' && <small className="font-normal opacity-85">· sugerida por la IA</small>}
+          </span>
+        )}
       </div>
 
       <Panel className="py-0 md:py-0">
@@ -147,10 +176,12 @@ export default function TransactionDetail() {
             />
           </div>
           <div>
-            <h2 id={kakeiboId} className="mb-3 text-[15px] font-semibold">
-              Grupo Kakeibo
+            <h2 id={kakeiboId} className="text-[15px] font-semibold">
+              ¿Podías evitarlo?
             </h2>
+            <p className="mb-3 text-[13px] text-ink/60">El grupo Kakeibo del gasto. Cámbialo cuando quieras.</p>
             <KakeiboPicker
+              variant="cards"
               value={t.kakeibo ?? null}
               onChange={(kakeibo) => reflect({ kakeibo })}
               disabled={reflecting}
@@ -177,10 +208,10 @@ export default function TransactionDetail() {
       <div className="flex flex-col gap-2">
         <Button size="lg" onClick={() => navigate(`/app/transacciones/${t.id}/editar`, { state: { transaction: t } })}>
           <Pencil aria-hidden="true" />
-          Editar
+          {income ? 'Editar ingreso' : 'Editar gasto'}
         </Button>
         <ConfirmButton
-          label="Eliminar"
+          label={income ? 'Eliminar ingreso' : 'Eliminar gasto'}
           question="¿Eliminar este movimiento?"
           confirmLabel="Sí, eliminar"
           icon={Trash2}

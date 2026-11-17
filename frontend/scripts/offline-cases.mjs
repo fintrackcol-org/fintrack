@@ -28,7 +28,7 @@ const DEFAULT_CHROME = {
 const APP = (process.env.APP_URL || 'http://localhost:5173').replace(/\/$/, '');
 const API = `${(process.env.API_URL || 'http://localhost:3000').replace(/\/$/, '')}/api/v1`;
 const PASSWORD = 'prueba1234';
-const ROUTES = ['/app', '/app/transacciones', '/app/presupuestos', '/app/insights', '/app/transacciones/exportar', '/app/cuenta'];
+const ROUTES = ['/app', '/app/movimientos', '/app/presupuestos', '/app/insights', '/app/transacciones/exportar', '/app/cuenta'];
 const results = [];
 
 const api = (path, { method = 'GET', body, token } = {}) =>
@@ -91,23 +91,61 @@ const waitText = (page, t, timeout = 8000) =>
 async function navigate(page, path) {
   await page.evaluate((path) => {
     const link = [...document.querySelectorAll('a')].find((a) => a.getAttribute('href') === path);
-    if (!link) throw new Error(`no hay enlace a ${path}`);
-    link.click();
+    if (link) return link.click();
+    // Sin enlace a la vista (p. ej. desde la bienvenida, que va a pantalla completa): misma navegación
+    // dentro de la app, sin recargar.
+    history.pushState({}, '', path);
+    dispatchEvent(new PopStateEvent('popstate'));
   }, path);
   await page.waitForFunction((path) => location.pathname === path, {}, path);
   await new Promise((r) => setTimeout(r, 800));
 }
 
-async function register(page, description, { amount = 1000, category } = {}) {
-  await page.type('#tx-amount', String(amount));
-  await page.type('#tx-description', description);
-  if (category) {
-    // Las categorías son radios dentro de <label> (CategoryPicker).
-    await page.evaluate((c) => [...document.querySelectorAll('form label')].find((l) => l.textContent.trim() === c).click(), category);
+/**
+ * Anota un gasto en la pantalla Anotar (Rinde v2): el texto como se escribe y el monto con el
+ * teclado. Se entra y se sale sin recargar (enlace del menú y atrás), como lo haría el usuario.
+ */
+async function anotar(page, description, { amount = 1000, category } = {}) {
+  const back = await page.evaluate(() => location.pathname);
+  if (back !== '/app/anotar') {
+    await page.evaluate(() => [...document.querySelectorAll('a')].find((a) => a.getAttribute('href') === '/app/anotar').click());
+    await page.waitForSelector('#anotar-texto', { timeout: 8000 });
   }
-  await page.click('form button[type=submit]');
-  await page.waitForFunction(() => document.querySelector('#tx-description').value === '', { timeout: 8000, polling: 200 });
+  await page.type('#anotar-texto', description);
+  await page.evaluate(() => [...document.querySelectorAll('button[aria-expanded]')].find((b) => /teclado/.test(b.textContent))?.click());
+  await page.waitForSelector('#anotar-monto', { timeout: 8000 });
+  await page.$eval('#anotar-monto', (e) => e.select());
+  await page.type('#anotar-monto', String(amount));
+  if (category) {
+    await page.evaluate((c) => {
+      const pick = () => [...document.querySelectorAll('button[aria-pressed]')].find((b) => b.textContent.trim() === c);
+      if (!pick()) [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Ver todas')?.click();
+      return new Promise((r) => setTimeout(() => (pick()?.click(), r()), 100));
+    }, category);
+  }
+  // Montos grandes piden un segundo toque ("Sí, guardar", #202).
+  for (let i = 0; i < 2; i++) {
+    const clicked = await page.evaluate(() => {
+      const b = [...document.querySelectorAll('button')].find((x) => /^(Guardar (gasto|ingreso)|Sí, guardar)/.test(x.textContent.trim()));
+      if (!b || b.disabled) return false;
+      b.click();
+      return true;
+    });
+    if (!clicked) break;
+    const done = await page
+      .waitForFunction(() => document.body.innerText.includes('Anotar otro'), { timeout: 2500, polling: 200 })
+      .then(() => true, () => false);
+    if (done) break;
+  }
+  await page.waitForFunction(() => document.body.innerText.includes('Anotar otro'), { timeout: 8000, polling: 200 });
+  if (back !== '/app/anotar') {
+    await page.evaluate(() => history.back());
+    await page.waitForFunction((p) => location.pathname === p, { timeout: 8000 }, back);
+    await new Promise((r) => setTimeout(r, 500));
+  }
 }
+
+const register = (page, description, options) => anotar(page, description, options);
 
 const pendingCount = (page) =>
   page.evaluate(
@@ -190,11 +228,11 @@ await caso('O2', 'Navegar por el menú sin conexión', async (ctx) => {
   const s = await newUser('o2');
   const page = await openApp(ctx, s);
   await airplane(page, true);
-  for (const path of ['/app/transacciones', '/app/presupuestos', '/app/insights', '/app/cuenta', '/app']) {
+  for (const path of ['/app/movimientos', '/app/presupuestos', '/app/insights', '/app/cuenta', '/app']) {
     await navigate(page, path);
     check(!crashed(await text(page)), `${path}: pantalla de error`);
   }
-  await navigate(page, '/app/transacciones');
+  await navigate(page, '/app/movimientos');
   await navigate(page, '/app/transacciones/exportar');
   check(!crashed(await text(page)), 'exportar: pantalla de error');
   return 'Inicio, Movimientos, Presupuestos, Insights, Exportar y Cuenta abren sin red (código precargado)';
@@ -202,7 +240,7 @@ await caso('O2', 'Navegar por el menú sin conexión', async (ctx) => {
 
 await caso('O3', 'Gasto sin categoría registrado sin conexión: se clasifica (o queda "Sin clasificar") al sincronizar', async (ctx) => {
   const s = await newUser('o3');
-  const page = await openApp(ctx, s, '/app/transacciones');
+  const page = await openApp(ctx, s, '/app/movimientos');
   await airplane(page, true);
   await register(page, 'O3 almuerzo corrientazo');
   check((await pendingCount(page)) === 1, 'no quedó en la cola');
@@ -218,7 +256,7 @@ await caso('O4', 'Gasto sin conexión que pasa el presupuesto: la alerta aparece
   const s = await newUser('o4');
   const month = new Date().toISOString().slice(0, 7);
   await api('/budgets', { method: 'POST', token: s.accessToken, body: { category: 'alimentacion', month, amount: 50000 } });
-  const page = await openApp(ctx, s, '/app/transacciones');
+  const page = await openApp(ctx, s, '/app/movimientos');
   await airplane(page, true);
   await register(page, 'O4 mercado', { amount: 60000, category: 'Alimentación' });
   await airplane(page, false);
@@ -264,11 +302,13 @@ await caso('O7', 'Exportar sin conexión: el botón se desactiva y avisa por qu�
   const s = await newUser('o7');
   const page = await openApp(ctx, s, '/app/transacciones/exportar');
   await airplane(page, true);
-  await waitText(page, 'Necesitas conexión para exportar');
+  await waitText(page, 'El reporte se arma en el servidor'); // texto de la exportación rediseñada (#193)
   check((await buttonState(page, 'Descargar'))?.disabled, 'el botón de descarga sigue activo');
   await airplane(page, false);
-  await page.waitForFunction(() => [...document.querySelectorAll('button')].find((b) => b.textContent.trim().startsWith('Descargar'))?.disabled === false);
-  return 'sin red: botón desactivado y aviso; al volver la red se reactiva solo';
+  // Al volver la red se quita el aviso y se arma la vista previa (un usuario nuevo no tiene
+  // movimientos: el botón sigue desactivado por eso, no por la red).
+  await page.waitForFunction(() => !document.body.innerText.includes('El reporte se arma en el servidor'), { timeout: 10000 });
+  return 'sin red: botón desactivado y aviso; al volver la red el aviso se quita solo';
 });
 
 await caso('O8', 'Cuenta sin conexión: no deja editar el perfil', async (ctx) => {
@@ -282,7 +322,7 @@ await caso('O8', 'Cuenta sin conexión: no deja editar el perfil', async (ctx) =
 
 await caso('O9', 'Sesión vencida mientras no hay red: no saca al usuario y sincroniza al volver', async (ctx) => {
   const s = await newUser('o9');
-  const page = await openApp(ctx, s, '/app/transacciones');
+  const page = await openApp(ctx, s, '/app/movimientos');
   // El access token vence (15 min); el refresh token sigue vigente.
   await page.evaluate(() => {
     const session = JSON.parse(localStorage.getItem('fintrack.session'));
@@ -291,7 +331,7 @@ await caso('O9', 'Sesión vencida mientras no hay red: no saca al usuario y sinc
   await airplane(page, true);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await waitText(page, 'Sin conexión');
-  check(new URL(page.url()).pathname === '/app/transacciones', `terminó en ${page.url()}`);
+  check(new URL(page.url()).pathname === '/app/movimientos', `terminó en ${page.url()}`);
   await register(page, 'O9 bus');
   await airplane(page, false);
   await waitPending(page, 0);
@@ -316,7 +356,7 @@ await caso('O10', 'Iniciar sesión sin conexión: avisa sin romperse', async (ct
 
 await caso('O11', 'Inicio sin conexión: muestra la copia local, sin errores, y se actualiza al volver', async (ctx) => {
   const s = await newUser('o11');
-  const page = await openApp(ctx, s, '/app/transacciones');
+  const page = await openApp(ctx, s, '/app/movimientos');
   await register(page, 'O11 arriendo', { amount: 900000 }); // con red: queda en el servidor y en la copia local
   await airplane(page, true);
   await page.goto(`${APP}/app`, { waitUntil: 'domcontentloaded' }); // abrir Inicio en frío, en modo avión
@@ -334,8 +374,8 @@ await caso('O11', 'Inicio sin conexión: muestra la copia local, sin errores, y 
 
 await caso('O12', 'Conexión intermitente navegando por toda la app', async (ctx) => {
   const s = await newUser('o12');
-  const page = await openApp(ctx, s, '/app/transacciones');
-  const paths = ['/app/presupuestos', '/app/insights', '/app/cuenta', '/app', '/app/transacciones'];
+  const page = await openApp(ctx, s, '/app/movimientos');
+  const paths = ['/app/presupuestos', '/app/insights', '/app/cuenta', '/app', '/app/movimientos'];
   for (let i = 0; i < 3; i++) {
     await airplane(page, true);
     await register(page, `O12 gasto ${i}`);
@@ -354,7 +394,7 @@ await caso('O12', 'Conexión intermitente navegando por toda la app', async (ctx
 
 await caso('O13', 'Cerrar sesión sin conexión con pendientes: no se pierden', async (ctx) => {
   const s = await newUser('o13');
-  const page = await openApp(ctx, s, '/app/transacciones');
+  const page = await openApp(ctx, s, '/app/movimientos');
   await airplane(page, true);
   await register(page, 'O13 taxi');
   await navigate(page, '/app/cuenta');

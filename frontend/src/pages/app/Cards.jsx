@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CreditCard, Loader2, Plus } from 'lucide-react';
 import CardForm from '@/components/cards/CardForm';
 import { dueText, paymentText } from '@/components/cards/cardFormat';
+import ExpiryBadge from '@/components/cards/ExpiryBadge';
 import CreditCardArt from '@/components/cards/CreditCardArt';
 import CircleActions from '@/components/common/CircleActions';
 import Sheet from '@/components/common/Sheet';
@@ -72,6 +73,7 @@ export function CardsList({ cards, online, hidden, onAdd, compact = false }) {
                   <span className="mt-1.5 block text-[13px] tabular-nums text-ink/70">
                     Disponible {money(card.available)} de {money(card.limit)}
                   </span>
+                  <ExpiryBadge card={card} />
                 </Link>
               </li>
             );
@@ -91,7 +93,7 @@ export function CardsList({ cards, online, hidden, onAdd, compact = false }) {
               to={`/app/tarjetas/${card.id}`}
               className="block rounded-2xl border border-ink/10 bg-surface p-4 transition-colors hover:border-brand/40"
             >
-              <CreditCardArt network={card.network} tier={card.tier} last4={card.last4} name={card.name} size="lg" />
+              <CreditCardArt network={card.network} tier={card.tier} last4={card.last4} name={card.name} expiry={card.expiry?.label} size="lg" />
               <div
                 role="progressbar"
                 aria-label={`Uso de ${card.name}`}
@@ -106,6 +108,7 @@ export function CardsList({ cards, online, hidden, onAdd, compact = false }) {
                 Usado {money(card.used)} de {money(card.limit)} · Disponible {money(card.available)}
               </p>
               <p className="mt-1 text-sm font-medium">{paymentText(card)}</p>
+              <ExpiryBadge card={card} />
             </Link>
           </li>
         );
