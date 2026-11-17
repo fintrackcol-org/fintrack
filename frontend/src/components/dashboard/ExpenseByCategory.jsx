@@ -40,27 +40,39 @@ function toRows(rows, names) {
  * @param {Record<string, string>} props.names
  * @param {boolean} props.hidden Ocultar montos (el ojo de la tarjeta de balance).
  * @param {string} [props.className]
+ * @param {string} [props.title] Título de la sección (Ingresos usa el suyo).
+ * @param {string} [props.emptyText]
  */
-export default function ExpenseByCategory({ expense, names, hidden, className }) {
+export default function ExpenseByCategory({
+  expense,
+  names,
+  hidden,
+  className,
+  title = 'En qué se fue',
+  emptyText = 'No hay gastos en este periodo.',
+}) {
   const rows = expense ? toRows(expense.byCategory, names) : [];
 
 return (
     <section aria-labelledby="by-category-title" className={className}>
       <h2 id="by-category-title" className="text-lg font-semibold tracking-tight">
-        En qué se fue
+        {title}
       </h2>
       <div className="mt-2 rounded-2xl border border-ink/10 bg-surface p-3.5">
         {expense === undefined ? (
           <div className="h-24 animate-pulse rounded-xl bg-ink/5" aria-busy="true" />
         ) : rows.length === 0 ? (
-          <p className="text-sm text-ink/60">No hay gastos en este periodo.</p>
+          <p className="text-sm text-ink/60">{emptyText}</p>
         ) : (
           <ul className="space-y-3.5">
             {rows.map((r) => (
               <li key={r.key}>
                 <div className="flex items-baseline justify-between gap-3 text-[15px]">
                   <span className="min-w-0 truncate font-medium">{r.name}</span>
-                  <span className="shrink-0 font-semibold tabular-nums">{hidden ? MASK : formatMoney(r.total)}</span>
+                  <span className="shrink-0 tabular-nums">
+                    <span className="font-semibold">{hidden ? MASK : formatMoney(r.total)}</span>
+                    <span className="text-[13px] text-ink/60"> · {Math.round(r.percentage)} %</span>
+                  </span>
                 </div>
                 <div className="mt-1.5 h-2 rounded-full bg-ink/10" aria-hidden="true">
                   <div className="h-full origin-left rounded-full bg-brand motion-safe:animate-bar-in" style={{ width: `${Math.max(r.percentage, 2)}%` }} />

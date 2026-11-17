@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import CardForm from '@/components/cards/CardForm';
+import CardForm, { formatExpiry } from '@/components/cards/CardForm';
 import { cardSchema } from '@/lib/validation/card';
 
 const valid = { network: 'visa', tier: 'gold', last4: '1234', name: '', limit: '3000000', available: '2000000', paymentDay: '15', cutoffDay: '' };
@@ -41,5 +41,13 @@ describe('CardForm', () => {
     const bad = renderToStaticMarkup(<CardForm onSubmit={() => {}} initialErrors={{ cutoffDay: 'Día inválido' }} />);
     expect(bad).toMatch(/<details[^>]*open/);
     expect(bad).toContain('Día inválido');
+  });
+});
+
+describe('formatExpiry', () => {
+  it('pone la barra sola y deja solo dígitos', () => {
+    expect(formatExpiry('0')).toBe('0');
+    expect(formatExpiry('032')).toBe('03/2');
+    expect(formatExpiry('03/27x9')).toBe('03/27');
   });
 });

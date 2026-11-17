@@ -27,6 +27,8 @@ const COLUMNS = `id, usuario_id AS "userId", nombre AS name, franquicia AS netwo
   total_extracto::float8 AS "statementTotal",
   to_char(fecha_limite_extracto, 'YYYY-MM-DD') AS "statementDueDate",
   to_char(recordatorio_enviado_para, 'YYYY-MM-DD') AS "reminderSentFor",
+  vence_mes::int AS "expiryMonth", vence_anio::int AS "expiryYear",
+  aviso_vencimiento_enviado::int[] AS "expiryNotified",
   created_at AS "createdAt", updated_at AS "updatedAt",
   to_char(created_at AT TIME ZONE (SELECT u.timezone FROM usuarios u WHERE u.id = tarjetas.usuario_id),
     'YYYY-MM-DD') AS "createdOn"`;
@@ -43,17 +45,21 @@ const UPDATABLE = {
   statementTotal: 'total_extracto',
   statementDueDate: 'fecha_limite_extracto',
   reminderSentFor: 'recordatorio_enviado_para',
+  expiryMonth: 'vence_mes',
+  expiryYear: 'vence_anio',
+  expiryNotified: 'aviso_vencimiento_enviado',
 };
 
 /**
  * Inserta una tarjeta.
- * @param {{ userId: string, name: string, network: string, tier: string, last4: string, limit: number, debtBase: number, paymentDay: number, cutoffDay?: number|null }} data
+ * @param {{ userId: string, name: string, network: string, tier: string, last4: string, limit: number, debtBase: number, paymentDay: number, cutoffDay?: number|null, expiryMonth?: number|null, expiryYear?: number|null }} data
  * @returns {Promise<CardRecord>}
  */
 export async function insertCard(data) {
   const { rows } = await pool.query(
-    `INSERT INTO tarjetas (usuario_id, nombre, franquicia, nivel, ultimos4, cupo_total, deuda_base, dia_pago, dia_corte)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `INSERT INTO tarjetas (usuario_id, nombre, franquicia, nivel, ultimos4, cupo_total, deuda_base, dia_pago, dia_corte,
+                           vence_mes, vence_anio)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      RETURNING ${COLUMNS}`,
     [
       data.userId,
@@ -65,6 +71,8 @@ export async function insertCard(data) {
       data.debtBase,
       data.paymentDay,
       data.cutoffDay ?? null,
+      data.expiryMonth ?? null,
+      data.expiryYear ?? null,
     ],
   );
   return rows[0];

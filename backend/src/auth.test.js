@@ -79,6 +79,25 @@ test('register crea la cuenta sin verificar y sin abrir sesión (201)', options,
   });
 });
 
+test('register guarda el nombre si viene, limpio de espacios (Rinde v2)', options, async () => {
+  await withApi(async (api) => {
+    const email = newEmail();
+    const res = await api('/auth/register', {
+      method: 'POST',
+      body: { email, password: PASSWORD, acceptTerms: true, name: '  Nicolás   Mosquera ' },
+    });
+    assert.equal(res.status, 201);
+    const saved = await pool.query('SELECT nombre FROM usuarios WHERE email = $1', [email]);
+    assert.equal(saved.rows[0].nombre, 'Nicolás Mosquera');
+    const bad = await api('/auth/register', {
+      method: 'POST',
+      body: { email: newEmail(), password: PASSWORD, acceptTerms: true, name: 'x'.repeat(61) },
+    });
+    assert.equal(bad.status, 422);
+    assert.equal(bad.body.error.details[0].field, 'name');
+  });
+});
+
 test('register rechaza un correo ya registrado (409 EMAIL_TAKEN)', options, async () => {
   await withApi(async (api) => {
     const body = { email: newEmail(), password: PASSWORD, acceptTerms: true };

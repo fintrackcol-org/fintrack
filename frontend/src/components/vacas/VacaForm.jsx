@@ -8,7 +8,8 @@ import MoneyInput from '@/components/common/MoneyInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { vacaSchema } from '@/lib/validation/vaca';
-import { todayIso } from './vacaFormat';
+import { isTooMuch, weeklyPlan } from '@/lib/goalPlan';
+import { formatPesos, todayIso } from './vacaFormat';
 
 const SPLIT_OPTIONS = [
   { value: 'igual', label: 'Partes iguales' },
@@ -19,10 +20,10 @@ const SPLIT_OPTIONS = [
  * @param {import('@/services/vacaService').Vaca|null} initial
  * @returns {{ name: string, goal: string, description: string, deadline: string, split: 'igual'|'personalizado' }}
  */
-function toDefaults(initial) {
+function toDefaults(initial, prefill) {
   return {
-    name: initial?.name ?? '',
-    goal: initial ? String(initial.goal) : '',
+    name: initial?.name ?? prefill?.name ?? '',
+    goal: initial ? String(initial.goal) : prefill?.goal ? String(prefill.goal) : '',
     description: initial?.description ?? '',
     deadline: initial?.deadline ?? '',
     split: initial?.split ?? 'igual',
@@ -40,22 +41,31 @@ function toDefaults(initial) {
  * @param {(values: { name: string, goal: number, description: string|null, deadline: string|null, split: string }) => Promise<void>} props.onSubmit
  *   Debe lanzar un `Error` si falla; con `err.fields` se marcan los campos del servidor.
  * @param {() => void} [props.onCancel]
+ * @param {{ name?: string, goal?: number }} [props.prefill] Valores de arranque de una meta nueva (p. ej. el colchón).
+ * @param {number|null} [props.weeklyIncome] Lo que entra por semana: avisa si el plan se come más del 30 %.
  */
-export default function VacaForm({ initial = null, disabled = false, personal = false, onSubmit, onCancel }) {
+export default function VacaForm({ initial = null, disabled = false, personal = false, onSubmit, onCancel, prefill, weeklyIncome }) {
   const [serverError, setServerError] = useState('');
   const {
     control,
     register,
     handleSubmit,
     reset,
+    watch,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm({ resolver: zodResolver(vacaSchema), defaultValues: toDefaults(initial) });
+  } = useForm({ resolver: zodResolver(vacaSchema), defaultValues: toDefaults(initial, prefill) });
 
   useEffect(() => {
-    reset(toDefaults(initial));
+    reset(toDefaults(initial, prefill));
     setServerError('');
-  }, [initial, reset]);
+  }, [initial, prefill, reset]);
+
+  // Meta personal (Rinde v2): el plan por semana y si es mucho para lo que entra.
+  const [goalText, deadline] = watch(['goal', 'deadline']);
+  const plan = personal
+    ? weeklyPlan({ goal: Number(goalText), saved: initial?.total ?? 0, deadline, today: todayIso() })
+    : null;
 
   const submit = handleSubmit(async (values) => {
     setServerError('');
@@ -83,7 +93,7 @@ export default function VacaForm({ initial = null, disabled = false, personal = 
       className="space-y-5"
       aria-label={personal ? (initial ? 'Editar meta' : 'Nueva meta') : initial ? 'Editar vaca' : 'Nueva vaca'}
     >
-      <FormField id="vaca-name" label="Nombre" error={errors.name?.message}>
+      <FormField id="vaca-name" label={personal ? 'Ponle nombre *' : 'Nombre'} error={errors.name?.message}>
         <Input
           placeholder={personal ? 'Ej. Moto, semestre, viaje' : 'Ej. Paseo de fin de año'}
           maxLength={60}
@@ -96,7 +106,7 @@ export default function VacaForm({ initial = null, disabled = false, personal = 
         control={control}
         name="goal"
         render={({ field }) => (
-          <FormField id="vaca-goal" label="Meta (COP)" error={errors.goal?.message}>
+          <FormField id="vaca-goal" label={personal ? '¿Cuánto necesitas? *' : 'Meta (COP)'} error={errors.goal?.message}>
             <MoneyInput
               name={field.name}
               value={field.value}
@@ -110,9 +120,32 @@ export default function VacaForm({ initial = null, disabled = false, personal = 
         )}
       />
 
-      <FormField id="vaca-deadline" label="Fecha límite (opcional)" error={errors.deadline?.message}>
+      <FormField id="vaca-deadline" label={personal ? '¿Para cuándo?' : 'Fecha límite (opcional)'} error={errors.deadline?.message}>
         <Input type="date" min={todayIso()} disabled={disabled} {...register('deadline')} />
       </FormField>
+
+      {plan && (
+        <div aria-live="polite" className="space-y-2">
+          <p className="rounded-2xl bg-brand-soft p-4">
+            <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-brand">Tu plan</span>
+            <span className="mt-1 block">
+              <b className="text-xl font-extrabold tabular-nums">{formatPesos(plan.perWeek)}</b> por semana
+            </span>
+            <span className="block text-sm text-ink/60">
+              {plan.weeks === 1 ? 'Durante 1 semana' : `Durante ${plan.weeks} semanas`}, y llegas a tiempo.
+            </span>
+          </p>
+          {isTooMuch(plan.perWeek, weeklyIncome) && (
+            <p className="flex gap-2.5 rounded-2xl bg-brand-soft/60 p-4 text-sm">
+              <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-brand" />
+              <span>
+                <b className="font-semibold">Es mucho para tus ingresos.</b> Pasa del 30 % de lo que te entra por semana (
+                {formatPesos(weeklyIncome)}). Prueba con más tiempo.
+              </span>
+            </p>
+          )}
+        </div>
+      )}
 
       <FormField id="vaca-description" label="¿Para qué es? (opcional)" error={errors.description?.message}>
         <Input

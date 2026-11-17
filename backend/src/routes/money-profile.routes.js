@@ -8,6 +8,7 @@ import {
   getPlan,
   getProfile,
   postCommitment,
+  postTutorial,
   postWelcome,
   putCommitment,
   putProfile,
@@ -27,6 +28,7 @@ import { requireAuth } from '../middlewares/auth.middleware.js';
  * - `GET /income/split?amount=` → cómo repartir un ingreso.
  * - `PUT /sources` → fuentes de ingreso (reemplaza todas).
  * - `POST /welcome` → guarda la bienvenida o la marca como omitida.
+ * - `POST /tutorial` → marca el tutorial de primera vez como visto (FT-0071).
  * - `POST /commitments` → crear un compromiso.
  * - `PUT /commitments/:id` → cambiarlo.
  * - `DELETE /commitments/:id` → eliminarlo.
@@ -43,6 +45,7 @@ router.get('/income', getIncome);
 router.get('/income/split', getSplit);
 router.put('/sources', putSources);
 router.post('/welcome', postWelcome);
+router.post('/tutorial', postTutorial);
 router.post('/commitments', postCommitment);
 router.put('/commitments/:id', putCommitment);
 router.delete('/commitments/:id', deleteCommitment);

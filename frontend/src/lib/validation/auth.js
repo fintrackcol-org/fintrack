@@ -26,16 +26,39 @@ const newPassword = z
 const PASSWORDS_MISMATCH = { message: 'Las contraseñas no coinciden', path: ['confirmPassword'] };
 
 /**
- * Formulario de registro. Sigue el contrato `POST /auth/register { email, password }`.
+ * Formulario de registro (Rinde v2): nombre, correo y una sola contraseña con el ojo para verla y su
+ * fuerza en vivo. Sigue `POST /auth/register { name, email, password, acceptTerms }`.
  */
-export const registerSchema = z
-  .object({
-    email,
-    password: newPassword,
-    confirmPassword: z.string().min(1, 'Confirma tu contraseña'),
-    acceptTerms: z.boolean().refine((v) => v, 'Debes ser mayor de edad y aceptar los términos para continuar'),
-  })
-  .refine((data) => data.password === data.confirmPassword, PASSWORDS_MISMATCH);
+export const registerSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Escribe tu nombre: no puede quedar solo con espacios.')
+    .max(60, 'Máximo 60 caracteres'),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1, 'Ingresa tu correo electrónico')
+    .pipe(z.email('Al correo le falta algo: revisa la @ y el final, por ejemplo .com o .co')),
+  password: newPassword,
+  acceptTerms: z.boolean().refine((v) => v, 'Debes ser mayor de edad y aceptar los términos para continuar'),
+});
+
+/**
+ * Qué tan fuerte es una contraseña (registro): 1 punto por 8+ caracteres, 1 por mezclar letras y
+ * números, 1 por una mayúscula o un símbolo. Desde "Media" ya cumple lo mínimo.
+ * @param {string} password
+ * @returns {{ score: 0|1|2|3, label: string, tips: string[] }}
+ */
+export function passwordStrength(password) {
+  const tips = [];
+  if (password.length < 8) tips.push('usa al menos 8 caracteres');
+  if (!(/\d/.test(password) && /[a-z]/i.test(password))) tips.push('mezcla letras y números');
+  if (!(/[A-Z]/.test(password) || /[^a-z0-9]/i.test(password))) tips.push('agrega una mayúscula o un símbolo');
+  const score = password ? 3 - tips.length : 0;
+  return { score, label: score <= 1 ? 'Débil' : score === 2 ? 'Media' : 'Fuerte', tips };
+}
 
 /** Formulario "¿Olvidaste tu contraseña?": solo el correo. */
 export const forgotPasswordSchema = z.object({ email });

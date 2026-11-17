@@ -74,6 +74,16 @@ export async function postWelcome(req, res) {
 }
 
 /**
+ * `POST /api/v1/money-profile/tutorial`: marca el tutorial de primera vez como visto (FT-0071).
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+export async function postTutorial(req, res) {
+  res.json(await moneyProfile.finishTutorial(req.userId));
+}
+
+/**
  * `POST /api/v1/money-profile/commitments`: crea un compromiso y responde 201.
  * @param {import('express').Request} req
  * @param {import('express').Response} res

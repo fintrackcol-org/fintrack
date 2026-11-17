@@ -21,7 +21,24 @@ function toDefaults(initial) {
     available: '',
     paymentDay: initial ? String(initial.paymentDay) : '',
     cutoffDay: initial?.cutoffDay ? String(initial.cutoffDay) : '',
+    expiry: initial?.expiryMonth ? `${String(initial.expiryMonth).padStart(2, '0')}/${String(initial.expiryYear).slice(2)}` : '',
   };
+}
+
+/**
+ * Pone la barra sola mientras se escribe: "032" → "03/2". Solo dígitos, máximo MM/AA.
+ * @param {string} raw
+ */
+export function formatExpiry(raw) {
+  const digits = raw.replace(/\D/g, '').slice(0, 4);
+  return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+}
+
+/** "03/27" → { expiryMonth: 3, expiryYear: 2027 }; vacío → ambos `null`. */
+function parseExpiry(value) {
+  if (!value) return { expiryMonth: null, expiryYear: null };
+  const [mm, yy] = value.split('/');
+  return { expiryMonth: Number(mm), expiryYear: 2000 + Number(yy) };
 }
 
 /**
@@ -89,7 +106,7 @@ export default function CardForm({ initial = null, disabled = false, onSubmit, o
     setServerError('');
   }, [initial, reset]);
 
-  const [network, tier, last4, name] = watch(['network', 'tier', 'last4', 'name']);
+  const [network, tier, last4, name, expiry] = watch(['network', 'tier', 'last4', 'name', 'expiry']);
   const digits = /^\d{4}$/.test(last4) ? last4 : '····';
 
   const submit = handleSubmit(async (v) => {
@@ -102,6 +119,9 @@ export default function CardForm({ initial = null, disabled = false, onSubmit, o
       paymentDay: v.paymentDay,
       ...(v.name && { name: v.name }),
     };
+    const exp = parseExpiry(v.expiry);
+    // Al crear, sin fecha no se manda nada; al editar, vacío la borra.
+    if (initial || exp.expiryMonth) Object.assign(data, exp);
     if (initial) data.cutoffDay = v.cutoffDay === '' ? null : v.cutoffDay;
     else {
       data.available = v.available;
@@ -111,7 +131,8 @@ export default function CardForm({ initial = null, disabled = false, onSubmit, o
       await onSubmit(data);
     } catch (err) {
       for (const [field, problem] of Object.entries(err.fields ?? {})) {
-        if (field in toDefaults(null)) setError(field, { message: problem });
+        const key = field === 'expiryMonth' || field === 'expiryYear' ? 'expiry' : field;
+        if (key in toDefaults(null)) setError(key, { message: problem });
       }
       setServerError(err.message);
     }
@@ -132,7 +153,10 @@ export default function CardForm({ initial = null, disabled = false, onSubmit, o
   return (
     <form onSubmit={submit} noValidate className="space-y-5" aria-label={initial ? 'Editar tarjeta' : 'Nueva tarjeta'}>
       <div className="flex justify-center">
-        <CreditCardArt network={network} tier={tier} last4={digits} name={name || `${cardLabel(network, tier)} ••${digits}`} size="lg" />
+        <CreditCardArt network={network} tier={tier} last4={digits} name={name || `${cardLabel(network, tier)} ••${digits}`}
+          expiry={/^\d{2}\/\d{2}$/.test(expiry) ? expiry : undefined}
+          size="lg"
+        />
       </div>
       <CardGallery
         network={network}
@@ -149,6 +173,27 @@ export default function CardForm({ initial = null, disabled = false, onSubmit, o
       <FormField id="card-last4" label="Últimos 4 dígitos" error={errors.last4?.message}>
         <Input inputMode="numeric" autoComplete="off" maxLength={4} placeholder="1234" disabled={disabled} {...register('last4')} />
       </FormField>
+      <Controller
+        control={control}
+        name="expiry"
+        render={({ field }) => (
+          <FormField id="card-expiry" label="Vence (MM/AA, opcional)" error={errors.expiry?.message}>
+            <Input
+              inputMode="numeric"
+              autoComplete="cc-exp"
+              placeholder="03/27"
+              maxLength={5}
+              disabled={disabled}
+              name={field.name}
+              value={field.value}
+              onChange={(e) => field.onChange(formatExpiry(e.target.value))}
+              onBlur={field.onBlur}
+              ref={field.ref}
+            />
+          </FormField>
+        )}
+      />
+      <p className="-mt-3 text-sm text-ink/60">Te avisamos 2 meses antes para que pidas la nueva.</p>
       {money('limit', 'card-limit', 'Cupo total')}
       {!initial && (
         <>

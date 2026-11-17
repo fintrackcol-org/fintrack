@@ -7,7 +7,7 @@ import AuthLayout from '@/components/auth/AuthLayout';
 import CheckInbox from '@/components/auth/CheckInbox';
 import FormField from '@/components/auth/FormField';
 import PasswordInput from '@/components/auth/PasswordInput';
-import PasswordRules from '@/components/auth/PasswordRules';
+import PasswordStrength from '@/components/auth/PasswordStrength';
 import SocialAuth from '@/components/auth/SocialAuth';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -19,8 +19,8 @@ import { registerSchema } from '@/lib/validation/auth';
 import { register as registerUser, resendVerification } from '@/services/authService';
 
 /**
- * Pantalla de registro. Valida en el cliente (zod) y muestra los requisitos de la contraseña en
- * vivo. Al crear la cuenta no entra: muestra "Confirma tu correo" con reenvío, porque la API no da
+ * Pantalla de registro (Rinde v2): nombre, correo y una contraseña con su fuerza en vivo. Valida en el
+ * cliente (zod) con mensajes que dicen cómo arreglar el error. Al crear la cuenta no entra: muestra "Confirma tu correo" con reenvío, porque la API no da
  * sesión hasta abrir el enlace que llega al correo (FT-0016).
  */
 export default function Register() {
@@ -38,15 +38,15 @@ export default function Register() {
   } = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      name: '',
       email: '',
       password: '',
-      confirmPassword: '',
       acceptTerms: false,
     },
   });
   const password = useWatch({ control, name: 'password' });
 
-  const onSubmit = async ({ confirmPassword: _confirm, ...data }) => {
+  const onSubmit = async (data) => {
     setServerError('');
     try {
       const { email } = await registerUser(data);
@@ -88,8 +88,8 @@ export default function Register() {
   return (
     <AuthLayout
       mode="register"
-      title="Crea tu cuenta gratis"
-      subtitle="Empieza a registrar tus gastos en menos de un minuto."
+      title="Que tu plata alcance"
+      subtitle="Crea tu cuenta en un minuto. Los campos con * son obligatorios."
       footer={
         <>
           <span className="text-white/55">¿Ya tienes cuenta? </span>
@@ -110,20 +110,28 @@ export default function Register() {
       )}
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
         <div className="space-y-4">
-          <FormField id="email" label="Correo electrónico" error={errors.email?.message}>
-            <Input type="email" autoComplete="email" inputMode="email" placeholder="tu@correo.com" {...register('email')} />
+          <FormField id="name" label="¿Cómo te llamas? *" error={errors.name?.message}>
+            <Input autoComplete="given-name" placeholder="Tu nombre" maxLength={60} aria-required="true" {...register('name')} />
           </FormField>
+          {!errors.name && <p className="-mt-2 text-xs text-white/55">Así te saludamos en la app.</p>}
 
-          <div className="space-y-3">
-            <FormField id="password" label="Contraseña" error={errors.password?.message}>
-              <PasswordInput autoComplete="new-password" placeholder="Crea una contraseña" {...register('password')} />
+          <FormField id="email" label="Correo *" error={errors.email?.message}>
+            <Input type="email" autoComplete="email" inputMode="email" placeholder="tu@correo.com" aria-required="true" {...register('email')} />
+          </FormField>
+          {!errors.email && <p className="-mt-2 text-xs text-white/55">Te enviamos un enlace para confirmarlo.</p>}
+
+          <div className="space-y-2">
+            <FormField id="password" label="Contraseña *" error={errors.password?.message}>
+              <PasswordInput
+                autoComplete="new-password"
+                placeholder="Crea una contraseña"
+                aria-required="true"
+                aria-describedby="password-strength"
+                {...register('password')}
+              />
             </FormField>
-            <PasswordRules password={password} />
+            <PasswordStrength id="password-strength" password={password} />
           </div>
-
-          <FormField id="confirmPassword" label="Confirmar contraseña" error={errors.confirmPassword?.message}>
-            <PasswordInput autoComplete="new-password" placeholder="Repite tu contraseña" {...register('confirmPassword')} />
-          </FormField>
         </div>
 
         <div className="space-y-2">

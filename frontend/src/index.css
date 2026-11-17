@@ -269,6 +269,16 @@
     color-scheme: light;
   }
 
+  /*
+   * En oscuro, el violeta claro (#9b85ff) es para texto y bordes: legible sobre el grafito. Donde el
+   * violeta es fondo con texto blanco encima (botones, la tarjeta de Mi plata, el botón Anotar), se usa
+   * el violeta de marca (#6142ff): blanco sobre él da 5,6:1 y sobre el claro solo 2,9:1 (WCAG AA).
+   */
+  [data-theme='dark'] :is(.bg-brand, [class*='bg-brand/']):not([class*='bg-brand-soft']) {
+    --color-brand: #6142ff;
+    --app-brand: #6142ff;
+  }
+
   /* Tema oscuro: grafito con un toque violeta, no negro puro, para separar fondo y tarjetas. */
   [data-theme='dark'] {
     --app-canvas: #0c0b11;

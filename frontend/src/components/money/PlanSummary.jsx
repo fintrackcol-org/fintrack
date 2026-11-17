@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Pencil, PiggyBank } from 'lucide-react';
 import MoneyInput from '@/components/common/MoneyInput';
+import NegativeBalanceNote from '@/components/money/NegativeBalanceNote';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { dayMessage, planHeadline } from '@/lib/moneyPlan';
@@ -53,6 +54,7 @@ export default function PlanSummary({ plan, profile, money, onChanged }) {
   return (
     <>
       <p className="relative mt-2 text-4xl font-semibold tracking-tight tabular-nums md:text-5xl">{money(plan.money)}</p>
+      <NegativeBalanceNote money={plan.money} className="relative mt-2 rounded-xl bg-white/15 px-3 py-2.5" />
       {profile && !editing && (
         <button
           type="button"

@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import {
   deleteDebt,
+  deletePayment,
   getDebts,
   postDebt,
+  postPayment,
   postSettle,
   putDebt,
 } from '../controllers/debts.controller.js';
@@ -20,5 +22,7 @@ router.post('/', postDebt);
 router.put('/:id', putDebt);
 router.delete('/:id', deleteDebt);
 router.post('/:id/settle', postSettle);
+router.post('/:id/payments', postPayment);
+router.delete('/:id/payments/:paymentId', deletePayment);
 
 export default router;

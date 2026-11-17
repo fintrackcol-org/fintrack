@@ -115,7 +115,7 @@ describe('parseSpokenTransaction', () => {
     ).toMatchObject({
       amount: 30000,
       options: [30000, 450000],
-      description: '15 almuerzos doña pepita',
+      description: '15 almuerzos a doña pepita', // el relleno solo se quita de los bordes
       date: '2026-10-08',
     });
     // "mil pesos" solo sigue siendo $1.000.
@@ -196,5 +196,24 @@ describe('parseSpokenTransaction', () => {
     it('"el 15 mil" es un monto, no un día', () => {
       expect(parse('almuerzo el 15 mil')).toMatchObject({ date: '2026-10-28', amount: 15000 });
     });
+  });
+});
+
+describe('números pegados a letras (Rinde v2)', () => {
+  it('no son el monto: son parte del nombre', () => {
+    const p = parseSpokenTransaction('Netflix 4K 26 mil', new Date(2026, 10, 17));
+    expect(p.amount).toBe(26000);
+    expect(p.description).toBe('Netflix 4K');
+    expect(parseSpokenTransaction('C1 taxi', new Date(2026, 10, 17)).amount ?? null).toBeNull();
+  });
+});
+
+describe('relleno solo en los bordes (Rinde v2)', () => {
+  it('quita verbos y artículos del principio y del final, no los del medio', () => {
+    const d = (t) => parseSpokenTransaction(t, new Date(2026, 10, 17)).description;
+    expect(d('pagué el arriendo 900 mil')).toBe('Arriendo');
+    expect(d('almuerzo con el equipo 20 mil')).toBe('Almuerzo con el equipo');
+    expect(d('gasté 20 mil en el mercado')).toBe('Mercado');
+    expect(d('2 almuerzos de 12 mil')).toBe('2 almuerzos');
   });
 });

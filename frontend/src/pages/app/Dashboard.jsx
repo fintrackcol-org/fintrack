@@ -1,39 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import BalanceCard from '@/components/dashboard/BalanceCard';
-import BudgetOverview, { BudgetAlert } from '@/components/dashboard/BudgetOverview';
-import CardsSummary from '@/components/dashboard/CardsSummary';
-import DashboardEmpty from '@/components/dashboard/DashboardEmpty';
+import DesktopHome from '@/components/dashboard/DesktopHome';
 import MobileHome from '@/components/dashboard/MobileHome';
-import ExpenseDonut from '@/components/dashboard/ExpenseDonut';
-import HealthCard from '@/components/dashboard/HealthCard';
-import LiquidityCard from '@/components/dashboard/LiquidityCard';
-import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
-import PeriodSelector from '@/components/dashboard/PeriodSelector';
-import QuickActions from '@/components/dashboard/QuickActions';
-import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import { currentMonth } from '@/components/budgets/month';
-import PageHeader from '@/components/layout/PageHeader';
-import MoneyInvite from '@/components/money/MoneyInvite';
-import MoneySetupLink from '@/components/money/MoneySetupLink';
-import PendingPayments from '@/components/money/PendingPayments';
-import { useAuth } from '@/auth/AuthContext';
+import LoadErrorToast from '@/components/common/LoadErrorToast';
+import CoachTour from '@/components/onboarding/CoachTour';
 import useAsync from '@/hooks/useAsync';
+import useFirstTimeTour from '@/hooks/useFirstTimeTour';
 import useHiddenAmounts from '@/hooks/useHiddenAmounts';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
-import { getDisplayName } from '@/lib/displayName';
 import { SYNC_EVENT, listCached, listPending } from '@/offline/sync';
 import { TRANSACTION_SAVED_EVENT } from '@/offline/saveNewTransaction';
-import { periodLabel, todayIso } from '@/lib/period';
+import { todayIso } from '@/lib/period';
 import { listBudgets } from '@/services/budgetService';
 import { listCards } from '@/services/cardService';
-import { getMoneyPlan, getMoneyProfile } from '@/services/moneyProfileService';
+import { getMoneyPlan, getMoneyProfile, getPaymentCalendar } from '@/services/moneyProfileService';
 import { getSummary } from '@/services/summaryService';
 import { getCategories, listTransactions } from '@/services/transactionService';
 
-const RECENT_COUNT = 5;
+const RECENT_COUNT = 6;
 
 /** `octubre` a partir de `2026-10`. */
 function monthName(month) {
@@ -42,11 +29,11 @@ function monthName(month) {
 }
 
 /**
- * Página privada `/app`: selector de periodo y balance de ese periodo (FT-0004), accesos rápidos, alertas y resumen de presupuestos
- * (FT-0005) y últimos movimientos. Cada bloque carga por separado: si uno falla, los demás se ven.
- * Los presupuestos siempre son del mes actual: el selector de periodo solo cambia el balance
- * y los gráficos de ingresos/gastos y gastos por categoría.
- * Sin ningún movimiento, el balance y los gráficos se reemplazan por un estado vacío (FT-0004).
+ * Página privada `/app` (Rinde v2): en el celular `MobileHome` y en el computador `DesktopHome`, con los
+ * mismos datos del mes: Mi plata y hasta cuándo alcanza, ingresos y gastos, presupuestos y últimos
+ * movimientos. Cada bloque carga por separado: si uno falla, los demás se ven, y un aviso abajo ofrece
+ * reintentar. Sin ningún movimiento, el gráfico y los movimientos se reemplazan por un estado vacío (FT-0004).
+ * Después de la bienvenida sale una vez el tutorial de primera vez (FT-0071).
  * Sin conexión, los últimos movimientos salen de la copia del dispositivo (FT-0009) y el balance y los
  * presupuestos avisan que se actualizan al volver internet; al reconectar, todo se recarga.
  * Quien no ha visto la bienvenida (FT-0036) va a ella si no tiene movimientos; si ya tiene, se le invita.
@@ -54,17 +41,13 @@ function monthName(month) {
  */
 export default function Dashboard() {
   usePageTitle('Inicio');
-  const { user } = useAuth();
   const [hidden, toggleHidden] = useHiddenAmounts();
   const mobile = useMediaQuery('(width < 48rem)');
   const online = useOnlineStatus();
-  const offlineNote = online ? undefined : 'Sin conexión: se actualiza al volver internet.';
   const month = currentMonth();
   const label = monthName(month);
 
-  // Periodo elegido en el selector. Arranca en el mes actual.
-  const [selected, setSelected] = useState({ period: 'month', date: todayIso() });
-  const summary = useAsync(() => getSummary(selected.period, selected.date), [selected.period, selected.date, online]);
+  const summary = useAsync(() => getSummary('month', todayIso()), [online]);
   // Mientras carga otro periodo se muestra el "cargando", no los números del periodo anterior.
   const current = summary.loading ? undefined : summary.data;
   const totals = current && {
@@ -86,6 +69,9 @@ export default function Dashboard() {
   const categories = useAsync(getCategories, []);
   const moneyProfile = useAsync(getMoneyProfile, [online]);
   const moneyPlan = useAsync(getMoneyPlan, [online]);
+  // Próximos pagos del escritorio: el calendario del mes de Mi plata.
+  const calendar = useAsync(getPaymentCalendar, [online]);
+  const { touring, closeTour } = useFirstTimeTour({ profile: moneyProfile.data, online, onSaved: moneyProfile.reload });
   // Si falla la carga no hay datos y el resumen simplemente no aparece.
   const cards = useAsync(listCards, [online]);
 
@@ -131,7 +117,6 @@ export default function Dashboard() {
     return () => window.removeEventListener(SYNC_EVENT, onSync);
   }, [reloadRecent, reloadSummary, reloadPlan, reloadCards]);
 
-  const name = getDisplayName(user);
   // `total` cuenta todos los movimientos del usuario, no solo los de la página pedida.
   // Si hay pendientes offline el usuario ya registró algo: no se le dice que no tiene movimientos.
   // Sin conexión la copia local puede estar vacía aunque el servidor tenga datos: no se afirma que no hay.
@@ -144,117 +129,64 @@ export default function Dashboard() {
 
   if (empty && welcomePending) return <Navigate to="/app/bienvenida" replace />;
 
-  if (mobile) {
-    const loadingBalance = online && moneyProfile.loading && !moneyProfile.data;
-    return (
-      <MobileHome
-        balance={loadingBalance ? undefined : (moneyProfile.data?.money ?? totals?.balance ?? null)}
-        balanceSet={typeof moneyProfile.data?.balance === 'number'}
-        totals={totals}
-        expense={summary.error ? null : current?.expense}
-        budgets={budgets.data}
-        cards={cards.data}
-        recent={recent.data?.data}
-        pending={plan?.pending}
-        recentError={recent.error}
-        names={names}
-        monthLabel={label}
-        empty={empty}
-        welcomePending={welcomePending}
-        setupPending={setupPending}
-        onWelcomeDone={moneyProfile.reload}
-        hidden={hidden}
-        onToggleHidden={toggleHidden}
-      />
-    );
-  }
-
-  const balanceCard = (
-    <BalanceCard
-      periodLabel={periodLabel(selected.period, selected.date)}
-      selected={selected}
-      totals={totals}
-      note={offlineNote}
-      plan={plan}
-      profile={moneyProfile.data}
-      onPlanChanged={() => {
-        reloadPlan();
-        moneyProfile.reload();
-      }}
-      hidden={hidden}
-      onToggleHidden={toggleHidden}
-    />
-  );
+  const loadingBalance = online && moneyProfile.loading && !moneyProfile.data;
+  const balance = loadingBalance ? undefined : (moneyProfile.data?.money ?? totals?.balance ?? null);
+  const loadError = online ? recent.error || summary.error : '';
+  const retry = () => {
+    reloadRecent();
+    reloadSummary();
+    moneyProfile.reload();
+  };
 
   return (
     <>
-      <PageHeader
-        title={name ? `Hola, ${name}` : 'Hola'}
-        description={empty ? 'Te damos la bienvenida a Rinde.' : `Así va tu ${label}.`}
-      />
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="flex min-w-0 flex-col gap-6">
-          {empty && plan && balanceCard}
-          {empty && plan && <LiquidityCard hidden={hidden} />}
-          {setupPending && <MoneySetupLink />}
-          {empty ? (
-            <>
-              {plan?.pending.length > 0 && <PendingPayments pending={plan.pending} />}
-              <DashboardEmpty />
-            </>
-          ) : (
-            <>
-              {welcomePending && <MoneyInvite onDone={moneyProfile.reload} />}
-              <PeriodSelector period={selected.period} date={selected.date} onChange={setSelected} />
-              {balanceCard}
-              <LiquidityCard hidden={hidden} />
-              <CardsSummary cards={cards.data} hidden={hidden} />
-              {summary.error && online && (
-                <p role="alert" className="-mt-2 text-sm text-negative">
-                  No pudimos calcular el balance: {summary.error}{' '}
-                  <button type="button" className="underline" onClick={summary.reload}>
-                    Reintentar
-                  </button>
-                </p>
-              )}
-              {plan?.pending.length > 0 && <PendingPayments pending={plan.pending} />}
-              <QuickActions />
-              {budgets.data && <BudgetAlert budgets={budgets.data} names={names} />}
-              <IncomeExpenseChart
-                period={selected.period}
-                date={selected.date}
-                timeSeries={current?.timeSeries}
-                hidden={hidden}
-              />
-              <RecentTransactions transactions={recent.data?.data} names={names} hidden={hidden} error={recent.error} />
-              {!summary.error && (
-                <ExpenseDonut
-                  large
-                  expense={current?.expense}
-                  names={names}
-                  hidden={hidden}
-                  periodLabel={periodLabel(selected.period, selected.date)}
-                  selected={selected}
-                />
-              )}
-            </>
-          )}
-        </div>
-
-        <aside className="min-w-0" aria-label="Presupuestos del mes">
-          <div className="flex flex-col gap-6 lg:sticky lg:top-8">
-            {!empty && <HealthCard hidden={hidden} showAllowance={!plan} />}
-            <BudgetOverview
-              budgets={budgets.data}
-              names={names}
-              monthLabel={label}
-              error={online ? budgets.error : ''}
-              note={offlineNote}
-            />
-          </div>
-        </aside>
-      </div>
+      {/* Sin red: un aviso neutral, no de error; lo que se ve es la copia del dispositivo. */}
+      {!online && (
+        <p role="status" className="mb-3 rounded-xl bg-ink/5 px-3 py-2 text-sm text-ink/70 md:mb-4">
+          Sin conexión: se actualiza al volver internet.
+        </p>
+      )}
+      {mobile ? (
+        <MobileHome
+          balance={balance}
+          balanceSet={typeof moneyProfile.data?.balance === 'number'}
+          totals={totals}
+          expense={summary.error ? null : current?.expense}
+          budgets={budgets.data}
+          cards={cards.data}
+          recent={recent.data?.data}
+          pending={plan?.pending}
+          recentError={recent.error}
+          names={names}
+          monthLabel={label}
+          empty={empty}
+          welcomePending={welcomePending}
+          setupPending={setupPending}
+          onWelcomeDone={moneyProfile.reload}
+          hidden={hidden}
+          onToggleHidden={toggleHidden}
+        />
+      ) : (
+        <DesktopHome
+          balance={balance}
+          totals={totals}
+          budgets={budgets.data}
+          recent={recent.data?.data}
+          recentError={recent.error}
+          events={calendar.data?.events}
+          today={todayIso()}
+          names={names}
+          monthLabel={label}
+          empty={empty}
+          welcomePending={welcomePending}
+          setupPending={setupPending}
+          onWelcomeDone={moneyProfile.reload}
+          hidden={hidden}
+          onToggleHidden={toggleHidden}
+        />
+      )}
+      {loadError && <LoadErrorToast message="No pudimos traer tus movimientos." onRetry={retry} />}
+      {touring && <CoachTour onClose={closeTour} />}
     </>
   );
 }

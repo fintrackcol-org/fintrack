@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import useSheetMotion from '@/lib/sheetMotion';
 import { Check, Keyboard, Loader2, Lock, Mic, MicOff, RotateCcw, Sparkles, WifiOff, X } from 'lucide-react';
+import BigAmountWarning, { isBigAmount } from '@/components/transactions/BigAmountWarning';
 import BudgetAlert from '@/components/transactions/BudgetAlert';
 import { formatMoney, formatRelativeDay } from '@/components/transactions/format';
 import { Button } from '@/components/ui/button';
@@ -307,6 +308,8 @@ function Result({ titleId, transcript, retryLabel = 'Repetir', saving, error, on
   const parsed = useMemo(() => parseSpokenTransaction(transcript), [transcript]);
   const mustChoose = parsed.options.length > 1;
   const [amount, setAmount] = useState(mustChoose ? null : parsed.amount);
+  const [askBig, setAskBig] = useState(null); // monto grande que espera el segundo toque
+  const confirming = amount !== null && askBig === amount;
   const income = parsed.type === 'ingreso';
   const draft = { type: parsed.type, amount, description: parsed.description, date: parsed.date };
   // Sin monto o sin descripción no se puede guardar directo: se completa en el formulario.
@@ -378,15 +381,22 @@ function Result({ titleId, transcript, retryLabel = 'Repetir', saving, error, on
         </p>
       )}
 
+      {confirming && <BigAmountWarning amount={amount} className="mt-4" />}
+
       <div className="mt-6 grid grid-cols-[1fr_1.4fr] gap-3">
         <Button variant="outline" size="lg" onClick={onRetry} disabled={saving}>
           {retryLabel === 'Dictar' ? <Mic aria-hidden="true" /> : <RotateCcw aria-hidden="true" />}
           {retryLabel}
         </Button>
         {mustChoose || complete ? (
-          <Button size="lg" autoFocus={!mustChoose} disabled={saving || amount === null} onClick={() => onSave(draft)}>
+          <Button
+            size="lg"
+            autoFocus={!mustChoose}
+            disabled={saving || amount === null}
+            onClick={() => (isBigAmount(amount) && !confirming ? setAskBig(amount) : onSave(draft))}
+          >
             {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-            {saving ? 'Guardando…' : income ? 'Guardar ingreso' : 'Guardar gasto'}
+            {saving ? 'Guardando…' : confirming ? 'Sí, guardar' : income ? 'Guardar ingreso' : 'Guardar gasto'}
           </Button>
         ) : (
           <Button size="lg" autoFocus onClick={() => onEdit(draft)}>
@@ -420,7 +430,7 @@ function Saved({ titleId, draft, result, names, onAgain, onDone }) {
   return (
     <>
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
+        initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', duration: 0.45, bounce: 0.3 }}
         className="mx-auto grid size-20 place-items-center rounded-full bg-positive/15 text-positive"

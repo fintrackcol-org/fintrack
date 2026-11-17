@@ -42,10 +42,37 @@ export function EmotionPicker({ value, onChange, disabled = false, tone = 'defau
 
 /**
  * Los 4 grupos Kakeibo como chips, con la pista del elegido debajo. Tocar el elegido lo quita.
- * @param {{ value: string|null, onChange: (next: string|null) => void, disabled?: boolean, labelledBy?: string }} props
+ * @param {{ value: string|null, onChange: (next: string|null) => void, disabled?: boolean, labelledBy?: string, variant?: 'chips'|'cards' }} props
  */
-export function KakeiboPicker({ value, onChange, disabled = false, labelledBy }) {
+export function KakeiboPicker({ value, onChange, disabled = false, labelledBy, variant = 'chips' }) {
   const picked = kakeiboOf(value);
+  // Rinde v2, detalle del gasto: cada grupo en una tarjeta con su pista, para elegir sin adivinar.
+  if (variant === 'cards') {
+    return (
+      <div role="group" aria-labelledby={labelledBy} className="grid grid-cols-2 gap-2">
+        {KAKEIBO.map(({ key, label, hint }) => {
+          const on = value === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={on}
+              disabled={disabled}
+              onClick={() => onChange(toggle(value, key))}
+              className={cn(
+                'flex min-h-[76px] flex-col items-start gap-0.5 rounded-2xl border px-3 py-2.5 text-left transition-[background-color,border-color,transform] motion-safe:active:scale-[0.98] disabled:opacity-60',
+                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet',
+                on ? 'border-brand bg-brand-soft' : 'border-ink/10 bg-surface hover:bg-ink/[0.03]',
+              )}
+            >
+              <b className={cn('text-sm font-semibold', on && 'text-brand')}>{label}</b>
+              <span className="text-xs leading-4 text-ink/60">{hint}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <div>
       <div role="group" aria-labelledby={labelledBy} className="flex flex-wrap gap-2">

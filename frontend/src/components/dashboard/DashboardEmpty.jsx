@@ -1,61 +1,50 @@
 import { Link } from 'react-router-dom';
-import { ChartPie, Minus, Plus, Target, Wallet } from 'lucide-react';
-import Panel from '@/components/layout/Panel';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-/** Lo que el usuario verá en el inicio cuando empiece a registrar. */
-const PREVIEW = [
-  { icon: Wallet, title: 'Tu balance', text: 'Ingresos, gastos y lo que te queda en la semana, el mes o el año.' },
-  { icon: ChartPie, title: 'En qué gastas', text: 'Gráficos por categoría; la IA clasifica cada gasto por ti.' },
-  { icon: Target, title: 'Tus límites', text: 'Avisos cuando un presupuesto llega al 80 % o al 100 %.' },
-];
+/** La "r" de Rinde con la moneda, en suave: la ilustración del estado vacío (sin imágenes). */
+function EmptyMark() {
+  return (
+    <svg viewBox="0 0 96 96" aria-hidden="true" className="mx-auto size-24">
+      <path d="M28 76V48a20 20 0 0 1 20-20" fill="none" className="stroke-brand-soft" strokeWidth="16" strokeLinecap="round" />
+      <path d="M28 76h40" fill="none" className="stroke-ink/10" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="70" cy="26" r="8" className="fill-success" />
+    </svg>
+  );
+}
 
 /**
- * Estado vacío del inicio (FT-0004): se muestra en lugar del balance y los gráficos
- * cuando el usuario todavía no tiene ningún movimiento, para invitarlo a registrar el primero.
+ * Estado vacío del inicio (FT-0004, Rinde v2): quien aún no anota nada este mes ve una sola acción
+ * clara, empezar por lo de hoy, y la opción de anotar por WhatsApp. Se muestra en lugar del gráfico y
+ * los últimos movimientos.
  */
 export default function DashboardEmpty() {
   return (
-    <Panel aria-labelledby="empty-title" className="text-center md:p-10">
-      <span
-        aria-hidden="true"
-        className="mx-auto grid size-14 place-items-center rounded-2xl bg-brand-soft text-brand"
-      >
-        <Wallet className="size-7" />
-      </span>
-      <h2 id="empty-title" className="mt-5 text-xl font-semibold tracking-tight md:text-2xl">
-        Registra tu primer movimiento
+    <section
+      aria-labelledby="empty-title"
+      className="rounded-3xl bg-surface px-6 py-10 text-center ring-1 ring-ink/10 md:py-12"
+    >
+      <EmptyMark />
+      <h2 id="empty-title" className="mx-auto mt-5 max-w-xs text-lg font-semibold tracking-tight">
+        Todavía no has anotado nada este mes
       </h2>
-      <p className="mx-auto mt-2 max-w-md text-ink/60">
-        Aún no tienes gastos ni ingresos. Apenas registres el primero, aquí verás cómo van tus finanzas.
+      <p className="mx-auto mt-2 max-w-sm text-[15px] text-ink/70">
+        Empieza con lo que gastaste hoy, aunque sea un tinto. Escríbelo como te salga y Rinde lo organiza.
       </p>
-
-      <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-        <Button asChild>
-          <Link to="/app/anotar?tipo=gasto">
-            <Minus aria-hidden="true" />
-            Registrar un gasto
-          </Link>
-        </Button>
-        <Button asChild variant="soft">
-          <Link to="/app/anotar?tipo=ingreso">
-            <Plus aria-hidden="true" />
-            Registrar un ingreso
-          </Link>
-        </Button>
+      <Button asChild size="lg" className="mt-6 rounded-full">
+        <Link to="/app/anotar?tipo=gasto">
+          <Plus aria-hidden="true" />
+          Anotar mi primer gasto
+        </Link>
+      </Button>
+      <div className="mt-2 flex flex-col items-center">
+        <Link to="/app/anotar?tipo=ingreso" className="inline-flex min-h-11 items-center text-sm font-semibold text-brand">
+          O anota lo que te entró
+        </Link>
+        <Link to="/app/cuenta#whatsapp" className="inline-flex min-h-11 items-center text-sm font-semibold text-brand">
+          O conecta WhatsApp y anota desde el chat
+        </Link>
       </div>
-
-      <ul className="mt-8 grid gap-4 border-t border-ink/10 pt-6 text-left sm:grid-cols-3">
-        {PREVIEW.map(({ icon: Icon, title, text }) => (
-          <li key={title} className="flex gap-3 sm:flex-col sm:gap-2">
-            <Icon className="size-5 shrink-0 text-brand" aria-hidden="true" />
-            <div>
-              <h3 className="font-medium">{title}</h3>
-              <p className="text-sm text-ink/60">{text}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </Panel>
+    </section>
   );
 }

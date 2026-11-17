@@ -223,6 +223,24 @@ test('un mensaje reenviado por Meta no se registra dos veces', async () => {
   assert.equal(sent.length, 1);
 });
 
+test('un monto muy alto pide confirmar con "sí" antes de guardarse', async () => {
+  const { service, sent, saved } = setup();
+  await service.handleMessage(message('carro 50 millones', 'big1'));
+  assert.equal(saved.length, 0);
+  assert.equal(sent[0], REPLIES.bigAmount(50_000_000, 'carro 50 millones'));
+  assert.match(sent[0], /\$50\.000\.000.*"sí carro 50 millones"/);
+
+  await service.handleMessage(message('Sí, carro 50 millones', 'big2'));
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].amount, 50_000_000);
+  assert.equal(saved[0].description, 'Carro');
+  assert.match(sent[1], /^Guardé un gasto de \$50\.000\.000/);
+
+  // Un "si" dentro de la descripción no confirma nada.
+  await service.handleMessage(message('silla 6 millones', 'big3'));
+  assert.equal(saved.length, 1);
+});
+
 test('pregunta en vez de adivinar', async () => {
   const cases = [
     ['hola', REPLIES.noAmount],

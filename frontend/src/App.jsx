@@ -20,6 +20,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 const Dashboard = lazy(() => import('@/pages/app/Dashboard'));
 const Welcome = lazy(() => import('@/pages/app/Welcome'));
 const MiPlata = lazy(() => import('@/pages/app/MiPlata'));
+const Movements = lazy(() => import('@/pages/app/Movements'));
 const Calendar = lazy(() => import('@/pages/app/Calendar'));
 const Liquidity = lazy(() => import('@/pages/app/Liquidity'));
 const PeriodDetail = lazy(() => import('@/pages/app/PeriodDetail'));
@@ -73,13 +74,13 @@ function RouteFallback() {
 }
 
 /**
- * La pantalla vieja de Movimientos ya no existe; su dirección sigue en accesos de la app instalada y en
- * avisos ya enviados. `?nuevo=gasto|ingreso` lleva a anotar y lo demás, a Mi plata.
+ * La dirección vieja de Movimientos sigue en accesos de la app instalada y en avisos ya enviados.
+ * `?nuevo=gasto|ingreso` lleva a anotar y lo demás, a la pestaña Movimientos.
  */
 function OldMovements() {
   const [params] = useSearchParams();
   const type = params.get('nuevo');
-  return <Navigate to={type ? `/app/anotar?tipo=${type === 'ingreso' ? 'ingreso' : 'gasto'}` : '/app/mi-plata'} replace />;
+  return <Navigate to={type ? `/app/anotar?tipo=${type === 'ingreso' ? 'ingreso' : 'gasto'}` : '/app/movimientos'} replace />;
 }
 
 /**
@@ -138,6 +139,7 @@ export default function App() {
                 <Route path="/app/transacciones/:id" element={<TransactionDetail />} />
                 <Route path="/app/cuenta" element={<Account />} />
                 <Route path="/app/mi-plata" element={<MiPlata />} />
+                <Route path="/app/movimientos" element={<Movements />} />
                 <Route path="/app/calendario" element={<Calendar />} />
                 <Route path="/app/liquidez" element={<Liquidity />} />
                 <Route path="/app/mes" element={<Navigate to="/app/gastos" replace />} />

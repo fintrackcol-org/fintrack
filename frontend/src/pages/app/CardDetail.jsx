@@ -6,6 +6,7 @@ import CardForm from '@/components/cards/CardForm';
 import CreditCardArt from '@/components/cards/CreditCardArt';
 import PayCardForm from '@/components/cards/PayCardForm';
 import { dueText, paymentText, shortDate } from '@/components/cards/cardFormat';
+import ExpiryBadge from '@/components/cards/ExpiryBadge';
 import { NETWORK_LABELS } from '@/lib/cardStyles';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import CircleActions from '@/components/common/CircleActions';
@@ -82,6 +83,7 @@ export function CardDetailView({ card, movements, online, hidden, onAction, onDe
         <p className="text-[15px] text-ink/70">{NETWORK_LABELS[card.network] ?? card.name} ••{card.last4} · Lo que debes</p>
         <p className="mt-1 text-[42px] font-semibold leading-tight tracking-tight tabular-nums">{money(card.used)}</p>
         <p className="mt-2 text-[15px] font-medium text-caution">{dueText(card)}</p>
+        <ExpiryBadge card={card} />
         {card.statementTotal != null && (
           <p className="mt-1 text-sm tabular-nums text-ink/70">
             Total del extracto {money(card.statementTotal)}
@@ -123,7 +125,7 @@ export function CardDetailView({ card, movements, online, hidden, onAction, onDe
   return (
     <>
       <div className="flex justify-center">
-        <CreditCardArt network={card.network} tier={card.tier} last4={card.last4} name={card.name} size="lg" />
+        <CreditCardArt network={card.network} tier={card.tier} last4={card.last4} name={card.name} expiry={card.expiry?.label} size="lg" />
       </div>
       <Panel className="mt-4">
         <div role="progressbar" aria-label={`Uso de ${card.name}`} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} className="h-2 overflow-hidden rounded-full bg-ink/10">
@@ -133,6 +135,7 @@ export function CardDetailView({ card, movements, online, hidden, onAction, onDe
           Usado {money(card.used)} · Disponible {money(card.available)} · Cupo {money(card.limit)}
         </p>
         <p className="mt-1 font-medium">{paymentText(card)}</p>
+        <ExpiryBadge card={card} />
         {card.statementTotal != null && (
           <p className="mt-1 text-sm tabular-nums text-ink/70">
             Total del extracto {money(card.statementTotal)}

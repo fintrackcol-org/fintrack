@@ -37,7 +37,7 @@ const CATEGORIES = ['performance', 'accessibility', 'best-practices', 'seo'];
 const ONLY = process.env.PAGES?.split(',').map((p) => p.trim());
 const pick = (pages) => (ONLY ? pages.filter((p) => ONLY.includes(p)) : pages);
 const PUBLIC_PAGES = pick(['/', '/login', '/registro']);
-const APP_PAGES = pick(['/app', '/app/transacciones', '/app/presupuestos']);
+const APP_PAGES = pick(['/app', '/app/movimientos', '/app/anotar', '/app/presupuestos']);
 const OUT_DIR = 'lighthouse-reports';
 
 const post = (path, body, token) =>

@@ -20,14 +20,21 @@ describe('backPath', () => {
   });
 
   it('lleva las secciones principales al inicio', () => {
-    for (const path of ['/app/transacciones', '/app/presupuestos', '/app/insights', '/app/tarjetas', '/app/cuentas', '/app/vacas', '/app/cuenta']) {
+    for (const path of ['/app/transacciones', '/app/cuenta', '/app/gastos', '/app/metas']) {
       expect(backPath(path)).toBe('/app');
     }
   });
 
+  it('lleva lo que vive dentro de una pestaña a esa pestaña (Rinde v2)', () => {
+    for (const path of ['/app/presupuestos', '/app/insights', '/app/tarjetas', '/app/cuentas', '/app/calendario']) {
+      expect(backPath(path)).toBe('/app/mi-plata');
+    }
+    expect(backPath('/app/vacas')).toBe('/app/metas');
+  });
+
   it('lleva cada detalle a su sección', () => {
     expect(backPath('/app/tarjetas/12')).toBe('/app/tarjetas');
-    expect(backPath('/app/transacciones/abc')).toBe('/app/mi-plata');
+    expect(backPath('/app/transacciones/abc')).toBe('/app/movimientos');
     expect(backPath('/app/transacciones/exportar')).toBe('/app/cuenta');
     expect(backPath('/app/vacas/12')).toBe('/app/vacas');
     expect(backPath('/app/vacas/unirse/ABC')).toBe('/app/vacas');
