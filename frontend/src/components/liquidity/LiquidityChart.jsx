@@ -9,11 +9,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { formatMoney } from '@/components/transactions/format';
+import { formatMoney, formatMoneyCompact } from '@/components/transactions/format';
 
 /** Montos cortos para el eje Y: `$ 850 mil`, `$ 1,2 M`. */
-const compact = new Intl.NumberFormat('es-CO', { notation: 'compact', maximumFractionDigits: 1 });
-const formatAxis = (value) => (value === 0 ? '0' : `${value < 0 ? '-' : ''}$ ${compact.format(Math.abs(value))}`);
+const formatAxis = (value) => (value === 0 ? '0' : `${value < 0 ? '-' : ''}${formatMoneyCompact(Math.abs(value))}`);
 
 /** Cuadro al tocar un día: cuánto queda y qué se paga ese día. */
 function DayTooltip({ active, payload, hidden }) {

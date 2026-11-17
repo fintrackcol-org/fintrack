@@ -200,6 +200,9 @@ test('users/me exige un access token válido y vigente', options, async () => {
       timezone: 'America/Bogota',
       isAdmin: false,
       termsAccepted: true,
+      country: 'CO',
+      currency: 'COP',
+      language: 'es',
     });
 
     const noToken = await api('/users/me');

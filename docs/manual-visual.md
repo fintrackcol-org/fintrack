@@ -70,6 +70,7 @@ Reglas:
 | **Selector de acceso** | `auth/AuthLayout.jsx` (`mode`) | Franja "Iniciar sesión \| Crear cuenta" arriba del formulario en `/login` y `/registro`. Son enlaces (no botones) de 44 px; la elegida lleva `aria-current` y la pieza clara. Es la versión para páginas públicas de `Segmented`; no usar en `/app` |
 | **Sheet** | `common/Sheet.jsx` | Ventana que sube desde abajo en celular y se centra desde tablet; arrastrable, atrapa el foco, Escape cierra, devuelve el foco al abrir |
 | **ConfirmButton** | `common/ConfirmButton.jsx` | Confirmación en dos pasos para acciones destructivas |
+| **CountrySelect / CountrySettings** | `account/` | País de la persona: `<select>` nativo con los nombres en su idioma (orden alfabético). `CountrySettings` es la fila «País» de Cuenta; el paso del país al empezar va en `pages/app/Welcome.jsx` |
 | **Gráficos** | `charts/`, `dashboard/` | Ver sección 8 |
 
 Estados obligatorios de todo control: reposo, hover, `:focus-visible` (contorno violeta de 2 px con separación de 2 px), activo, deshabilitado (opacidad 50 %) y, si aplica, error y cargando.
@@ -93,6 +94,7 @@ Reglas: respetar `prefers-reduced-motion` (`motion-safe:`, `MotionConfig reduced
 - Cada gráfico responde **una pregunta** (¿en qué gasto?, ¿cuánto me queda?, ¿voy dentro del presupuesto?). Si no la responde, no se pone.
 - Ingresos y gastos usan `chart-income` / `chart-expense`; categorías usan `chart-cat-*`, con nombre y valor visibles.
 - Lo estimado o proyectado se rotula y no se presenta como dato cierto.
+- **Dinero según el país (17-nov-2026):** todo monto pasa por `formatMoney` o `formatMoneyCompact` (`transactions/format.js`) y todo campo de monto por `MoneyInput`. Nunca escribir `$` ni `'es-CO'` a mano: el símbolo, los separadores y los centavos salen de `lib/region.js` (`$ 12.500` en Colombia, `$12,500.50` en Estados Unidos, `R$ 1.234,56` en Brasil). Los números van como en la casa de la moneda principal, aunque la persona viaje o use otro idioma.
 - **Reportes exportados (Excel y PDF) y su vista previa en Exportar (FT-0012):** ingresos en `positive` y gastos en el violeta de marca; las categorías van todas en violeta, distinguidas por nombre y largo de barra, no por un color cada una. El rojo queda solo para alertas (presupuesto excedido, balance negativo). Es una excepción aprobada el 13-nov-2026 para los documentos; dentro de la app los gráficos siguen con `chart-income` / `chart-expense`. El logo va a color sobre `#F5F4F9`. Componente: `export/ReportPreview.jsx`.
 - **Semáforo del calendario (FT-0069):** `positive` te alcanza con holgura, `caution` te queda poco, `negative` no alcanza o está atrasado. Sale de lo que queda después de los pagos del día. Siempre con leyenda visible; el rojo lleva además el signo `!`. Un pago sin saldo calculado va en `ink/60` y lo que entra en `brand`, para no confundirlos con el verde.
 

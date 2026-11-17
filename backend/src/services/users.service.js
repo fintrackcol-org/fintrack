@@ -1,7 +1,7 @@
 import { isAdminEmail } from '../config/env.js';
 import { LEGAL_VERSION } from '../config/legal.js';
 import { AppError } from '../errors/app-error.js';
-import { acceptTerms, findUserById, updateUserName } from '../repositories/users.repository.js';
+import { acceptTerms, findUserById, hasTransactions, updateUserProfile } from '../repositories/users.repository.js';
 
 /**
  * @typedef {object} Profile
@@ -10,6 +10,9 @@ import { acceptTerms, findUserById, updateUserName } from '../repositories/users
  * @property {string|null} name Nombre visible; `null` si no lo ha puesto.
  * @property {string} timezone
  * @property {boolean} termsAccepted Si aceptó la versión vigente de los términos y la privacidad.
+ * @property {string} country País donde está ahora (ISO 3166).
+ * @property {string} currency Moneda principal (ISO 4217): la de todos sus montos y totales.
+ * @property {string} language Idioma de la app.
  */
 
 /**
@@ -25,6 +28,9 @@ function toProfile(user) {
     timezone: user.timezone,
     isAdmin: isAdminEmail(user.email),
     termsAccepted: user.termsVersion === LEGAL_VERSION,
+    country: user.country,
+    currency: user.currency,
+    language: user.language,
   };
 }
 
@@ -45,13 +51,22 @@ export async function getProfile(userId) {
 }
 
 /**
- * Cambia el nombre visible del usuario autenticado.
+ * Cambia el nombre visible, el país, la moneda principal o el idioma del usuario autenticado. La
+ * moneda principal solo cambia mientras no haya movimientos: si no, sus montos se leerían en otra
+ * moneda. Quien viaja cambia el país, no la moneda.
  * @param {string} userId
- * @param {{ name: string|null }} changes Datos ya validados.
+ * @param {{ name?: string|null, country?: string, currency?: string, language?: string }} changes Datos ya validados.
  * @returns {Promise<Profile>}
  */
-export async function updateProfile(userId, { name }) {
-  const user = await updateUserName(userId, name);
+export async function updateProfile(userId, changes) {
+  if (changes.currency) {
+    const current = await findUserById(userId);
+    if (!current) throw accountGone();
+    if (current.currency !== changes.currency && (await hasTransactions(userId))) {
+      throw new AppError(409, 'CURRENCY_LOCKED', `Ya tienes movimientos en ${current.currency}: tu moneda principal no se puede cambiar`);
+    }
+  }
+  const user = await updateUserProfile(userId, changes);
   if (!user) throw accountGone();
   return toProfile(user);
 }

@@ -685,6 +685,14 @@ export const MIGRATIONS = [
     id: '035_tutorial_visto',
     statements: ['ALTER TABLE perfiles_financieros ADD COLUMN IF NOT EXISTS tutorial_at TIMESTAMPTZ NULL'],
   },
+  {
+    id: '036_pais_moneda_idioma',
+    statements: [
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pais CHAR(2) NOT NULL DEFAULT 'CO'`,
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS moneda CHAR(3) NOT NULL DEFAULT 'COP'`,
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS idioma VARCHAR(5) NOT NULL DEFAULT 'es'`,
+    ],
+  },
 ];
 
 /**

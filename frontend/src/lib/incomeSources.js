@@ -1,4 +1,5 @@
 import { BriefcaseBusiness, Bike, Gift, TrendingUp, Wallet } from 'lucide-react';
+import { formatMoney } from '@/components/transactions/format';
 
 /**
  * Fuentes de ingreso (FT-0060): las tarjetas de "¿Cómo te entra la plata?" y la conversión entre lo
@@ -87,7 +88,8 @@ export function toggleKind(forms, kind) {
   return { ...forms, [kind]: emptyForm(kind) };
 }
 
-const pesos = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+/** Montos redondos en la moneda de la persona. */
+const pesos = { format: (value) => formatMoney(Math.round(value)) };
 
 /**
  * La frase de Mi plata sobre cuánto le entra al usuario.

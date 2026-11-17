@@ -15,6 +15,9 @@ CREATE TABLE usuarios (
   email_verificado_at TIMESTAMPTZ NULL, -- NULL: no ha abierto el enlace del correo y no puede entrar
   terminos_version VARCHAR(10) NULL, -- versión de términos y privacidad aceptada (FT-0017)
   terminos_aceptados_at TIMESTAMPTZ NULL, -- cuándo la aceptó
+  pais CHAR(2) NOT NULL DEFAULT 'CO', -- donde está ahora (ISO 3166); cambia si viaja (parche 036)
+  moneda CHAR(3) NOT NULL DEFAULT 'COP', -- moneda principal (ISO 4217): la de todos los montos y totales
+  idioma VARCHAR(5) NOT NULL DEFAULT 'es', -- es, en, pt o zh; se cambia aparte, no al viajar
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

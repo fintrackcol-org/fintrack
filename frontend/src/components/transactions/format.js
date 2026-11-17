@@ -1,16 +1,20 @@
-const money = new Intl.NumberFormat('es-CO', {
-  style: 'currency',
-  currency: 'COP',
-  minimumFractionDigits: 0, // algunos celulares ponen ",00" a todo si no se indica
-  maximumFractionDigits: 2,
-});
+import { regionFormats } from '@/lib/region';
 
 /**
  * @param {number} amount
- * @returns {string} Monto en pesos colombianos, p. ej. `$ 12.500`.
+ * @returns {string} Monto en la moneda principal de la persona, p. ej. `$ 12.500` o `US$ 12,50`.
  */
 export function formatMoney(amount) {
-  return money.format(amount);
+  return regionFormats().money(amount);
+}
+
+/**
+ * Monto corto para ejes y centros de gráficos, p. ej. `$ 850 mil` o `$ 1,2 M`.
+ * @param {number} amount
+ * @returns {string}
+ */
+export function formatMoneyCompact(amount) {
+  return regionFormats().compactMoney(amount);
 }
 
 /**

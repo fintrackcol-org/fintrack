@@ -1,15 +1,14 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import Ring from '@/components/charts/Ring';
-import { formatMoney } from '@/components/transactions/format';
+import { formatMoney, formatMoneyCompact } from '@/components/transactions/format';
 import { expenseSlices, formatShare } from '@/lib/expenseSlices';
 import { cn } from '@/lib/utils';
 
 const MASK = '$ ••••';
-const compact = new Intl.NumberFormat('es-CO', { notation: 'compact', maximumFractionDigits: 1 });
 
 /** En el centro de la dona cabe poco: de un millón en adelante va abreviado (`$ 1,2 M`). */
-const centerMoney = (value) => (value >= 1_000_000 ? `$ ${compact.format(value).replace(/\s*M.*$/, ' M')}` : formatMoney(value));
+const centerMoney = (value) => (value >= 1_000_000 ? formatMoneyCompact(value) : formatMoney(value));
 
 const sliceColor = (hue) => (hue ? `var(--app-chart-cat-${hue})` : 'var(--app-chart-other)');
 

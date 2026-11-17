@@ -404,10 +404,12 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
     patch:
       tags: [Users]
-      summary: Cambia el nombre visible del usuario
+      summary: Cambia el nombre visible, el país, la moneda principal o el idioma
       description: >
-        El nombre es opcional y solo se usa para saludar en la app. Se recorta y los espacios
-        repetidos quedan en uno. `null` o un texto vacío lo borran.
+        Se envía al menos uno de los campos. El nombre es opcional y solo se usa para saludar en la
+        app; se recorta y los espacios repetidos quedan en uno, y `null` o un texto vacío lo borran.
+        El país es donde está la persona ahora (cambia si viaja). La moneda principal es la de todos
+        sus montos y solo se puede cambiar mientras no tenga movimientos (si no, 409 `CURRENCY_LOCKED`).
       requestBody:
         required: true
         content:
@@ -421,6 +423,11 @@ paths:
               schema: { $ref: "#/components/schemas/User" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "409":
+          description: "`CURRENCY_LOCKED`: ya tiene movimientos, la moneda principal no cambia"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
         "422": { $ref: "#/components/responses/ValidationError" }
     delete:
       tags: [Users]
@@ -3523,11 +3530,17 @@ components:
         termsAccepted:
           type: boolean
           description: Si aceptó la versión vigente de los términos y la privacidad (FT-0017). Viene en `GET /users/me`.
+        country: { type: string, pattern: "^[A-Z]{2}$", description: País donde está ahora (ISO 3166), example: CO }
+        currency: { type: string, pattern: "^[A-Z]{3}$", description: Moneda principal (ISO 4217), la de todos sus montos, example: COP }
+        language: { type: string, enum: [es, en, pt, zh], example: es }
     UpdateProfileRequest:
       type: object
-      required: [name]
+      minProperties: 1
       properties:
         name: { type: string, nullable: true, maxLength: 60, example: Felipe }
+        country: { type: string, pattern: "^[A-Z]{2}$", example: MX }
+        currency: { type: string, pattern: "^[A-Z]{3}$", example: MXN }
+        language: { type: string, enum: [es, en, pt, zh], example: es }
     ReminderSettings:
       type: object
       required: [times, timezone]

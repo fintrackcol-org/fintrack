@@ -3,9 +3,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
   ChevronRight,
-  Coins,
   Crown,
   Download,
+  Globe,
   GraduationCap,
   Lightbulb,
   Loader2,
@@ -16,6 +16,7 @@ import {
   Tags,
   UserPlus,
 } from 'lucide-react';
+import CountrySettings from '@/components/account/CountrySettings';
 import CustomCategories from '@/components/account/CustomCategories';
 import DeleteAccount from '@/components/account/DeleteAccount';
 import ProfileCard from '@/components/account/ProfileCard';
@@ -31,6 +32,7 @@ import useAsync from '@/hooks/useAsync';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import usePageTitle from '@/hooks/usePageTitle';
 import { getDisplayName, getInitial } from '@/lib/displayName';
+import { countryName, getRegion } from '@/lib/region';
 import Segmented from '@/components/common/Segmented';
 import Sheet from '@/components/common/Sheet';
 import { cn } from '@/lib/utils';
@@ -168,9 +170,14 @@ function MobileAccount({ onSignOut, leaving }) {
         <Link to={LINKS[0].to} className={ROW}>
           <RowBody icon={Download} label={LINKS[0].label} />
         </Link>
-        <div className={cn(ROW, 'active:opacity-100')}>
-          <RowBody icon={Coins} label="Moneda" end={<span className="text-sm text-ink/60">Peso colombiano (COP)</span>} chevron={false} />
-        </div>
+        {row(
+          'pais',
+          Globe,
+          'País',
+          <span className="truncate text-sm text-ink/60">
+            {countryName(getRegion().country)} · {getRegion().currency}
+          </span>,
+        )}
         {shortcut.data?.enabled && row('applepay', Smartphone, 'Pagos con Apple Pay')}
       </RowGroup>
 
@@ -204,6 +211,9 @@ function MobileAccount({ onSignOut, leaving }) {
       </Sheet>
       <Sheet open={open === 'categorias'} title="Mis categorías" onClose={close}>
         <CustomCategories />
+      </Sheet>
+      <Sheet open={open === 'pais'} title="Tu país" onClose={close}>
+        <CountrySettings onSaved={close} />
       </Sheet>
       <Sheet
         open={open === 'whatsapp'}
@@ -268,6 +278,9 @@ export default function Account() {
         <Group label="Preferencias">
           <Section id="apariencia" title="Apariencia" description="Elige cómo se ve Rinde.">
             <ThemeSelector />
+          </Section>
+          <Section id="pais" title="País" description="Dónde estás. Si viajas, cámbialo aquí y tus cuentas siguen en tu moneda.">
+            <CountrySettings />
           </Section>
           <CustomCategories />
           <div id="whatsapp">

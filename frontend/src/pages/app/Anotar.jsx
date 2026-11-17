@@ -24,7 +24,7 @@ import usePageTitle from '@/hooks/usePageTitle';
 import { NETWORK_LABELS } from '@/lib/cardStyles';
 import { attachedText } from '@/lib/attachedText';
 import { cn } from '@/lib/utils';
-import { parseMoneyInput } from '@/lib/money';
+import { regionFormats } from '@/lib/region';
 import { parseSpokenTransaction } from '@/lib/voiceEntry';
 import { today, transactionSchema } from '@/lib/validation/transaction';
 import { saveNewTransaction } from '@/offline/saveNewTransaction';
@@ -160,6 +160,7 @@ export default function Anotar() {
 
   const expense = form.type === 'gasto';
   const amount = Number(form.amount || 0);
+  const { symbol } = regionFormats();
   const description = readDescription(form.description, manualAmount).description;
   const missing = !amount ? 'amount' : !description ? 'description' : null;
 
@@ -180,10 +181,10 @@ export default function Anotar() {
 
   /** Al escribir en «Monto». Si el monto venía de la descripción, la descripción queda sin él. */
   const typeAmount = (raw) => {
-    const value = parseMoneyInput(raw);
     setOptions([]);
     setManualAmount(true);
-    set({ amount: value ? String(Math.min(Math.round(value), 9_999_999_999)) : '', ...(!manualAmount && { description }) });
+    // `raw` ya viene limpio de MoneyInput ("1234.5", con centavos si la moneda los usa).
+    set({ amount: raw, ...(!manualAmount && { description }) });
   };
 
   const reset = () => {
@@ -365,7 +366,7 @@ export default function Anotar() {
               amount ? 'text-ink' : 'text-ink/35',
             )}
           >
-            $
+            {symbol}
           </span>
           <MoneyInput
             ref={amountField}
@@ -378,7 +379,9 @@ export default function Anotar() {
             onKeyDown={(event) => event.key === 'Enter' && (event.preventDefault(), descriptionField.current?.focus())}
             aria-invalid={amountError || undefined}
             aria-describedby={amountError ? 'anotar-monto-error' : undefined}
-            className="h-14 pl-10 text-[28px] font-extrabold tracking-tight tabular-nums"
+            // El símbolo cambia de largo ("$", "US$", "R$"): el texto empieza después de él.
+            style={{ paddingLeft: `calc(1.5rem + ${symbol.length}ch)` }}
+            className="h-14 text-[28px] font-extrabold tracking-tight tabular-nums"
           />
         </div>
         {amountError && (

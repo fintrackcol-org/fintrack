@@ -192,6 +192,21 @@ function checkCredentials(body) {
   return details.length ? error(422, 'VALIDATION_ERROR', 'Datos inválidos', details) : null;
 }
 
+/** Perfil de `GET /users/me`. Las cuentas de los mocks son de Colombia, en pesos y en español. */
+function mockProfile(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name ?? null,
+    timezone: user.timezone,
+    isAdmin: true,
+    termsAccepted: true,
+    country: user.country ?? 'CO',
+    currency: user.currency ?? 'COP',
+    language: user.language ?? 'es',
+  };
+}
+
 /** Usuario dueño del Bearer token, o `null`. */
 function authUser(request) {
   const token = request.headers.get('Authorization')?.replace(/^Bearer /, '');
@@ -626,7 +641,20 @@ export const handlers = [
   http.get(`${API_V1}/users/me`, ({ request }) => {
     const user = authUser(request);
     if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
-    return HttpResponse.json({ id: user.id, email: user.email, timezone: user.timezone, isAdmin: true });
+    return HttpResponse.json(mockProfile(user));
+  }),
+
+  // País, moneda principal, idioma o nombre. La moneda no cambia si ya hay movimientos (como el servidor).
+  http.patch(`${API_V1}/users/me`, async ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const body = (await readJson(request)) ?? {};
+    const current = mockProfile(user);
+    if (body.currency && body.currency !== current.currency && (transactions.get(user.id) ?? []).length > 0) {
+      return error(409, 'CURRENCY_LOCKED', `Ya tienes movimientos en ${current.currency}: tu moneda principal no se puede cambiar`);
+    }
+    for (const field of ['name', 'country', 'currency', 'language']) if (field in body) user[field] = body[field];
+    return HttpResponse.json(mockProfile(user));
   }),
 
   http.get(`${API_V1}/categories`, ({ request }) => {

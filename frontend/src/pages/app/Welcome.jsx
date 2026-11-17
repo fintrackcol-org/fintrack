@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Plus, X } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
+import CountrySelect from '@/components/account/CountrySelect';
 import MoneyInput from '@/components/common/MoneyInput';
+import Segmented from '@/components/common/Segmented';
 import IncomeSourcesFields from '@/components/money/IncomeSourcesFields';
 import HowItWorksTour from '@/components/onboarding/HowItWorksTour';
 import { Button } from '@/components/ui/button';
@@ -13,10 +15,86 @@ import { getDisplayName } from '@/lib/displayName';
 import { SUGGESTED_COMMITMENTS, balanceProposal, readCommitmentForm, toProfileData } from '@/lib/moneyProfile';
 import { cn } from '@/lib/utils';
 import { toApiSources } from '@/lib/incomeSources';
+import { LANGUAGES, currencyName, regionForCountry, setRegion, suggestCountry } from '@/lib/region';
 import { finishWelcome, getMoneyProfile, saveIncomeSources } from '@/services/moneyProfileService';
+import { saveCountry } from '@/services/userService';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
 const STEPS = 3;
+
+const LANGUAGE_OPTIONS = LANGUAGES.map(({ code, name }) => ({ value: code, label: name }));
+
+/**
+ * Lo primero de todo: en qué país está. Con él se ponen la moneda y el idioma (que se puede cambiar
+ * aquí mismo). Se propone el país del celular; se puede omitir y queda Colombia.
+ * @param {{ onDone: () => void }} props
+ */
+function CountryStep({ onDone }) {
+  const [country, setCountry] = useState(() => suggestCountry());
+  const [language, setLanguage] = useState(() => regionForCountry(country).language);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const { currency } = regionForCountry(country);
+
+  const pick = (code) => {
+    setCountry(code);
+    setLanguage(regionForCountry(code).language);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      setRegion(await saveCountry(country, language));
+      onDone();
+    } catch (err) {
+      setError(err.message);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6">
+      <div className="mt-6 flex flex-1 flex-col gap-5">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">¿En qué país estás?</h1>
+          <p className="mt-2 text-[15px] text-ink/60">Con esto ponemos tu moneda y tu idioma. Si viajas, lo cambias en Cuenta.</p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="welcome-country">País</Label>
+          <CountrySelect id="welcome-country" value={country} onChange={pick} />
+        </div>
+        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-4 ring-1 ring-ink/10">
+          <p className="flex items-center justify-between gap-3 text-[15px]">
+            <span className="text-ink/60">Tu moneda</span>
+            <b className="text-right font-semibold">
+              {currencyName(currency)} ({currency})
+            </b>
+          </p>
+          <div className="space-y-2">
+            <p className="text-[15px] text-ink/60">Idioma</p>
+            <Segmented label="Idioma" options={LANGUAGE_OPTIONS} value={language} onChange={setLanguage} />
+          </div>
+        </div>
+      </div>
+
+      <div className="sticky bottom-0 mt-6 flex flex-col gap-2 bg-canvas py-3">
+        {error && (
+          <p role="alert" className="text-sm text-negative">
+            {error}
+          </p>
+        )}
+        <Button onClick={save} disabled={saving}>
+          {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
+          Seguir
+        </Button>
+        <Button variant="ghost" disabled={saving} onClick={onDone}>
+          Omitir
+        </Button>
+      </div>
+    </main>
+  );
+}
 
 /** Lo que el usuario escribe de un compromiso. `custom` deja cambiar el nombre. */
 const newItem = (name, custom = false) => ({ key: crypto.randomUUID(), name, amount: '', dayOfMonth: '', custom });
@@ -27,7 +105,8 @@ function WelcomeSteps() {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { user } = useAuth();
-  // FT-0048: antes de las preguntas, el recorrido "Cómo funciona" (se puede saltar).
+  // Primero el país (moneda e idioma); después el recorrido "Cómo funciona" (FT-0048, se puede saltar).
+  const [placing, setPlacing] = useState(true);
   const [touring, setTouring] = useState(true);
   const [step, setStep] = useState(1);
   // FT-0060: fuentes de ingreso elegidas (por tipo). Se puede elegir varias o ninguna.
@@ -100,7 +179,9 @@ function WelcomeSteps() {
 
   return (
     <div data-theme={theme} className="min-h-dvh bg-canvas text-ink antialiased">
-      {touring ? (
+      {placing ? (
+        <CountryStep onDone={() => setPlacing(false)} />
+      ) : touring ? (
         <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6">
           <HowItWorksTour name={getDisplayName(user)} onDone={() => setTouring(false)} />
         </main>

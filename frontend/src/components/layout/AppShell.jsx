@@ -26,6 +26,7 @@ import { backPath, canGoBack } from '@/lib/backPath';
 import { getDisplayName, getInitial } from '@/lib/displayName';
 import { cn } from '@/lib/utils';
 import { getProfile } from '@/services/userService';
+import { setRegion } from '@/lib/region';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
 /**
@@ -236,7 +237,8 @@ let profileSynced = false;
 
 /**
  * Actualiza el nombre guardado en la sesión con el del servidor, por si se cambió en otro
- * dispositivo. Sin conexión o si falla, se queda con el que ya tenía.
+ * dispositivo, y el país, la moneda y el idioma con los que se da formato. Sin conexión o si falla,
+ * se queda con lo que ya tenía.
  */
 function useSyncProfile() {
   const { updateUser } = useAuth();
@@ -244,7 +246,12 @@ function useSyncProfile() {
     if (profileSynced) return;
     profileSynced = true;
     getProfile()
-      .then((profile) => 'name' in profile && updateUser({ name: profile.name }))
+      .then((profile) => {
+        if ('name' in profile) updateUser({ name: profile.name });
+        // shortcut: recargar redibuja todo con la moneda nueva; pasa una vez por dispositivo o por
+        // cambio hecho en otro lado. Si algún día molesta, pasar la región por un contexto de React.
+        if (profile.currency && setRegion(profile)) window.location.reload();
+      })
       .catch(() => {
         profileSynced = false; // se reintenta en la próxima navegación
       });
