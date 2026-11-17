@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Loader2, Pencil, Trash2 } from 'lucide-react';
 import { cardMark } from '@/components/cards/cardFormat';
-import ConfirmButton from '@/components/common/ConfirmButton';
+import Sheet from '@/components/common/Sheet';
 import { MASK } from '@/components/dashboard/BalanceCard';
 import Panel from '@/components/layout/Panel';
 import AttachmentsPanel from '@/components/transactions/AttachmentsPanel';
@@ -62,6 +62,10 @@ export default function TransactionDetail() {
   const { names } = useCategoryNames();
   const [hidden] = useHiddenAmounts();
   const [error, setError] = useState('');
+  // Eliminar pide confirmación en la misma hoja que la lista de Movimientos.
+  const [deleting, setDeleting] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   usePageTitle(t ? t.description : 'Movimiento');
 
   if (!t) {
@@ -120,13 +124,15 @@ export default function TransactionDetail() {
   };
 
   const remove = async () => {
-    setError('');
+    setDeleteError('');
+    setRemoving(true);
     try {
       await removeTransaction(t);
       if (canGoBack(window.history.state)) navigate(-1);
       else navigate('/app/movimientos', { replace: true });
     } catch (err) {
-      setError(err.message);
+      setDeleteError(err.message);
+      setRemoving(false);
     }
   };
 
@@ -210,14 +216,38 @@ export default function TransactionDetail() {
           <Pencil aria-hidden="true" />
           {income ? 'Editar ingreso' : 'Editar gasto'}
         </Button>
-        <ConfirmButton
-          label={income ? 'Eliminar ingreso' : 'Eliminar gasto'}
-          question="¿Eliminar este movimiento?"
-          confirmLabel="Sí, eliminar"
-          icon={Trash2}
-          onConfirm={remove}
-        />
+        <Button
+          size="lg"
+          variant="outline"
+          className="border-negative/30 text-negative hover:bg-negative/5"
+          onClick={() => (setDeleteError(''), setDeleting(true))}
+        >
+          <Trash2 aria-hidden="true" />
+          {income ? 'Eliminar ingreso' : 'Eliminar gasto'}
+        </Button>
       </div>
+
+      <Sheet
+        open={deleting}
+        title="¿Eliminar este movimiento?"
+        description={`${t.description} · ${hidden ? MASK : formatMoney(t.amount)}. Se quita de tus totales.`}
+        onClose={() => !removing && setDeleting(false)}
+      >
+        {deleteError && (
+          <p role="alert" className="mb-3 text-sm text-negative">
+            {deleteError}
+          </p>
+        )}
+        <div className="flex flex-col gap-2">
+          <Button size="lg" className="bg-negative text-white hover:bg-negative/90" disabled={removing} onClick={remove}>
+            {removing && <Loader2 className="animate-spin" aria-hidden="true" />}
+            Sí, eliminar
+          </Button>
+          <Button size="lg" variant="ghost" disabled={removing} onClick={() => setDeleting(false)}>
+            Cancelar
+          </Button>
+        </div>
+      </Sheet>
     </div>
   );
 }

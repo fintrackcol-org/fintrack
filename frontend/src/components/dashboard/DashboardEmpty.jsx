@@ -29,7 +29,7 @@ export default function DashboardEmpty() {
         Todavía no has anotado nada este mes
       </h2>
       <p className="mx-auto mt-2 max-w-sm text-[15px] text-ink/70">
-        Empieza con lo que gastaste hoy, aunque sea un tinto. Escríbelo como te salga y Rinde lo organiza.
+        Empieza con lo que gastaste hoy, aunque sea un tinto. Pon cuánto fue y en qué, y Rinde lo organiza.
       </p>
       <Button asChild size="lg" className="mt-6 rounded-full">
         <Link to="/app/anotar?tipo=gasto">
