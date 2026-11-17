@@ -134,7 +134,7 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
               const level = displayLevel(b.alert);
               const label = names[b.category] ?? b.category;
               return (
-                <Link key={b.id} to={`/app/presupuestos/${b.category}`} className="flex flex-col gap-2 focus-visible:outline-2 focus-visible:outline-violet">
+                <Link key={b.id} to={`/app/presupuestos/${b.category}`} className="flex min-h-11 flex-col justify-center gap-2 focus-visible:outline-2 focus-visible:outline-violet">
                   <span className="flex items-baseline justify-between gap-3 text-[15px]">
                     <b className="truncate font-semibold">{label}</b>
                     <span className="shrink-0 text-[13px] tabular-nums">
@@ -159,7 +159,7 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
             })
           )}
           {top.length > 3 && (
-            <Link to="/app/presupuestos" className="text-[13px] text-ink/60">
+            <Link to="/app/presupuestos" className="inline-flex min-h-11 items-center text-[13px] font-medium text-brand">
               + {top.length - 3} {top.length - 3 === 1 ? 'presupuesto más' : 'presupuestos más'}
             </Link>
           )}
@@ -183,7 +183,7 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
           <ul className="rounded-2xl bg-surface px-4 ring-1 ring-ink/10">
             {fixed.map((c) => (
               <li key={c.id} className="flex items-center justify-between gap-3 border-b border-ink/10 py-3 text-sm last:border-0">
-                <span className={cn('min-w-0 truncate', c.dayOfMonth < today.getDate() ? 'text-ink/50' : 'text-ink/80')}>
+                <span className={cn('min-w-0 truncate', c.dayOfMonth < today.getDate() ? 'text-ink/60 line-through decoration-ink/30' : 'text-ink/80')}>
                   {c.dayOfMonth} {month} · {c.name}
                 </span>
                 <b className="shrink-0 font-semibold tabular-nums">{money(c.amount)}</b>

@@ -190,7 +190,7 @@ function Sidebar({ user }) {
           <Avatar user={user} />
           <span className="min-w-0 max-lg:sr-only">
             <span className="block truncate text-sm font-semibold">{getDisplayName(user) || 'Tú'}</span>
-            <span className="block truncate text-xs text-ink/60">Tu cuenta</span>
+            <span className="block truncate text-xs text-ink/70">Tu cuenta</span>
           </span>
         </NavLink>
       </div>
@@ -346,9 +346,13 @@ function Shell() {
 
 let firstPage = true;
 
+/** Las 4 pestañas: cambiar entre ellas es ir al lado, no avanzar, y pasa decenas de veces al día. */
+const TAB_ROOTS = new Set(['/app', '/app/movimientos', '/app/mi-plata', '/app/metas']);
+
 /**
  * Entrada de cada pantalla: llega desde la derecha al avanzar y desde la izquierda al volver. No se
- * anima lo primero que se ve al abrir la app, ni Anotar, que es a pantalla completa y sube por su cuenta.
+ * anima lo primero que se ve al abrir la app, ni Anotar, que es a pantalla completa y sube por su cuenta,
+ * ni el cambio de pestaña (es frecuente: la animación solo estorbaría).
  */
 function PageEnter({ children }) {
   const type = useNavigationType();
@@ -356,7 +360,7 @@ function PageEnter({ children }) {
   const [enter] = useState(() => {
     const first = firstPage;
     firstPage = false;
-    if (first || pathname === '/app/anotar') return undefined;
+    if (first || pathname === '/app/anotar' || (type !== 'POP' && TAB_ROOTS.has(pathname))) return undefined;
     return type === 'POP' ? 'motion-safe:animate-page-back' : 'motion-safe:animate-page-in';
   });
   return <div className={enter}>{children}</div>;

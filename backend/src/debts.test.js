@@ -406,6 +406,9 @@ test('borrar un abono vuelve a dejar pendiente su parte; nadie abona en la cuent
     assert.equal(undone.status, 200);
     assert.equal(undone.body.pending, 60000);
     assert.equal(undone.body.payments.length, 0);
+    // El gasto que se anotó con el abono también se borra.
+    const tx = await api(`/transactions/${paid.body.transaction.id}`, { token: me.token });
+    assert.equal(tx.status, 404);
 
     // Saldar lo que falta crea el movimiento solo por lo pendiente.
     await api(`/debts/${id}/payments`, { method: 'POST', token: me.token, body: { amount: 10000, date: '2026-10-11' } });

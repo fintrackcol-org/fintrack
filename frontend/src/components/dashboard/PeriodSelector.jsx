@@ -17,7 +17,7 @@ function ArrowButton({ label, onClick, disabled = false, children }) {
       disabled={disabled}
       aria-label={label}
       className={cn(
-        'grid size-9 place-items-center rounded-full border border-ink/12 bg-surface text-ink/70 transition-colors',
+        'grid size-11 place-items-center rounded-full border border-ink/12 bg-surface text-ink/70 transition-colors',
         'hover:border-ink/25 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40',
       )}
     >

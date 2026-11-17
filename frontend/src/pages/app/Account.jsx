@@ -193,7 +193,7 @@ function MobileAccount({ onSignOut, leaving }) {
         <button type="button" className="min-h-11 text-sm font-medium text-negative" onClick={() => setOpen('eliminar')}>
           Eliminar cuenta
         </button>
-        <p className="text-xs text-ink/50">Rinde v2.0 · USCO · INNOVASOFT IX</p>
+        <p className="text-xs text-ink/60">Rinde v2.0 · USCO · INNOVASOFT IX</p>
       </div>
 
       <Sheet open={open === 'perfil'} title="Tu perfil" onClose={close}>

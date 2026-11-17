@@ -35,8 +35,11 @@ const SPOKEN_AMOUNTS = [
 /** Cuánto vale cada unidad que puede ir después del número. */
 const UNITS = { mil: 1e3, k: 1e3, luca: 1e3, lucas: 1e3, palo: 1e6, palos: 1e6, millon: 1e6, millón: 1e6, millones: 1e6 };
 
-/** Un número (con puntos o comas) y, opcionalmente, su unidad: "15 mil", "26.900", "1,2 millones". */
-const NUMBER = /\$?\s?(\d+(?:[.,]\d+)*)\s*(mil|k|lucas?|palos?|mill[oó]n|millones)?(?!\p{L})/gu;
+/**
+ * Un número (con puntos o comas) y, opcionalmente, su unidad: "15 mil", "26.900", "1,2 millones".
+ * Pegado a letras por delante no es un monto: "iPhone15", "MP3" o "C1" son parte del nombre.
+ */
+const NUMBER = /(?<![\p{L}\d.,])\$?\s?(\d+(?:[.,]\d+)*)\s*(mil|k|lucas?|palos?|mill[oó]n|millones)?(?!\p{L})/gu;
 
 /** Cantidades dichas con palabras ("tres almuerzos"); el dictado suele escribirlas así. */
 const QUANTITY_WORDS = ['dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez'];
@@ -93,9 +96,26 @@ const MILLIONS_AND_THOUSANDS = /(?<!\p{L})(un|\d+)\s+mill[oó]n(?:es)?\s+(?:y\s+
 /** Puntuación y comillas que el dictado deja al principio o al final ("Almuerzo."). */
 const EDGE_PUNCTUATION = /^[\s.,;:!?¡¿"“”']+|[\s.,;:!?¡¿"“”']+$/g;
 
-/** Palabras que sobran en la descripción. */
+/** Palabras que sobran en la descripción, al principio o al final ("pagué el arriendo", "taxi de"). */
 const FILLER =
   /(?<!\p{L})(me pagaron|me consignaron|me dieron|me entr[oó]|me entraron|me transfirieron|me depositaron|me giraron|me abonaron|me devolvieron|gan[eé]|cobr[eé]|recib[ií]|gast[eé]|pagu[eé]|compr[eé]|y cada un[oa]|cada un[oa]|me cost[oó]|cost[oó]|me sali[oó]|de|en|por|a|el|la|los|las|pesos?)(?!\p{L})/giu;
+
+const FILLER_AT_START = new RegExp(`^(?:${FILLER.source})\\s*`, 'iu');
+const FILLER_AT_END = new RegExp(`\\s*(?:${FILLER.source})$`, 'iu');
+
+/**
+ * Quita las palabras de relleno solo de los bordes: "pagué el arriendo" → "arriendo", pero
+ * "almuerzo con el equipo" y "regalo para la mamá" se quedan como se dijeron.
+ * @param {string} text
+ */
+function trimFiller(text) {
+  let out = text.trim();
+  for (let prev = ''; prev !== out; ) {
+    prev = out;
+    out = out.replace(FILLER_AT_START, '').replace(FILLER_AT_END, '').replace(EDGE_PUNCTUATION, '').trim();
+  }
+  return out;
+}
 
 /**
  * @param {string} text Lo que entendió el reconocimiento de voz.
@@ -154,7 +174,7 @@ export function parseSpokenTransaction(text, now = new Date()) {
   // Solo se quita el número usado como monto: "2 almuerzos de 12 mil" → "2 almuerzos".
   let description = workIncome ? said.replace(WORK_INCOME, ' ') : said;
   if (biggest) description = description.replace(new RegExp(escapeRegExp(biggest.text), 'i'), ' ');
-  description = description.replace(FILLER, ' ').replace(/\s+/g, ' ').replace(EDGE_PUNCTUATION, '').slice(0, 200);
+  description = trimFiller(description.replace(/\s+/g, ' ').replace(EDGE_PUNCTUATION, '')).slice(0, 200);
   if (description) description = description[0].toUpperCase() + description.slice(1);
   else if (type === 'ingreso') description = 'Pago recibido';
 

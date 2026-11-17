@@ -13,9 +13,10 @@ const SLOP = 8;
  * se mueve con `transform` y se decide por distancia o velocidad: un deslizamiento corto y rápido
  * también abre. El scroll vertical sigue funcionando (`touch-action: pan-y`) y, si el dedo se movió,
  * soltarlo no abre el detalle. Con teclado o lector de pantalla las acciones están en el detalle.
- * @param {{ children: import('react').ReactNode, editTo: string, editState?: object, onDelete: () => void, label: string }} props
+ * `children` son los `<li>` de la fila (va dentro de una lista); `listClassName` le da forma a esa lista.
+ * @param {{ children: import('react').ReactNode, editTo: string, editState?: object, onDelete: () => void, label: string, listClassName?: string }} props
  */
-export default function SwipeRow({ children, editTo, editState, onDelete, label }) {
+export default function SwipeRow({ children, editTo, editState, onDelete, label, listClassName }) {
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
   const gesture = useRef(null);
@@ -69,6 +70,7 @@ export default function SwipeRow({ children, editTo, editState, onDelete, label 
           to={editTo}
           state={editState}
           tabIndex={open ? 0 : -1}
+          aria-label={`Editar ${label}`}
           className="flex w-[72px] flex-col items-center justify-center gap-1 bg-brand text-xs font-semibold text-white focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"
         >
           <Pencil className="size-5" aria-hidden="true" />
@@ -100,12 +102,12 @@ export default function SwipeRow({ children, editTo, editState, onDelete, label 
           moved.current = false;
         }}
         className={cn(
-          'relative touch-pan-y select-none bg-surface [&>ul]:m-0',
+          'relative touch-pan-y select-none bg-surface',
           !dragging && 'transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none',
         )}
         style={{ transform: `translate3d(${offset}px, 0, 0)` }}
       >
-        <ul>{children}</ul>
+        <ul className={cn('m-0', listClassName)}>{children}</ul>
       </div>
     </li>
   );

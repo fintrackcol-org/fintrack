@@ -245,7 +245,7 @@ export default function MovementList({ names, hidden = false, standalone = false
           value={text}
           onChange={(event) => setText(event.target.value)}
           placeholder="Buscar movimiento"
-          className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink/50"
+          className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink/60"
         />
       </label>
 
@@ -335,10 +335,9 @@ export default function MovementList({ names, hidden = false, standalone = false
                       editTo={`/app/transacciones/${t.id}/editar`}
                       editState={{ transaction: t }}
                       onDelete={() => (setDeleteError(''), setDeleting(t))}
+                      listClassName="rounded-2xl px-3 ring-1 ring-inset ring-ink/10"
                     >
-                      <div className="rounded-2xl px-3 ring-1 ring-inset ring-ink/10">
-                        <MovementRow transaction={t} names={names} hidden={hidden} icon fresh={fresh.has(t.id)} />
-                      </div>
+                      <MovementRow transaction={t} names={names} hidden={hidden} icon fresh={fresh.has(t.id)} />
                     </SwipeRow>
                   ),
                 )}
@@ -379,8 +378,10 @@ export default function MovementList({ names, hidden = false, standalone = false
             className="bg-negative text-white hover:bg-negative/90"
             onClick={async () => {
               try {
-                await removeTransaction(deleting);
+                const { offline } = await removeTransaction(deleting);
                 setDeleting(null);
+                // Sin red se quita de la vista y se borra en el servidor al volver: se dice, para que no sorprenda.
+                setNotice(offline ? 'Eliminado sin conexión: se borra en el servidor al volver internet.' : 'Movimiento eliminado.');
                 setVersion((v) => v + 1);
               } catch (err) {
                 setDeleteError(err.message);

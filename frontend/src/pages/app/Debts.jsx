@@ -18,6 +18,7 @@ import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { DEBT_WORDS, dueText, initials, progressText, shortDate } from '@/lib/debts';
 import { cn } from '@/lib/utils';
+import { uncacheTransaction } from '@/offline/sync';
 import {
   addDebtPayment,
   createDebt,
@@ -114,7 +115,7 @@ function DebtCard({ debt, today, money, online, onPay, onSettle, onEdit }) {
           <p className="break-words font-semibold">{debt.person}</p>
           {debt.note && <p className="break-words text-sm text-ink/60">{debt.note}</p>}
         </div>
-        <Button size="icon" variant="ghost" onClick={onEdit} disabled={!online} aria-label={`Editar la cuenta de ${debt.person}`}>
+        <Button size="icon" variant="ghost" className="size-11" onClick={onEdit} disabled={!online} aria-label={`Editar la cuenta de ${debt.person}`}>
           <Pencil aria-hidden="true" />
         </Button>
       </div>
@@ -231,7 +232,7 @@ export function DebtList({ items, kind, today, money, online, onAdd, onPay, onSe
  */
 function SideSwitch({ value, totals, counts, money, onChange }) {
   return (
-    <div role="tablist" aria-label="Cuentas" className="grid grid-cols-2 gap-1 rounded-2xl bg-ink/5 p-1">
+    <div role="tablist" aria-label="Cuentas" className="grid grid-cols-2 gap-1 rounded-2xl bg-surface p-1 ring-1 ring-ink/10">
       {['receivable', 'payable'].map((kind) => {
         const selected = value === kind;
         return (
@@ -243,17 +244,17 @@ function SideSwitch({ value, totals, counts, money, onChange }) {
             onClick={() => onChange(kind)}
             className={cn(
               'min-h-16 rounded-xl px-3 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet',
-              selected ? 'bg-surface shadow-sm' : 'text-ink/70',
+              selected ? 'bg-canvas ring-1 ring-inset ring-ink/15' : 'text-ink/70 hover:bg-ink/5',
             )}
           >
             <span className="block text-sm font-medium">
               {DEBT_WORDS[kind].tab}
-              {counts[kind] > 0 && <span className="text-ink/50"> · {counts[kind]}</span>}
+              {counts[kind] > 0 && <span className="text-ink/70"> · {counts[kind]}</span>}
             </span>
             <span
               className={cn(
                 'block text-lg font-semibold tabular-nums',
-                totals[kind] > 0 ? (kind === 'receivable' ? 'text-positive' : 'text-negative') : 'text-ink/50',
+                totals[kind] > 0 ? (kind === 'receivable' ? 'text-positive' : 'text-negative') : 'text-ink/70',
               )}
             >
               {money(totals[kind])}
@@ -280,7 +281,7 @@ function PaymentHistory({ debt, money, today, online, onDelete }) {
             </p>
             <ConfirmButton
               label="Borrar abono"
-              question={`¿Borrar el abono de ${money(p.amount)}? Si creaste el movimiento, bórralo también en Movimientos.`}
+              question={`¿Borrar el abono de ${money(p.amount)}?${p.transactionId ? ' También se borra el movimiento que se anotó con él.' : ''}`}
               confirmLabel="Sí, borrar"
               icon={Trash2}
               disabled={!online}
@@ -344,7 +345,10 @@ export default function Debts() {
     done();
   };
   const handleDeletePayment = async (paymentId) => {
+    const txId = sheet.debt.payments.find((p) => p.id === paymentId)?.transactionId;
     const debt = await deleteDebtPayment(sheet.debt.id, paymentId);
+    // El servidor también borró el movimiento del abono: que deje de verse en este dispositivo.
+    if (txId) await uncacheTransaction(txId);
     setSheet({ mode: 'edit', debt });
     reload();
   };

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, ChevronDown, Keyboard, Loader2, Mic, Paperclip, Plus, Sparkles, X } from 'lucide-react';
 import NewCategoryDialog from '@/components/categories/NewCategoryDialog';
@@ -345,7 +345,7 @@ export default function Anotar() {
             type="button"
             aria-label="Dictarlo"
             onClick={() => setVoice(true)}
-            className="absolute right-1 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full text-brand hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-violet"
+            className="absolute right-0.5 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full text-brand hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-violet"
           >
             <Mic className="size-5" aria-hidden="true" />
           </button>
@@ -358,7 +358,7 @@ export default function Anotar() {
       {/* Lo que se entendió: monto, descripción, categoría y Kakeibo. */}
       <section aria-label="Lo que vamos a guardar" className="flex flex-col gap-3 rounded-2xl bg-canvas p-4">
         <div className="flex items-start justify-between gap-3">
-          <p aria-live="polite" className={cn('text-[28px] font-extrabold leading-[34px] tracking-tight tabular-nums', !amount && 'text-ink/30')}>
+          <p aria-live="polite" className={cn('text-[28px] font-extrabold leading-[34px] tracking-tight tabular-nums', !amount && 'text-ink/55')}>
             {formatMoney(amount)}
           </p>
           <p className="min-w-0 pt-1 text-right text-[13px]">
@@ -376,7 +376,7 @@ export default function Anotar() {
                 aria-pressed={Number(form.amount) === value}
                 onClick={() => (setManualAmount(true), set({ amount: String(Math.round(value)) }))}
                 className={cn(
-                  'h-9 rounded-lg px-3 font-semibold focus-visible:outline-2 focus-visible:outline-violet',
+                  'h-11 rounded-lg px-3 font-semibold focus-visible:outline-2 focus-visible:outline-violet',
                   Number(form.amount) === value ? 'bg-brand text-white' : 'bg-surface ring-1 ring-ink/10',
                 )}
               >
@@ -413,14 +413,14 @@ export default function Anotar() {
           <p id="anotar-categoria" className="text-xs font-semibold uppercase tracking-[0.08em] text-ink/60">
             Categoría
           </p>
-          <ul role="group" aria-labelledby="anotar-categoria" className="flex flex-wrap gap-1.5">
+          <ul aria-labelledby="anotar-categoria" className="flex flex-wrap gap-1.5">
             <li>
               <button
                 type="button"
                 aria-pressed={form.category === AI}
                 onClick={() => set({ category: AI })}
                 className={cn(
-                  'flex h-9 items-center gap-1 rounded-lg px-2.5 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-violet',
+                  'flex h-11 items-center gap-1 rounded-lg px-2.5 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-violet',
                   form.category === AI ? 'bg-brand text-white' : 'bg-brand-soft text-ink',
                 )}
               >
@@ -435,7 +435,7 @@ export default function Anotar() {
                   aria-pressed={form.category === c.key}
                   onClick={() => set({ category: c.key })}
                   className={cn(
-                    'h-9 rounded-lg px-2.5 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-violet',
+                    'h-11 rounded-lg px-3 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-violet',
                     form.category === c.key ? 'bg-brand text-white' : 'bg-brand-soft text-ink',
                   )}
                 >
@@ -448,7 +448,7 @@ export default function Anotar() {
                 <button
                   type="button"
                   onClick={() => setAllCategories(true)}
-                  className="h-9 rounded-lg bg-surface px-2.5 text-[13px] font-semibold text-brand ring-1 ring-ink/10 focus-visible:outline-2 focus-visible:outline-violet"
+                  className="h-11 rounded-lg bg-surface px-3 text-[13px] font-semibold text-brand ring-1 ring-ink/10 focus-visible:outline-2 focus-visible:outline-violet"
                 >
                   Ver todas
                 </button>
@@ -458,7 +458,7 @@ export default function Anotar() {
               <button
                 type="button"
                 onClick={() => setCreating(true)}
-                className="flex h-9 items-center gap-1 rounded-lg bg-surface px-2.5 text-[13px] font-semibold text-brand ring-1 ring-ink/10 focus-visible:outline-2 focus-visible:outline-violet"
+                className="flex h-11 items-center gap-1 rounded-lg bg-surface px-3 text-[13px] font-semibold text-brand ring-1 ring-ink/10 focus-visible:outline-2 focus-visible:outline-violet"
               >
                 <Plus className="size-3.5" aria-hidden="true" />
                 Nueva

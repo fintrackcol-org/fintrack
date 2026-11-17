@@ -2301,7 +2301,7 @@ paths:
     delete:
       tags: [Debts]
       summary: Borra un abono de una cuenta pendiente (para corregir un error)
-      description: El movimiento creado con el abono no se borra.
+      description: También borra (lógicamente) el movimiento que se anotó con el abono, si se creó uno.
       responses:
         "200": { description: La cuenta como queda, content: { application/json: { schema: { $ref: "#/components/schemas/Debt" } } } }
         "401": { $ref: "#/components/responses/Unauthorized" }

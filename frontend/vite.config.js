@@ -44,15 +44,20 @@ export default defineConfig({
         // Accesos directos al mantener presionado el ícono (Android) o con clic derecho (Windows/macOS).
         shortcuts: [
           {
-            name: 'Registrar gasto',
+            name: 'Anotar un gasto',
             short_name: 'Gasto',
             url: '/app/anotar?tipo=gasto',
             icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
           },
           {
-            name: 'Registrar ingreso',
+            name: 'Anotar un ingreso',
             short_name: 'Ingreso',
             url: '/app/anotar?tipo=ingreso',
+            icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Movimientos',
+            url: '/app/movimientos',
             icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
           },
           {
@@ -61,13 +66,31 @@ export default defineConfig({
             icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
           },
         ],
+        // Capturas para la ventana de instalación más completa (Chrome en Android y escritorio).
+        screenshots: [
+          {
+            src: '/screenshots/inicio-celular.png',
+            sizes: '780x1688',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Inicio: cuánto te queda y hasta cuándo te alcanza',
+          },
+          {
+            src: '/screenshots/inicio-escritorio.png',
+            sizes: '1280x860',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'Inicio en el computador',
+          },
+        ],
       },
       workbox: {
         // Manejadores de notificaciones push (public/push-sw.js), importados por el service worker.
         importScripts: ['push-sw.js'],
         globPatterns: ['**/*.{js,css,html,svg,webp,png,woff2}'],
         // Las pantallas de carga de iOS las lee el sistema; no hace falta precachearlas.
-        globIgnores: ['**/mockServiceWorker.js', 'splash/**'],
+        // Las capturas solo las usa la ventana de instalación: no van al precache.
+        globIgnores: ['**/mockServiceWorker.js', 'splash/**', 'screenshots/**'],
         navigateFallback: '/index.html',
       },
     }),

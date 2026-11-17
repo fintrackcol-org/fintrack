@@ -220,8 +220,8 @@ function SaveSheet({ meta, balance, monthExpense, onDone }) {
       </div>
       {then && now && value > 0 && (
         <p className="text-[15px]">
-          <b className="font-semibold">Mi plata te alcanzaría {untilText(then)}</b>{' '}
-          <span className="text-ink/60">(hoy: {untilText(now).replace('hasta el ', '')}).</span>{' '}
+          <b className="font-semibold">Mi plata te alcanzaría {then.lasts ? 'hasta después de fin de mes' : untilText(then)}</b>{' '}
+          <span className="text-ink/60">(hoy: {now.lasts ? 'pasa el fin de mes' : untilText(now).replace('hasta el ', '')}).</span>{' '}
           {then.days < now.days ? 'Apartar también es gastar: revisa que te quede para el mes.' : 'Sigues cubierto.'}
         </p>
       )}

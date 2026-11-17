@@ -237,17 +237,41 @@ export async function listPayments(userId, debtIds) {
 }
 
 /**
- * Borra un abono de una cuenta pendiente del usuario (para corregir un error). El movimiento que se
- * haya creado con él no se borra: se quita aparte, si se quiere.
+ * Borra un abono de una cuenta pendiente del usuario (para corregir un error) y, en la misma
+ * transacción, el movimiento que se creó con él (borrado lógico, para que la sincronización lo
+ * propague): si el abono estaba mal, el ingreso o el gasto también.
  * @param {{ id: string, debtId: string, userId: string }} data
- * @returns {Promise<boolean>}
+ * @returns {Promise<{ transactionId: string|null }|null>} `null` si no existe o la cuenta ya está saldada.
  */
 export async function deletePayment({ id, debtId, userId }) {
-  const { rowCount } = await pool.query(
-    `DELETE FROM abonos_cuenta a USING cuentas_personales c
-     WHERE a.id = $1 AND a.cuenta_id = $2 AND a.usuario_id = $3
-       AND c.id = a.cuenta_id AND c.saldada_at IS NULL`,
-    [id, debtId, userId],
-  );
-  return rowCount === 1;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      `DELETE FROM abonos_cuenta a USING cuentas_personales c
+       WHERE a.id = $1 AND a.cuenta_id = $2 AND a.usuario_id = $3
+         AND c.id = a.cuenta_id AND c.saldada_at IS NULL
+       RETURNING a.transaccion_id AS "transactionId"`,
+      [id, debtId, userId],
+    );
+    if (rows.length === 0) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+    const { transactionId } = rows[0];
+    if (transactionId) {
+      await client.query(
+        `UPDATE transacciones SET deleted_at = now(), updated_at = now()
+         WHERE id = $1 AND usuario_id = $2 AND deleted_at IS NULL`,
+        [transactionId, userId],
+      );
+    }
+    await client.query('COMMIT');
+    return { transactionId };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }

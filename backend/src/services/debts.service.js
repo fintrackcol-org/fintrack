@@ -267,7 +267,8 @@ export async function addPayment(userId, id, input) {
 }
 
 /**
- * Borra un abono de una cuenta pendiente (para corregir un error) y vuelve a calcular la próxima cuota.
+ * Borra un abono de una cuenta pendiente (para corregir un error), junto con el movimiento que se
+ * anotó con él, y vuelve a calcular la próxima cuota.
  * @param {string} userId
  * @param {string} id
  * @param {string} paymentId

@@ -25,7 +25,6 @@ import RindeLine from '@/components/common/RindeLine';
 const RECENT = 3;
 const BUDGETS = 3;
 const BAR = { none: 'bg-positive', warning_80: 'bg-caution', exceeded_100: 'bg-negative' };
-const PERCENT_TEXT = { none: 'text-ink/60', warning_80: 'font-semibold text-caution', exceeded_100: 'font-semibold text-negative' };
 const percent = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
 
 /** Bloque gris mientras carga un monto. */
@@ -142,7 +141,7 @@ function ChartCard({ expense, budgets, names, money }) {
             aria-selected={tab === key}
             onClick={() => setTab(key)}
             className={cn(
-              'h-9 rounded-full text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-violet',
+              'h-11 rounded-full text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-violet',
               tab === key ? 'bg-surface text-ink shadow-sm' : 'text-ink/60',
             )}
           >
@@ -150,7 +149,8 @@ function ChartCard({ expense, budgets, names, money }) {
           </button>
         ))}
       </div>
-      <ul role="tabpanel" className="flex min-h-[132px] flex-col gap-3.5">
+      <div role="tabpanel" aria-label={tabs.find((t) => t.key === tab).label}>
+      <ul className="flex min-h-[132px] flex-col gap-3.5">
         {rows.length === 0 ? (
           <li className="py-6 text-center text-[13px] text-ink/60">
             {tab === 'categorias' ? 'Aún no hay gastos este mes.' : 'Aún no tienes presupuestos.'}
@@ -175,6 +175,7 @@ function ChartCard({ expense, budgets, names, money }) {
           ))
         )}
       </ul>
+      </div>
       <div className="flex items-center justify-between gap-3">
         <span className="text-[13px] text-ink/60">
           {tab === 'categorias' ? 'Tus 3 categorías más altas del mes' : 'Los 3 presupuestos más usados'}
@@ -295,7 +296,7 @@ export default function MobileHome({
             to="/app/cuenta"
             data-tour="cuenta"
             aria-label={name ? `Tu cuenta, ${name}` : 'Tu cuenta'}
-            className="ml-1 grid size-10 place-items-center rounded-full bg-orchid font-bold text-obsidian focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet"
+            className="ml-1 grid size-11 place-items-center rounded-full bg-orchid font-bold text-obsidian focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet"
           >
             <span aria-hidden="true">{getInitial(user)}</span>
           </Link>

@@ -1510,6 +1510,7 @@ export const handlers = [
     const debt = (debtsByUser.get(user.id) ?? []).find((d) => d.id === params.id);
     if (!debt?.payments?.some((p) => p.id === params.paymentId)) return error(404, 'NOT_FOUND', 'Abono no encontrado');
     debt.payments = debt.payments.filter((p) => p.id !== params.paymentId);
+    // Como el backend: el movimiento que se anotó con el abono también se borra.
     return HttpResponse.json(presentDebt(debt));
   }),
 

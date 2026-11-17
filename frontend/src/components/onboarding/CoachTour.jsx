@@ -207,11 +207,11 @@ export default function CoachTour({ onClose }) {
     label = `Lo demás · ${k0 + 1} de ${largo.length}`;
     dots = largo.map((_, k) => ({ current: k === k0, done: k <= k0, tone: 'bg-success' }));
   }
-  const transition = reduced ? '' : 'transition-[top,left] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]';
+  // Solo transform: mover top/left recalcula el layout en cada cuadro.
+  const transition = reduced ? '' : 'transition-transform duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)]';
   const container = document.querySelector('[data-theme]') ?? document.body;
 
   return createPortal(
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div className="fixed inset-0 z-[55]" onKeyDown={onKeyDown}>
       {/* El fondo: tocarlo cierra el tutorial (no se obliga a terminarlo). */}
       <button
@@ -225,8 +225,8 @@ export default function CoachTour({ onClose }) {
       {hole && (
         <span
           aria-hidden="true"
-          className={cn('pointer-events-none absolute ring-2 ring-white/90', transition)}
-          style={{ top: hole.y, left: hole.x, width: hole.w, height: hole.h, borderRadius: hole.r }}
+          className={cn('pointer-events-none absolute left-0 top-0 ring-2 ring-white/90', transition)}
+          style={{ transform: `translate3d(${hole.x}px, ${hole.y}px, 0)`, width: hole.w, height: hole.h, borderRadius: hole.r }}
         />
       )}
       <div
@@ -236,8 +236,8 @@ export default function CoachTour({ onClose }) {
         aria-labelledby={titleId}
         aria-describedby={textId}
         tabIndex={-1}
-        className={cn('absolute rounded-3xl bg-surface p-5 text-ink shadow-elevated ring-1 ring-ink/10 outline-none', transition)}
-        style={{ top, left, width }}
+        className={cn('absolute left-0 top-0 rounded-3xl bg-surface p-5 text-ink shadow-elevated ring-1 ring-ink/10 outline-none', transition)}
+        style={{ transform: `translate3d(${left}px, ${top}px, 0)`, width }}
       >
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-brand" aria-live="polite">

@@ -66,7 +66,7 @@ const browser = await puppeteer.launch({
 });
 
 /** Abre la app con sesión en un "dispositivo" (contexto aislado: su propio IndexedDB y SW). */
-async function openApp(context, session, path = '/app/transacciones') {
+async function openApp(context, session, path = '/app/movimientos') {
   const page = await context.newPage();
   page.on('pageerror', (e) => console.log('   [pageerror]', e.message));
   page.on('response', (r) => r.status() === 429 && rateLimited++);
@@ -76,20 +76,70 @@ async function openApp(context, session, path = '/app/transacciones') {
   await page.goto(APP + path, { waitUntil: 'networkidle0' });
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload({ waitUntil: 'networkidle0' });
+  await warmAnotar(page);
   return page;
 }
 
-async function register(page, description, amount = 1000) {
-  await page.bringToFront();
-  await page.type('#tx-amount', String(amount));
-  await page.type('#tx-description', description);
-  await page.click('button[type=submit]');
-  // Guardado (con o sin conexión) = el formulario se limpia. Intervalo fijo: funciona en segundo plano.
-  await page.waitForFunction(() => document.querySelector('#tx-description').value === '', {
-    timeout: 8000,
-    polling: 200,
-  });
+/**
+ * Abre Anotar y vuelve, una vez con red: su código queda cargado en la página, así se puede anotar sin
+ * conexión aunque la prueba salte el service worker (C5, C6).
+ */
+async function warmAnotar(page) {
+  const back = await page.evaluate(() => location.pathname);
+  await page.evaluate(() => [...document.querySelectorAll('a')].find((a) => a.getAttribute('href') === '/app/anotar')?.click());
+  await page.waitForSelector('#anotar-texto', { timeout: 10000 });
+  await page.evaluate(() => history.back());
+  await page.waitForFunction((p) => location.pathname === p, { timeout: 8000 }, back);
 }
+
+/**
+ * Anota un gasto en la pantalla Anotar (Rinde v2): el texto como se escribe y el monto con el
+ * teclado. Se entra y se sale sin recargar (enlace del menú y atrás), como lo haría el usuario.
+ */
+async function anotar(page, description, { amount = 1000, category } = {}) {
+  const back = await page.evaluate(() => location.pathname);
+  if (back !== '/app/anotar') {
+    await page.evaluate(() => [...document.querySelectorAll('a')].find((a) => a.getAttribute('href') === '/app/anotar').click());
+    await page.waitForSelector('#anotar-texto', { timeout: 8000 });
+  }
+  await page.type('#anotar-texto', description);
+  await page.evaluate(() => [...document.querySelectorAll('button[aria-expanded]')].find((b) => /teclado/.test(b.textContent))?.click());
+  await page.waitForSelector('#anotar-monto', { timeout: 8000 });
+  await page.$eval('#anotar-monto', (e) => e.select());
+  await page.type('#anotar-monto', String(amount));
+  if (category) {
+    await page.evaluate((c) => {
+      const pick = () => [...document.querySelectorAll('button[aria-pressed]')].find((b) => b.textContent.trim() === c);
+      if (!pick()) [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Ver todas')?.click();
+      return new Promise((r) => setTimeout(() => (pick()?.click(), r()), 100));
+    }, category);
+  }
+  // Montos grandes piden un segundo toque ("Sí, guardar", #202).
+  for (let i = 0; i < 2; i++) {
+    const clicked = await page.evaluate(() => {
+      const b = [...document.querySelectorAll('button')].find((x) => /^(Guardar (gasto|ingreso)|Sí, guardar)/.test(x.textContent.trim()));
+      if (!b || b.disabled) return false;
+      b.click();
+      return true;
+    });
+    if (!clicked) break;
+    const done = await page
+      .waitForFunction(() => document.body.innerText.includes('Anotar otro'), { timeout: 2500, polling: 200 })
+      .then(() => true, () => false);
+    if (done) break;
+  }
+  await page.waitForFunction(() => document.body.innerText.includes('Anotar otro'), { timeout: 8000, polling: 200 });
+  if (back !== '/app/anotar') {
+    await page.evaluate(() => history.back());
+    await page.waitForFunction((p) => location.pathname === p, { timeout: 8000 }, back);
+    await new Promise((r) => setTimeout(r, 500));
+  }
+}
+
+const register = async (page, description, amount = 1000) => {
+  await page.bringToFront();
+  await anotar(page, description, { amount });
+};
 
 const pendingCount = (page) =>
   page.evaluate(
@@ -172,7 +222,7 @@ await caso('C2', 'Recargar y cerrar la pestaña sin conexión no pierde pendient
   await page.close();
   page = await ctx.newPage();
   await page.setOfflineMode(true);
-  await page.goto(`${APP}/app/transacciones`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${APP}/app/movimientos`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => document.body.innerText.includes('C2 almuerzo'), { timeout: 8000 });
   await page.setOfflineMode(false);
   await waitPending(page, 0);
@@ -302,6 +352,7 @@ await caso('C8', 'Dos dispositivos: uno offline y otro en línea', async () => {
     check(rows.length === 2, `en el servidor hay ${rows.length}`);
     await b.reload({ waitUntil: 'networkidle0' });
     const seen = await b.evaluate(() => document.body.innerText.includes('C8 desde el celular'));
+    if (!seen && process.env.DEBUG) console.log(await b.evaluate(() => location.pathname + ' | ' + document.body.innerText.replace(/\s+/g, ' ').slice(0, 700)), JSON.stringify(rows.map((r) => [r.description, r.date])));
     check(seen, 'el computador no ve el movimiento del celular tras recargar');
     return 'servidor: 2; el computador ve el del celular al recargar';
   } finally {
@@ -381,23 +432,26 @@ await caso('C11', 'Operación rechazada (422) en la cola (bug 86e3u5wnf)', async
 await caso('C12', 'Historial visible sin conexión (copia local), con filtros', async (ctx) => {
   const s = await newUser('c12');
   const page = await openApp(ctx, s);
-  await register(page, 'C12 sueldo');
+  await register(page, 'C12 mercado');
   await register(page, 'C12 arriendo');
   await sleep(1500); // la copia local se actualiza después de cada cambio
   await page.setOfflineMode(true);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => document.body.innerText.includes('copia guardada'), { timeout: 8000 });
   const both = await page.evaluate(
-    () => document.body.innerText.includes('C12 sueldo') && document.body.innerText.includes('C12 arriendo'),
+    () => document.body.innerText.includes('C12 mercado') && document.body.innerText.includes('C12 arriendo'),
   );
   check(both, 'sin conexión no se ven los dos movimientos del historial');
   // Los dos son gastos: con el filtro "Ingresos" la copia local no debe mostrar ninguno.
   await page.evaluate(() =>
-    [...document.querySelectorAll('label')].find((l) => l.textContent.trim() === 'Ingresos').click(),
+    [...document.querySelectorAll('button[aria-pressed]')].find((b) => b.textContent.trim() === 'Ingresos').click(),
   );
-  await page.waitForFunction(() => document.body.innerText.includes('Ningún movimiento coincide'), {
-    timeout: 5000,
-  });
+  await page
+    .waitForFunction(() => document.body.innerText.includes('Ningún movimiento coincide'), { timeout: 5000 })
+    .catch(async (err) => {
+      if (process.env.DEBUG) console.log(await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').slice(0, 900)));
+      throw err;
+    });
   return 'sin red se ve el historial desde la copia local, con aviso, y el filtro por tipo funciona';
 });
 
@@ -490,15 +544,21 @@ const scrollSettled = (page) =>
 /** Edita el monto de un movimiento desde la lista (con o sin conexión). */
 async function editAmount(page, description, amount) {
   await page.bringToFront();
-  await page.click(`button[aria-label="Editar ${description}"]`);
+  const list = await page.evaluate(() => location.pathname);
+  // Rinde v2: "Editar" está detrás de la fila deslizable; es un enlace real con nombre, se toca directo.
+  await page.evaluate((d) => document.querySelector(`[aria-label="Editar ${d}"]`).click(), description);
+  await page.waitForSelector('#tx-amount', { timeout: 10000 });
   await page.$eval('#tx-amount', (e) => e.select());
   await page.type('#tx-amount', String(amount));
-  // "Editar" sube al formulario con scroll suave: si se hace clic mientras la página se mueve,
-  // el botón ya no está donde Puppeteer lo midió y el clic cae en otro lado (C16, C18 y C19 fallaban así).
   await scrollSettled(page);
   await page.click('button[type=submit]');
+  // Con red vuelve solo a la lista; sin red muestra "Cambios guardados sin conexión".
   await page
-    .waitForFunction(() => /Cambios guardados/.test(document.body.innerText), { timeout: 8000, polling: 200 })
+    .waitForFunction(
+      (list) => location.pathname === list || /Cambios guardados/.test(document.body.innerText),
+      { timeout: 8000, polling: 200 },
+      list,
+    )
     .catch(async () => {
       const body = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').slice(-900));
       const typed = await page.evaluate(() => document.querySelector('#tx-amount')?.value);
@@ -507,6 +567,11 @@ async function editAmount(page, description, amount) {
         `no se guardó la edición de «${description}» (monto en el formulario: ${typed}; en la cola: ${queued}). En pantalla: ${body}`,
       );
     });
+  if ((await page.evaluate(() => location.pathname)) !== list) {
+    await page.evaluate(() => history.back());
+    await page.waitForFunction((p) => location.pathname === p, { timeout: 8000 }, list);
+  }
+  await sleep(500);
 }
 
 /** Lee un movimiento del servidor por descripción. */
@@ -538,7 +603,8 @@ await caso('C17', 'Eliminar sin conexión: desaparece y se sincroniza', async (c
   await page.setOfflineMode(true);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => document.body.innerText.includes('copia guardada'), { timeout: 8000 });
-  await page.click('button[aria-label="Eliminar C17 cine"]');
+  // La fila se desliza para mostrar Eliminar; aquí se toca directo (es un botón real, con nombre).
+  await page.evaluate(() => document.querySelector('button[aria-label="Eliminar C17 cine"]').click());
   await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Sí, eliminar').click());
   await page.waitForFunction(() => /Eliminado sin conexión/.test(document.body.innerText), { timeout: 8000 });
   check((await serverRows(s)).length === 1, 'se borró en el servidor estando offline');

@@ -36,7 +36,7 @@ export default function MonthGrid({ label, cells, renderMark, className, onSelec
                 className={cn(
                   'grid size-7 place-items-center rounded-full text-sm tabular-nums',
                   cell.isToday && 'bg-violet font-bold text-white',
-                  cell.isPast && !cell.isToday && 'text-ink/40',
+                  cell.isPast && !cell.isToday && 'text-ink/60',
                 )}
               >
                 {cell.day}

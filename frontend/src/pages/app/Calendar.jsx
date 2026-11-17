@@ -112,7 +112,7 @@ function EventRow({ event }) {
           {income ? '$' : event.name[0].toUpperCase()}
         </span>
         <span className="min-w-0 flex-1">
-          <span className={cn('block truncate font-medium', paid && 'text-ink/50 line-through')}>{event.name}</span>
+          <span className={cn('block truncate font-medium', paid && 'text-ink/60 line-through')}>{event.name}</span>
           <span className={cn('block text-xs text-ink/60', event.status === 'atrasado' && 'text-negative')}>{detail}</span>
           {event.balanceAfter !== null && (
             <span className={cn('block text-xs', TONE_CLASS[event.risk] ?? 'text-ink/60')}>

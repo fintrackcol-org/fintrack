@@ -142,7 +142,7 @@ export default function PeriodDetail({ type }) {
                 aria-pressed={category === key}
                 onClick={() => setCategory(key)}
                 className={cn(
-                  'h-9 shrink-0 rounded-lg px-3 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-violet',
+                  'h-11 shrink-0 rounded-lg px-3 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-violet',
                   category === key ? 'bg-brand text-white' : 'bg-brand-soft text-ink',
                 )}
               >

@@ -277,7 +277,7 @@ export default function PeriodJumpPicker({ period, date, label, onPick }) {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className="inline-flex h-9 min-w-36 items-center justify-center gap-1 rounded-full px-3 text-sm font-medium hover:bg-ink/6"
+        className="inline-flex h-11 min-w-36 items-center justify-center gap-1 rounded-full px-3 text-sm font-medium hover:bg-ink/6"
       >
         {/* aria-live: el lector de pantalla anuncia el periodo nuevo al cambiarlo. */}
         <span aria-live="polite" className="first-letter:uppercase">

@@ -18,10 +18,11 @@ export default function Segmented({ label, options, value, onChange, className }
       {index >= 0 && (
         <span
           aria-hidden="true"
-          className="absolute inset-y-1 rounded-[9px] bg-surface shadow-sm motion-safe:transition-[left] motion-safe:duration-200 motion-safe:ease-out"
+          // Se mueve con transform (no con left): cada paso es su propio ancho más el espacio entre opciones.
+          className="absolute inset-y-1 left-1 rounded-[9px] bg-surface shadow-sm motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)]"
           style={{
             width: `calc((100% - 0.5rem - ${(count - 1) * 0.25}rem) / ${count})`,
-            left: `calc(0.25rem + ${index} * ((100% - 0.5rem - ${(count - 1) * 0.25}rem) / ${count} + 0.25rem))`,
+            transform: `translateX(calc(${index} * (100% + 0.25rem)))`,
           }}
         />
       )}

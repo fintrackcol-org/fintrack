@@ -140,6 +140,12 @@ export default function Dashboard() {
 
   return (
     <>
+      {/* Sin red: un aviso neutral, no de error; lo que se ve es la copia del dispositivo. */}
+      {!online && (
+        <p role="status" className="mb-3 rounded-xl bg-ink/5 px-3 py-2 text-sm text-ink/70 md:mb-4">
+          Sin conexión: se actualiza al volver internet.
+        </p>
+      )}
       {mobile ? (
         <MobileHome
           balance={balance}
