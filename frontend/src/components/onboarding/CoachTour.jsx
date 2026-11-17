@@ -20,7 +20,7 @@ export const TOUR_STEPS = [
     tramo: 'corto',
     target: 'anotar',
     title: 'Anota en dos toques',
-    text: 'Escríbelo como te salga, «taxi 9 mil», y la IA pone el monto, el nombre y la categoría. También puedes anotar por WhatsApp.',
+    text: 'Pon cuánto fue y en qué, o dilo con el micrófono: «taxi 9 mil» llena las dos casillas y la IA elige la categoría. También puedes anotar por WhatsApp.',
   },
   {
     tramo: 'corto',

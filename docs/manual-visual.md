@@ -105,7 +105,8 @@ Reglas: respetar `prefers-reduced-motion` (`motion-safe:`, `MotionConfig reduced
 | Éxito | `pop` + texto de confirmación |
 | Sin conexión / lento | `layout/SyncStatus.jsx` y la cola `offline/` |
 | Datos extremos | probar con nombres largos, montos de 10 dígitos, cero y miles de ítems (`MAX_AMOUNT` en `lib/money.js`) |
-| Destructivo | `ConfirmButton`, y avisar lo que se pierde |
+| Destructivo | `ConfirmButton`, y avisar lo que se pierde. Para eliminar un movimiento (lista y detalle): botón `outline` rojo, centrado y del ancho de la acción principal, que abre `Sheet` con lo que se borra y «Sí, eliminar» en `negative` |
+| Formulario con datos que faltan | El botón de guardar no se apaga ni se vuelve un aviso: al tocarlo lleva el foco a la casilla vacía, la marca con `aria-invalid` y dice qué escribir. Cada dato que se pide tiene su casilla visible con etiqueta; nada depende de una regla que el usuario no ve (Anotar: «Monto» y «¿En qué fue?», 17-nov-2026) |
 
 ## 10. Responsive y accesibilidad
 - Se diseña de móvil hacia arriba: celular pequeño (≈ 360 px), celular, tablet (`md`), portátil y escritorio (`lg`+). No es el escritorio encogido: en móvil hay inicio propio (`MobileHome`) y ventanas que suben desde abajo.

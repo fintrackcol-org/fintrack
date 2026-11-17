@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, ChevronDown, Keyboard, Loader2, Mic, Paperclip, Plus, Sparkles, X } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Mic, Paperclip, Plus, Sparkles, X } from 'lucide-react';
 import NewCategoryDialog from '@/components/categories/NewCategoryDialog';
 import FeelingPrompt from '@/components/transactions/FeelingPrompt';
 import MoneyInput from '@/components/common/MoneyInput';
@@ -42,7 +42,6 @@ const VISIBLE_CATEGORIES = 5;
 
 const empty = (card = CASH) => ({
   type: 'gasto',
-  text: '',
   amount: '',
   description: '',
   category: AI,
@@ -103,11 +102,24 @@ export function readText(text) {
 }
 
 /**
- * Página privada `/app/anotar` (Rinde v2): anotar en una sola pantalla. Se escribe como se habla
- * ("almuerzo 15 mil"), la app saca el monto, la descripción y la fecha, y la IA elige la categoría al
- * guardar (o se elige aquí). En los gastos va también el grupo Kakeibo. El monto se puede corregir con
- * el teclado numérico y lo demás (fecha, tarjeta, cuotas, soportes) está en "Más detalles". Guarda con
- * lo mismo que el formulario: sin conexión queda en la cola (FT-0009).
+ * Lo que se guarda de la casilla «¿En qué fue?». Si el monto ya se escribió en su casilla, un número
+ * en la descripción es parte del nombre («iPhone 15») y la fecha no cambia (`date: null`); si no, se
+ * lee como al dictar: «almuerzo 15 mil» da el monto y deja «Almuerzo».
+ * @param {string} text
+ * @param {boolean} amountTyped
+ */
+export function readDescription(text, amountTyped) {
+  const read = readText(text);
+  if (amountTyped && read.amount) return { ...read, amount: '', options: [], description: text.trim(), date: null };
+  return amountTyped ? { ...read, amount: '', options: [] } : read;
+}
+
+/**
+ * Página privada `/app/anotar` (Rinde v2): anotar en una sola pantalla, con dos casillas a la vista:
+ * «Monto» y «¿En qué fue?». La segunda también entiende cómo se habla ("almuerzo 15 mil" llena el
+ * monto) y el dictado llena las dos. La IA elige la categoría al guardar (o se elige aquí). En los
+ * gastos va también el grupo Kakeibo; lo demás (fecha, tarjeta, cuotas, soportes) está en "Más
+ * detalles". Guarda con lo mismo que el formulario: sin conexión queda en la cola (FT-0009).
  */
 export default function Anotar() {
   usePageTitle('Anotar');
@@ -123,8 +135,8 @@ export default function Anotar() {
   }));
   const [typeTouched, setTypeTouched] = useState(params.has('tipo'));
   const [options, setOptions] = useState([]); // "2 almuerzos de 12 mil": el precio o el total
-  const [manualAmount, setManualAmount] = useState(false); // el monto se corrigió con el teclado
-  const [keypad, setKeypad] = useState(false);
+  const [manualAmount, setManualAmount] = useState(false); // el monto se escribió en su casilla
+  const [tried, setTried] = useState(false); // ya tocó Guardar: se marca lo que falta
   const [details, setDetails] = useState(false);
   const [result, setResult] = useState(null); // lo que devolvió `saveNewTransaction`
   const [saving, setSaving] = useState(false);
@@ -132,7 +144,8 @@ export default function Anotar() {
   const [askBig, setAskBig] = useState(null); // monto grande que espera el segundo toque
   const [allCategories, setAllCategories] = useState(false);
   const [voice, setVoice] = useState(false);
-  const textField = useRef(null);
+  const amountField = useRef(null);
+  const descriptionField = useRef(null);
   const { categories, names: loadedNames } = useCategoryNames();
   // Las que se crean aquí mismo: quedan elegidas y de primeras, aunque la lista esté recortada.
   const [created, setCreated] = useState([]);
@@ -145,20 +158,32 @@ export default function Anotar() {
   // Solo vale una tarjeta que existe: con un enlace viejo, o sin poder cargarlas, va en efectivo.
   const cardOk = form.card === CASH || Boolean(cards.data?.some((c) => c.id === form.card));
 
-  /** Al escribir: se vuelve a leer todo el texto. El monto corregido a mano no se pisa. */
+  const expense = form.type === 'gasto';
+  const amount = Number(form.amount || 0);
+  const description = readDescription(form.description, manualAmount).description;
+  const missing = !amount ? 'amount' : !description ? 'description' : null;
+
+  /** Al escribir en «¿En qué fue?»: se vuelve a leer todo el texto. El monto de su casilla no se pisa. */
   const write = (text) => {
-    const read = readText(text);
+    const read = readDescription(text, manualAmount);
     setOptions(read.options.length > 1 ? read.options : []);
     setForm((f) => ({
       ...f,
-      text,
-      description: read.description,
-      date: read.date,
+      description: text,
+      date: read.date ?? f.date,
       ...(!manualAmount && { amount: read.amount }),
       // "Me pagaron 300 mil" cambia a ingreso, salvo que la persona ya haya elegido el tipo.
       ...(!typeTouched &&
         read.type !== f.type && { type: read.type, category: AI, kakeibo: null, card: read.type === 'gasto' ? startCard : CASH }),
     }));
+  };
+
+  /** Al escribir en «Monto». Si el monto venía de la descripción, la descripción queda sin él. */
+  const typeAmount = (raw) => {
+    const value = parseMoneyInput(raw);
+    setOptions([]);
+    setManualAmount(true);
+    set({ amount: value ? String(Math.min(Math.round(value), 9_999_999_999)) : '', ...(!manualAmount && { description }) });
   };
 
   const reset = () => {
@@ -167,15 +192,20 @@ export default function Anotar() {
     setAskBig(null);
     setOptions([]);
     setManualAmount(false);
-    setKeypad(false);
+    setTried(false);
     setDetails(false);
     setAllCategories(false);
     setTypeTouched(false);
-    setTimeout(() => textField.current?.focus(), 0);
+    setTimeout(() => amountField.current?.focus(), 0);
   };
 
   const save = async () => {
-    const { values, error: invalid } = toTransaction({ ...form, card: cardOk ? form.card : CASH });
+    // El botón no se apaga: si falta algo, lleva a esa casilla y dice qué escribir.
+    if (missing) {
+      setTried(true);
+      return (missing === 'amount' ? amountField : descriptionField).current?.focus();
+    }
+    const { values, error: invalid } = toTransaction({ ...form, description, card: cardOk ? form.card : CASH });
     if (invalid) return setError(invalid);
     setError('');
     // Monto grande: el primer toque pregunta, el segundo guarda. Si cambia el monto, vuelve a preguntar.
@@ -215,13 +245,12 @@ export default function Anotar() {
     }
   };
 
-  const expense = form.type === 'gasto';
-  const amount = Number(form.amount || 0);
   const loaded = (expense ? categories?.expense : categories?.income) ?? [];
   const mine = created.filter((c) => c.type === form.type);
   const list = [...mine, ...loaded.filter((c) => !mine.some((m) => m.key === c.key))];
   const shown = allCategories ? list : list.slice(0, VISIBLE_CATEGORIES);
-  const missing = !amount ? (expense ? 'Escribe cuánto gastaste' : 'Escribe cuánto te entró') : !form.description.trim() ? 'Falta en qué fue' : '';
+  const amountError = tried && !amount;
+  const descriptionError = tried && !description;
 
   if (result) {
     const { values, transaction, alert, offline, money, left, attached } = result;
@@ -323,58 +352,49 @@ export default function Anotar() {
         }}
       />
 
+      {/* Dos casillas a la vista: nadie tiene que adivinar que el monto y el «en qué» iban juntos. */}
       <div className="space-y-1.5">
-        <Label htmlFor="anotar-texto">
-          Escríbelo como te salga <span className="text-negative">*</span>
+        <Label htmlFor="anotar-monto">
+          Monto <span className="text-negative">*</span>
         </Label>
         <div className="relative">
-          <Sparkles className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-brand" aria-hidden="true" />
-          <Input
-            ref={textField}
-            id="anotar-texto"
-            value={form.text}
-            onChange={(event) => write(event.target.value)}
-            placeholder={expense ? 'almuerzo 15 mil' : 'me pagaron 300 mil'}
-            autoFocus
-            autoComplete="off"
-            enterKeyHint="done"
-            aria-describedby="anotar-ayuda"
-            className="h-12 border-brand pl-11 pr-12 text-base"
-          />
-          <button
-            type="button"
-            aria-label="Dictarlo"
-            onClick={() => setVoice(true)}
-            className="absolute right-0.5 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full text-brand hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-violet"
+          <span
+            aria-hidden="true"
+            className={cn(
+              'pointer-events-none absolute left-4 top-0 flex h-14 items-center text-[28px] font-extrabold',
+              amount ? 'text-ink' : 'text-ink/35',
+            )}
           >
-            <Mic className="size-5" aria-hidden="true" />
-          </button>
+            $
+          </span>
+          <MoneyInput
+            ref={amountField}
+            id="anotar-monto"
+            value={form.amount}
+            onChange={typeAmount}
+            placeholder="0"
+            autoFocus
+            enterKeyHint="next"
+            onKeyDown={(event) => event.key === 'Enter' && (event.preventDefault(), descriptionField.current?.focus())}
+            aria-invalid={amountError || undefined}
+            aria-describedby={amountError ? 'anotar-monto-error' : undefined}
+            className="h-14 pl-10 text-[28px] font-extrabold tracking-tight tabular-nums"
+          />
         </div>
-        <p id="anotar-ayuda" className="text-[13px] text-ink/60">
-          Ej.: «almuerzo 15 mil», «ayer taxi 9.000». Tú corriges lo de abajo.
-        </p>
-      </div>
-
-      {/* Lo que se entendió: monto, descripción, categoría y Kakeibo. */}
-      <section aria-label="Lo que vamos a guardar" className="flex flex-col gap-3 rounded-2xl bg-canvas p-4">
-        <div className="flex items-start justify-between gap-3">
-          <p aria-live="polite" className={cn('text-[28px] font-extrabold leading-[34px] tracking-tight tabular-nums', !amount && 'text-ink/55')}>
-            {formatMoney(amount)}
+        {amountError && (
+          <p id="anotar-monto-error" className="text-[13px] text-negative">
+            {expense ? 'Escribe cuánto gastaste.' : 'Escribe cuánto te entró.'}
           </p>
-          <p className="min-w-0 pt-1 text-right text-[13px]">
-            <b className="block truncate font-semibold">{form.description.trim() || (expense ? 'Sin descripción' : 'Sin descripción')}</b>
-            {form.date !== today() && <span className="text-ink/60">{form.date}</span>}
-          </p>
-        </div>
+        )}
         {options.length > 1 && (
-          <div role="group" aria-label="¿Cuál es el monto?" className="flex flex-wrap items-center gap-2 text-[13px]">
+          <div role="group" aria-label="¿Cuál es el monto?" className="flex flex-wrap items-center gap-2 pt-1 text-[13px]">
             <span className="text-ink/70">¿Cuál es el monto?</span>
             {options.map((value) => (
               <button
                 key={value}
                 type="button"
                 aria-pressed={Number(form.amount) === value}
-                onClick={() => (setManualAmount(true), set({ amount: String(Math.round(value)) }))}
+                onClick={() => (setManualAmount(true), set({ amount: String(Math.round(value)), description }))}
                 className={cn(
                   'h-11 rounded-lg px-3 font-semibold focus-visible:outline-2 focus-visible:outline-violet',
                   Number(form.amount) === value ? 'bg-brand text-white' : 'bg-surface ring-1 ring-ink/10',
@@ -385,30 +405,45 @@ export default function Anotar() {
             ))}
           </div>
         )}
-        <button
-          type="button"
-          aria-expanded={keypad}
-          onClick={() => setKeypad((open) => !open)}
-          className="inline-flex min-h-11 items-center gap-1.5 self-start text-[13px] font-semibold text-brand focus-visible:outline-2 focus-visible:outline-violet"
-        >
-          <Keyboard className="size-4" aria-hidden="true" />
-          {keypad ? 'Listo con el monto' : 'Corregir el monto con el teclado'}
-        </button>
-        {keypad && (
-          <div className="space-y-1.5">
-            <Label htmlFor="anotar-monto">Monto</Label>
-            <MoneyInput
-              id="anotar-monto"
-              value={form.amount}
-              onChange={(raw) => {
-                setManualAmount(true);
-                const value = parseMoneyInput(raw);
-                set({ amount: value ? String(Math.min(Math.round(value), 9_999_999_999)) : '' });
-              }}
-            />
-          </div>
-        )}
+      </div>
 
+      <div className="space-y-1.5">
+        <Label htmlFor="anotar-descripcion">
+          {expense ? '¿En qué fue?' : '¿De qué fue?'} <span className="text-negative">*</span>
+        </Label>
+        <div className="relative">
+          <Sparkles className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-brand" aria-hidden="true" />
+          <Input
+            ref={descriptionField}
+            id="anotar-descripcion"
+            value={form.description}
+            onChange={(event) => write(event.target.value)}
+            placeholder={expense ? 'almuerzo, taxi, arriendo…' : 'salario, venta, freelance…'}
+            autoComplete="off"
+            enterKeyHint="done"
+            onKeyDown={(event) => event.key === 'Enter' && !event.nativeEvent.isComposing && save()}
+            aria-invalid={descriptionError || undefined}
+            aria-describedby="anotar-ayuda"
+            className="h-12 pl-11 pr-12 text-base"
+          />
+          <button
+            type="button"
+            aria-label="Dictarlo"
+            onClick={() => setVoice(true)}
+            className="absolute right-0.5 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full text-brand hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-violet"
+          >
+            <Mic className="size-5" aria-hidden="true" />
+          </button>
+        </div>
+        <p id="anotar-ayuda" className={cn('text-[13px]', descriptionError ? 'text-negative' : 'text-ink/60')}>
+          {descriptionError
+            ? `Escribe ${expense ? 'en qué fue, p. ej. «almuerzo»' : 'de qué fue, p. ej. «salario»'}.`
+            : 'O toca el micrófono y dilo: «almuerzo 15 mil» llena las dos casillas.'}
+        </p>
+      </div>
+
+      {/* Categoría y Kakeibo: la IA elige si no se toca nada. */}
+      <section aria-label="Categoría" className="flex flex-col gap-3 rounded-2xl bg-canvas p-4">
         <div className="flex flex-col gap-1.5">
           <p id="anotar-categoria" className="text-xs font-semibold uppercase tracking-[0.08em] text-ink/60">
             Categoría
@@ -569,9 +604,11 @@ export default function Anotar() {
         </p>
       )}
       {askBig === amount && <BigAmountWarning amount={amount} />}
-      <Button size="lg" className="mt-auto" disabled={saving || Boolean(missing)} onClick={save}>
+      <Button size="lg" className="mt-auto" disabled={saving} onClick={save}>
         {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {missing || (askBig === amount ? `Sí, guardar ${formatMoney(amount)}` : `${expense ? 'Guardar gasto' : 'Guardar ingreso'} · ${formatMoney(amount)}`)}
+        {askBig === amount
+          ? `Sí, guardar ${formatMoney(amount)}`
+          : `${expense ? 'Guardar gasto' : 'Guardar ingreso'}${amount ? ` · ${formatMoney(amount)}` : ''}`}
       </Button>
 
       <VoiceEntry
@@ -582,13 +619,12 @@ export default function Anotar() {
         onEdit={(draft) => {
           setVoice(false);
           if (!draft) return;
-          // Lo dictado queda escrito en el campo, para corregirlo como si se hubiera tecleado.
-          const said = [draft.description, draft.amount ? Math.round(draft.amount).toLocaleString('es-CO') : ''].filter(Boolean).join(' ');
+          // Lo dictado ya viene separado: el monto va a su casilla y el resto a «¿En qué fue?».
           setTypeTouched(true);
-          setManualAmount(Boolean(draft.amount));
+          setManualAmount((typed) => typed || Boolean(draft.amount));
+          setOptions([]);
           setForm((f) => ({
             ...f,
-            text: said,
             type: draft.type,
             ...(draft.type !== f.type && { category: AI, kakeibo: null, card: draft.type === 'gasto' ? startCard : CASH }),
             amount: draft.amount ? String(Math.round(draft.amount)) : f.amount,
