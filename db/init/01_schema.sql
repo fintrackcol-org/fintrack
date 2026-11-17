@@ -84,7 +84,15 @@ CREATE TABLE transacciones (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ NULL,
   -- Id de IndexedDB de las creadas offline: evita duplicarlas si un lote de /sync/batch se reenvía.
-  local_id VARCHAR(64) NULL
+  local_id VARCHAR(64) NULL,
+  -- Anotado en otra moneda (al viajar, parche 037): `monto` sigue en la moneda principal y aquí
+  -- queda lo pagado allá y la tasa (monto = monto_original × tasa). Los tres o ninguno.
+  moneda_original CHAR(3) NULL,
+  monto_original NUMERIC(14,2) NULL,
+  tasa NUMERIC(20,10) NULL,
+  CONSTRAINT transacciones_moneda_original_check CHECK (
+    (moneda_original IS NULL AND monto_original IS NULL AND tasa IS NULL)
+    OR (moneda_original IS NOT NULL AND monto_original > 0 AND tasa > 0))
 );
 CREATE UNIQUE INDEX ux_transacciones_usuario_local
   ON transacciones(usuario_id, local_id) WHERE local_id IS NOT NULL;
@@ -645,3 +653,14 @@ ALTER TABLE tarjetas DROP CONSTRAINT IF EXISTS tarjetas_vencimiento_check;
 ALTER TABLE tarjetas ADD CONSTRAINT tarjetas_vencimiento_check CHECK (
   (vence_mes IS NULL AND vence_anio IS NULL)
   OR (vence_mes BETWEEN 1 AND 12 AND vence_anio BETWEEN 2000 AND 2099));
+
+-- Tasas de Frankfurter (api.frankfurter.dev), una por día y par de monedas, compartidas por todos
+-- (parche 037). 1 `base` = `tasa` `moneda` en esa `fecha`.
+CREATE TABLE IF NOT EXISTS tasas_cambio (
+  fecha DATE NOT NULL,
+  base CHAR(3) NOT NULL,
+  moneda CHAR(3) NOT NULL,
+  tasa NUMERIC(20,10) NOT NULL CHECK (tasa > 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (fecha, base, moneda)
+);

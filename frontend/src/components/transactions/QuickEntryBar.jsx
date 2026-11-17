@@ -4,6 +4,7 @@ import { ArrowUp, Mic, Zap } from 'lucide-react';
 import VoiceEntry from '@/components/transactions/VoiceEntry';
 import useAsync from '@/hooks/useAsync';
 import { canDictate as browserCanDictate } from '@/hooks/useSpeechRecognition';
+import { isAbroad } from '@/lib/region';
 import { cn } from '@/lib/utils';
 import { getCategories } from '@/services/transactionService';
 import useKeyboardInset from '@/hooks/useKeyboardInset';
@@ -45,7 +46,8 @@ export default function QuickEntryBar() {
   // "Editar antes de guardar" lleva al formulario completo; "Escribir" vuelve a la barra.
   const edit = (draft) => {
     setEntry(null);
-    if (draft) navigate('/app/transacciones/nuevo', { state: { voiceDraft: draft } });
+    // De viaje se completa en Anotar, que deja elegir la moneda; si no, en el formulario completo.
+    if (draft) navigate(isAbroad() ? '/app/anotar' : '/app/transacciones/nuevo', { state: { voiceDraft: draft } });
     else focusOnClose.current = true;
   };
 

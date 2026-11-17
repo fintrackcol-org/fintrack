@@ -644,6 +644,17 @@ export const handlers = [
     return HttpResponse.json(mockProfile(user));
   }),
 
+  // Tasas de cambio: unas fijas de ejemplo (el servidor las trae de Frankfurter).
+  http.get(`${API_V1}/exchange-rates`, ({ request }) => {
+    if (!authUser(request)) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const url = new URL(request.url);
+    const [from, to] = [url.searchParams.get('from'), url.searchParams.get('to')];
+    const perUsd = { USD: 1, COP: 3319.65, MXN: 18.53, BRL: 5.74, EUR: 0.908, PEN: 3.41, CLP: 999.9, ARS: 1550, CNY: 7.1 };
+    if (!perUsd[from] || !perUsd[to]) return error(503, 'RATE_UNAVAILABLE', 'No pudimos traer la tasa de cambio. Escríbela tú.');
+    const date = url.searchParams.get('date') ?? new Date().toISOString().slice(0, 10);
+    return HttpResponse.json({ from, to, date, rate: Math.round((perUsd[to] / perUsd[from]) * 1e6) / 1e6, stale: false });
+  }),
+
   // País, moneda principal, idioma o nombre. La moneda no cambia si ya hay movimientos (como el servidor).
   http.patch(`${API_V1}/users/me`, async ({ request }) => {
     const user = authUser(request);
@@ -773,6 +784,9 @@ export const handlers = [
       // FT-0070: solo en gastos.
       emotion: body.type === 'gasto' ? (body.emotion ?? null) : null,
       kakeibo: body.type === 'gasto' ? (body.kakeibo ?? null) : null,
+      // En otra moneda el monto lo calcula el servidor: lo pagado allá × la tasa.
+      original: body.original ?? null,
+      ...(body.original && { amount: Math.round(body.original.amount * body.original.rate * 100) / 100 }),
       createdAt: now,
       updatedAt: now,
       deletedAt: null,

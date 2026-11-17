@@ -145,6 +145,40 @@ let formats = null;
 /** @returns {{ country: string, currency: string, language: string }} */
 export const getRegion = () => region;
 
+/** Moneda del país donde está ahora: la de lo que paga allá si viaja. */
+export const localCurrency = () => findCountry(region.country)?.currency ?? region.currency;
+
+/** Si está en un país con otra moneda: lo que anote puede ir en la de allá y se convierte. */
+export const isAbroad = () => localCurrency() !== region.currency;
+
+/**
+ * Monto en otra moneda, escrito como lo lee la persona: desde Colombia `MXN 200` o `US$ 15,50`
+ * (con el código, para no confundirlo con el `$` del peso).
+ * @param {number} amount
+ * @param {string} currency
+ * @returns {string}
+ */
+export function formatIn(amount, currency) {
+  const digits = Number.isInteger(amount) ? 0 : 2;
+  return new Intl.NumberFormat(regionFormats().locale, {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(amount);
+}
+
+/**
+ * Símbolo con el que se escribe una moneda (`$`, `MXN`, `US$`), para ponerlo delante de un campo.
+ * @param {string} currency
+ * @returns {string}
+ */
+export function currencySymbol(currency) {
+  if (currency === region.currency) return regionFormats().symbol;
+  const parts = new Intl.NumberFormat(regionFormats().locale, { style: 'currency', currency }).formatToParts(1);
+  return parts.find((p) => p.type === 'currency')?.value ?? currency;
+}
+
 /**
  * Cambia el país, la moneda o el idioma con los que se da formato, y lo recuerda en el dispositivo.
  * @param {{ country: string, currency: string, language: string }} next

@@ -12,6 +12,7 @@ import useAttachmentLimits from '@/hooks/useAttachmentLimits';
 import { attachedText } from '@/lib/attachedText';
 import usePageTitle from '@/hooks/usePageTitle';
 import { canGoBack } from '@/lib/backPath';
+import { getRegion } from '@/lib/region';
 import { saveNewTransaction } from '@/offline/saveNewTransaction';
 import { cacheTransaction, queueUpdate } from '@/offline/sync';
 import { uploadPending } from '@/services/attachmentService';
@@ -186,6 +187,12 @@ export default function TransactionEdit() {
           {draft && (
             <p role="status" className="mb-4 rounded-xl bg-brand-soft px-3 py-2 text-sm text-brand">
               Revisa lo que anotaste y toca Guardar.
+            </p>
+          )}
+          {/* Anotado de viaje: el monto de aquí ya está convertido. */}
+          {editing?.original && (
+            <p className="mb-4 rounded-xl bg-brand-soft px-3 py-2 text-sm text-brand">
+              Lo pagaste en {editing.original.currency}. Si cambias el monto, queda en {getRegion().currency} sin la conversión.
             </p>
           )}
           {error && (

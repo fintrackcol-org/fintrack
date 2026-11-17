@@ -9,6 +9,7 @@ import { formatMoney, formatRelativeDay } from '@/components/transactions/format
 import { Button } from '@/components/ui/button';
 import useSpeechRecognition from '@/hooks/useSpeechRecognition';
 import { lockScroll } from '@/lib/scrollLock';
+import { isAbroad } from '@/lib/region';
 import { cn } from '@/lib/utils';
 import { parseSpokenTransaction } from '@/lib/voiceEntry';
 import { saveNewTransaction } from '@/offline/saveNewTransaction';
@@ -312,8 +313,10 @@ function Result({ titleId, transcript, retryLabel = 'Repetir', saving, error, on
   const confirming = amount !== null && askBig === amount;
   const income = parsed.type === 'ingreso';
   const draft = { type: parsed.type, amount, description: parsed.description, date: parsed.date };
-  // Sin monto o sin descripción no se puede guardar directo: se completa en el formulario.
+  // Sin monto o sin descripción no se puede guardar directo: se completa en el formulario. De viaje
+  // tampoco: el monto puede ser en la moneda de allá y en Anotar se elige.
   const complete = amount !== null && Boolean(parsed.description);
+  const direct = !isAbroad();
 
   let shownAmount = <span className="text-ink/35">¿Cuánto?</span>;
   if (amount !== null) shownAmount = formatMoney(amount);
@@ -388,7 +391,7 @@ function Result({ titleId, transcript, retryLabel = 'Repetir', saving, error, on
           {retryLabel === 'Dictar' ? <Mic aria-hidden="true" /> : <RotateCcw aria-hidden="true" />}
           {retryLabel}
         </Button>
-        {mustChoose || complete ? (
+        {(mustChoose || complete) && direct ? (
           <Button
             size="lg"
             autoFocus={!mustChoose}
@@ -404,7 +407,7 @@ function Result({ titleId, transcript, retryLabel = 'Repetir', saving, error, on
           </Button>
         )}
       </div>
-      {(mustChoose || complete) && (
+      {(mustChoose || complete) && direct && (
         <button
           type="button"
           onClick={() => onEdit(draft)}

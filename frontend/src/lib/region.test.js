@@ -1,7 +1,17 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { formatMoney, formatMoneyCompact } from '@/components/transactions/format';
 import { formatMoneyInput, parseMoneyInput, parsePastedMoney } from '@/lib/money';
-import { DEFAULT_REGION, localeFor, regionForCountry, setRegion, suggestCountry } from '@/lib/region';
+import {
+  DEFAULT_REGION,
+  currencySymbol,
+  formatIn,
+  isAbroad,
+  localCurrency,
+  localeFor,
+  regionForCountry,
+  setRegion,
+  suggestCountry,
+} from '@/lib/region';
 
 afterEach(() => setRegion(DEFAULT_REGION));
 
@@ -21,6 +31,16 @@ describe('país, moneda e idioma', () => {
     expect(localeFor({ country: 'CO', currency: 'COP', language: 'es' })).toBe('es-CO');
     expect(localeFor({ country: 'MX', currency: 'COP', language: 'es' })).toBe('es-CO');
     expect(localeFor({ country: 'US', currency: 'USD', language: 'en' })).toBe('en-US');
+  });
+
+  it('de viaje: la moneda de allá se escribe con su código para no confundirla con la propia', () => {
+    expect(isAbroad()).toBe(false);
+    setRegion({ country: 'MX', currency: 'COP', language: 'es' });
+    expect(isAbroad()).toBe(true);
+    expect(localCurrency()).toBe('MXN');
+    expect(currencySymbol('MXN')).toBe('MXN');
+    expect(formatIn(200, 'MXN').replace(/\s/g, ' ')).toBe('MXN 200');
+    expect(currencySymbol('COP')).toBe('$');
   });
 
   it('los números van como en la casa de la moneda, sin importar el idioma', () => {

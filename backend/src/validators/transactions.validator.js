@@ -2,6 +2,10 @@ import { AppError } from '../errors/app-error.js';
 
 const MAX_DESCRIPTION_LENGTH = 200;
 const MAX_AMOUNT = 9_999_999_999.99;
+/** Lo que cabe en `transacciones.monto_original` (numeric(14,2)). */
+const MAX_ORIGINAL_AMOUNT = 999_999_999_999.99;
+/** Monedas que conoce Node (ISO 4217). */
+const CURRENCIES = new Set(Intl.supportedValuesOf('currency'));
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -139,6 +143,33 @@ function readFields(body, details) {
     else details.push({ field, problem: `Debe ser uno de: ${values.join(', ')}` });
   }
 
+  // Anotado en otra moneda (al viajar): lo pagado allá y la tasa a la moneda principal. El monto
+  // del movimiento lo calcula el servidor (monto × tasa); el que mande el cliente no cuenta.
+  if ('original' in body) {
+    const original = body.original;
+    if (original === null) {
+      out.original = null;
+    } else if (typeof original !== 'object' || Array.isArray(original)) {
+      details.push({ field: 'original', problem: 'Debe ser { currency, amount, rate } o null' });
+    } else {
+      const { currency, amount, rate } = original;
+      const before = details.length;
+      if (!CURRENCIES.has(currency)) details.push({ field: 'original.currency', problem: 'Debe ser un código de moneda como "MXN"' });
+      if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0 || amount > MAX_ORIGINAL_AMOUNT) {
+        details.push({ field: 'original.amount', problem: 'Debe ser un número mayor que 0' });
+      }
+      if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0 || rate > 1e9) {
+        details.push({ field: 'original.rate', problem: 'Debe ser un número mayor que 0' });
+      }
+      if (details.length === before) {
+        out.original = { currency, amount: Math.round(amount * 100) / 100, rate };
+        const converted = Math.round(out.original.amount * rate * 100) / 100;
+        if (converted <= 0 || converted > MAX_AMOUNT) details.push({ field: 'original.amount', problem: 'Convertido queda fuera de rango' });
+        else out.amount = converted;
+      }
+    }
+  }
+
   return out;
 }
 
@@ -179,13 +210,15 @@ export function parseCreateTransaction(body) {
  */
 export function parseUpdateTransaction(body) {
   const source = body && typeof body === 'object' ? body : {};
-  const known = ['amount', 'description', 'type', 'date', 'category', 'card', 'installments', 'emotion', 'kakeibo'];
+  const known = ['amount', 'description', 'type', 'date', 'category', 'card', 'installments', 'emotion', 'kakeibo', 'original'];
   const details = [];
   if (!known.some((field) => field in source)) {
     details.push({ field: 'body', problem: 'Envía al menos un campo para modificar' });
   }
   const values = readFields(source, details);
   throwIfInvalid(details);
+  // Cambiar el monto a mano (en la moneda principal) deja de ser "lo pagado allá × la tasa".
+  if ('amount' in source && !('original' in source)) values.original = null;
   return values;
 }
 

@@ -14,6 +14,7 @@ import useCategoryNames from '@/hooks/useCategoryNames';
 import useHiddenAmounts from '@/hooks/useHiddenAmounts';
 import usePageTitle from '@/hooks/usePageTitle';
 import { canGoBack } from '@/lib/backPath';
+import { formatIn } from '@/lib/region';
 import { cn } from '@/lib/utils';
 import { removeTransaction } from '@/offline/removeTransaction';
 import { saveTransactionChanges } from '@/offline/saveTransactionChanges';
@@ -92,6 +93,10 @@ export default function TransactionDetail() {
       ? []
       : [['Pagado con', t.card ? (t.card.deleted ? 'Tarjeta eliminada' : cardMark(t.card)) : 'Efectivo o débito']]),
     ...(t.card && t.installments > 1 ? [['Cuotas', String(t.installments)]] : []),
+    // Anotado de viaje: lo que se pagó allá y la tasa con que se convirtió.
+    ...(t.original
+      ? [[income ? 'Recibido allá' : 'Pagado allá', `${hidden ? MASK : formatIn(t.original.amount, t.original.currency)} · 1 ${t.original.currency} = ${formatMoney(t.original.rate)}`]]
+      : []),
     // Rinde v2: en qué presupuesto cuenta el gasto, y cómo va, con enlace al presupuesto.
     ...(!income && budget
       ? [
