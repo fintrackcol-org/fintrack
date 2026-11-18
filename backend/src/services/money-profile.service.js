@@ -3,17 +3,18 @@ import * as repo from '../repositories/money-profile.repository.js';
 import * as reminders from '../repositories/reminder-configs.repository.js';
 import { currentMoney } from './money-plan.service.js';
 import { MAX_COMMITMENTS } from '../validators/money-profile.validator.js';
+import { t } from '../i18n/index.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** @returns {AppError} 404 sin revelar si el compromiso existe pero es de otro (RN-01). */
 function notFound() {
-  return new AppError(404, 'NOT_FOUND', 'Compromiso no encontrado');
+  return new AppError(404, 'NOT_FOUND', t('Compromiso no encontrado'));
 }
 
 /** @returns {AppError} 409: el nombre identifica el pago en los movimientos del mes. */
 function duplicated() {
-  return new AppError(409, 'COMMITMENT_EXISTS', 'Ya tienes un compromiso con ese nombre');
+  return new AppError(409, 'COMMITMENT_EXISTS', t('Ya tienes un compromiso con ese nombre'));
 }
 
 /**
@@ -113,7 +114,7 @@ export async function finishTutorial(userId) {
  */
 export async function createCommitment(userId, data) {
   if ((await repo.countCommitments(userId)) >= MAX_COMMITMENTS) {
-    throw new AppError(409, 'COMMITMENT_LIMIT', `Puedes tener hasta ${MAX_COMMITMENTS} compromisos`);
+    throw new AppError(409, 'COMMITMENT_LIMIT', t('Puedes tener hasta {MAX_COMMITMENTS} compromisos', { MAX_COMMITMENTS }));
   }
   const commitment = await repo.insertCommitment(userId, data);
   if (!commitment) throw duplicated();

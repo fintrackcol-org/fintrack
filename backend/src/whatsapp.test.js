@@ -275,9 +275,9 @@ test('vincula el número, registra y desconecta', options, async () => {
     const repeated = incoming(phone, 'almuerzo 15 mil');
     await postWebhook(base, repeated);
     await postWebhook(base, repeated);
-    assert.match(await waitReply(phone, 3), /Guardé un gasto de \$15\.000/);
+    assert.match(await waitReply(phone, 3), /Guardé un gasto de \$\s15\.000/);
     await postWebhook(base, incoming(phone, 'taxi 12 mil'));
-    assert.match(await waitReply(phone, 4), /\$12\.000/);
+    assert.match(await waitReply(phone, 4), /\$\s12\.000/);
 
     const { rows: saved } = await pool.query(
       'SELECT monto::float8 AS amount, origen FROM transacciones WHERE usuario_id = $1 ORDER BY monto DESC',

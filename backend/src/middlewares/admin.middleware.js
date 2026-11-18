@@ -1,6 +1,7 @@
 import { isAdminEmail } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
 import { findUserById } from '../repositories/users.repository.js';
+import { t } from '../i18n/index.js';
 
 /**
  * Exige que el usuario esté en `ADMIN_EMAILS`. Va después de `requireAuth`. El correo se consulta
@@ -15,7 +16,7 @@ import { findUserById } from '../repositories/users.repository.js';
 export async function requireAdmin(req, _res, next) {
   const user = await findUserById(req.userId);
   if (!user || !isAdminEmail(user.email)) {
-    throw new AppError(403, 'FORBIDDEN', 'No tienes permiso para esta acción');
+    throw new AppError(403, 'FORBIDDEN', t('No tienes permiso para esta acción'));
   }
   next();
 }

@@ -1,6 +1,7 @@
 import { reflectionTotals } from '../repositories/transactions.repository.js';
 import { EMOTIONS, KAKEIBO_GROUPS } from '../validators/transactions.validator.js';
 import { periodRange } from './transactions.service.js';
+import { currencyDigits, formatMoney, t } from '../i18n/index.js';
 
 /**
  * Reflexión semanal de los gastos (FT-0070): cómo se sintió la persona con lo que gastó
@@ -11,7 +12,7 @@ import { periodRange } from './transactions.service.js';
 /** Emociones que cuentan como "no me convenció". */
 const DOUBTFUL = ['no_lo_necesitaba', 'me_arrepiento'];
 
-const cop = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
+const cop = (n) => formatMoney(n, { digits: currencyDigits() });
 const sum = (values) => Math.round(values.reduce((acc, v) => acc + v, 0) * 100) / 100;
 
 /**
@@ -49,21 +50,21 @@ export function buildReflection({ from, to, groups, regrets }) {
   const doubtful = totals(emotions.filter((e) => DOUBTFUL.includes(e.key)));
   const questions = [];
   if (doubtful.count === 1) {
-    questions.push(`Esta semana un gasto de ${cop(doubtful.total)} no te convenció. ¿Qué pasó antes de comprarlo?`);
+    questions.push(t('Esta semana un gasto de {total} no te convenció. ¿Qué pasó antes de comprarlo?', { total: cop(doubtful.total) }));
   } else if (doubtful.count > 1) {
     questions.push(
-      `Esta semana ${doubtful.count} gastos por ${cop(doubtful.total)} no te convencieron. ¿Qué tenían en común?`,
+      t('Esta semana {count} gastos por {total} no te convencieron. ¿Qué tenían en común?', { count: doubtful.count, total: cop(doubtful.total) }),
     );
   }
   const want = byKey(kakeibo, 'deseo');
   const need = byKey(kakeibo, 'necesidad');
   if (want.total > 0 && want.total > need.total) {
     questions.push(
-      `Gastaste más en deseos (${cop(want.total)}) que en necesidades (${cop(need.total)}). ¿Cuáles repetirías?`,
+      t('Gastaste más en deseos ({total}) que en necesidades ({total2}). ¿Cuáles repetirías?', { total: cop(want.total), total2: cop(need.total) }),
     );
   }
-  if (byKey(emotions, 'valio_la_pena').count > 0) questions.push('¿Cuál gasto valió más la pena y por qué?');
-  if (expenses.count > 0) questions.push('¿Qué harías distinto la próxima semana?');
+  if (byKey(emotions, 'valio_la_pena').count > 0) questions.push(t('¿Cuál gasto valió más la pena y por qué?'));
+  if (expenses.count > 0) questions.push(t('¿Qué harías distinto la próxima semana?'));
 
   return {
     from,

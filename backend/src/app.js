@@ -1,4 +1,5 @@
 import express from 'express';
+import { regionMiddleware, t } from './i18n/index.js';
 import cors from 'cors';
 import { env } from './config/env.js';
 import healthRoutes from './routes/health.routes.js';
@@ -60,6 +61,8 @@ export function createApp() {
       exposedHeaders: ['Content-Disposition'],
     }),
   );
+  // Idioma, moneda y país de la persona para todo lo que responda esta petición (errores incluidos).
+  app.use(regionMiddleware);
   // Va antes de `express.json()`: la firma de Meta se valida sobre el cuerpo original (FT-0029).
   app.use('/api/v1/whatsapp/webhook', webhookRouter);
   app.use(express.json());

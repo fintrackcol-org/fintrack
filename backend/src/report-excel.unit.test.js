@@ -244,7 +244,7 @@ test('el libro abre en Resumen y trae Movimientos, Categorías y Evolución', as
 
 test('los indicadores del resumen son fórmulas sobre Movimientos con el resultado ya calculado', async () => {
   const ws = (await roundTrip(sampleReport())).getWorksheet('Resumen');
-  assert.equal(ws.getCell('B5').value.formula, 'SUMIFS(Movimientos!$E$2:$E$4,Movimientos!$B$2:$B$4,"Ingreso")');
+  assert.equal(ws.getCell('B5').value.formula, `SUMIFS('Movimientos'!$E$2:$E$4,'Movimientos'!$B$2:$B$4,"Ingreso")`);
   assert.equal(shown(ws.getCell('B5')), 350000);
   assert.equal(shown(ws.getCell('E5')), 20950);
   assert.equal(ws.getCell('H5').value.formula, 'B5-E5');
@@ -277,7 +277,7 @@ test('Categorías suma cada categoría de gasto con fórmulas, de mayor a menor'
   assert.equal(ws.getCell('A6').value, 'Alimentación');
   assert.equal(
     ws.getCell('B6').value.formula,
-    'SUMIFS(Movimientos!$E$2:$E$4,Movimientos!$C$2:$C$4,"Alimentación",Movimientos!$B$2:$B$4,"Gasto")',
+    `SUMIFS('Movimientos'!$E$2:$E$4,'Movimientos'!$C$2:$C$4,"Alimentación",'Movimientos'!$B$2:$B$4,"Gasto")`,
   );
   assert.equal(shown(ws.getCell('B6')), 18000);
   assert.equal(shown(ws.getCell('B7')), 2950);

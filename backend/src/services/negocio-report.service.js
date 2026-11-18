@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import { pdfSafe } from './report-pdf.service.js';
+import { currencyDigits, excelMoneyFormat, formatMoney, numberLocale, t } from '../i18n/index.js';
 
 /*
  * Reporte del mes de un negocio para el contador (FT-0018), en Excel o PDF, con los colores de
@@ -9,25 +10,25 @@ import { pdfSafe } from './report-pdf.service.js';
  */
 
 const KIND_LABEL = {
-  sale: 'Venta',
-  otherIncome: 'Otro ingreso',
-  cost: 'Costo de venta',
-  fixed: 'Gasto fijo',
-  variable: 'Gasto variable',
-  withdrawal: 'Retiro de socio',
+  get sale() { return t('Venta'); },
+  get otherIncome() { return t('Otro ingreso'); },
+  get cost() { return t('Costo de venta'); },
+  get fixed() { return t('Gasto fijo'); },
+  get variable() { return t('Gasto variable'); },
+  get withdrawal() { return t('Retiro de socio'); },
 };
 const INCOME = new Set(['sale', 'otherIncome']);
 const CATEGORY_LABEL = {
-  ventas: 'Ventas',
-  insumos: 'Insumos',
-  arriendo: 'Arriendo',
-  nomina: 'Nómina',
-  servicios: 'Servicios',
-  publicidad: 'Publicidad',
-  transporte: 'Transporte',
-  impuestos: 'Impuestos',
-  otros: 'Otros',
-  retiros: 'Retiros',
+  get ventas() { return t('Ventas'); },
+  get insumos() { return t('Insumos'); },
+  get arriendo() { return t('Arriendo'); },
+  get nomina() { return t('Nómina'); },
+  get servicios() { return t('Servicios'); },
+  get publicidad() { return t('Publicidad'); },
+  get transporte() { return t('Transporte'); },
+  get impuestos() { return t('Impuestos'); },
+  get otros() { return t('Otros'); },
+  get retiros() { return t('Retiros'); },
 };
 const MONTHS = [
   'enero',
@@ -44,13 +45,8 @@ const MONTHS = [
   'diciembre',
 ];
 
-const moneyFormat = new Intl.NumberFormat('es-CO', {
-  style: 'currency',
-  currency: 'COP',
-  maximumFractionDigits: 0,
-});
-const money = (n) => moneyFormat.format(n);
-const pct = (n) => `${n.toLocaleString('es-CO', { maximumFractionDigits: 2 })} %`;
+const money = (n) => formatMoney(n, { digits: currencyDigits() });
+const pct = (n) => `${n.toLocaleString(numberLocale(), { maximumFractionDigits: 2 })} %`;
 
 /**
  * @param {string} month AAAA-MM.
@@ -87,17 +83,17 @@ export function reportFilename(name, month, extension) {
  */
 export function resultLines(panel) {
   const lines = [
-    ['Ventas', panel.sale, false],
-    ['Costo de venta', -panel.cost, false],
-    ['Utilidad bruta', panel.grossProfit, true],
-    ['Gastos variables', -panel.variable, false],
-    ['Gastos fijos', -panel.fixed, false],
+    [t('Ventas'), panel.sale, false],
+    [t('Costo de venta'), -panel.cost, false],
+    [t('Utilidad bruta'), panel.grossProfit, true],
+    [t('Gastos variables'), -panel.variable, false],
+    [t('Gastos fijos'), -panel.fixed, false],
   ];
-  if (panel.otherIncome > 0) lines.push(['Otros ingresos', panel.otherIncome, false]);
-  lines.push(['Utilidad neta', panel.netProfit, true]);
+  if (panel.otherIncome > 0) lines.push([t('Otros ingresos'), panel.otherIncome, false]);
+  lines.push([t('Utilidad neta'), panel.netProfit, true]);
   if (panel.withdrawal > 0) {
-    lines.push(['Retiros de socios', -panel.withdrawal, false]);
-    lines.push(['Quedó en el negocio', panel.retained, true]);
+    lines.push([t('Retiros de socios'), -panel.withdrawal, false]);
+    lines.push([t('Quedó en el negocio'), panel.retained, true]);
   }
   return lines;
 }
@@ -106,7 +102,7 @@ export function resultLines(panel) {
  * @param {{ registeredBy: { name: string|null }|null }} m
  * @returns {string}
  */
-const who = (m) => (m.registeredBy ? m.registeredBy.name || 'Un socio' : 'Exsocio');
+const who = (m) => (m.registeredBy ? m.registeredBy.name || t('Un socio') : t('Exsocio'));
 const signed = (m) => (INCOME.has(m.kind) ? m.amount : -m.amount);
 
 /* ---------- Excel ---------- */
@@ -120,7 +116,6 @@ const XL = {
   positive: 'FF087A59',
   negative: 'FFC8321F',
 };
-const MONEY_FMT = '"$" #,##0;[Red]-"$" #,##0';
 
 /**
  * Arma el Excel del mes del negocio.
@@ -129,16 +124,16 @@ const MONEY_FMT = '"$" #,##0;[Red]-"$" #,##0';
  */
 export async function buildBusinessWorkbook(report) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'Rinde';
+  wb.creator = t('Rinde');
   wb.created = new Date();
   const { business, panel } = report;
 
-  const sheet = wb.addWorksheet('Resumen', { views: [{ showGridLines: false }] });
+  const sheet = wb.addWorksheet(t('Resumen'), { views: [{ showGridLines: false }] });
   sheet.columns = [{ width: 34 }, { width: 20 }, { width: 18 }, { width: 18 }];
   const title = sheet.addRow([business.name]);
   title.font = { bold: true, size: 16, color: { argb: XL.brand } };
   sheet.addRow([
-    `Reporte de ${monthTitle(report.month)}${business.nit ? ` · NIT ${business.nit}` : ''}`,
+    t('Reporte de {month}{nit}', { month: monthTitle(report.month), nit: business.nit ? ` · NIT ${business.nit}` : '' }),
   ]).font = { color: { argb: XL.muted } };
   sheet.addRow([]);
 
@@ -152,50 +147,50 @@ export async function buildBusinessWorkbook(report) {
   header('Estado de resultados');
   for (const [label, value, total] of resultLines(panel)) {
     const row = sheet.addRow([label, value]);
-    row.getCell(2).numFmt = MONEY_FMT;
+    row.getCell(2).numFmt = excelMoneyFormat();
     if (total) {
       row.font = { bold: true };
       row.getCell(1).border = { top: { style: 'thin', color: { argb: XL.line } } };
       row.getCell(2).border = { top: { style: 'thin', color: { argb: XL.line } } };
     }
   }
-  if (panel.netMargin !== null) sheet.addRow(['Margen neto', pct(panel.netMargin)]);
+  if (panel.netMargin !== null) sheet.addRow([t('Margen neto'), pct(panel.netMargin)]);
   sheet.addRow([]);
 
   header('Punto de equilibrio');
   if (panel.breakEven === null) {
     sheet.addRow([
       panel.fixed === 0
-        ? 'Sin gastos fijos registrados en el mes'
-        : 'Con estos costos, vender no cubre los gastos fijos',
+        ? t('Sin gastos fijos registrados en el mes')
+        : t('Con estos costos, vender no cubre los gastos fijos'),
     ]);
   } else {
-    const row = sheet.addRow(['Ventas necesarias para no perder', panel.breakEven]);
-    row.getCell(2).numFmt = MONEY_FMT;
-    sheet.addRow(['Margen de contribución', pct(panel.contributionMargin)]);
-    sheet.addRow(['¿Se alcanzó?', panel.breakEvenReached ? 'Sí' : 'No']);
+    const row = sheet.addRow([t('Ventas necesarias para no perder'), panel.breakEven]);
+    row.getCell(2).numFmt = excelMoneyFormat();
+    sheet.addRow([t('Margen de contribución'), pct(panel.contributionMargin)]);
+    sheet.addRow([t('¿Se alcanzó?'), panel.breakEvenReached ? t('Sí') : t('No')]);
   }
 
   if (report.distribution.items.length > 0) {
     sheet.addRow([]);
     header('Reparto de utilidades');
-    const cols = sheet.addRow(['Socio', 'Participación', 'Le toca', 'Ya retiró']);
+    const cols = sheet.addRow([t('Socio'), t('Participación'), t('Le toca'), t('Ya retiró')]);
     cols.font = { bold: true, color: { argb: XL.muted } };
     for (const item of report.distribution.items) {
-      const row = sheet.addRow([item.name || 'Socio', pct(item.share), item.due, item.withdrawn]);
-      row.getCell(3).numFmt = MONEY_FMT;
-      row.getCell(4).numFmt = MONEY_FMT;
+      const row = sheet.addRow([item.name || t('Socio'), pct(item.share), item.due, item.withdrawn]);
+      row.getCell(3).numFmt = excelMoneyFormat();
+      row.getCell(4).numFmt = excelMoneyFormat();
     }
   }
 
-  const list = wb.addWorksheet('Movimientos', { views: [{ state: 'frozen', ySplit: 1 }] });
+  const list = wb.addWorksheet(t('Movimientos'), { views: [{ state: 'frozen', ySplit: 1 }] });
   list.columns = [
-    { header: 'Fecha', key: 'date', width: 12 },
-    { header: 'Tipo', key: 'kind', width: 16 },
-    { header: 'Categoría', key: 'category', width: 14 },
-    { header: 'Descripción', key: 'description', width: 40 },
-    { header: 'Monto', key: 'amount', width: 16 },
-    { header: 'Lo registró', key: 'who', width: 20 },
+    { header: t('Fecha'), key: 'date', width: 12 },
+    { header: t('Tipo'), key: 'kind', width: 16 },
+    { header: t('Categoría'), key: 'category', width: 14 },
+    { header: t('Descripción'), key: 'description', width: 40 },
+    { header: t('Monto'), key: 'amount', width: 16 },
+    { header: t('Lo registró'), key: 'who', width: 20 },
   ];
   const head = list.getRow(1);
   head.font = { bold: true, color: { argb: XL.white } };
@@ -211,7 +206,7 @@ export async function buildBusinessWorkbook(report) {
       amount: signed(m),
       who: who(m),
     });
-    row.getCell('amount').numFmt = MONEY_FMT;
+    row.getCell('amount').numFmt = excelMoneyFormat();
   }
   list.autoFilter = { from: 'A1', to: 'F1' };
 
@@ -245,7 +240,7 @@ export function buildBusinessPdf(report) {
     size: 'LETTER',
     margin: 0,
     bufferPages: true,
-    info: { Title: `Reporte de ${pdfSafe(report.business.name)}`, Author: 'Rinde' },
+    info: { Title: t('Reporte de {name}', { name: pdfSafe(report.business.name) }), Author: t('Rinde') },
   });
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));
@@ -266,7 +261,7 @@ export function buildBusinessPdf(report) {
     .font('Helvetica')
     .fontSize(11)
     .text(
-      `Reporte de ${monthTitle(report.month)}${report.business.nit ? ` · NIT ${pdfSafe(report.business.nit)}` : ''}`,
+      t('Reporte de {month}{nit}', { month: monthTitle(report.month), nit: report.business.nit ? ` · NIT ${pdfSafe(report.business.nit)}` : '' }),
       MARGIN,
       56,
     );
@@ -286,7 +281,7 @@ export function buildBusinessPdf(report) {
     y += 18;
   };
 
-  heading('Estado de resultados');
+  heading(t('Estado de resultados'));
   for (const [label, value, total] of resultLines(panel)) {
     if (total) {
       doc
@@ -299,10 +294,10 @@ export function buildBusinessPdf(report) {
     const color = total ? (value < 0 ? C.negative : value > 0 ? C.positive : C.ink) : C.ink;
     line(label, money(value), { bold: total, color });
   }
-  if (panel.netMargin !== null) line('Margen neto', pct(panel.netMargin));
+  if (panel.netMargin !== null) line(t('Margen neto'), pct(panel.netMargin));
   y += 10;
 
-  heading('Punto de equilibrio');
+  heading(t('Punto de equilibrio'));
   if (panel.breakEven === null) {
     doc
       .font('Helvetica')
@@ -310,14 +305,14 @@ export function buildBusinessPdf(report) {
       .fillColor(C.muted)
       .text(
         panel.fixed === 0
-          ? 'No hay gastos fijos registrados en el mes.'
-          : 'Con estos costos, vender no alcanza a cubrir los gastos fijos.',
+          ? t('No hay gastos fijos registrados en el mes.')
+          : t('Con estos costos, vender no alcanza a cubrir los gastos fijos.'),
         MARGIN,
         y,
       );
     y += 20;
   } else {
-    line('Ventas necesarias para no perder', money(panel.breakEven), { bold: true });
+    line(t('Ventas necesarias para no perder'), money(panel.breakEven), { bold: true });
     const progress = Math.min(1, panel.sale / panel.breakEven);
     doc.roundedRect(MARGIN, y, CONTENT, 8, 4).fill(C.track);
     doc
@@ -325,18 +320,18 @@ export function buildBusinessPdf(report) {
       .fill(panel.breakEvenReached ? C.positive : C.brand);
     y += 16;
     line(
-      panel.breakEvenReached ? 'Ya se alcanzó' : 'Avance',
-      `${Math.round(progress * 100)} % · margen de contribución ${pct(panel.contributionMargin)}`,
+      panel.breakEvenReached ? t('Ya se alcanzó') : t('Avance'),
+      t('{round} % · margen de contribución {contributionMargin}', { round: Math.round(progress * 100), contributionMargin: pct(panel.contributionMargin) }),
     );
   }
   y += 10;
 
   if (report.distribution.items.length > 0) {
-    heading('Reparto de utilidades');
+    heading(t('Reparto de utilidades'));
     for (const item of report.distribution.items) {
       line(
         `${pdfSafe(item.name || 'Socio')} (${item.share} %)`,
-        `Le toca ${money(item.due)} · ya retiró ${money(item.withdrawn)}`,
+        t('Le toca {due} · ya retiró {withdrawn}', { due: money(item.due), withdrawn: money(item.withdrawn) }),
       );
     }
     y += 10;
@@ -344,11 +339,11 @@ export function buildBusinessPdf(report) {
 
   // Movimientos
   const columns = [
-    { label: 'Fecha', width: 62 },
-    { label: 'Tipo', width: 90 },
-    { label: 'Descripción', width: 200 },
-    { label: 'Lo registró', width: 90 },
-    { label: 'Monto', width: CONTENT - 442, align: 'right' },
+    { label: t('Fecha'), width: 62 },
+    { label: t('Tipo'), width: 90 },
+    { label: t('Descripción'), width: 200 },
+    { label: t('Lo registró'), width: 90 },
+    { label: t('Monto'), width: CONTENT - 442, align: 'right' },
   ];
   const tableHeader = () => {
     doc.rect(MARGIN, y, CONTENT, 20).fill(C.brandSoft);
@@ -364,7 +359,7 @@ export function buildBusinessPdf(report) {
     doc.addPage();
     y = 40;
   }
-  heading(`Movimientos (${report.movements.length})`);
+  heading(t('Movimientos ({length})', { length: report.movements.length }));
   tableHeader();
   for (const m of [...report.movements].reverse()) {
     if (y + 18 > BOTTOM) {
@@ -402,7 +397,7 @@ export function buildBusinessPdf(report) {
       .font('Helvetica')
       .fontSize(8)
       .fillColor(C.muted)
-      .text(`Rinde · Página ${i + 1} de ${range.count}`, MARGIN, PAGE.height - 30, {
+      .text(t('Rinde · Página {v1} de {count}', { v1: i + 1, count: range.count }), MARGIN, PAGE.height - 30, {
         width: CONTENT,
         align: 'center',
         lineBreak: false,
@@ -440,13 +435,13 @@ export function rangeTitle(from, to) {
 }
 
 /** Columnas del resumen mes a mes: [título, llave del panel]. */
-const RANGE_COLUMNS = [
-  ['Ventas', 'sale'],
-  ['Costo de venta', 'cost'],
-  ['Gastos variables', 'variable'],
-  ['Gastos fijos', 'fixed'],
-  ['Otros ingresos', 'otherIncome'],
-  ['Utilidad neta', 'netProfit'],
+const rangeColumns = () => [
+  [t('Ventas'), 'sale'],
+  [t('Costo de venta'), 'cost'],
+  [t('Gastos variables'), 'variable'],
+  [t('Gastos fijos'), 'fixed'],
+  [t('Otros ingresos'), 'otherIncome'],
+  [t('Utilidad neta'), 'netProfit'],
 ];
 
 /**
@@ -456,7 +451,7 @@ const RANGE_COLUMNS = [
  */
 export async function buildRangeWorkbook(report) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'Rinde';
+  wb.creator = t('Rinde');
   wb.created = new Date();
   const { business } = report;
   const paint = (row) => {
@@ -466,34 +461,34 @@ export async function buildRangeWorkbook(report) {
     });
   };
 
-  const sheet = wb.addWorksheet('Resumen', { views: [{ showGridLines: false }] });
-  sheet.columns = [{ width: 20 }, ...RANGE_COLUMNS.map(() => ({ width: 17 }))];
+  const sheet = wb.addWorksheet(t('Resumen'), { views: [{ showGridLines: false }] });
+  sheet.columns = [{ width: 20 }, ...rangeColumns().map(() => ({ width: 17 }))];
   sheet.addRow([business.name]).font = { bold: true, size: 16, color: { argb: XL.brand } };
   sheet.addRow([
-    `Reporte de ${rangeTitle(report.from, report.to)}${business.nit ? ` · NIT ${business.nit}` : ''}`,
+    t('Reporte de {from}{nit}', { from: rangeTitle(report.from, report.to), nit: business.nit ? ` · NIT ${business.nit}` : '' }),
   ]).font = { color: { argb: XL.muted } };
   sheet.addRow([]);
-  paint(sheet.addRow(['Mes', ...RANGE_COLUMNS.map(([label]) => label)]));
+  paint(sheet.addRow([t('Mes'), ...rangeColumns().map(([label]) => label)]));
   const addMoneyRow = (label, panel) => {
-    const row = sheet.addRow([label, ...RANGE_COLUMNS.map(([, key]) => panel[key] ?? 0)]);
-    for (let i = 2; i <= RANGE_COLUMNS.length + 1; i += 1) row.getCell(i).numFmt = MONEY_FMT;
+    const row = sheet.addRow([label, ...rangeColumns().map(([, key]) => panel[key] ?? 0)]);
+    for (let i = 2; i <= rangeColumns().length + 1; i += 1) row.getCell(i).numFmt = excelMoneyFormat();
     return row;
   };
   for (const { month, panel } of report.months) addMoneyRow(monthTitle(month), panel);
-  const total = addMoneyRow('Total', rangeTotals(report.months));
+  const total = addMoneyRow(t('Total'), rangeTotals(report.months));
   total.font = { bold: true };
   total.eachCell((cell) => {
     cell.border = { top: { style: 'thin', color: { argb: XL.line } } };
   });
 
-  const list = wb.addWorksheet('Movimientos', { views: [{ state: 'frozen', ySplit: 1 }] });
+  const list = wb.addWorksheet(t('Movimientos'), { views: [{ state: 'frozen', ySplit: 1 }] });
   list.columns = [
-    { header: 'Fecha', key: 'date', width: 12 },
-    { header: 'Tipo', key: 'kind', width: 16 },
-    { header: 'Categoría', key: 'category', width: 14 },
-    { header: 'Descripción', key: 'description', width: 40 },
-    { header: 'Monto', key: 'amount', width: 16 },
-    { header: 'Lo registró', key: 'who', width: 20 },
+    { header: t('Fecha'), key: 'date', width: 12 },
+    { header: t('Tipo'), key: 'kind', width: 16 },
+    { header: t('Categoría'), key: 'category', width: 14 },
+    { header: t('Descripción'), key: 'description', width: 40 },
+    { header: t('Monto'), key: 'amount', width: 16 },
+    { header: t('Lo registró'), key: 'who', width: 20 },
   ];
   paint(list.getRow(1));
   for (const { movements } of report.months) {
@@ -506,7 +501,7 @@ export async function buildRangeWorkbook(report) {
         amount: signed(m),
         who: who(m),
       });
-      row.getCell('amount').numFmt = MONEY_FMT;
+      row.getCell('amount').numFmt = excelMoneyFormat();
     }
   }
   list.autoFilter = { from: 'A1', to: 'F1' };
@@ -523,7 +518,7 @@ export function buildRangePdf(report) {
   const doc = new PDFDocument({
     size: 'LETTER',
     margin: 0,
-    info: { Title: `Reporte de ${pdfSafe(report.business.name)}`, Author: 'Rinde' },
+    info: { Title: t('Reporte de {name}', { name: pdfSafe(report.business.name) }), Author: t('Rinde') },
   });
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));
@@ -542,17 +537,17 @@ export function buildRangePdf(report) {
     .font('Helvetica')
     .fontSize(11)
     .text(
-      `Reporte de ${rangeTitle(report.from, report.to)}${report.business.nit ? ` · NIT ${pdfSafe(report.business.nit)}` : ''}`,
+      t('Reporte de {from}{nit}', { from: rangeTitle(report.from, report.to), nit: report.business.nit ? ` · NIT ${pdfSafe(report.business.nit)}` : '' }),
       MARGIN,
       56,
     );
   let y = 115;
   const columns = [
-    { label: 'Mes', width: 120 },
-    { label: 'Ventas', width: 100, value: (p) => p.sale },
-    { label: 'Costos y gastos', width: 110, value: (p) => -(p.cost + p.variable + p.fixed) },
-    { label: 'Otros ingresos', width: 100, value: (p) => p.otherIncome },
-    { label: 'Utilidad neta', width: CONTENT - 430, value: (p) => p.netProfit, colored: true },
+    { label: t('Mes'), width: 120 },
+    { label: t('Ventas'), width: 100, value: (p) => p.sale },
+    { label: t('Costos y gastos'), width: 110, value: (p) => -(p.cost + p.variable + p.fixed) },
+    { label: t('Otros ingresos'), width: 100, value: (p) => p.otherIncome },
+    { label: t('Utilidad neta'), width: CONTENT - 430, value: (p) => p.netProfit, colored: true },
   ];
   const row = (label, panel, bold = false) => {
     let x = MARGIN + 6;
@@ -573,7 +568,7 @@ export function buildRangePdf(report) {
     y += 18;
   };
 
-  doc.font('Helvetica-Bold').fontSize(13).fillColor(C.ink).text('Mes a mes', MARGIN, y);
+  doc.font('Helvetica-Bold').fontSize(13).fillColor(C.ink).text(t('Mes a mes'), MARGIN, y);
   y += 24;
   doc.rect(MARGIN, y - 4, CONTENT, 20).fill(C.brandSoft);
   let x = MARGIN + 6;
@@ -586,14 +581,14 @@ export function buildRangePdf(report) {
   for (const { month, panel } of report.months) row(monthTitle(month), panel);
   doc.moveTo(MARGIN, y - 2).lineTo(MARGIN + CONTENT, y - 2).lineWidth(0.6).strokeColor(C.line).stroke();
   y += 4;
-  row('Total', rangeTotals(report.months), true);
+  row(t('Total'), rangeTotals(report.months), true);
   y += 14;
   const count = report.months.reduce((n, m) => n + m.movements.length, 0);
   doc
     .font('Helvetica')
     .fontSize(9.5)
     .fillColor(C.muted)
-    .text(`${count} movimientos en el periodo. El detalle línea por línea está en el Excel.`, MARGIN, y, {
+    .text(t('{count} movimientos en el periodo. El detalle línea por línea está en el Excel.', { count }), MARGIN, y, {
       width: CONTENT,
     });
   doc.end();

@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import { parseCreateTransaction, parseUpdateTransaction } from './transactions.validator.js';
+import { t } from '../i18n/index.js';
 
 /** Máximo de operaciones por lote (contrato). */
 const MAX_OPERATIONS = 200;
@@ -68,13 +69,13 @@ function parseOperationTransaction(parse, value, prefix, details) {
 function parseOperation(raw, index, details) {
   const at = `operations[${index}]`;
   if (!isObject(raw)) {
-    details.push({ field: at, problem: 'Debe ser un objeto' });
+    details.push({ field: at, problem: t('Debe ser un objeto') });
     return undefined;
   }
 
   const { op, localId } = raw;
   if (!OPERATIONS.includes(op)) {
-    details.push({ field: `${at}.op`, problem: 'Debe ser "create", "update" o "delete"' });
+    details.push({ field: `${at}.op`, problem: t('Debe ser "create", "update" o "delete"') });
   }
   if (
     typeof localId !== 'string' ||
@@ -83,7 +84,7 @@ function parseOperation(raw, index, details) {
   ) {
     details.push({
       field: `${at}.localId`,
-      problem: `Debe ser un texto de 1 a ${MAX_LOCAL_ID_LENGTH} caracteres`,
+      problem: t('Debe ser un texto de 1 a {MAX_LOCAL_ID_LENGTH} caracteres', { MAX_LOCAL_ID_LENGTH }),
     });
   }
 
@@ -102,11 +103,11 @@ function parseOperation(raw, index, details) {
     if (typeof raw.serverId !== 'string' || !UUID_RE.test(raw.serverId)) {
       details.push({
         field: `${at}.serverId`,
-        problem: 'Debe ser el id (UUID) de la transacción en el servidor',
+        problem: t('Debe ser el id (UUID) de la transacción en el servidor'),
       });
     }
     if (!isDateTime(raw.updatedAt)) {
-      details.push({ field: `${at}.updatedAt`, problem: 'Debe ser una fecha y hora ISO 8601' });
+      details.push({ field: `${at}.updatedAt`, problem: t('Debe ser una fecha y hora ISO 8601') });
     }
     operation.serverId = raw.serverId;
     operation.updatedAt = new Date(raw.updatedAt);
@@ -132,7 +133,7 @@ function parseOperation(raw, index, details) {
  */
 export function parseSyncBatch(body) {
   if (!isObject(body)) {
-    throw new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+    throw new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
   }
 
   const details = [];
@@ -141,21 +142,21 @@ export function parseSyncBatch(body) {
   if (lastSyncedAt !== null && !isDateTime(lastSyncedAt)) {
     details.push({
       field: 'lastSyncedAt',
-      problem: 'Debe ser una fecha y hora ISO 8601, o null la primera vez',
+      problem: t('Debe ser una fecha y hora ISO 8601, o null la primera vez'),
     });
   }
 
   let parsed = [];
   if (!Array.isArray(operations)) {
-    details.push({ field: 'operations', problem: 'Debe ser una lista' });
+    details.push({ field: 'operations', problem: t('Debe ser una lista') });
   } else if (operations.length > MAX_OPERATIONS) {
-    details.push({ field: 'operations', problem: `Máximo ${MAX_OPERATIONS} operaciones por lote` });
+    details.push({ field: 'operations', problem: t('Máximo {MAX_OPERATIONS} operaciones por lote', { MAX_OPERATIONS }) });
   } else {
     parsed = operations.map((raw, index) => parseOperation(raw, index, details));
   }
 
   if (details.length > 0) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   }
 
   return {

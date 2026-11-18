@@ -46,7 +46,7 @@ export function cushion({ fixed, saved }) {
 }
 
 /** ¿Es la meta del colchón? Por el nombre: "Fondo de emergencia", "colchón"… */
-export const isCushionGoal = (meta) => /emergencia|colch[oó]n/i.test(meta.name);
+export const isCushionGoal = (meta) => /emergenc|colch[oó]n|cushion|reserva para/i.test(meta.name);
 
 /** "15 dic" desde AAAA-MM-DD. */
 export function shortDate(iso) {

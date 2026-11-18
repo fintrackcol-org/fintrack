@@ -156,6 +156,17 @@ export const dateLocale = () => `${region.language}-${region.country}`;
 /** Formato de números y porcentajes: el de la casa de la moneda principal, como el dinero. */
 export const numberLocale = () => regionFormats().locale;
 
+/**
+ * Cabeceras para el servidor: así responde (errores, correos, reportes, IA) en el idioma y con la
+ * moneda de la persona, sin tener que consultarlos en cada petición.
+ * @returns {Record<string, string>}
+ */
+export const regionHeaders = () => ({
+  'Accept-Language': region.language,
+  'X-Rinde-Currency': region.currency,
+  'X-Rinde-Country': region.country,
+});
+
 /** Moneda del país donde está ahora: la de lo que paga allá si viaja. */
 export const localCurrency = () => findCountry(region.country)?.currency ?? region.currency;
 

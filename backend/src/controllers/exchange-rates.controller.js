@@ -1,6 +1,7 @@
 import { AppError } from '../errors/app-error.js';
 import { exchangeRateService } from '../services/exchange-rates.service.js';
 import { isValidDate } from '../validators/transactions.validator.js';
+import { t } from '../i18n/index.js';
 
 const CURRENCIES = new Set(Intl.supportedValuesOf('currency'));
 
@@ -15,9 +16,9 @@ export async function getExchangeRate(req, res) {
   const { from, to } = req.query;
   const date = req.query.date ?? new Date().toISOString().slice(0, 10);
   const details = [];
-  if (!CURRENCIES.has(from)) details.push({ field: 'from', problem: 'Debe ser un código de moneda como "MXN"' });
-  if (!CURRENCIES.has(to)) details.push({ field: 'to', problem: 'Debe ser un código de moneda como "COP"' });
-  if (!isValidDate(date)) details.push({ field: 'date', problem: 'Debe ser una fecha válida AAAA-MM-DD' });
-  if (details.length) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+  if (!CURRENCIES.has(from)) details.push({ field: 'from', problem: t('Debe ser un código de moneda como "MXN"') });
+  if (!CURRENCIES.has(to)) details.push({ field: 'to', problem: t('Debe ser un código de moneda como "COP"') });
+  if (!isValidDate(date)) details.push({ field: 'date', problem: t('Debe ser una fecha válida AAAA-MM-DD') });
+  if (details.length) throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   res.json(await exchangeRateService.getRate({ from, to, date }));
 }

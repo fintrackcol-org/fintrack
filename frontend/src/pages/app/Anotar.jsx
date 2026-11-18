@@ -93,9 +93,10 @@ export function toTransaction({ type, amount, description, category, date, card,
  * @returns {{ amount: string, description: string, date: string, type: 'gasto'|'ingreso', options: number[] }}
  */
 export function readText(text) {
-  const parsed = parseSpokenTransaction(text);
+  // «almuerzo 15» son 15 mil solo en pesos; en dólares son 15.
+  const parsed = parseSpokenTransaction(text, undefined, { smallMeansThousands: getRegion().currency === 'COP', receivedLabel: t('Pago recibido') });
   return {
-    amount: parsed.amount ? String(Math.round(parsed.amount)) : '',
+    amount: parsed.amount ? String(Math.round(parsed.amount * 100) / 100) : '',
     description: parsed.description ?? '',
     date: parsed.date,
     type: parsed.type,

@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js';
 /**
  * Middleware final: responde 404 a cualquier ruta no registrada.
  * Usa el formato único de errores de la API: `{ error: { code, message } }`.
@@ -8,6 +9,6 @@
  */
 export function notFound(_req, res) {
   res.status(404).json({
-    error: { code: 'NOT_FOUND', message: 'Ruta no encontrada' },
+    error: { code: 'NOT_FOUND', message: t('Ruta no encontrada') },
   });
 }

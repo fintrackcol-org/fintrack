@@ -1,4 +1,5 @@
 import { AppError } from '../errors/app-error.js';
+import { t } from '../i18n/index.js';
 
 /** Íconos que puede elegir el usuario; el frontend tiene el dibujo de cada uno. */
 export const CATEGORY_ICONS = [
@@ -40,7 +41,7 @@ const NAME_MAX = 30;
 
 /** @returns {AppError} 400: el cuerpo no es un objeto JSON. */
 function invalidBody() {
-  return new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+  return new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
 }
 
 /**
@@ -62,18 +63,18 @@ function readEditable(body, details) {
   if ('name' in body) {
     const name = typeof body.name === 'string' ? body.name.trim().replace(/\s+/g, ' ') : '';
     if (!name || name.length > NAME_MAX) {
-      details.push({ field: 'name', problem: `Debe tener entre 1 y ${NAME_MAX} caracteres` });
+      details.push({ field: 'name', problem: t('Debe tener entre 1 y {NAME_MAX} caracteres', { NAME_MAX }) });
     } else {
       out.name = name;
     }
   }
   if ('icon' in body) {
     if (CATEGORY_ICONS.includes(body.icon)) out.icon = body.icon;
-    else details.push({ field: 'icon', problem: 'Ícono no válido' });
+    else details.push({ field: 'icon', problem: t('Ícono no válido') });
   }
   if ('color' in body) {
     if (CATEGORY_COLORS.includes(body.color)) out.color = body.color;
-    else details.push({ field: 'color', problem: 'Color no válido' });
+    else details.push({ field: 'color', problem: t('Color no válido') });
   }
   return out;
 }
@@ -88,13 +89,13 @@ export function parseNewCategory(body) {
   if (!isObject(body)) throw invalidBody();
   const details = [];
   for (const field of ['name', 'icon', 'color']) {
-    if (!(field in body)) details.push({ field, problem: 'Es obligatorio' });
+    if (!(field in body)) details.push({ field, problem: t('Es obligatorio') });
   }
   const values = readEditable(body, details);
   if (!['ingreso', 'gasto'].includes(body.type)) {
-    details.push({ field: 'type', problem: 'Debe ser "ingreso" o "gasto"' });
+    details.push({ field: 'type', problem: t('Debe ser "ingreso" o "gasto"') });
   }
-  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   return { ...values, type: body.type };
 }
 
@@ -109,8 +110,8 @@ export function parseCategoryChanges(body) {
   const details = [];
   const values = readEditable(body, details);
   if (details.length === 0 && Object.keys(values).length === 0) {
-    details.push({ field: 'name', problem: 'Envía al menos name, icon o color' });
+    details.push({ field: 'name', problem: t('Envía al menos name, icon o color') });
   }
-  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   return values;
 }

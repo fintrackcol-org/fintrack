@@ -1,7 +1,9 @@
 import { isAdminEmail } from '../config/env.js';
 import { LEGAL_VERSION } from '../config/legal.js';
 import { AppError } from '../errors/app-error.js';
+import { deleteInsights } from '../repositories/insights.repository.js';
 import { acceptTerms, findUserById, hasTransactions, updateUserProfile } from '../repositories/users.repository.js';
+import { t, withRegion } from '../i18n/index.js';
 
 /**
  * @typedef {object} Profile
@@ -36,7 +38,20 @@ function toProfile(user) {
 
 /** @returns {AppError} 401: el token es válido pero la cuenta ya no existe. */
 function accountGone() {
-  return new AppError(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+  return new AppError(401, 'UNAUTHORIZED', t('Token inválido o ausente'));
+}
+
+/**
+ * Corre `fn` en el idioma y la moneda guardados de otra persona: un aviso de una vaca o un negocio
+ * se escribe para quien lo recibe, no para quien hizo algo. Sin el usuario, español con pesos.
+ * @template T
+ * @param {string} userId
+ * @param {() => T} fn
+ * @returns {Promise<Awaited<T>>}
+ */
+export async function asUser(userId, fn) {
+  const user = await findUserById(userId).catch(() => null);
+  return withRegion(user ?? {}, fn);
 }
 
 /**
@@ -63,11 +78,13 @@ export async function updateProfile(userId, changes) {
     const current = await findUserById(userId);
     if (!current) throw accountGone();
     if (current.currency !== changes.currency && (await hasTransactions(userId))) {
-      throw new AppError(409, 'CURRENCY_LOCKED', `Ya tienes movimientos en ${current.currency}: tu moneda principal no se puede cambiar`);
+      throw new AppError(409, 'CURRENCY_LOCKED', t('Ya tienes movimientos en {currency}: tu moneda principal no se puede cambiar', { currency: current.currency }));
     }
   }
   const user = await updateUserProfile(userId, changes);
   if (!user) throw accountGone();
+  // Las recomendaciones guardadas están en el idioma y la moneda de antes: se vuelven a pedir.
+  if (changes.language || changes.currency) await deleteInsights(userId);
   return toProfile(user);
 }
 
@@ -81,8 +98,8 @@ export async function updateProfile(userId, changes) {
  */
 export async function acceptCurrentTerms(userId, version) {
   if (version !== LEGAL_VERSION) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'version', problem: 'No es la versión vigente de los términos; recarga la página' },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'version', problem: t('No es la versión vigente de los términos; recarga la página') },
     ]);
   }
   const user = await acceptTerms(userId, version);

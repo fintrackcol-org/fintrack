@@ -1,5 +1,6 @@
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
+import { currentRegion, t } from '../i18n/index.js';
 
 /** API de transcripción de Groq (compatible con la de OpenAI). */
 const GROQ_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
@@ -24,9 +25,13 @@ export const AUDIO_TYPES = {
  * Pista para Whisper: con este vocabulario escribe los montos como los decimos en Colombia
  * ("15 mil", "1,2 millones") en vez de inventar otras formas.
  */
-const PROMPT =
-  'Registro de gastos e ingresos en pesos colombianos: almuerzo 15 mil, me pagaron 1,2 millones, ' +
-  '20 lucas, medio palo, ayer, el 12 de octubre.';
+const PROMPTS = {
+  es:
+    'Registro de gastos e ingresos en pesos colombianos: almuerzo 15 mil, me pagaron 1,2 millones, ' +
+    '20 lucas, medio palo, ayer, el 12 de octubre.',
+  en: 'Expense and income log: lunch 15 dollars, I got paid 1,200, coffee 4.50, yesterday, October 12.',
+  pt: 'Registro de gastos e receitas: almoço 35 reais, recebi 1.200, café 4,50, ontem, 12 de outubro.',
+};
 
 /**
  * Frases que Whisper inventa cuando solo hay silencio o ruido (vienen de los subtítulos con los
@@ -44,7 +49,7 @@ function unavailable() {
   return new AppError(
     503,
     'TRANSCRIPTION_UNAVAILABLE',
-    'El dictado no está disponible en este momento',
+    t('El dictado no está disponible en este momento'),
   );
 }
 
@@ -66,8 +71,9 @@ export async function transcribeAudio(audio, mimeType) {
   const form = new FormData();
   form.append('file', new Blob([audio], { type: mimeType }), `voz.${AUDIO_TYPES[mimeType]}`);
   form.append('model', env.sttModel);
-  form.append('language', 'es');
-  form.append('prompt', PROMPT);
+  const { language } = currentRegion();
+  form.append('language', language);
+  if (PROMPTS[language]) form.append('prompt', PROMPTS[language]);
   form.append('response_format', 'json');
   form.append('temperature', '0');
 
@@ -95,7 +101,7 @@ export async function transcribeAudio(audio, mimeType) {
       throw new AppError(
         429,
         'RATE_LIMITED',
-        'Se usó mucho el dictado. Espera un momento o escribe el movimiento.',
+        t('Se usó mucho el dictado. Espera un momento o escribe el movimiento.'),
       );
     }
     throw unavailable();

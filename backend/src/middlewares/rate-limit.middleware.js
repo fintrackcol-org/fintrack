@@ -1,6 +1,7 @@
 import { rateLimit } from 'express-rate-limit';
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
+import { t } from '../i18n/index.js';
 
 const WINDOW_MS = 15 * 60 * 1000;
 
@@ -21,7 +22,7 @@ export function createAuthRateLimit() {
         new AppError(
           429,
           'RATE_LIMITED',
-          'Demasiados intentos. Espera unos minutos y vuelve a intentarlo.',
+          t('Demasiados intentos. Espera unos minutos y vuelve a intentarlo.'),
         ),
       );
     },
@@ -49,7 +50,7 @@ export function createAssistantDailyLimit({ limit = env.assistantDailyMax } = {}
         new AppError(
           429,
           'RATE_LIMITED',
-          `Llegaste al límite de ${limit} preguntas por hoy. Vuelve mañana.`,
+          t('Llegaste al límite de {limit} preguntas por hoy. Vuelve mañana.', { limit }),
         ),
       );
     },
@@ -74,7 +75,7 @@ export function createAiRateLimit({ limit = env.aiRateLimitMax } = {}) {
         new AppError(
           429,
           'RATE_LIMITED',
-          'Demasiadas solicitudes. Espera un momento y vuelve a intentarlo.',
+          t('Demasiadas solicitudes. Espera un momento y vuelve a intentarlo.'),
         ),
       );
     },

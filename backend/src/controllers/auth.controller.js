@@ -20,6 +20,7 @@ import {
   parseResetPassword,
   parseVerifyEmail,
 } from '../validators/auth.validator.js';
+import { t } from '../i18n/index.js';
 
 /**
  * `POST /api/v1/auth/register`: crea la cuenta, envía el correo de verificación y responde 201
@@ -108,7 +109,7 @@ export async function postLogout(req, res) {
 export async function postForgotPassword(req, res) {
   await requestPasswordReset(parseForgotPassword(req.body));
   res.json({
-    message: 'Si el correo está registrado, te enviamos un enlace para crear una contraseña nueva.',
+    message: t('Si el correo está registrado, te enviamos un enlace para crear una contraseña nueva.'),
   });
 }
 
@@ -146,6 +147,6 @@ export async function postVerifyEmail(req, res) {
 export async function postResendVerification(req, res) {
   await resendVerification(parseResendVerification(req.body));
   res.json({
-    message: 'Si el correo tiene una cuenta sin confirmar, te enviamos un enlace nuevo.',
+    message: t('Si el correo tiene una cuenta sin confirmar, te enviamos un enlace nuevo.'),
   });
 }

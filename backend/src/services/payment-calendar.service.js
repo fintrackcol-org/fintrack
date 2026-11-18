@@ -6,6 +6,7 @@ import { todayIso } from './insights.service.js';
 import { dateInMonth, getPlan, isPaymentOf, occursInMonth, pendingCommitments } from './money-plan.service.js';
 import { list as listCards } from './cards.service.js';
 import { list as listVacas } from './vacas.service.js';
+import { t } from '../i18n/index.js';
 
 /**
  * Calendario de pagos (FT-0025): los compromisos de Mi plata, los días de pago y lo que falta
@@ -198,7 +199,7 @@ export function buildPaymentCalendar({
         date: dateInMonth(month, day),
         kind: 'ingreso',
         id: null,
-        name: 'Día de pago',
+        name: t('Día de pago'),
         amount: null,
         status: null,
         balanceAfter: null,

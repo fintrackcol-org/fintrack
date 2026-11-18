@@ -1,12 +1,13 @@
 import { AppError } from '../errors/app-error.js';
 import { MAX_NAME_LENGTH } from './users.validator.js';
+import { t } from '../i18n/index.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
 
 /** @returns {AppError} 400: el cuerpo no tiene la forma esperada. */
 function invalidBody() {
-  return new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+  return new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
 }
 
 /**
@@ -33,26 +34,26 @@ export function parseNewCredentials(body) {
   if (body.acceptTerms !== true) {
     details.push({
       field: 'acceptTerms',
-      problem: 'Debes aceptar los términos y la política de privacidad',
+      problem: t('Debes aceptar los términos y la política de privacidad'),
     });
   }
   if (!EMAIL_RE.test(email.trim())) {
-    details.push({ field: 'email', problem: 'Debe ser un correo válido' });
+    details.push({ field: 'email', problem: t('Debe ser un correo válido') });
   }
   if (password.length < MIN_PASSWORD_LENGTH) {
-    details.push({ field: 'password', problem: 'Debe tener al menos 8 caracteres' });
+    details.push({ field: 'password', problem: t('Debe tener al menos 8 caracteres') });
   }
   // Rinde v2: el nombre es opcional al registrarse (así se saluda desde el primer día).
   let name = null;
   if (body.name !== undefined && body.name !== null) {
-    if (typeof body.name !== 'string') details.push({ field: 'name', problem: 'Debe ser un texto' });
+    if (typeof body.name !== 'string') details.push({ field: 'name', problem: t('Debe ser un texto') });
     else {
       name = body.name.trim().replace(/\s+/g, ' ') || null;
-      if (name && name.length > MAX_NAME_LENGTH) details.push({ field: 'name', problem: `Máximo ${MAX_NAME_LENGTH} caracteres` });
+      if (name && name.length > MAX_NAME_LENGTH) details.push({ field: 'name', problem: t('Máximo {MAX_NAME_LENGTH} caracteres', { MAX_NAME_LENGTH }) });
     }
   }
   if (details.length > 0) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   }
   return { email, password, name };
 }
@@ -91,8 +92,8 @@ export function parseForgotPassword(body) {
     throw invalidBody();
   }
   if (!EMAIL_RE.test(body.email.trim())) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'email', problem: 'Debe ser un correo válido' },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'email', problem: t('Debe ser un correo válido') },
     ]);
   }
   return body.email;
@@ -114,8 +115,8 @@ export function parseResetPassword(body) {
     throw invalidBody();
   }
   if (body.password.length < MIN_PASSWORD_LENGTH) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'password', problem: 'Debe tener al menos 8 caracteres' },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'password', problem: t('Debe tener al menos 8 caracteres') },
     ]);
   }
   return { token: body.token, password: body.password };

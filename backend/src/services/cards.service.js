@@ -7,13 +7,14 @@ import { findUserById } from '../repositories/users.repository.js';
 import { checkTier } from '../validators/cards.validator.js';
 import { bankAdjustment, cardState } from './cards.logic.js';
 import { todayIso } from './insights.service.js';
+import { t } from '../i18n/index.js';
 
 const LABELS = {
   visa: 'Visa',
   mastercard: 'Mastercard',
   amex: 'Amex',
-  otra: 'Otra',
-  clasica: 'Clásica',
+  get otra() { return t('Otra'); },
+  get clasica() { return t('Clásica'); },
   gold: 'Gold',
   platinum: 'Platinum',
   black: 'Black',
@@ -24,7 +25,7 @@ const LABELS = {
 // Nombre por defecto: "Amex Blue ••1234".
 const defaultName = ({ network, tier, last4 }) => `${LABELS[network]} ${LABELS[tier]} ••${last4}`;
 
-const notFound = () => new AppError(404, 'NOT_FOUND', 'Tarjeta no encontrada');
+const notFound = () => new AppError(404, 'NOT_FOUND', t('Tarjeta no encontrada'));
 
 /**
  * Hoy en la zona horaria del usuario.
@@ -108,7 +109,7 @@ async function guardDuplicate(fn) {
     return await fn();
   } catch (err) {
     if (err.code === '23505' && err.constraint === 'ux_tarjetas_usuario_ultimos4') {
-      throw new AppError(409, 'CARD_EXISTS', 'Ya tienes una tarjeta con esos últimos 4 dígitos');
+      throw new AppError(409, 'CARD_EXISTS', t('Ya tienes una tarjeta con esos últimos 4 dígitos'));
     }
     throw err;
   }
@@ -168,10 +169,10 @@ export async function update(userId, id, changes) {
   if (changes.limit !== undefined) {
     const { used } = await present(card, today);
     if (changes.limit < used) {
-      details.push({ field: 'limit', problem: 'No puede ser menor que lo que ya usas' });
+      details.push({ field: 'limit', problem: t('No puede ser menor que lo que ya usas') });
     }
   }
-  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   // Un nombre que sigue siendo el de por defecto se rehace con los datos nuevos.
   if (changes.name === undefined && card.name === defaultName(card)) {
     changes = { ...changes, name: defaultName({ ...card, ...changes }) };
@@ -206,8 +207,8 @@ export async function pay(userId, id, input) {
   const card = await owned(id, userId);
   const today = await todayOf(userId);
   if (input.date > today) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'date', problem: 'No puede ser una fecha futura' },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'date', problem: t('No puede ser una fecha futura') },
     ]);
   }
   const payment = await repo.insertPayment({
@@ -229,7 +230,7 @@ export async function pay(userId, id, input) {
 export async function removePayment(userId, id, paymentId) {
   await owned(id, userId);
   if (!(await repo.softDeletePayment(paymentId, id, userId))) {
-    throw new AppError(404, 'NOT_FOUND', 'Pago no encontrado');
+    throw new AppError(404, 'NOT_FOUND', t('Pago no encontrado'));
   }
 }
 
@@ -246,8 +247,8 @@ export async function syncWithBank(userId, id, input) {
   const card = await owned(id, userId);
   const today = await todayOf(userId);
   if (input.available > card.limit) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'available', problem: 'No puede ser mayor que el cupo' },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'available', problem: t('No puede ser mayor que el cupo') },
     ]);
   }
   const { used } = await present(card, today);
@@ -266,7 +267,7 @@ export async function syncWithBank(userId, id, input) {
         {
           userId,
           amount: difference,
-          description: `Cargos del banco · ${card.name}`,
+          description: t('Cargos del banco · {name}', { name: card.name }),
           type: 'gasto',
           date: today,
           category: 'otros',

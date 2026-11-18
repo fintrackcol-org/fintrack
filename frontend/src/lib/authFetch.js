@@ -12,6 +12,7 @@
  * gastar el viejo: antes, la ventana que perdía la carrera borraba la sesión de todas.
  */
 import { API_V1 } from '@/lib/api';
+import { regionHeaders } from '@/lib/region';
 import { clearSession, getSession, saveSession } from '@/auth/tokenStorage';
 import { t } from '@/lib/i18n';
 
@@ -98,6 +99,7 @@ export async function authFetch(path, { method = 'GET', body, headers = {} } = {
     return fetch(`${API_V1}${path}`, {
       method,
       headers: {
+        ...regionHeaders(),
         ...(payload !== undefined && { 'Content-Type': raw ? payload.type : 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
         ...headers,

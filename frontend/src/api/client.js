@@ -1,10 +1,11 @@
 import { API_V1 } from '@/lib/api';
+import { regionHeaders } from '@/lib/region';
 import { getSession } from '@/auth/tokenStorage';
 import { t } from '@/lib/i18n';
 
 function send(path, options = {}) {
   const session = getSession();
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = { 'Content-Type': 'application/json', ...regionHeaders() };
 
   if (session) {
     headers.Authorization = `Bearer ${session.accessToken}`;

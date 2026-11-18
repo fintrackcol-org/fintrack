@@ -1,4 +1,5 @@
 import { env } from '../config/env.js';
+import { currentRegion, t } from '../i18n/index.js';
 
 const BREVO_URL = 'https://api.brevo.com/v3/smtp/email';
 const TIMEOUT_MS = 8000;
@@ -50,23 +51,23 @@ export async function sendEmail({ to, subject, html, text }) {
  */
 export async function sendPasswordResetEmail({ to, link, minutes }) {
   const text = [
-    'Recibimos una solicitud para cambiar la contraseña de tu cuenta de Rinde.',
-    `Crea una nueva desde este enlace (vence en ${minutes} minutos):`,
+    t('Recibimos una solicitud para cambiar la contraseña de tu cuenta de Rinde.'),
+    t('Crea una nueva desde este enlace (vence en {minutes} minutos):', { minutes }),
     link,
     '',
-    'Si no la pediste, ignora este correo: tu contraseña sigue igual.',
+    t('Si no la pediste, ignora este correo: tu contraseña sigue igual.'),
   ].join('\n');
   await sendEmail({
     to,
-    subject: 'Recupera tu contraseña de Rinde',
+    subject: t('Recupera tu contraseña de Rinde'),
     html: accountHtml({
-      heading: 'Crea una nueva contraseña',
+      heading: t('Crea una nueva contraseña'),
       intro:
-        'Recibimos una solicitud para cambiar la contraseña de tu cuenta. Toca el botón para crear una nueva.',
-      button: 'Crear nueva contraseña',
+        t('Recibimos una solicitud para cambiar la contraseña de tu cuenta. Toca el botón para crear una nueva.'),
+      button: t('Crear nueva contraseña'),
       link,
-      expiry: `${minutes} minutos`,
-      footer: 'Si no pediste este cambio, ignora este correo: tu contraseña sigue igual.',
+      expiry: t('{minutes} minutos', { minutes }),
+      footer: t('Si no pediste este cambio, ignora este correo: tu contraseña sigue igual.'),
     }),
     text,
   });
@@ -79,23 +80,23 @@ export async function sendPasswordResetEmail({ to, link, minutes }) {
  */
 export async function sendVerificationEmail({ to, link, hours }) {
   const text = [
-    'Bienvenido a Rinde. Confirma que este correo es tuyo para empezar a usar tu cuenta.',
-    `Verifícalo desde este enlace (vence en ${hours} horas):`,
+    t('Bienvenido a Rinde. Confirma que este correo es tuyo para empezar a usar tu cuenta.'),
+    t('Verifícalo desde este enlace (vence en {hours} horas):', { hours }),
     link,
     '',
-    'Si no creaste una cuenta en Rinde, ignora este correo: nadie podrá entrar con él.',
+    t('Si no creaste una cuenta en Rinde, ignora este correo: nadie podrá entrar con él.'),
   ].join('\n');
   await sendEmail({
     to,
-    subject: 'Confirma tu correo de Rinde',
+    subject: t('Confirma tu correo de Rinde'),
     html: accountHtml({
-      heading: 'Confirma tu correo',
-      intro: 'Ya casi. Toca el botón para confirmar que este correo es tuyo y entrar a Rinde.',
-      button: 'Confirmar mi correo',
+      heading: t('Confirma tu correo'),
+      intro: t('Ya casi. Toca el botón para confirmar que este correo es tuyo y entrar a Rinde.'),
+      button: t('Confirmar mi correo'),
       link,
-      expiry: `${hours} horas`,
+      expiry: t('{hours} horas', { hours }),
       footer:
-        'Si no creaste una cuenta en Rinde, ignora este correo: nadie podrá entrar con él.',
+        t('Si no creaste una cuenta en Rinde, ignora este correo: nadie podrá entrar con él.'),
     }),
     text,
   });
@@ -108,19 +109,19 @@ export async function sendVerificationEmail({ to, link, hours }) {
  */
 export async function sendAccountDeletedEmail({ to }) {
   const footer =
-    'Si no fuiste tú, alguien entró con tu contraseña: cámbiala en los demás servicios donde la uses y escríbenos respondiendo este correo.';
+    t('Si no fuiste tú, alguien entró con tu contraseña: cámbiala en los demás servicios donde la uses y escríbenos respondiendo este correo.');
   await sendEmail({
     to,
-    subject: 'Tu cuenta de Rinde fue eliminada',
+    subject: t('Tu cuenta de Rinde fue eliminada'),
     html: accountHtml({
-      heading: 'Tu cuenta fue eliminada',
+      heading: t('Tu cuenta fue eliminada'),
       intro:
-        'Borramos tu cuenta de Rinde y tus datos: movimientos, presupuestos, tarjetas, soportes y ajustes. Esto no se puede deshacer. Si algún día vuelves, puedes crear una cuenta nueva con este mismo correo.',
+        t('Borramos tu cuenta de Rinde y tus datos: movimientos, presupuestos, tarjetas, soportes y ajustes. Esto no se puede deshacer. Si algún día vuelves, puedes crear una cuenta nueva con este mismo correo.'),
       footer,
     }),
     text: [
-      'Borramos tu cuenta de Rinde y tus datos: movimientos, presupuestos, tarjetas, soportes y ajustes.',
-      'Esto no se puede deshacer. Si algún día vuelves, puedes crear una cuenta nueva con este mismo correo.',
+      t('Borramos tu cuenta de Rinde y tus datos: movimientos, presupuestos, tarjetas, soportes y ajustes.'),
+      t('Esto no se puede deshacer. Si algún día vuelves, puedes crear una cuenta nueva con este mismo correo.'),
       '',
       footer,
     ].join('\n'),
@@ -142,12 +143,12 @@ function accountHtml({ heading, intro, button, link, expiry, footer }) {
             ${button}
           </a>
           <p style="margin:28px 0 0;font-size:13px;line-height:1.6;color:#6e6b7b">
-            El enlace vence en ${expiry} y sirve una sola vez. Si el botón no funciona, copia esta dirección en tu navegador:<br>
+            ${t('El enlace vence en {expiry} y sirve una sola vez. Si el botón no funciona, copia esta dirección en tu navegador:', { expiry })}<br>
             <a href="${link}" style="color:#5b3df5;word-break:break-all">${link}</a>
           </p>`
     : '';
   return `<!doctype html>
-<html lang="es">
+<html lang="${currentRegion().language}">
 <body style="margin:0;padding:0;background:#f5f4f9;font-family:Arial,Helvetica,sans-serif;color:#16141f">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f9;padding:32px 16px">
     <tr><td align="center">
@@ -192,20 +193,23 @@ function escapeHtml(text) {
  */
 export async function sendVacaInvitationEmail({ to, inviter, vacaName, goal, link }) {
   const text = [
-    `${inviter} te invitó a la vaca "${vacaName}" en Rinde (meta: ${goal}).`,
-    'Únete desde este enlace (si no tienes cuenta, créala con este mismo correo):',
+    t('{inviter} te invitó a la vaca "{vacaName}" en Rinde (meta: {goal}).', { inviter, vacaName, goal }),
+    t('Únete desde este enlace (si no tienes cuenta, créala con este mismo correo):'),
     link,
     '',
-    'Si no conoces a quien te invita, ignora este correo.',
+    t('Si no conoces a quien te invita, ignora este correo.'),
   ].join('\n');
   await sendEmail({
     to,
-    subject: `${inviter} te invitó a la vaca "${vacaName}"`,
+    subject: t('{inviter} te invitó a la vaca "{vacaName}"', { inviter, vacaName }),
     html: invitationHtml({
-      heading: 'Te invitaron a una vaca',
-      intro: `<strong>${escapeHtml(inviter)}</strong> te invitó a <strong>${escapeHtml(vacaName)}</strong>, una meta de ahorro en grupo de ${escapeHtml(goal)}.
-            Únete para ver cuánto lleva cada uno y registrar tus aportes.`,
-      button: 'Unirme a la vaca',
+      heading: t('Te invitaron a una vaca'),
+      intro: t('{inviter} te invitó a {vacaName}, una meta de ahorro en grupo de {goal}. Únete para ver cuánto lleva cada uno y registrar tus aportes.', {
+        inviter: `<strong>${escapeHtml(inviter)}</strong>`,
+        vacaName: `<strong>${escapeHtml(vacaName)}</strong>`,
+        goal: escapeHtml(goal),
+      }),
+      button: t('Unirme a la vaca'),
       link,
     }),
     text,
@@ -214,9 +218,9 @@ export async function sendVacaInvitationEmail({ to, inviter, vacaName, goal, lin
 
 /** Cómo se llama cada rol en el correo de invitación a un negocio. */
 const ROLE_TEXT = {
-  dueno: 'como dueño',
-  editor: 'para registrar sus ventas y gastos',
-  lector: 'para ver sus finanzas',
+  get dueno() { return t('como dueño'); },
+  get editor() { return t('para registrar sus ventas y gastos'); },
+  get lector() { return t('para ver sus finanzas'); },
 };
 
 /**
@@ -226,20 +230,23 @@ const ROLE_TEXT = {
  */
 export async function sendBusinessInvitationEmail({ to, inviter, businessName, role, link }) {
   const text = [
-    `${inviter} te invitó al negocio "${businessName}" en Rinde ${ROLE_TEXT[role]}.`,
-    'Únete desde este enlace (si no tienes cuenta, créala con este mismo correo):',
+    t('{inviter} te invitó al negocio "{businessName}" en Rinde {role}.', { inviter, businessName, role: ROLE_TEXT[role] }),
+    t('Únete desde este enlace (si no tienes cuenta, créala con este mismo correo):'),
     link,
     '',
-    'Si no conoces a quien te invita, ignora este correo.',
+    t('Si no conoces a quien te invita, ignora este correo.'),
   ].join('\n');
   await sendEmail({
     to,
-    subject: `${inviter} te invitó al negocio "${businessName}"`,
+    subject: t('{inviter} te invitó al negocio "{businessName}"', { inviter, businessName }),
     html: invitationHtml({
-      heading: 'Te invitaron a un negocio',
-      intro: `<strong>${escapeHtml(inviter)}</strong> te invitó a <strong>${escapeHtml(businessName)}</strong> ${ROLE_TEXT[role]}.
-            Las finanzas del negocio quedan separadas de las tuyas.`,
-      button: 'Unirme al negocio',
+      heading: t('Te invitaron a un negocio'),
+      intro: t('{inviter} te invitó a {businessName} {role}. Las finanzas del negocio quedan separadas de las tuyas.', {
+        inviter: `<strong>${escapeHtml(inviter)}</strong>`,
+        businessName: `<strong>${escapeHtml(businessName)}</strong>`,
+        role: ROLE_TEXT[role],
+      }),
+      button: t('Unirme al negocio'),
       link,
     }),
     text,
@@ -254,7 +261,7 @@ export async function sendBusinessInvitationEmail({ to, inviter, businessName, r
  */
 function invitationHtml({ heading, intro, button, link }) {
   return `<!doctype html>
-<html lang="es">
+<html lang="${currentRegion().language}">
 <body style="margin:0;padding:0;background:#f5f4f9;font-family:Arial,Helvetica,sans-serif;color:#16141f">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f9;padding:32px 16px">
     <tr><td align="center">
@@ -272,12 +279,12 @@ function invitationHtml({ heading, intro, button, link }) {
             ${button}
           </a>
           <p style="margin:28px 0 0;font-size:13px;line-height:1.6;color:#6e6b7b">
-            Si no tienes cuenta, créala con este mismo correo. Si el botón no funciona, copia esta dirección en tu navegador:<br>
+            ${t('Si no tienes cuenta, créala con este mismo correo. Si el botón no funciona, copia esta dirección en tu navegador:')}<br>
             <a href="${link}" style="color:#5b3df5;word-break:break-all">${link}</a>
           </p>
           <hr style="border:none;border-top:1px solid #ece9f3;margin:28px 0">
           <p style="margin:0;font-size:13px;line-height:1.6;color:#6e6b7b">
-            Si no conoces a quien te invita, ignora este correo.
+            ${t('Si no conoces a quien te invita, ignora este correo.')}
           </p>
         </td></tr>
       </table>

@@ -1,4 +1,5 @@
 import { AppError } from '../errors/app-error.js';
+import { t } from '../i18n/index.js';
 
 const MAX_DESCRIPTION_LENGTH = 200;
 const MAX_AMOUNT = 9_999_999_999.99;
@@ -45,7 +46,7 @@ export function isValidDate(value) {
  */
 function throwIfInvalid(details) {
   if (details.length > 0) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   }
 }
 
@@ -61,12 +62,12 @@ function readFields(body, details) {
   if ('amount' in body) {
     const amount = body.amount;
     if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
-      details.push({ field: 'amount', problem: 'Debe ser un número mayor que 0' });
+      details.push({ field: 'amount', problem: t('Debe ser un número mayor que 0') });
     } else if (amount > MAX_AMOUNT) {
-      details.push({ field: 'amount', problem: 'Es demasiado grande' });
+      details.push({ field: 'amount', problem: t('Es demasiado grande') });
     } else {
       const rounded = Math.round(amount * 100) / 100;
-      if (rounded <= 0) details.push({ field: 'amount', problem: 'Debe ser al menos 0.01' });
+      if (rounded <= 0) details.push({ field: 'amount', problem: t('Debe ser al menos 0.01') });
       else out.amount = rounded;
     }
   }
@@ -74,11 +75,11 @@ function readFields(body, details) {
   if ('description' in body) {
     const description = body.description;
     if (typeof description !== 'string' || description.trim() === '') {
-      details.push({ field: 'description', problem: 'Es obligatoria' });
+      details.push({ field: 'description', problem: t('Es obligatoria') });
     } else if (description.trim().length > MAX_DESCRIPTION_LENGTH) {
       details.push({
         field: 'description',
-        problem: `Máximo ${MAX_DESCRIPTION_LENGTH} caracteres`,
+        problem: t('Máximo {MAX_DESCRIPTION_LENGTH} caracteres', { MAX_DESCRIPTION_LENGTH }),
       });
     } else {
       out.description = description.trim();
@@ -87,7 +88,7 @@ function readFields(body, details) {
 
   if ('type' in body) {
     if (!TYPES.includes(body.type)) {
-      details.push({ field: 'type', problem: 'Debe ser "ingreso" o "gasto"' });
+      details.push({ field: 'type', problem: t('Debe ser "ingreso" o "gasto"') });
     } else {
       out.type = body.type;
     }
@@ -95,7 +96,7 @@ function readFields(body, details) {
 
   if ('date' in body) {
     if (!isValidDate(body.date)) {
-      details.push({ field: 'date', problem: 'Debe ser una fecha válida AAAA-MM-DD' });
+      details.push({ field: 'date', problem: t('Debe ser una fecha válida AAAA-MM-DD') });
     } else {
       out.date = body.date;
     }
@@ -106,7 +107,7 @@ function readFields(body, details) {
     if (category === null || category === undefined || category === '') {
       out.category = null;
     } else if (typeof category !== 'string') {
-      details.push({ field: 'category', problem: 'Debe ser la clave de una categoría' });
+      details.push({ field: 'category', problem: t('Debe ser la clave de una categoría') });
     } else {
       out.category = category.trim();
     }
@@ -116,7 +117,7 @@ function readFields(body, details) {
   if ('card' in body) {
     if (body.card === null) out.card = null;
     else if (typeof body.card === 'string' && UUID_RE.test(body.card)) out.card = body.card;
-    else details.push({ field: 'card', problem: 'Debe ser el id de una tarjeta' });
+    else details.push({ field: 'card', problem: t('Debe ser el id de una tarjeta') });
   }
 
   if ('installments' in body && body.installments !== null) {
@@ -124,7 +125,7 @@ function readFields(body, details) {
     if (!Number.isInteger(n) || n < 1 || n > MAX_INSTALLMENTS) {
       details.push({
         field: 'installments',
-        problem: `Debe ser un entero entre 1 y ${MAX_INSTALLMENTS}`,
+        problem: t('Debe ser un entero entre 1 y {MAX_INSTALLMENTS}', { MAX_INSTALLMENTS }),
       });
     } else {
       out.installments = n;
@@ -140,7 +141,7 @@ function readFields(body, details) {
     if (!(field in body)) continue;
     if (body[field] === null) out[field] = null;
     else if (values.includes(body[field])) out[field] = body[field];
-    else details.push({ field, problem: `Debe ser uno de: ${values.join(', ')}` });
+    else details.push({ field, problem: t('Debe ser uno de: {join}', { join: values.join(', ') }) });
   }
 
   // Anotado en otra moneda (al viajar): lo pagado allá y la tasa a la moneda principal. El monto
@@ -150,21 +151,21 @@ function readFields(body, details) {
     if (original === null) {
       out.original = null;
     } else if (typeof original !== 'object' || Array.isArray(original)) {
-      details.push({ field: 'original', problem: 'Debe ser { currency, amount, rate } o null' });
+      details.push({ field: 'original', problem: t('Debe ser { currency, amount, rate } o null') });
     } else {
       const { currency, amount, rate } = original;
       const before = details.length;
-      if (!CURRENCIES.has(currency)) details.push({ field: 'original.currency', problem: 'Debe ser un código de moneda como "MXN"' });
+      if (!CURRENCIES.has(currency)) details.push({ field: 'original.currency', problem: t('Debe ser un código de moneda como "MXN"') });
       if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0 || amount > MAX_ORIGINAL_AMOUNT) {
-        details.push({ field: 'original.amount', problem: 'Debe ser un número mayor que 0' });
+        details.push({ field: 'original.amount', problem: t('Debe ser un número mayor que 0') });
       }
       if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0 || rate > 1e9) {
-        details.push({ field: 'original.rate', problem: 'Debe ser un número mayor que 0' });
+        details.push({ field: 'original.rate', problem: t('Debe ser un número mayor que 0') });
       }
       if (details.length === before) {
         out.original = { currency, amount: Math.round(amount * 100) / 100, rate };
         const converted = Math.round(out.original.amount * rate * 100) / 100;
-        if (converted <= 0 || converted > MAX_AMOUNT) details.push({ field: 'original.amount', problem: 'Convertido queda fuera de rango' });
+        if (converted <= 0 || converted > MAX_AMOUNT) details.push({ field: 'original.amount', problem: t('Convertido queda fuera de rango') });
         else out.amount = converted;
       }
     }
@@ -184,7 +185,7 @@ export function parseCreateTransaction(body) {
   const source = body && typeof body === 'object' ? body : {};
   const details = [];
   for (const field of ['amount', 'description', 'type', 'date']) {
-    if (!(field in source)) details.push({ field, problem: 'Es obligatorio' });
+    if (!(field in source)) details.push({ field, problem: t('Es obligatorio') });
   }
   const values = readFields(source, details);
   // `localId` opcional (FT-0009): si el cliente reintenta tras perder la respuesta, no se duplica.
@@ -194,7 +195,7 @@ export function parseCreateTransaction(body) {
     if (typeof localId === 'string' && localId.trim() !== '' && localId.length <= 64) {
       values.localId = localId;
     } else {
-      details.push({ field: 'localId', problem: 'Debe ser un texto de 1 a 64 caracteres' });
+      details.push({ field: 'localId', problem: t('Debe ser un texto de 1 a 64 caracteres') });
     }
   }
   throwIfInvalid(details);
@@ -213,7 +214,7 @@ export function parseUpdateTransaction(body) {
   const known = ['amount', 'description', 'type', 'date', 'category', 'card', 'installments', 'emotion', 'kakeibo', 'original'];
   const details = [];
   if (!known.some((field) => field in source)) {
-    details.push({ field: 'body', problem: 'Envía al menos un campo para modificar' });
+    details.push({ field: 'body', problem: t('Envía al menos un campo para modificar') });
   }
   const values = readFields(source, details);
   throwIfInvalid(details);
@@ -234,23 +235,23 @@ export function parseListQuery(query) {
 
   if (query.type !== undefined) {
     if (TYPES.includes(query.type)) out.type = query.type;
-    else details.push({ field: 'type', problem: 'Debe ser "ingreso" o "gasto"' });
+    else details.push({ field: 'type', problem: t('Debe ser "ingreso" o "gasto"') });
   }
   if (query.category !== undefined) {
     if (typeof query.category === 'string' && query.category !== '') out.category = query.category;
-    else details.push({ field: 'category', problem: 'Debe ser la clave de una categoría' });
+    else details.push({ field: 'category', problem: t('Debe ser la clave de una categoría') });
   }
   if (query.q !== undefined) {
     if (typeof query.q === 'string' && query.q.trim() !== '' && query.q.length <= 100) out.q = query.q.trim();
-    else details.push({ field: 'q', problem: 'Debe ser un texto de 1 a 100 caracteres' });
+    else details.push({ field: 'q', problem: t('Debe ser un texto de 1 a 100 caracteres') });
   }
   for (const field of ['from', 'to']) {
     if (query[field] === undefined) continue;
     if (isValidDate(query[field])) out[field] = query[field];
-    else details.push({ field, problem: 'Debe ser una fecha válida AAAA-MM-DD' });
+    else details.push({ field, problem: t('Debe ser una fecha válida AAAA-MM-DD') });
   }
   if (out.from && out.to && out.from > out.to) {
-    details.push({ field: 'from', problem: 'No puede ser posterior a "to"' });
+    details.push({ field: 'from', problem: t('No puede ser posterior a "to"') });
   }
 
   const number = (field, fallback, max) => {
@@ -259,7 +260,7 @@ export function parseListQuery(query) {
     if (!Number.isInteger(value) || value < 1 || (max && value > max)) {
       details.push({
         field,
-        problem: max ? `Debe ser un entero entre 1 y ${max}` : 'Debe ser un entero mayor que 0',
+        problem: max ? t('Debe ser un entero entre 1 y {max}', { max }) : t('Debe ser un entero mayor que 0'),
       });
       return fallback;
     }
@@ -281,10 +282,10 @@ export function parseListQuery(query) {
 export function parseSummaryQuery(query) {
   const details = [];
   if (!isValidPeriod(query.period)) {
-    details.push({ field: 'period', problem: 'Debe ser "week", "month" o "year"' });
+    details.push({ field: 'period', problem: t('Debe ser "week", "month" o "year"') });
   }
   if (query.date !== undefined && !isValidDate(query.date)) {
-    details.push({ field: 'date', problem: 'Debe ser una fecha válida AAAA-MM-DD' });
+    details.push({ field: 'date', problem: t('Debe ser una fecha válida AAAA-MM-DD') });
   }
   throwIfInvalid(details);
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
@@ -301,7 +302,7 @@ export function parseSummaryQuery(query) {
  */
 export function parseReflectionQuery(query) {
   if (query.date !== undefined && !isValidDate(query.date)) {
-    throwIfInvalid([{ field: 'date', problem: 'Debe ser una fecha válida AAAA-MM-DD' }]);
+    throwIfInvalid([{ field: 'date', problem: t('Debe ser una fecha válida AAAA-MM-DD') }]);
   }
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
   return { date: query.date || today };

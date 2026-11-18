@@ -97,7 +97,7 @@ test('paymentKey: el mismo pago da la misma llave; el id del Atajo manda', () =>
 test('pendingPaymentPayload lleva a Por confirmar', () => {
   assert.deepEqual(pendingPaymentPayload({ merchant: 'Éxito', amount: 45900 }), {
     title: 'Pago por confirmar',
-    body: 'Éxito: $45.900. Confírmalo para anotarlo en tus movimientos.',
+    body: 'Éxito: $\u00a045.900. Confírmalo para anotarlo en tus movimientos.',
     url: '/app/por-confirmar',
   });
 });

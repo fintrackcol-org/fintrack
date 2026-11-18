@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import * as repo from '../repositories/ideas.repository.js';
+import { t } from '../i18n/index.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -20,7 +21,7 @@ export function groupIdeas(ideas) {
 
 /** @returns {AppError} 404: la idea no existe o no se puede votar. */
 function notFound() {
-  return new AppError(404, 'NOT_FOUND', 'Idea no encontrada');
+  return new AppError(404, 'NOT_FOUND', t('Idea no encontrada'));
 }
 
 /**
@@ -41,7 +42,7 @@ export async function list(userId) {
  */
 export async function create(userId, title) {
   if ((await repo.countRecent(userId)) >= MAX_IDEAS_PER_DAY) {
-    throw new AppError(429, 'RATE_LIMITED', 'Ya enviaste varias ideas hoy. Gracias: vuelve mañana.');
+    throw new AppError(429, 'RATE_LIMITED', t('Ya enviaste varias ideas hoy. Gracias: vuelve mañana.'));
   }
   return repo.insertIdea(userId, title);
 }

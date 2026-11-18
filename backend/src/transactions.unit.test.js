@@ -6,7 +6,7 @@ import {
   parseListQuery,
   parseUpdateTransaction,
 } from './validators/transactions.validator.js';
-import { FUTURE_DATE_PROBLEM, createTransactionService } from './services/transactions.service.js';
+import { futureDateProblem, createTransactionService } from './services/transactions.service.js';
 
 const TODAY = '2026-11-10';
 
@@ -160,7 +160,7 @@ test('create rechaza una categoría inexistente o de otro tipo (RN-02)', async (
 
 test('create rechaza una fecha futura y acepta la de hoy (FT-0061)', async () => {
   const { service, saved } = buildService();
-  const future = { statusCode: 422, details: [{ field: 'date', problem: FUTURE_DATE_PROBLEM }] };
+  const future = { statusCode: 422, details: [{ field: 'date', problem: futureDateProblem() }] };
   await assert.rejects(service.create('u1', { ...VALID, date: '2026-11-11' }), future);
   await assert.rejects(service.create('u1', { ...VALID, date: '2027-11-10' }), future);
   assert.equal(saved.length, 0);

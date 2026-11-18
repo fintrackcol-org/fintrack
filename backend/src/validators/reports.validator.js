@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import { isValidDate } from './transactions.validator.js';
+import { t } from '../i18n/index.js';
 
 const FORMATS = ['xlsx', 'csv', 'pdf'];
 
@@ -11,14 +12,14 @@ const FORMATS = ['xlsx', 'csv', 'pdf'];
  */
 function checkRange({ from, to }, details) {
   if (!isValidDate(from)) {
-    details.push({ field: 'from', problem: 'Debe ser una fecha AAAA-MM-DD' });
+    details.push({ field: 'from', problem: t('Debe ser una fecha AAAA-MM-DD') });
   }
   if (!isValidDate(to)) {
-    details.push({ field: 'to', problem: 'Debe ser una fecha AAAA-MM-DD' });
+    details.push({ field: 'to', problem: t('Debe ser una fecha AAAA-MM-DD') });
   }
   // Las fechas AAAA-MM-DD se pueden comparar como texto: el orden alfabético es el cronológico.
   if (isValidDate(from) && isValidDate(to) && from > to) {
-    details.push({ field: 'to', problem: 'Debe ser igual o posterior a from' });
+    details.push({ field: 'to', problem: t('Debe ser igual o posterior a from') });
   }
 }
 
@@ -32,7 +33,7 @@ export function parsePreviewQuery(query) {
   const details = [];
   checkRange(query, details);
   if (details.length > 0) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   }
   return { from: query.from, to: query.to };
 }
@@ -50,15 +51,15 @@ export function parseExportQuery(query) {
   const { format, from, to, detail } = query;
 
   if (!FORMATS.includes(format)) {
-    details.push({ field: 'format', problem: 'Debe ser xlsx, csv o pdf' });
+    details.push({ field: 'format', problem: t('Debe ser xlsx, csv o pdf') });
   }
   checkRange(query, details);
   if (detail !== undefined && detail !== 'true' && detail !== 'false') {
-    details.push({ field: 'detail', problem: 'Debe ser true o false' });
+    details.push({ field: 'detail', problem: t('Debe ser true o false') });
   }
 
   if (details.length > 0) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   }
   return { format, from, to, detail: detail !== 'false' };
 }

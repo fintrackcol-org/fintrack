@@ -47,7 +47,7 @@ test('el texto dice cuándo, cuánto, por qué y cuánto gastar al día', () => 
   });
   assert.equal(
     payload.body,
-    'El 20 de noviembre te faltarían $300.000 por: Tarjeta ($250.000) e Internet ($50.000). Si gastas $28.000 al día, llegas.',
+    'El 20 de noviembre te faltarían $\u00a0300.000 por: Tarjeta ($\u00a0250.000) e Internet ($\u00a050.000). Si gastas $\u00a028.000 al día, llegas.',
   );
   assert.equal(payload.url, '/app/liquidez');
   // Sin gasto normal, o si ni gastando $0 se llega, no promete nada.
@@ -56,16 +56,16 @@ test('el texto dice cuándo, cuánto, por qué y cuánto gastar al día', () => 
     safeDailySpend: 0,
     pace: null,
   });
-  assert.equal(plain.body, 'El 20 de noviembre te faltarían $300.000 por: Arriendo ($900.000).');
+  assert.equal(plain.body, 'El 20 de noviembre te faltarían $\u00a0300.000 por: Arriendo ($\u00a0900.000).');
 });
 
 test('la línea del bot en los tres estados', () => {
   const base = { ready: true, lowest: { date: '2026-11-18', amount: 40_000 }, until: '2026-11-30' };
   assert.equal(liquidityLine({ ...base, risk: 'ok' }), 'Hasta el 30 de noviembre vas bien.');
-  assert.equal(liquidityLine({ ...base, risk: 'riesgo' }), 'Justo: el 18 de noviembre te quedan $40.000.');
+  assert.equal(liquidityLine({ ...base, risk: 'riesgo' }), 'Justo: el 18 de noviembre te quedan $\u00a040.000.');
   assert.equal(
     liquidityLine({ ...base, risk: 'falta', firstShortfall: shortfall }),
-    'Ojo: el 20 de noviembre te faltan $300.000.',
+    'Ojo: el 20 de noviembre te faltan $\u00a0300.000.',
   );
   assert.equal(liquidityLine({ ready: false }), null);
 });
@@ -116,7 +116,7 @@ test('el programador avisa una sola vez por bandeja, push y WhatsApp, y guarda e
   assert.equal(sent[0][1].title, 'Ojo con tu plata');
   assert.deepEqual(saved, [{ date: '2026-11-20', daysBefore: 3, missing: 300_000 }]);
   assert.equal(messages.length, 1);
-  assert.match(messages[0], /^El 20 de noviembre te faltarían \$300\.000/);
+  assert.match(messages[0], /^El 20 de noviembre te faltarían \$\s300\.000/);
 });
 
 test('si ya se avisó a esa distancia (p. ej. tras reiniciar el servidor) no repite', async () => {

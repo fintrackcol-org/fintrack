@@ -1,6 +1,7 @@
 import { shiftMonth } from './analytics.service.js';
 import { RISK_DAYS } from './payment-calendar.service.js';
 import { dateInMonth, occursInMonth } from './money-plan.service.js';
+import { currencyDigits, dateLocale, formatMoney, t } from '../i18n/index.js';
 
 /**
  * Motor de liquidez (FT-0059): cálculo puro, sin base de datos. Proyecta día por día la plata del
@@ -160,8 +161,8 @@ export function liquidityAlertDue({ today, shortfall, last }) {
   return daysBefore;
 }
 
-const dayMonth = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', timeZone: 'UTC' });
-const cop = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
+const dayMonth = { format: (date) => new Intl.DateTimeFormat(dateLocale(), { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(date) };
+const cop = (n) => formatMoney(n, { digits: currencyDigits() });
 
 /**
  * "20 de noviembre" a partir de AAAA-MM-DD.
@@ -196,11 +197,11 @@ export function liquidityAlertPayload({ firstShortfall, safeDailySpend, pace }) 
   const why = firstShortfall.causes.length ? ` por: ${causesText(firstShortfall.causes)}` : '';
   const reach =
     pace !== null && safeDailySpend > 0 && safeDailySpend < pace
-      ? ` Si gastas ${cop(safeDailySpend)} al día, llegas.`
+      ? t(' Si gastas {safeDailySpend} al día, llegas.', { safeDailySpend: cop(safeDailySpend) })
       : '';
   return {
-    title: 'Ojo con tu plata',
-    body: `El ${longDay(firstShortfall.date)} te faltarían ${cop(firstShortfall.missing)}${why}.${reach}`,
+    title: t('Ojo con tu plata'),
+    body: t('El {date} te faltarían {missing}{why}.{reach}', { date: longDay(firstShortfall.date), missing: cop(firstShortfall.missing), why, reach }),
     url: '/app/liquidez',
   };
 }
@@ -215,8 +216,8 @@ export function liquidityLine(liquidity) {
   if (!liquidity?.ready) return null;
   const { risk, firstShortfall, lowest, until } = liquidity;
   if (risk === 'falta') {
-    return `Ojo: el ${longDay(firstShortfall.date)} te faltan ${cop(firstShortfall.missing)}.`;
+    return t('Ojo: el {date} te faltan {missing}.', { date: longDay(firstShortfall.date), missing: cop(firstShortfall.missing) });
   }
-  if (risk === 'riesgo') return `Justo: el ${longDay(lowest.date)} te quedan ${cop(lowest.amount)}.`;
-  return `Hasta el ${longDay(until)} vas bien.`;
+  if (risk === 'riesgo') return t('Justo: el {date} te quedan {amount}.', { date: longDay(lowest.date), amount: cop(lowest.amount) });
+  return t('Hasta el {until} vas bien.', { until: longDay(until) });
 }

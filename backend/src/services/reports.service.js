@@ -3,6 +3,7 @@ import { listForExport } from '../repositories/transactions.repository.js';
 import { buildReport, isWholeMonth, pointLabel } from './report-data.service.js';
 import { buildWorkbook } from './report-excel.service.js';
 import { buildPdf } from './report-pdf.service.js';
+import { categoryText, t } from '../i18n/index.js';
 
 const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
@@ -13,9 +14,9 @@ const NEWLINE = '\r\n';
 /** Marca invisible al inicio para que Excel lea el archivo como UTF-8 (tildes y ñ). */
 const BOM = '﻿';
 
-const HEADER = ['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto', 'Origen'];
-const TYPE_LABELS = { gasto: 'Gasto', ingreso: 'Ingreso' };
-const SOURCE_LABELS = { manual: 'Manual', ia: 'IA', sin_clasificar: 'Sin clasificar' };
+const header = () => [t('Fecha'), t('Tipo'), t('Categoría'), t('Descripción'), t('Monto'), t('Origen')];
+const TYPE_LABELS = { get gasto() { return t('Gasto'); }, get ingreso() { return t('Ingreso'); } };
+const SOURCE_LABELS = { get manual() { return t('Manual'); }, get ia() { return t('IA'); }, get sin_clasificar() { return t('Sin clasificar'); } };
 
 /**
  * Prepara un texto para una celda del CSV.
@@ -49,13 +50,13 @@ export function formatAmount(amount) {
  * @returns {string}
  */
 export function toCsv(rows) {
-  const lines = [HEADER.map(escapeCell).join(SEPARATOR)];
+  const lines = [header().map(escapeCell).join(SEPARATOR)];
   for (const row of rows) {
     lines.push(
       [
         row.date,
         TYPE_LABELS[row.type],
-        escapeCell(row.categoryName ?? 'Sin clasificar'),
+        escapeCell(categoryText(row.categoryName)),
         escapeCell(row.description),
         formatAmount(row.amount),
         SOURCE_LABELS[row.source],
@@ -111,11 +112,11 @@ export async function previewReport(userId, { from, to }) {
     insights: report.insights,
     hasBudgets: report.budgets.length > 0,
     csv: {
-      columns: HEADER,
+      columns: header(),
       rows: sample.map((row) => [
         row.date,
         TYPE_LABELS[row.type],
-        row.categoryName ?? 'Sin clasificar',
+        categoryText(row.categoryName),
         row.description,
         row.amount,
         SOURCE_LABELS[row.source],
@@ -128,7 +129,7 @@ export async function previewReport(userId, { from, to }) {
 
 /** @returns {AppError} 422 `NO_DATA`: no hay movimientos en el periodo (REQ-033). */
 function noData() {
-  return new AppError(422, 'NO_DATA', 'No hay movimientos en el periodo seleccionado');
+  return new AppError(422, 'NO_DATA', t('No hay movimientos en el periodo seleccionado'));
 }
 
 /**

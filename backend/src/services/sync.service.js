@@ -5,6 +5,7 @@ import { listCategories } from '../repositories/categories.repository.js';
 import * as repo from '../repositories/sync.repository.js';
 import { resolveCategory } from './categorization.service.js';
 import * as transactions from './transactions.service.js';
+import { t } from '../i18n/index.js';
 
 /**
  * @typedef {import('../repositories/transactions.repository.js').TransactionRecord} TransactionRecord
@@ -41,12 +42,12 @@ async function assertCategories(userId, operations, current) {
     if (typeByKey.get(category) !== type) {
       details.push({
         field: `operations[${index}].transaction.category`,
-        problem: `No es una categoría de ${type ?? 'ese tipo'} del catálogo`,
+        problem: t('No es una categoría de {v1} del catálogo', { v1: type ?? 'ese tipo' }),
       });
     }
   });
   if (details.length > 0) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   }
 }
 

@@ -109,7 +109,7 @@ test('PATCH /users/me cambia país, moneda e idioma; con movimientos la moneda y
     assert.equal(moved.status, 200);
     assert.equal(moved.body.currency, 'USD');
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
     const tx = await api('/transactions', { method: 'POST', token, body: { type: 'gasto', amount: 12, description: 'Café', date: today } });
     assert.equal(tx.status, 201);
 

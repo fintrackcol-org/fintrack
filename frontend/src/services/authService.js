@@ -8,6 +8,7 @@
  * (`{ error: { code, message, details? } }`) a mensajes para el usuario.
  */
 import { API_V1 } from '@/lib/api';
+import { regionHeaders } from '@/lib/region';
 import { t } from '@/lib/i18n';
 
 /**
@@ -38,7 +39,7 @@ async function postJson(path, body, { fallback, messages = {} }) {
   try {
     res = await fetch(`${API_V1}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...regionHeaders() },
       body: JSON.stringify(body),
     });
   } catch {

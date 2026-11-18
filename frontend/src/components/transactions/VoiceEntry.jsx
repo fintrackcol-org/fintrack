@@ -9,7 +9,7 @@ import { formatMoney, formatRelativeDay } from '@/components/transactions/format
 import { Button } from '@/components/ui/button';
 import useSpeechRecognition from '@/hooks/useSpeechRecognition';
 import { lockScroll } from '@/lib/scrollLock';
-import { isAbroad } from '@/lib/region';
+import { getRegion, isAbroad } from '@/lib/region';
 import { cn } from '@/lib/utils';
 import { parseSpokenTransaction } from '@/lib/voiceEntry';
 import { saveNewTransaction } from '@/offline/saveNewTransaction';
@@ -307,7 +307,10 @@ function Listening({ titleId, transcript, level, onStop, onCancel }) {
 
 /** Lo que se entendió. Si se dijo una cantidad ("2 almuerzos de 12 mil"), la persona elige el monto. */
 function Result({ titleId, transcript, retryLabel = t('Repetir'), saving, error, onRetry, onSave, onEdit }) {
-  const parsed = useMemo(() => parseSpokenTransaction(transcript), [transcript]);
+  const parsed = useMemo(
+    () => parseSpokenTransaction(transcript, undefined, { smallMeansThousands: getRegion().currency === 'COP', receivedLabel: t('Pago recibido') }),
+    [transcript],
+  );
   const mustChoose = parsed.options.length > 1;
   const [amount, setAmount] = useState(mustChoose ? null : parsed.amount);
   const [askBig, setAskBig] = useState(null); // monto grande que espera el segundo toque

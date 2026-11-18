@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import { parseReminder } from './reminders.validator.js';
+import { t } from '../i18n/index.js';
 
 const INCOME_TYPES = ['fecha_fija', 'sin_fecha'];
 
@@ -35,7 +36,7 @@ export const COMMITMENT_FREQUENCIES = ['monthly', 'yearly'];
 
 /** @returns {AppError} 400: el cuerpo no es un objeto JSON. */
 function invalidBody() {
-  return new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+  return new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
 }
 
 /**
@@ -45,7 +46,7 @@ function invalidBody() {
  */
 function throwIfInvalid(details) {
   if (details.length > 0) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   }
 }
 
@@ -75,30 +76,30 @@ function isDayOfMonth(value) {
 function readCommitment(source, details, prefix = '') {
   const { name, amount, dayOfMonth } = isObject(source) ? source : {};
   if (typeof name !== 'string' || name.trim() === '') {
-    details.push({ field: `${prefix}name`, problem: 'Es obligatorio' });
+    details.push({ field: `${prefix}name`, problem: t('Es obligatorio') });
   } else if (name.trim().length > MAX_NAME_LENGTH) {
-    details.push({ field: `${prefix}name`, problem: `Máximo ${MAX_NAME_LENGTH} caracteres` });
+    details.push({ field: `${prefix}name`, problem: t('Máximo {MAX_NAME_LENGTH} caracteres', { MAX_NAME_LENGTH }) });
   }
   const rounded = typeof amount === 'number' ? Math.round(amount * 100) / 100 : NaN;
   if (!Number.isFinite(rounded) || rounded <= 0) {
-    details.push({ field: `${prefix}amount`, problem: 'Debe ser un número mayor que 0' });
+    details.push({ field: `${prefix}amount`, problem: t('Debe ser un número mayor que 0') });
   } else if (rounded > MAX_AMOUNT) {
-    details.push({ field: `${prefix}amount`, problem: 'Es demasiado grande' });
+    details.push({ field: `${prefix}amount`, problem: t('Es demasiado grande') });
   }
   if (!isDayOfMonth(dayOfMonth)) {
-    details.push({ field: `${prefix}dayOfMonth`, problem: 'Debe ser un día entre 1 y 31' });
+    details.push({ field: `${prefix}dayOfMonth`, problem: t('Debe ser un día entre 1 y 31') });
   }
   // FT-0067: tipo y frecuencia. Sin ellos, como siempre: pago fijo mensual.
   const { kind = 'fixed', frequency = 'monthly', month = null } = isObject(source) ? source : {};
   if (!COMMITMENT_KINDS.includes(kind)) {
-    details.push({ field: `${prefix}kind`, problem: `Debe ser: ${COMMITMENT_KINDS.join(', ')}` });
+    details.push({ field: `${prefix}kind`, problem: t('Debe ser: {join}', { join: COMMITMENT_KINDS.join(', ') }) });
   }
   if (!COMMITMENT_FREQUENCIES.includes(frequency)) {
-    details.push({ field: `${prefix}frequency`, problem: `Debe ser: ${COMMITMENT_FREQUENCIES.join(', ')}` });
+    details.push({ field: `${prefix}frequency`, problem: t('Debe ser: {join}', { join: COMMITMENT_FREQUENCIES.join(', ') }) });
   }
   const yearly = frequency === 'yearly';
   if (yearly && !(Number.isInteger(month) && month >= 1 && month <= 12)) {
-    details.push({ field: `${prefix}month`, problem: 'Un pago anual necesita el mes del cobro (1 a 12)' });
+    details.push({ field: `${prefix}month`, problem: t('Un pago anual necesita el mes del cobro (1 a 12)') });
   }
   return { name: name?.trim?.(), amount: rounded, dayOfMonth, kind, frequency, month: yearly ? month : null };
 }
@@ -113,19 +114,19 @@ function readCommitment(source, details, prefix = '') {
 function readProfile(source, details) {
   const { incomeType = null, payDays = [], balance = null } = source;
   if (incomeType !== null && !INCOME_TYPES.includes(incomeType)) {
-    details.push({ field: 'incomeType', problem: 'Debe ser "fecha_fija" o "sin_fecha"' });
+    details.push({ field: 'incomeType', problem: t('Debe ser "fecha_fija" o "sin_fecha"') });
   }
   const fixed = incomeType === 'fecha_fija';
   if (fixed) {
     const valid = Array.isArray(payDays) && payDays.length > 0 && payDays.length <= MAX_PAY_DAYS && payDays.every(isDayOfMonth);
-    if (!valid) details.push({ field: 'payDays', problem: `Elige de 1 a ${MAX_PAY_DAYS} días entre 1 y 31` });
+    if (!valid) details.push({ field: 'payDays', problem: t('Elige de 1 a {MAX_PAY_DAYS} días entre 1 y 31', { MAX_PAY_DAYS }) });
   }
   const cleanBalance = typeof balance === 'number' ? Math.round(balance * 100) / 100 : balance;
   if (
     cleanBalance !== null &&
     (typeof cleanBalance !== 'number' || !Number.isFinite(cleanBalance) || cleanBalance < 0 || cleanBalance > MAX_AMOUNT)
   ) {
-    details.push({ field: 'balance', problem: 'Debe ser un número desde 0' });
+    details.push({ field: 'balance', problem: t('Debe ser un número desde 0') });
   }
   return {
     incomeType,
@@ -163,7 +164,7 @@ export function parseWelcome(body) {
   const profile = readProfile(source, details);
   const { commitments = [] } = source;
   if (!Array.isArray(commitments) || commitments.length > MAX_COMMITMENTS) {
-    details.push({ field: 'commitments', problem: `Debe ser una lista de hasta ${MAX_COMMITMENTS}` });
+    details.push({ field: 'commitments', problem: t('Debe ser una lista de hasta {MAX_COMMITMENTS}', { MAX_COMMITMENTS }) });
     throwIfInvalid(details);
   }
   const clean = commitments.map((item, i) => readCommitment(item, details, `commitments[${i}].`));
@@ -196,11 +197,11 @@ const MAX_LAST_MONTHS = 6;
 
 /** Nombre por defecto de cada fuente, si el usuario no escribió uno. */
 const DEFAULT_NAMES = {
-  sueldo: 'Sueldo',
-  comisiones: 'Sueldo y comisiones',
-  proyectos: 'Proyectos',
-  diario: 'Trabajo por días',
-  mesada: 'Mesada',
+  get sueldo() { return t('Sueldo'); },
+  get comisiones() { return t('Sueldo y comisiones'); },
+  get proyectos() { return t('Proyectos'); },
+  get diario() { return t('Trabajo por días'); },
+  get mesada() { return t('Mesada'); },
 };
 
 /**
@@ -214,7 +215,7 @@ function readOptionalAmount(value, field, details) {
   if (value === null || value === undefined || value === '') return null;
   const rounded = typeof value === 'number' ? Math.round(value * 100) / 100 : NaN;
   if (!Number.isFinite(rounded) || rounded < 0 || rounded > MAX_AMOUNT) {
-    details.push({ field, problem: 'Debe ser un número desde 0' });
+    details.push({ field, problem: t('Debe ser un número desde 0') });
     return null;
   }
   return rounded;
@@ -230,18 +231,18 @@ function readOptionalAmount(value, field, details) {
  */
 function readSource(source, details, prefix) {
   const { kind, name, frequency = 'mensual', payDays = [], amount, low, high, lastMonths = [], workDays = null } = isObject(source) ? source : {};
-  if (!SOURCE_KINDS.includes(kind)) details.push({ field: `${prefix}kind`, problem: `Debe ser uno de: ${SOURCE_KINDS.join(', ')}` });
-  if (!FREQUENCIES.includes(frequency)) details.push({ field: `${prefix}frequency`, problem: `Debe ser uno de: ${FREQUENCIES.join(', ')}` });
-  const cleanName = typeof name === 'string' && name.trim() ? name.trim() : DEFAULT_NAMES[kind] ?? 'Ingreso';
-  if (cleanName.length > MAX_NAME_LENGTH) details.push({ field: `${prefix}name`, problem: `Máximo ${MAX_NAME_LENGTH} caracteres` });
+  if (!SOURCE_KINDS.includes(kind)) details.push({ field: `${prefix}kind`, problem: t('Debe ser uno de: {join}', { join: SOURCE_KINDS.join(', ') }) });
+  if (!FREQUENCIES.includes(frequency)) details.push({ field: `${prefix}frequency`, problem: t('Debe ser uno de: {join}', { join: FREQUENCIES.join(', ') }) });
+  const cleanName = typeof name === 'string' && name.trim() ? name.trim() : DEFAULT_NAMES[kind] ?? t('Ingreso');
+  if (cleanName.length > MAX_NAME_LENGTH) details.push({ field: `${prefix}name`, problem: t('Máximo {MAX_NAME_LENGTH} caracteres', { MAX_NAME_LENGTH }) });
   if (!Array.isArray(payDays) || payDays.length > MAX_PAY_DAYS || !payDays.every(isDayOfMonth)) {
-    details.push({ field: `${prefix}payDays`, problem: `Hasta ${MAX_PAY_DAYS} días entre 1 y 31` });
+    details.push({ field: `${prefix}payDays`, problem: t('Hasta {MAX_PAY_DAYS} días entre 1 y 31', { MAX_PAY_DAYS }) });
   }
   if (!Array.isArray(lastMonths) || lastMonths.length > MAX_LAST_MONTHS) {
-    details.push({ field: `${prefix}lastMonths`, problem: `Una lista de hasta ${MAX_LAST_MONTHS} montos` });
+    details.push({ field: `${prefix}lastMonths`, problem: t('Una lista de hasta {MAX_LAST_MONTHS} montos', { MAX_LAST_MONTHS }) });
   }
   if (workDays !== null && !(Number.isInteger(workDays) && workDays >= 1 && workDays <= 7)) {
-    details.push({ field: `${prefix}workDays`, problem: 'Debe ser de 1 a 7 días' });
+    details.push({ field: `${prefix}workDays`, problem: t('Debe ser de 1 a 7 días') });
   }
   return {
     kind,
@@ -268,8 +269,8 @@ export function parseSources(body) {
   if (!isObject(body)) throw invalidBody();
   const { sources } = body;
   if (!Array.isArray(sources) || sources.length > MAX_SOURCES) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'sources', problem: `Debe ser una lista de hasta ${MAX_SOURCES}` },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'sources', problem: t('Debe ser una lista de hasta {MAX_SOURCES}', { MAX_SOURCES }) },
     ]);
   }
   const details = [];
@@ -287,7 +288,7 @@ export function parseSources(body) {
 export function parseSplitQuery(query) {
   const amount = Number(query.amount);
   if (!Number.isFinite(amount) || amount <= 0 || amount > MAX_AMOUNT) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [{ field: 'amount', problem: 'Debe ser un número mayor que 0' }]);
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [{ field: 'amount', problem: t('Debe ser un número mayor que 0') }]);
   }
   return amount;
 }

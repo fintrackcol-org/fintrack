@@ -15,11 +15,12 @@ import { findUserById } from '../repositories/users.repository.js';
 import { attachments } from './attachments.service.js';
 import { resolveCategory } from './categorization.service.js';
 import { todayIso } from './insights.service.js';
+import { t } from '../i18n/index.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Lo que ve el usuario al anotar con fecha futura (FT-0061). */
-export const FUTURE_DATE_PROBLEM = 'No puedes anotar un movimiento en el futuro';
+export const futureDateProblem = () => t('No puedes anotar un movimiento en el futuro');
 
 /**
  * Hoy (AAAA-MM-DD) en la zona horaria del usuario.
@@ -86,7 +87,7 @@ function sumMoney(values) {
 
 /** @returns {AppError} 404: no existe o pertenece a otro usuario (RN-01). */
 function notFound() {
-  return new AppError(404, 'NOT_FOUND', 'Transacción no encontrada');
+  return new AppError(404, 'NOT_FOUND', t('Transacción no encontrada'));
 }
 
 /**
@@ -107,8 +108,8 @@ function present(record) {
 function assertReflectionOnExpense(values) {
   const details = ['emotion', 'kakeibo']
     .filter((field) => values[field])
-    .map((field) => ({ field, problem: 'Solo aplica a gastos' }));
-  if (details.length) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+    .map((field) => ({ field, problem: t('Solo aplica a gastos') }));
+  if (details.length) throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
 }
 
 /**
@@ -155,8 +156,8 @@ export function createTransactionService(deps = {}) {
   async function assertCategory(key, type, userId) {
     const match = (await getCategories(userId)).find((c) => c.key === key);
     if (!match || match.type !== type) {
-      throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-        { field: 'category', problem: `No es una categoría de ${type} del catálogo` },
+      throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+        { field: 'category', problem: t('No es una categoría de {type} del catálogo', { type }) },
       ]);
     }
   }
@@ -172,10 +173,10 @@ export function createTransactionService(deps = {}) {
   async function assertCard(cardId, type, userId) {
     const problem =
       type !== 'gasto'
-        ? 'Solo un gasto puede llevar tarjeta'
-        : !(await getCard(cardId, userId)) && 'No es una de tus tarjetas';
+        ? t('Solo un gasto puede llevar tarjeta')
+        : !(await getCard(cardId, userId)) && t('No es una de tus tarjetas');
     if (problem) {
-      throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [{ field: 'card', problem }]);
+      throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [{ field: 'card', problem }]);
     }
   }
 
@@ -188,8 +189,8 @@ export function createTransactionService(deps = {}) {
    */
   async function assertNotFuture(date, userId) {
     if (date > (await today(userId))) {
-      throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-        { field: 'date', problem: FUTURE_DATE_PROBLEM },
+      throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+        { field: 'date', problem: futureDateProblem() },
       ]);
     }
   }

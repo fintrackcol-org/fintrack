@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import * as repository from '../repositories/exchange-rates.repository.js';
+import { t } from '../i18n/index.js';
 
 /** API gratuita, sin clave y de código abierto; para el peso colombiano usa la TRM del Banco de la República. */
 const FRANKFURTER = 'https://api.frankfurter.dev/v2/rates';
@@ -40,7 +41,7 @@ export function createExchangeRateService(deps = {}) {
     } catch {
       const last = await repo.latestRate(from, to);
       if (last) return { from, to, date: last.date, rate: last.rate, stale: true };
-      throw new AppError(503, 'RATE_UNAVAILABLE', 'No pudimos traer la tasa de cambio. Escríbela tú.');
+      throw new AppError(503, 'RATE_UNAVAILABLE', t('No pudimos traer la tasa de cambio. Escríbela tú.'));
     }
   }
 

@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import * as whatsapp from '../services/whatsapp.service.js';
+import { t } from '../i18n/index.js';
 
 /**
  * `GET /api/v1/whatsapp/webhook`: Meta comprueba el webhook y espera recibir su `challenge`.
@@ -107,7 +108,7 @@ export async function getAdmin(_req, res) {
 export async function patchAdminAccess(req, res) {
   const status = req.body?.status;
   if (!UUID_RE.test(req.params.userId) || !['approved', 'rejected'].includes(status)) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'El estado debe ser approved o rejected');
+    throw new AppError(422, 'VALIDATION_ERROR', t('El estado debe ser approved o rejected'));
   }
   await whatsapp.setAccess(req.params.userId, status);
   res.status(204).end();

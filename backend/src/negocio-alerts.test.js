@@ -18,18 +18,18 @@ const alert = { businessId: 'n1', businessName: 'Arepas', party: 'Tienda Luz', r
 test('textos de los avisos de cuentas: antes y después de vencer, por cobrar y por pagar', () => {
   assert.equal(
     accountAlertPayload({ ...alert, kind: 'receivable', stage: 'previo' }).body,
-    'Mañana Tienda Luz debe pagarle $200.000 a Arepas.',
+    'Mañana Tienda Luz debe pagarle $\u00a0200.000 a Arepas.',
   );
   assert.equal(
     accountAlertPayload({ ...alert, kind: 'receivable', stage: 'vencida' }).body,
-    'Tienda Luz no ha pagado $200.000 a Arepas: ya venció.',
+    'Tienda Luz no ha pagado $\u00a0200.000 a Arepas: ya venció.',
   );
   assert.equal(
     accountAlertPayload({ ...alert, kind: 'payable', stage: 'previo' }).body,
-    'Mañana vence el pago de Arepas a Tienda Luz: $200.000.',
+    'Mañana vence el pago de Arepas a Tienda Luz: $\u00a0200.000.',
   );
   const late = accountAlertPayload({ ...alert, kind: 'payable', stage: 'vencida' });
-  assert.equal(late.body, 'Venció el pago de Arepas a Tienda Luz: faltan $200.000.');
+  assert.equal(late.body, 'Venció el pago de Arepas a Tienda Luz: faltan $\u00a0200.000.');
   assert.equal(late.url, '/app/negocios/n1');
 });
 
