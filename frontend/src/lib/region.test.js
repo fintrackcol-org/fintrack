@@ -24,7 +24,8 @@ describe('país, moneda e idioma', () => {
 
   it('el país propone su moneda y su idioma', () => {
     expect(regionForCountry('BR')).toEqual({ country: 'BR', currency: 'BRL', language: 'pt' });
-    expect(regionForCountry('CN')).toEqual({ country: 'CN', currency: 'CNY', language: 'zh' });
+    // Mientras no haya mandarín, China propone inglés.
+    expect(regionForCountry('CN')).toEqual({ country: 'CN', currency: 'CNY', language: 'en' });
   });
 
   it('quien viaja sigue viendo los números como en su casa', () => {

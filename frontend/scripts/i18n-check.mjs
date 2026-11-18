@@ -6,7 +6,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const SRC = new URL('../src/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
-const LANGUAGES = ['en', 'pt', 'zh'];
+const LANGUAGES = ['en', 'pt']; // zh vuelve cuando se retome el mandarín
 const CALL = /\btr?\(\s*(['"])((?:\\.|(?!\1).)*)\1/g;
 
 const unescape = (s) => s.replace(/\\n/g, '\n').replace(/\\(['"\\])/g, '$1');

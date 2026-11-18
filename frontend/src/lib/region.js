@@ -16,7 +16,7 @@ export const LANGUAGES = [
   { code: 'es', name: 'Español' },
   { code: 'en', name: 'English' },
   { code: 'pt', name: 'Português' },
-  { code: 'zh', name: '简体中文' },
+  // El mandarín (zh) vuelve aquí cuando existan sus traducciones en src/locales/zh (pausado el 18-nov-2026).
 ];
 
 /**
@@ -92,7 +92,9 @@ export function suggestCountry(
  */
 export function regionForCountry(code) {
   const country = findCountry(code) ?? findCountry(DEFAULT_REGION.country);
-  return { country: country.code, currency: country.currency, language: country.language };
+  // Un idioma que la app aún no tiene (el mandarín) se propone en inglés.
+  const language = LANGUAGES.some((l) => l.code === country.language) ? country.language : 'en';
+  return { country: country.code, currency: country.currency, language };
 }
 
 const upperFirst = (text) => (text ? text[0].toLocaleUpperCase() + text.slice(1) : text);
