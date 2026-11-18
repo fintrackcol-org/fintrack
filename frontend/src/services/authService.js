@@ -8,6 +8,7 @@
  * (`{ error: { code, message, details? } }`) a mensajes para el usuario.
  */
 import { API_V1 } from '@/lib/api';
+import { t } from '@/lib/i18n';
 
 /**
  * @typedef {object} User
@@ -22,7 +23,7 @@ import { API_V1 } from '@/lib/api';
  * @property {string} refreshToken Válido 30 días.
  */
 
-const TOO_MANY = 'Demasiados intentos. Espera un momento y vuelve a intentarlo.';
+const TOO_MANY = t('Demasiados intentos. Espera un momento y vuelve a intentarlo.');
 
 /**
  * Hace un POST JSON y devuelve el cuerpo. Si la respuesta no es 2xx lanza un Error con
@@ -41,7 +42,7 @@ async function postJson(path, body, { fallback, messages = {} }) {
       body: JSON.stringify(body),
     });
   } catch {
-    throw new Error('No pudimos conectar con el servidor. Revisa tu conexión.');
+    throw new Error(t('No pudimos conectar con el servidor. Revisa tu conexión.'));
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -61,10 +62,10 @@ async function postJson(path, body, { fallback, messages = {} }) {
  */
 export function login({ email, password }) {
   return postJson('/auth/login', { email, password }, {
-    fallback: 'No pudimos iniciar sesión. Inténtalo de nuevo.',
+    fallback: t('No pudimos iniciar sesión. Inténtalo de nuevo.'),
     messages: {
-      UNAUTHORIZED: 'Correo o contraseña incorrectos.',
-      EMAIL_NOT_VERIFIED: 'Confirma tu correo para entrar: abre el enlace que te enviamos.',
+      UNAUTHORIZED: t('Correo o contraseña incorrectos.'),
+      EMAIL_NOT_VERIFIED: t('Confirma tu correo para entrar: abre el enlace que te enviamos.'),
       RATE_LIMITED: TOO_MANY,
     },
   });
@@ -81,8 +82,8 @@ export function login({ email, password }) {
  */
 export function register({ email, password, acceptTerms }) {
   return postJson('/auth/register', { email, password, acceptTerms }, {
-    fallback: 'No pudimos crear tu cuenta. Inténtalo de nuevo.',
-    messages: { EMAIL_TAKEN: 'Ya existe una cuenta con ese correo.', RATE_LIMITED: TOO_MANY },
+    fallback: t('No pudimos crear tu cuenta. Inténtalo de nuevo.'),
+    messages: { EMAIL_TAKEN: t('Ya existe una cuenta con ese correo.'), RATE_LIMITED: TOO_MANY },
   });
 }
 
@@ -94,9 +95,9 @@ export function register({ email, password, acceptTerms }) {
  */
 export function loginWithGoogle(credential) {
   return postJson('/auth/google', { credential }, {
-    fallback: 'No pudimos iniciar sesión con Google. Inténtalo de nuevo.',
+    fallback: t('No pudimos iniciar sesión con Google. Inténtalo de nuevo.'),
     messages: {
-      GOOGLE_NOT_CONFIGURED: 'El inicio de sesión con Google no está disponible por ahora.',
+      GOOGLE_NOT_CONFIGURED: t('El inicio de sesión con Google no está disponible por ahora.'),
       RATE_LIMITED: TOO_MANY,
     },
   });
@@ -110,7 +111,7 @@ export function loginWithGoogle(credential) {
  */
 export function requestPasswordReset(email) {
   return postJson('/auth/forgot-password', { email }, {
-    fallback: 'No pudimos enviar el enlace. Inténtalo de nuevo.',
+    fallback: t('No pudimos enviar el enlace. Inténtalo de nuevo.'),
     messages: { RATE_LIMITED: TOO_MANY },
   });
 }
@@ -124,9 +125,9 @@ export function requestPasswordReset(email) {
  */
 export async function resetPassword({ token, password }) {
   await postJson('/auth/reset-password', { token, password }, {
-    fallback: 'No pudimos cambiar tu contraseña. Inténtalo de nuevo.',
+    fallback: t('No pudimos cambiar tu contraseña. Inténtalo de nuevo.'),
     messages: {
-      INVALID_RESET_TOKEN: 'Este enlace ya no sirve: venció o ya se usó. Pide uno nuevo.',
+      INVALID_RESET_TOKEN: t('Este enlace ya no sirve: venció o ya se usó. Pide uno nuevo.'),
       RATE_LIMITED: TOO_MANY,
     },
   });
@@ -141,9 +142,9 @@ export async function resetPassword({ token, password }) {
  */
 export function verifyEmail(token) {
   return postJson('/auth/verify-email', { token }, {
-    fallback: 'No pudimos confirmar tu correo. Inténtalo de nuevo.',
+    fallback: t('No pudimos confirmar tu correo. Inténtalo de nuevo.'),
     messages: {
-      INVALID_VERIFICATION_TOKEN: 'Este enlace ya no sirve: venció o ya se usó. Pide uno nuevo.',
+      INVALID_VERIFICATION_TOKEN: t('Este enlace ya no sirve: venció o ya se usó. Pide uno nuevo.'),
       RATE_LIMITED: TOO_MANY,
     },
   });
@@ -157,7 +158,7 @@ export function verifyEmail(token) {
  */
 export function resendVerification(email) {
   return postJson('/auth/resend-verification', { email }, {
-    fallback: 'No pudimos enviar el enlace. Inténtalo de nuevo.',
+    fallback: t('No pudimos enviar el enlace. Inténtalo de nuevo.'),
     messages: { RATE_LIMITED: TOO_MANY },
   });
 }

@@ -11,10 +11,11 @@ import useAsync from '@/hooks/useAsync';
 import { SOURCE_KINDS, fromApiSources, incomeHeadline, sourceSummary, toApiSources } from '@/lib/incomeSources';
 import { createCommitment, getIncome, saveIncomeSources } from '@/services/moneyProfileService';
 import { createVaca } from '@/services/vacaService';
+import { t } from '@/lib/i18n';
 
 /** Mismo nombre que busca el backend (`CUSHION_NAME` en income.service.js). */
-export const CUSHION_NAME = 'Colchón para meses flacos';
-const PILA_NAME = 'Seguridad social (PILA)';
+export const CUSHION_NAME = t('Colchón para meses flacos');
+const PILA_NAME = t('Seguridad social (PILA)');
 const TITLES = Object.fromEntries(SOURCE_KINDS.map((k) => [k.kind, k.title]));
 
 /** Un bloque del detalle, con ícono y título. */
@@ -50,31 +51,30 @@ function Cushion({ cushion, onChanged }) {
   };
 
   return (
-    <Block icon={PiggyBank} title="Colchón para meses flacos">
+    <Block icon={PiggyBank} title={t('Colchón para meses flacos')}>
       {cushion.metaId ? (
         <>
           <VacaProgress
             value={percent}
-            label="Avance del colchón"
+            label={t('Avance del colchón')}
             valueText={`${formatMoney(cushion.saved)} de ${formatMoney(cushion.goal)}`}
           />
           <p>
-            Llevas <strong className="tabular-nums">{formatMoney(cushion.saved)}</strong> de {formatMoney(cushion.goal)}.
+            {t('Llevas')} <strong className="tabular-nums">{formatMoney(cushion.saved)}</strong> {t('de')} {formatMoney(cushion.goal)}.
           </p>
           <Button asChild variant="soft" size="sm">
-            <Link to={`/app/metas/${cushion.metaId}`}>Aportar al colchón</Link>
+            <Link to={`/app/metas/${cushion.metaId}`}>{t('Aportar al colchón')}</Link>
           </Button>
         </>
       ) : (
         <>
           <p>
-            Para que un mes flaco no te coja la tarde, te sugerimos guardar{' '}
-            <strong className="tabular-nums">{formatMoney(cushion.suggestedGoal)}</strong>. Si un mes viene flaco, usas de ahí:
-            para eso es.
+            {t('Para que un mes flaco no te coja la tarde, te sugerimos guardar')}{' '}
+            <strong className="tabular-nums">{formatMoney(cushion.suggestedGoal)}</strong>{t('. Si un mes viene flaco, usas de ahí: para eso es.')}
           </p>
           <Button size="sm" variant="soft" disabled={busy || cushion.suggestedGoal <= 0} onClick={create}>
             {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
-            Crear mi colchón
+            {t('Crear mi colchón')}
           </Button>
         </>
       )}
@@ -100,20 +100,19 @@ function SocialSecurity({ data }) {
     }
   };
   return (
-    <Block icon={ShieldCheck} title="Salud y pensión">
+    <Block icon={ShieldCheck} title={t('Salud y pensión')}>
       <p>
-        Como trabajas por tu cuenta, aparta unos <strong className="tabular-nums">{formatMoney(data.total)}</strong> al mes: salud{' '}
-        {formatMoney(data.health)} y pensión {formatMoney(data.pension)}, sobre el 40 % de lo que te entra (mínimo un salario
-        mínimo).
+        {t('Como trabajas por tu cuenta, aparta unos')} <strong className="tabular-nums">{formatMoney(data.total)}</strong> {t('al mes: salud')}{' '}
+        {formatMoney(data.health)} {t('y pensión')} {formatMoney(data.pension)}{t(', sobre el 40 % de lo que te entra (mínimo un salario mínimo).')}
       </p>
-      <p className="text-xs text-ink/60">Valor aproximado, no es asesoría tributaria. La ARL es aparte y opcional.</p>
+      <p className="text-xs text-ink/60">{t('Valor aproximado, no es asesoría tributaria. La ARL es aparte y opcional.')}</p>
       {state === 'done' ? (
         <p role="status" className="text-positive">
-          Listo: quedó en tus pagos del mes (día 10). Cambia el día si tu planilla vence otro.
+          {t('Listo: quedó en tus pagos del mes (día 10). Cambia el día si tu planilla vence otro.')}
         </p>
       ) : (
         <Button size="sm" variant="soft" disabled={state === 'saving'} onClick={add}>
-          Recordármelo cada mes
+          {t('Recordármelo cada mes')}
         </Button>
       )}
       {state && !['saving', 'done'].includes(state) && (
@@ -164,30 +163,29 @@ export default function IncomeOverview() {
     <Panel aria-labelledby="income-title">
       <div className="flex items-center justify-between gap-3">
         <h2 id="income-title" className="text-lg font-semibold tracking-tight">
-          Cómo te entra la plata
+          {t('Cómo te entra la plata')}
         </h2>
         <Button variant="ghost" size="sm" onClick={headline ? () => setOpen(true) : startEditing}>
-          {headline ? 'Ver más' : 'Configurar'}
+          {headline ? t('Ver más') : t('Configurar')}
         </Button>
       </div>
-      <p className="mt-1 text-ink/70">{headline ?? 'Cuéntanos cómo y cuánto te entra, aunque sea más o menos.'}</p>
-      {data.estimated && <p className="mt-1 text-xs text-ink/60">Estimado con lo que nos contaste.</p>}
+      <p className="mt-1 text-ink/70">{headline ?? t('Cuéntanos cómo y cuánto te entra, aunque sea más o menos.')}</p>
+      {data.estimated && <p className="mt-1 text-xs text-ink/60">{t('Estimado con lo que nos contaste.')}</p>}
       {data.workDay && (
         <p className="mt-2 text-sm">
-          Llevas {formatMoney(data.workDay.earned)} de {formatMoney(data.workDay.target)}
+          {t('Llevas')} {formatMoney(data.workDay.earned)} {t('de')} {formatMoney(data.workDay.target)}
           {data.workDay.daysLeft > 0 && (
             <>
-              ; te faltan {data.workDay.daysLeft} días de trabajo, unos <strong className="tabular-nums">{formatMoney(data.workDay.perDay)}</strong> por
-              día.
+              {t('; te faltan')} {data.workDay.daysLeft} {t('días de trabajo, unos')} <strong className="tabular-nums">{formatMoney(data.workDay.perDay)}</strong> {t('por día.')}
             </>
           )}
-          {data.workDay.extraToday > 0 && ` Hoy hiciste ${formatMoney(data.workDay.extraToday)} de más: apártalos para mañana o al colchón.`}
+          {data.workDay.extraToday > 0 && t(' Hoy hiciste {extraToday} de más: apártalos para mañana o al colchón.', { extraToday: formatMoney(data.workDay.extraToday) })}
         </p>
       )}
 
       <Sheet
         open={open}
-        title="Cómo te entra la plata"
+        title={t('Cómo te entra la plata')}
         onClose={() => {
           setOpen(false);
           setEditing(null);
@@ -204,10 +202,10 @@ export default function IncomeOverview() {
             <div className="flex gap-2">
               <Button onClick={save} disabled={saving}>
                 {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-                Guardar
+                {t('Guardar')}
               </Button>
               <Button variant="ghost" onClick={() => setEditing(null)}>
-                Cancelar
+                {t('Cancelar')}
               </Button>
             </div>
           </div>
@@ -225,16 +223,15 @@ export default function IncomeOverview() {
               ))}
               <li>
                 <button type="button" onClick={startEditing} className="flex w-full items-center gap-2 p-3 text-left font-medium text-brand">
-                  Cambiar cómo te entra la plata
+                  {t('Cambiar cómo te entra la plata')}
                   <ChevronRight className="ml-auto size-4" aria-hidden="true" />
                 </button>
               </li>
             </ul>
             {data.ownSalary && (
-              <Block icon={Sparkles} title="Págate un sueldo">
+              <Block icon={Sparkles} title={t('Págate un sueldo')}>
                 <p>
-                  Te sugerimos vivir con <strong className="tabular-nums">{formatMoney(data.ownSalary)} al mes</strong>, aunque un mes
-                  te entre más. Lo que sobre va al colchón.
+                  {t('Te sugerimos vivir con')} <strong className="tabular-nums">{formatMoney(data.ownSalary)} {t('al mes')}</strong>{t(', aunque un mes te entre más. Lo que sobre va al colchón.')}
                 </p>
               </Block>
             )}

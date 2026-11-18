@@ -3,10 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import Logo from '@/components/common/Logo';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 const SWITCH_OPTIONS = [
-  { mode: 'login', to: '/login', label: 'Iniciar sesión' },
-  { mode: 'register', to: '/registro', label: 'Crear cuenta' },
+  { mode: 'login', to: '/login', label: t('Iniciar sesión') },
+  { mode: 'register', to: '/registro', label: t('Crear cuenta') },
 ];
 
 /**
@@ -24,7 +25,7 @@ function AuthSwitch({ mode, slide }) {
     import('@/pages/auth/Register');
   }, []);
   return (
-    <nav aria-label="Entrar o crear cuenta" className="relative grid grid-cols-2 rounded-xl border border-white/10 bg-white/5 p-1">
+    <nav aria-label={t('Entrar o crear cuenta')} className="relative grid grid-cols-2 rounded-xl border border-white/10 bg-white/5 p-1">
       <span
         aria-hidden="true"
         className={cn(
@@ -85,7 +86,7 @@ export default function AuthLayout({ title, subtitle, children, footer, icon: Ic
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
           <span>
-            Volver<span className="hidden sm:inline"> al inicio</span>
+            {t('Volver')}<span className="hidden sm:inline"> {t('al inicio')}</span>
           </span>
         </Link>
       </header>

@@ -16,6 +16,7 @@ import { loginSchema } from '@/lib/validation/auth';
 import { ACCOUNT_DELETED_KEY, useAuth } from '@/auth/AuthContext';
 import { getReturnTo, invitationKind } from '@/auth/returnTo';
 import { resendVerification } from '@/services/authService';
+import { t } from '@/lib/i18n';
 
 /**
  * Pantalla de inicio de sesión. Valida en el cliente (zod), inicia la sesión con `signIn`
@@ -24,7 +25,7 @@ import { resendVerification } from '@/services/authService';
  * ofrece reenviar el enlace.
  */
 export default function Login() {
-  usePageTitle('Iniciar sesión');
+  usePageTitle(t('Iniciar sesión'));
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signIn } = useAuth();
@@ -60,7 +61,7 @@ export default function Login() {
       navigate(getReturnTo(location.state?.from), { replace: true });
     } catch (err) {
       if (err.code === 'EMAIL_NOT_VERIFIED') setUnverified(values.email);
-      setServerError(err.message || 'No pudimos iniciar sesión. Inténtalo de nuevo.');
+      setServerError(err.message || t('No pudimos iniciar sesión. Inténtalo de nuevo.'));
     }
   };
 
@@ -68,7 +69,7 @@ export default function Login() {
     setResendNotice('');
     try {
       await resendVerification(unverified);
-      setResendNotice('Te enviamos un enlace nuevo. Revisa tu correo.');
+      setResendNotice(t('Te enviamos un enlace nuevo. Revisa tu correo.'));
     } catch (err) {
       setResendNotice(err.message);
     }
@@ -82,44 +83,44 @@ export default function Login() {
   return (
     <AuthLayout
       mode="login"
-      title="Inicia sesión en tu cuenta"
-      subtitle="Ingresa tus datos para continuar con tus finanzas."
+      title={t('Inicia sesión en tu cuenta')}
+      subtitle={t('Ingresa tus datos para continuar con tus finanzas.')}
       footer={
         <>
-          <span className="text-white/55">¿Primera vez en Rinde? </span>
+          <span className="text-white/55">{t('¿Primera vez en Rinde?')} </span>
           <Link
             to="/registro"
             state={location.state?.from ? { from: location.state.from } : undefined}
             className="font-medium text-violet-light transition-colors hover:text-white"
           >
-            Crea tu cuenta gratis
+            {t('Crea tu cuenta gratis')}
           </Link>
         </>
       }
     >
       {invitation && (
         <p className="rounded-xl bg-violet/15 px-4 py-3 text-sm text-violet-light" role="status">
-          Te invitaron a {invitation === 'vaca' ? 'una vaca' : 'un negocio'}. Inicia sesión o crea tu cuenta y te llevamos a la invitación.
+          {t('Te invitaron a')} {invitation === 'vaca' ? 'una vaca' : 'un negocio'}{t('. Inicia sesión o crea tu cuenta y te llevamos a la invitación.')}
         </p>
       )}
       {location.state?.passwordReset && (
         <p className="rounded-xl bg-mint/10 px-4 py-3 text-sm text-mint" role="status">
-          Contraseña actualizada. Inicia sesión con la nueva.
+          {t('Contraseña actualizada. Inicia sesión con la nueva.')}
         </p>
       )}
       {accountDeleted && (
         <p className="rounded-xl bg-white/10 px-4 py-3 text-sm text-white/80" role="status">
-          Eliminamos tu cuenta y tus datos. Te enviamos un correo de confirmación.
+          {t('Eliminamos tu cuenta y tus datos. Te enviamos un correo de confirmación.')}
         </p>
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
         <div className="space-y-4">
-          <FormField id="email" label="Correo electrónico" error={errors.email?.message}>
+          <FormField id="email" label={t('Correo electrónico')} error={errors.email?.message}>
             <Input type="email" autoComplete="email" inputMode="email" placeholder="tu@correo.com" {...register('email')} />
           </FormField>
-          <FormField id="password" label="Contraseña" error={errors.password?.message}>
-            <PasswordInput autoComplete="current-password" placeholder="Tu contraseña" {...register('password')} />
+          <FormField id="password" label={t('Contraseña')} error={errors.password?.message}>
+            <PasswordInput autoComplete="current-password" placeholder={t('Tu contraseña')} {...register('password')} />
           </FormField>
         </div>
 
@@ -133,7 +134,7 @@ export default function Login() {
               )}
             />
             <Label htmlFor="remember" className="text-white/55">
-              Recordarme 30 días
+              {t('Recordarme 30 días')}
             </Label>
           </div>
           <Link
@@ -141,7 +142,7 @@ export default function Login() {
             state={{ email }}
             className="text-sm text-white/60 underline-offset-4 transition-colors hover:text-white hover:underline"
           >
-            ¿Olvidaste tu contraseña?
+            {t('¿Olvidaste tu contraseña?')}
           </Link>
         </div>
 
@@ -154,7 +155,7 @@ export default function Login() {
                 onClick={resend}
                 className="font-medium text-white underline underline-offset-4 transition-colors hover:text-violet-light"
               >
-                Reenviar enlace
+                {t('Reenviar enlace')}
               </button>
             )}
           </div>
@@ -167,7 +168,7 @@ export default function Login() {
 
         <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-          {isSubmitting ? 'Ingresando…' : 'Iniciar sesión'}
+          {isSubmitting ? t('Ingresando…') : t('Iniciar sesión')}
         </Button>
       </form>
 

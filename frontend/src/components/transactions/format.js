@@ -1,4 +1,5 @@
-import { regionFormats } from '@/lib/region';
+import { dateLocale, regionFormats } from '@/lib/region';
+import { t } from '@/lib/i18n';
 
 /**
  * @param {number} amount
@@ -24,7 +25,7 @@ export function formatMoneyCompact(amount) {
  */
 export function formatDate(iso) {
   const [year, month, day] = iso.split('-').map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString('es-CO', {
+  return new Date(year, month - 1, day).toLocaleDateString(dateLocale(), {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -42,9 +43,9 @@ export function formatRelativeDay(iso, now = new Date()) {
   const date = new Date(year, month - 1, day);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const days = Math.round((today - date) / 86_400_000);
-  if (days === 0) return 'Hoy';
-  if (days === 1) return 'Ayer';
-  return date.toLocaleDateString('es-CO', {
+  if (days === 0) return t('Hoy');
+  if (days === 1) return t('Ayer');
+  return date.toLocaleDateString(dateLocale(), {
     day: 'numeric',
     month: 'short',
     ...(year !== now.getFullYear() && { year: 'numeric' }),

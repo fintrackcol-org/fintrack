@@ -3,6 +3,7 @@
  * Llama a `POST /api/v1/assistant/chat`. La conversación vive en la pantalla: no se guarda.
  */
 import { apiRequest } from '@/lib/apiRequest';
+import { t } from '@/lib/i18n';
 
 /** Mensajes que acepta la API: los últimos de la conversación. */
 export const MAX_MESSAGES = 10;
@@ -44,11 +45,11 @@ export async function askAssistant(messages) {
 
 /** Cómo se llama, para la persona, cada fuente que puede consultar el asistente. */
 const SOURCES = {
-  resumen_de_movimientos: 'Tus movimientos',
-  ahorro_promedio: 'Tu ahorro promedio',
-  dolar_hoy: 'TRM · Superfinanciera',
-  tasas_cdt: 'Tasas de CDT · Superfinanciera',
-  simular_cdt: 'Simulador de CDT',
+  resumen_de_movimientos: t('Tus movimientos'),
+  ahorro_promedio: t('Tu ahorro promedio'),
+  dolar_hoy: t('TRM · Superfinanciera'),
+  tasas_cdt: t('Tasas de CDT · Superfinanciera'),
+  simular_cdt: t('Simulador de CDT'),
 };
 
 /**

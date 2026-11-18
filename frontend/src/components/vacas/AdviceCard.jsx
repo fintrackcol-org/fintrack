@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getAdvice } from '@/services/vacaService';
 import { projectionText } from './vacaFormat';
+import { t } from '@/lib/i18n';
 
 const TONES = {
   positive: 'text-positive',
@@ -54,8 +55,8 @@ export default function AdviceCard({ vaca, online, onRemind }) {
         error: '',
         message:
           reminded === 0
-            ? 'Nadie está atrasado: no hizo falta recordar.'
-            : `Recordamos a ${reminded === 1 ? '1 miembro' : `${reminded} miembros`}${delivered === 0 ? ', pero no tienen las notificaciones activas en ningún dispositivo' : ''}.`,
+            ? t('Nadie está atrasado: no hizo falta recordar.')
+            : `Recordamos a ${reminded === 1 ? t('1 miembro') : `${reminded} miembros`}${delivered === 0 ? t(', pero no tienen las notificaciones activas en ningún dispositivo') : ''}.`,
       });
     } catch (err) {
       setRemindState({ busy: false, message: '', error: err.message });
@@ -71,13 +72,13 @@ export default function AdviceCard({ vaca, online, onRemind }) {
 
       <div className="rounded-xl bg-brand-soft/50 p-4">
         <p className="flex items-center gap-2 text-sm font-semibold text-brand">
-          <Sparkles className="size-4" aria-hidden="true" /> {personal ? 'Consejo para ti' : 'Consejo para el grupo'}
+          <Sparkles className="size-4" aria-hidden="true" /> {personal ? t('Consejo para ti') : t('Consejo para el grupo')}
         </p>
         {!online ? (
-          <p className="mt-2 text-sm text-ink/60">Sin conexión: el consejo aparece al volver internet.</p>
+          <p className="mt-2 text-sm text-ink/60">{t('Sin conexión: el consejo aparece al volver internet.')}</p>
         ) : loading && !advice ? (
           <p className="mt-2 flex items-center gap-2 text-sm text-ink/60">
-            <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Pensando…
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" /> {t('Pensando…')}
           </p>
         ) : advice ? (
           <>
@@ -85,15 +86,15 @@ export default function AdviceCard({ vaca, online, onRemind }) {
             <p className="mt-2 text-xs text-ink/60">
               {personal
                 ? advice.source === 'ia'
-                  ? 'Generado con IA solo con los totales de tu meta.'
-                  : 'Calculado con los datos de tu meta.'
+                  ? t('Generado con IA solo con los totales de tu meta.')
+                  : t('Calculado con los datos de tu meta.')
                 : advice.source === 'ia'
-                  ? 'Generado con IA solo con los totales del grupo (sin nombres).'
-                  : 'Calculado con los datos del grupo.'}
+                  ? t('Generado con IA solo con los totales del grupo (sin nombres).')
+                  : t('Calculado con los datos del grupo.')}
             </p>
           </>
         ) : (
-          <p className="mt-2 text-sm text-ink/60">No pudimos traer el consejo ahora.</p>
+          <p className="mt-2 text-sm text-ink/60">{t('No pudimos traer el consejo ahora.')}</p>
         )}
       </div>
 
@@ -102,13 +103,13 @@ export default function AdviceCard({ vaca, online, onRemind }) {
           {behind > 0 || remindState.message ? (
             <Button variant="outline" className="w-full sm:w-auto" onClick={remind} disabled={!online || remindState.busy}>
               {remindState.busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <BellRing aria-hidden="true" />}
-              Recordar a quienes les falta
+              {t('Recordar a quienes les falta')}
             </Button>
           ) : (
             <p className="text-sm text-ink/60">
               {others.length === 0
-                ? 'Aún no hay más miembros: cuando alguien se una, desde aquí le puedes recordar su aporte.'
-                : 'Los demás van al día o ya cumplieron.'}
+                ? t('Aún no hay más miembros: cuando alguien se una, desde aquí le puedes recordar su aporte.')
+                : t('Los demás van al día o ya cumplieron.')}
             </p>
           )}
           <p role="status" className={cn('text-sm text-positive', remindState.message && 'mt-2')}>

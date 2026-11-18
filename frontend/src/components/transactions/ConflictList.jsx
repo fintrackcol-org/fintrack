@@ -1,6 +1,7 @@
 import { Info, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { conflictMessage } from '@/offline/conflictMessage';
+import { t } from '@/lib/i18n';
 
 /**
  * Conflictos de sincronización que el usuario aún no ha visto (FT-0009): un cambio hecho sin
@@ -15,17 +16,16 @@ export default function ConflictList({ conflicts, onDismiss }) {
     <section aria-labelledby="conflicts-title" className="mt-4 rounded-xl border border-ink/10 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 id="conflicts-title" className="text-sm font-medium">
-          Conflictos de sincronización ({conflicts.length})
+          {t('Conflictos de sincronización (')}{conflicts.length})
         </h3>
         {conflicts.length > 1 && (
           <Button size="sm" variant="ghost" onClick={() => onDismiss()}>
-            Entendido todos
+            {t('Entendido todos')}
           </Button>
         )}
       </div>
       <p className="mt-1 text-sm text-ink/60">
-        Cambiaste estos movimientos sin conexión y otro dispositivo también los cambió. Se conserva el cambio más
-        reciente.
+        {t('Cambiaste estos movimientos sin conexión y otro dispositivo también los cambió. Se conserva el cambio más reciente.')}
       </p>
       <ul className="mt-2 divide-y divide-ink/10">
         {conflicts.map((conflict) => {
@@ -41,7 +41,7 @@ export default function ConflictList({ conflicts, onDismiss }) {
                 <span className="break-words">{text}</span>
               </span>
               <Button size="sm" variant="outline" onClick={() => onDismiss([conflict.localId])}>
-                Entendido
+                {t('Entendido')}
                 <span className="sr-only">: {text}</span>
               </Button>
             </li>

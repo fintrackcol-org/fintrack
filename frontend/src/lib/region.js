@@ -136,7 +136,10 @@ function load() {
   } catch {
     // Sin almacenamiento (modo privado o pruebas): se usa el de siempre.
   }
-  return DEFAULT_REGION;
+  // Antes de entrar (login, registro) habla el idioma del navegador si la app lo tiene. Solo en el
+  // navegador: Node también tiene `navigator` y las pruebas deben correr en español.
+  const browser = globalThis.document ? globalThis.navigator?.language?.slice(0, 2) : null;
+  return LANGUAGES.some((l) => l.code === browser) ? { ...DEFAULT_REGION, language: browser } : DEFAULT_REGION;
 }
 
 let region = load();
@@ -144,6 +147,12 @@ let formats = null;
 
 /** @returns {{ country: string, currency: string, language: string }} */
 export const getRegion = () => region;
+
+/** Formato de fechas y listas: el idioma de la app con el país (`es-CO`, `en-US`, `pt-BR`). */
+export const dateLocale = () => `${region.language}-${region.country}`;
+
+/** Formato de números y porcentajes: el de la casa de la moneda principal, como el dinero. */
+export const numberLocale = () => regionFormats().locale;
 
 /** Moneda del país donde está ahora: la de lo que paga allá si viaja. */
 export const localCurrency = () => findCountry(region.country)?.currency ?? region.currency;

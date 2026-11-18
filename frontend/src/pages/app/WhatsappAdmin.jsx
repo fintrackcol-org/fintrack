@@ -9,11 +9,12 @@ import useAsync from '@/hooks/useAsync';
 import usePageTitle from '@/hooks/usePageTitle';
 import { cn } from '@/lib/utils';
 import { getWhatsappAdmin, setWhatsappAccess } from '@/services/whatsappService';
+import { t } from '@/lib/i18n';
 
 export const FILTERS = [
-  { key: 'pending', label: 'Por aprobar' },
-  { key: 'approved', label: 'Con acceso' },
-  { key: 'rejected', label: 'Sin acceso' },
+  { key: 'pending', label: t('Por aprobar') },
+  { key: 'approved', label: t('Con acceso') },
+  { key: 'rejected', label: t('Sin acceso') },
 ];
 
 /** Parte del tope en la que la barra pasa a aviso; el backend avisa por correo en el mismo punto. */
@@ -38,14 +39,14 @@ function MonthMeter({ month }) {
   return (
     <Panel aria-labelledby="mes-title">
       <h2 id="mes-title" className="text-lg font-semibold tracking-tight">
-        Respuestas de este mes
+        {t('Respuestas de este mes')}
       </h2>
       <p className="mt-3 text-3xl font-semibold tabular-nums tracking-tight">
-        {month.sent} <span className="text-base font-normal text-ink/60">de {month.max}</span>
+        {month.sent} <span className="text-base font-normal text-ink/60">{t('de')} {month.max}</span>
       </p>
       <div
         role="meter"
-        aria-label="Respuestas usadas este mes"
+        aria-label={t('Respuestas usadas este mes')}
         aria-valuemin={0}
         aria-valuemax={month.max}
         aria-valuenow={Math.min(month.sent, month.max)}
@@ -59,8 +60,8 @@ function MonthMeter({ month }) {
       </div>
       <p className="mt-3 text-sm text-ink/60">
         {level === 'full'
-          ? 'El bot dejó de responder hasta el otro mes, para que Meta no cobre.'
-          : `Quedan ${left}. Al llegar al tope, el bot deja de responder hasta el otro mes.`}
+          ? t('El bot dejó de responder hasta el otro mes, para que Meta no cobre.')
+          : t('Quedan {left}. Al llegar al tope, el bot deja de responder hasta el otro mes.', { left })}
       </p>
     </Panel>
   );
@@ -71,7 +72,7 @@ function MonthMeter({ month }) {
  * puede usarlo. La seguridad está en la API, que responde 403 a quien no esté en `ADMIN_EMAILS`.
  */
 export default function WhatsappAdmin() {
-  usePageTitle('WhatsApp del equipo');
+  usePageTitle(t('WhatsApp del equipo'));
   const { data, error, loading, reload } = useAsync(getWhatsappAdmin, []);
   const [filter, setFilter] = useState('pending');
   const [changing, setChanging] = useState(null);
@@ -99,9 +100,9 @@ export default function WhatsappAdmin() {
         className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-ink/60 transition-colors hover:text-brand"
       >
         <ChevronLeft className="size-4" aria-hidden="true" />
-        Cuenta
+        {t('Cuenta')}
       </Link>
-      <PageHeader title="WhatsApp del equipo" description="Cuánto lleva el bot este mes y quién puede usarlo." />
+      <PageHeader title={t('WhatsApp del equipo')} description={t('Cuánto lleva el bot este mes y quién puede usarlo.')} />
 
       {error ? (
         <Panel>
@@ -113,7 +114,7 @@ export default function WhatsappAdmin() {
         <Panel>
           <p className="flex items-center gap-2 text-sm text-ink/60">
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-            Cargando…
+            {t('Cargando…')}
           </p>
         </Panel>
       ) : (
@@ -149,7 +150,7 @@ export default function WhatsappAdmin() {
                 <div className="py-6 text-center">
                   <Inbox className="mx-auto size-6 text-brand" aria-hidden="true" />
                   <p className="mt-2 text-sm text-ink/60">
-                    {filter === 'pending' ? 'Nadie está esperando aprobación.' : 'No hay nadie aquí.'}
+                    {filter === 'pending' ? t('Nadie está esperando aprobación.') : t('No hay nadie aquí.')}
                   </p>
                 </div>
               ) : (
@@ -159,20 +160,20 @@ export default function WhatsappAdmin() {
                       <p className="break-all text-[15px] font-medium">{user.email}</p>
                       <p className="mt-0.5 text-xs tabular-nums text-ink/60">
                         {user.name ? `${user.name} · ` : ''}
-                        Lo pidió {formatRelativeDay(user.requestedAt.slice(0, 10)).toLowerCase()}
+                        {t('Lo pidió')} {formatRelativeDay(user.requestedAt.slice(0, 10)).toLowerCase()}
                         {user.status === 'approved' &&
-                          ` · ${user.monthSends} ${user.monthSends === 1 ? 'respuesta' : 'respuestas'} este mes`}
+                          t(' · {monthSends} {v2} este mes', { monthSends: user.monthSends, v2: user.monthSends === 1 ? 'respuesta' : 'respuestas' })}
                       </p>
                       {user.linked && (
                         <p className="mt-1 flex items-center gap-1 text-xs text-ink/60">
                           <CircleCheck className="size-3.5 text-positive" aria-hidden="true" />
-                          {user.hasPhone ? 'Número conectado' : 'Usuario conectado'}
+                          {user.hasPhone ? t('Número conectado') : t('Usuario conectado')}
                         </p>
                       )}
                       <div className="mt-2 flex flex-wrap gap-2">
                         {user.status !== 'approved' && (
                           <Button size="sm" onClick={() => change(user, 'approved')} disabled={changing === user.userId}>
-                            {user.status === 'rejected' ? 'Dar acceso' : 'Aprobar'}
+                            {user.status === 'rejected' ? t('Dar acceso') : t('Aprobar')}
                           </Button>
                         )}
                         {user.status !== 'rejected' && (
@@ -182,7 +183,7 @@ export default function WhatsappAdmin() {
                             onClick={() => change(user, 'rejected')}
                             disabled={changing === user.userId}
                           >
-                            {user.status === 'approved' ? 'Quitar acceso' : 'Rechazar'}
+                            {user.status === 'approved' ? t('Quitar acceso') : t('Rechazar')}
                           </Button>
                         )}
                       </div>

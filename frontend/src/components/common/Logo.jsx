@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /** Color del cuadro: el de la marca y uno más claro para fondos violeta. */
 const TILE = { brand: '#6142ff', light: '#a58bff' };
@@ -41,7 +42,7 @@ export function Wordmark({ className }) {
         <path d="M500 186H610A14 14 0 0 1 610 214H500A14 14 0 0 1 500 186Z" />
         <path
           fillRule="evenodd"
-          d="M301 155a59 59 0 1 0 118 0a59 59 0 1 0 -118 0ZM329 155a31 31 0 1 0 62 0a31 31 0 1 0 -62 0Z"
+          d={'M301 155a59 59 0 1 0 118 0a59 59 0 1 0 -118 0ZM329 155a31 31 0 1 0 62 0a31 31 0 1 0 -62 0Z'}
         />
         <circle cx="130" cy="62" r="18" fill="#2fd6a3" />
       </g>
@@ -57,7 +58,7 @@ export default function Logo({ className, dark = false }) {
   return (
     <Link
       to="/"
-      aria-label="Rinde, ir al inicio"
+      aria-label={t('Rinde, ir al inicio')}
       className={cn('inline-flex items-center gap-2 text-2xl', dark ? 'text-obsidian' : 'text-white', className)}
     >
       <LogoMark />

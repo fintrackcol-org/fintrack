@@ -4,6 +4,7 @@ import { Wallet } from 'lucide-react';
 import Panel from '@/components/layout/Panel';
 import { Button } from '@/components/ui/button';
 import { finishWelcome } from '@/services/moneyProfileService';
+import { t } from '@/lib/i18n';
 
 /**
  * Invitación del inicio a responder la bienvenida. Es para quien ya usaba la app: a las cuentas
@@ -22,9 +23,9 @@ export default function MoneyInvite({ onDone }) {
       </span>
       <div className="min-w-40 flex-1">
         <h2 id="money-invite-title" className="font-semibold tracking-tight">
-          ¿Ya tenías plata cuando empezaste?
+          {t('¿Ya tenías plata cuando empezaste?')}
         </h2>
-        <p className="text-sm text-ink/60">Dinos cuánta tienes hoy y cómo te entra: son tres preguntas y las cambias cuando quieras.</p>
+        <p className="text-sm text-ink/60">{t('Dinos cuánta tienes hoy y cómo te entra: son tres preguntas y las cambias cuando quieras.')}</p>
         {error && (
           <p role="alert" className="mt-1 text-sm text-negative">
             {error}
@@ -33,10 +34,10 @@ export default function MoneyInvite({ onDone }) {
       </div>
       <div className="flex gap-2">
         <Button asChild size="sm">
-          <Link to="/app/bienvenida">Responder</Link>
+          <Link to="/app/bienvenida">{t('Responder')}</Link>
         </Button>
         <Button variant="ghost" size="sm" onClick={dismiss}>
-          Ahora no
+          {t('Ahora no')}
         </Button>
       </div>
     </Panel>

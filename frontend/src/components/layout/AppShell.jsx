@@ -28,46 +28,47 @@ import { cn } from '@/lib/utils';
 import { getProfile } from '@/services/userService';
 import { setRegion } from '@/lib/region';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
+import { t } from '@/lib/i18n';
 
 /**
  * Menú lateral (Rinde v2): las mismas 4 secciones de la barra del celular, con lo que vive dentro de
  * Mi plata y de Metas como subsecciones. `end` evita que "Inicio" quede activo en las subrutas.
  */
 const NAV = [
-  { to: '/app', label: 'Inicio', icon: House, end: true },
-  { to: '/app/movimientos', label: 'Movimientos', icon: List },
+  { to: '/app', label: t('Inicio'), icon: House, end: true },
+  { to: '/app/movimientos', label: t('Movimientos'), icon: List },
   {
     to: '/app/mi-plata',
-    label: 'Mi plata',
+    label: t('Mi plata'),
     icon: Wallet,
     tour: 'mi-plata',
     children: [
-      { to: '/app/presupuestos', label: 'Presupuestos' },
-      { to: '/app/calendario', label: 'Calendario' },
-      { to: '/app/cuentas', label: 'Cuentas' },
-      { to: '/app/tarjetas', label: 'Tarjetas' },
-      { to: '/app/por-confirmar', label: 'Por confirmar' },
-      { to: '/app/insights', label: 'Consejos' },
-      { to: '/app/renta', label: 'Renta y DIAN' },
+      { to: '/app/presupuestos', label: t('Presupuestos') },
+      { to: '/app/calendario', label: t('Calendario') },
+      { to: '/app/cuentas', label: t('Cuentas') },
+      { to: '/app/tarjetas', label: t('Tarjetas') },
+      { to: '/app/por-confirmar', label: t('Por confirmar') },
+      { to: '/app/insights', label: t('Consejos') },
+      { to: '/app/renta', label: t('Renta y DIAN') },
     ],
   },
   {
     to: '/app/metas',
-    label: 'Metas',
+    label: t('Metas'),
     icon: Flag,
     tour: 'metas',
     children: [
-      { to: '/app/vacas', label: 'Vacas' },
-      { to: '/app/negocios', label: 'Negocios' },
+      { to: '/app/vacas', label: t('Vacas') },
+      { to: '/app/negocios', label: t('Negocios') },
     ],
   },
 ];
 
 /** Lo de la app, en pequeño al final del menú. */
 const EXTRA = [
-  { to: '/app/invitar', label: 'Invitar amigos', icon: UserPlus },
-  { to: '/app/planes', label: 'Planes', icon: Crown },
-  { to: '/app/lo-que-viene', label: 'Lo que viene', icon: Lightbulb },
+  { to: '/app/invitar', label: t('Invitar amigos'), icon: UserPlus },
+  { to: '/app/planes', label: t('Planes'), icon: Crown },
+  { to: '/app/lo-que-viene', label: t('Lo que viene'), icon: Lightbulb },
 ];
 
 /** Círculo con la inicial del usuario. */
@@ -99,7 +100,7 @@ function Sidebar({ user }) {
       <Link
         to="/app"
         className="flex items-center gap-2.5 rounded-xl px-2 text-xl font-semibold tracking-tight max-lg:justify-center"
-        aria-label="Rinde, ir al inicio"
+        aria-label={t('Rinde, ir al inicio')}
       >
         <LogoMark className="lg:hidden" />
         <Wordmark className="h-7 w-auto max-lg:hidden" />
@@ -108,14 +109,14 @@ function Sidebar({ user }) {
       <Link
         to="/app/anotar"
         data-tour="anotar"
-        title="Anotar"
+        title={t('Anotar')}
         className="mt-6 flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-brand font-semibold text-white shadow-[0_8px_20px_-8px_rgb(97_66_255/0.7)] transition-transform hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet motion-safe:active:scale-[0.98]"
       >
         <Plus className="size-5" aria-hidden="true" />
-        <span className="max-lg:sr-only">Anotar</span>
+        <span className="max-lg:sr-only">{t('Anotar')}</span>
       </Link>
 
-      <nav aria-label="Principal" className="mt-6">
+      <nav aria-label={t('Principal')} className="mt-6">
         <ul className="flex flex-col gap-1">
           {NAV.map(({ to, label, icon: Icon, end, tour, children = [] }) => {
             const inside = children.some((c) => pathname.startsWith(c.to));
@@ -179,7 +180,7 @@ function Sidebar({ user }) {
         </ul>
         <NavLink
           to="/app/cuenta"
-          title="Tu cuenta"
+          title={t('Tu cuenta')}
           data-tour="cuenta"
           className={({ isActive }) =>
             cn(
@@ -190,8 +191,8 @@ function Sidebar({ user }) {
         >
           <Avatar user={user} />
           <span className="min-w-0 max-lg:sr-only">
-            <span className="block truncate text-sm font-semibold">{getDisplayName(user) || 'Tú'}</span>
-            <span className="block truncate text-xs text-ink/70">Tu cuenta</span>
+            <span className="block truncate text-sm font-semibold">{getDisplayName(user) || t('Tú')}</span>
+            <span className="block truncate text-xs text-ink/70">{t('Tu cuenta')}</span>
           </span>
         </NavLink>
       </div>
@@ -216,7 +217,7 @@ function MobileHeader() {
     <header className="flex items-center px-2 pb-1 pt-[max(0.5rem,env(safe-area-inset-top))] md:hidden">
       <button
         type="button"
-        aria-label="Volver"
+        aria-label={t('Volver')}
         onClick={() => (canGoBack(window.history.state) ? navigate(-1) : navigate(parent, { replace: true }))}
         className="grid size-11 place-items-center rounded-full transition-colors hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-violet"
       >
@@ -263,7 +264,7 @@ function SectionFallback() {
   return (
     <div className="grid min-h-[40vh] place-items-center text-ink/60" aria-busy="true">
       <Loader2 className="size-6 animate-spin" aria-hidden="true" />
-      <span className="sr-only">Cargando…</span>
+      <span className="sr-only">{t('Cargando…')}</span>
     </div>
   );
 }
@@ -287,7 +288,7 @@ function Shell() {
         href="#contenido"
         className="sr-only z-50 rounded-lg bg-brand px-4 py-2 text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
       >
-        Saltar al contenido
+        {t('Saltar al contenido')}
       </a>
 
       {/*

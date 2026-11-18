@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /** Ancho de las dos acciones (Editar y Eliminar), en px. */
 const ACTIONS = 144;
@@ -74,7 +75,7 @@ export default function SwipeRow({ children, editTo, editState, onDelete, label,
           className="flex w-[72px] flex-col items-center justify-center gap-1 bg-brand text-xs font-semibold text-white focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"
         >
           <Pencil className="size-5" aria-hidden="true" />
-          Editar
+          {t('Editar')}
         </Link>
         <button
           type="button"
@@ -84,7 +85,7 @@ export default function SwipeRow({ children, editTo, editState, onDelete, label,
           className="flex w-[72px] flex-col items-center justify-center gap-1 bg-negative text-xs font-semibold text-white focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"
         >
           <Trash2 className="size-5" aria-hidden="true" />
-          Eliminar
+          {t('Eliminar')}
         </button>
       </div>
       <div

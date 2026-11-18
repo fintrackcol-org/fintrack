@@ -20,6 +20,7 @@ import { SYNC_EVENT, dismissConflicts, listCached, listConflicts, listPending } 
 import { TRANSACTION_SAVED_EVENT } from '@/offline/saveNewTransaction';
 import { listBalanceAdjustments } from '@/services/moneyProfileService';
 import { listTransactions } from '@/services/transactionService';
+import { t } from '@/lib/i18n';
 
 const PAGE_SIZE = 20;
 /** Pausa tras dejar de escribir antes de buscar. */
@@ -57,9 +58,9 @@ export function withAdjustments(transactions, adjustments, complete) {
 }
 
 const TYPES = [
-  { value: '', label: 'Todos' },
-  { value: 'gasto', label: 'Gastos' },
-  { value: 'ingreso', label: 'Ingresos' },
+  { value: '', label: t('Todos') },
+  { value: 'gasto', label: t('Gastos') },
+  { value: 'ingreso', label: t('Ingresos') },
 ];
 
 const CHIP = 'flex h-11 shrink-0 items-center gap-1 rounded-full border px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-violet';
@@ -74,8 +75,8 @@ export function summaryLine(rows, hidden) {
   const list = rows.filter((r) => !r.adjustment);
   const sum = (type) => list.filter((r) => r.type === type).reduce((a, r) => a + r.amount, 0);
   const money = (v) => (hidden ? '••••' : formatMoney(v));
-  const count = list.length === 1 ? '1 movimiento' : `${list.length} movimientos`;
-  return `${count} · gastos ${money(sum('gasto'))} · ingresos ${money(sum('ingreso'))}`;
+  const count = list.length === 1 ? t('1 movimiento') : t('{length} movimientos', { length: list.length });
+  return t('{count} · gastos {money} · ingresos {money2}', { count, money: money(sum('gasto')), money2: money(sum('ingreso')) });
 }
 
 /**
@@ -123,12 +124,12 @@ export default function MovementList({ names, hidden = false, standalone = false
     const onSync = ({ detail }) => {
       reload();
       const synced = detail?.synced?.length ?? 0;
-      if (synced > 0) setNotice(synced === 1 ? 'Se sincronizó 1 movimiento guardado sin conexión.' : `Se sincronizaron ${synced} movimientos guardados sin conexión.`);
+      if (synced > 0) setNotice(synced === 1 ? t('Se sincronizó 1 movimiento guardado sin conexión.') : t('Se sincronizaron {synced} movimientos guardados sin conexión.', { synced }));
       if (detail?.notices?.some((n) => n.code === 'cardDropped')) {
-        setNotice('Guardamos el gasto sin tarjeta: esa tarjeta ya no existe. Puedes asignarle una al editarlo.');
+        setNotice(t('Guardamos el gasto sin tarjeta: esa tarjeta ya no existe. Puedes asignarle una al editarlo.'));
       }
       if (detail?.notices?.some((n) => n.code === 'dateClamped')) {
-        setNotice('Un movimiento tenía fecha futura y quedó con fecha de hoy. Puedes cambiarla al editarlo.');
+        setNotice(t('Un movimiento tenía fecha futura y quedó con fecha de hoy. Puedes cambiarla al editarlo.'));
       }
     };
     refreshQueue();
@@ -218,16 +219,16 @@ export default function MovementList({ names, hidden = false, standalone = false
     <section id="movimientos" ref={sectionRef} aria-labelledby="movimientos-title" className="scroll-mt-4">
       <div className={cn('flex items-center gap-2', standalone ? 'justify-end' : 'justify-between')}>
         <h2 id="movimientos-title" className={cn('text-lg font-semibold tracking-tight', standalone && 'sr-only')}>
-          Movimientos
+          {t('Movimientos')}
         </h2>
         <div className="-mr-2 flex items-center text-sm font-medium text-brand">
-          <button type="button" aria-label="Mes anterior" className="grid size-11 place-items-center" onClick={() => changeMonth(-1)}>
+          <button type="button" aria-label={t('Mes anterior')} className="grid size-11 place-items-center" onClick={() => changeMonth(-1)}>
             <ChevronLeft className="size-4" aria-hidden="true" />
           </button>
           <span aria-live="polite" className="first-letter:uppercase">{monthName}</span>
           <button
             type="button"
-            aria-label="Mes siguiente"
+            aria-label={t('Mes siguiente')}
             className="grid size-11 place-items-center disabled:opacity-40"
             disabled={month >= currentMonth()}
             onClick={() => changeMonth(1)}
@@ -239,12 +240,12 @@ export default function MovementList({ names, hidden = false, standalone = false
 
       <label className="mt-2 flex h-12 items-center gap-2.5 rounded-full bg-ink/5 px-4 text-ink/60 focus-within:ring-2 focus-within:ring-brand/40">
         <Search className="size-[18px] shrink-0" aria-hidden="true" />
-        <span className="sr-only">Buscar movimiento</span>
+        <span className="sr-only">{t('Buscar movimiento')}</span>
         <input
           type="search"
           value={text}
           onChange={(event) => setText(event.target.value)}
-          placeholder="Buscar movimiento"
+          placeholder={t('Buscar movimiento')}
           className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink/60"
         />
       </label>
@@ -256,15 +257,15 @@ export default function MovementList({ names, hidden = false, standalone = false
           </button>
         ))}
         <button type="button" aria-haspopup="dialog" onClick={() => setPicking(true)} className={cn(CHIP, chipTone(Boolean(category)))}>
-          {categoryName ?? 'Categoría'}
+          {categoryName ?? t('Categoría')}
           <ChevronDown className="size-4" aria-hidden="true" />
         </button>
       </div>
-      <Sheet open={picking} title="Categoría" onClose={() => setPicking(false)}>
+      <Sheet open={picking} title={t('Categoría')} onClose={() => setPicking(false)}>
         <ul className="divide-y divide-ink/10">
           <li>
             <button type="button" className="flex min-h-14 w-full items-center gap-3 text-left font-medium" onClick={() => (setCategory(''), setPage(1), setPicking(false))}>
-              Todas las categorías
+              {t('Todas las categorías')}
             </button>
           </li>
           {categoryOptions.map((c) => (
@@ -298,18 +299,18 @@ export default function MovementList({ names, hidden = false, standalone = false
         <p role="alert" className="mt-3 text-sm text-negative">
           {error}{' '}
           <button type="button" className="underline" onClick={() => setVersion((v) => v + 1)}>
-            Reintentar
+            {t('Reintentar')}
           </button>
         </p>
       )}
 
       {result === null && !error ? (
         <p className="flex items-center gap-2 py-8 text-ink/60" aria-busy="true">
-          <Loader2 className="size-5 animate-spin" aria-hidden="true" /> Cargando…
+          <Loader2 className="size-5 animate-spin" aria-hidden="true" /> {t('Cargando…')}
         </p>
       ) : result && rows.length === 0 ? (
         <p className="py-8 text-center text-ink/60">
-          {filtered ? 'Ningún movimiento coincide con la búsqueda.' : `No hay movimientos en ${monthName.toLowerCase()}.`}
+          {filtered ? t('Ningún movimiento coincide con la búsqueda.') : t('No hay movimientos en {toLowerCase}.', { toLowerCase: monthName.toLowerCase() })}
         </p>
       ) : (
         <div aria-busy={busy} className={cn('transition-opacity duration-150', busy && 'opacity-50')}>
@@ -356,15 +357,15 @@ export default function MovementList({ names, hidden = false, standalone = false
           </div>
           ))}
           {standalone && rows.length > 0 && (
-            <p className="mt-4 text-center text-[13px] text-ink/60 md:hidden">Desliza una fila a la izquierda para editarla o eliminarla.</p>
+            <p className="mt-4 text-center text-[13px] text-ink/60 md:hidden">{t('Desliza una fila a la izquierda para editarla o eliminarla.')}</p>
           )}
         </div>
       )}
 
       <Sheet
         open={deleting !== null}
-        title="¿Eliminar este movimiento?"
-        description={deleting ? `${deleting.description} · ${hidden ? '••••' : formatMoney(deleting.amount)}. Se quita de tus totales.` : undefined}
+        title={t('¿Eliminar este movimiento?')}
+        description={deleting ? t('{description} · {v2}. Se quita de tus totales.', { description: deleting.description, v2: hidden ? '••••' : formatMoney(deleting.amount) }) : undefined}
         onClose={() => setDeleting(null)}
       >
         {deleteError && (
@@ -381,39 +382,39 @@ export default function MovementList({ names, hidden = false, standalone = false
                 const { offline } = await removeTransaction(deleting);
                 setDeleting(null);
                 // Sin red se quita de la vista y se borra en el servidor al volver: se dice, para que no sorprenda.
-                setNotice(offline ? 'Eliminado sin conexión: se borra en el servidor al volver internet.' : 'Movimiento eliminado.');
+                setNotice(offline ? t('Eliminado sin conexión: se borra en el servidor al volver internet.') : t('Movimiento eliminado.'));
                 setVersion((v) => v + 1);
               } catch (err) {
                 setDeleteError(err.message);
               }
             }}
           >
-            Sí, eliminar
+            {t('Sí, eliminar')}
           </Button>
           <Button size="lg" variant="ghost" onClick={() => setDeleting(null)}>
-            Cancelar
+            {t('Cancelar')}
           </Button>
         </div>
       </Sheet>
 
       <Sheet
         open={opened !== null}
-        title="Ajuste de saldo"
-        description={opened ? `Corregiste tu saldo el ${formatDate(opened.date)}. No cuenta como ingreso ni como gasto.` : undefined}
+        title={t('Ajuste de saldo')}
+        description={opened ? t('Corregiste tu saldo el {date}. No cuenta como ingreso ni como gasto.', { date: formatDate(opened.date) }) : undefined}
         onClose={() => setOpened(null)}
       >
         {opened && (
           <dl className="divide-y divide-ink/10 text-base">
             <div className="flex items-center justify-between gap-4 py-3.5">
-              <dt className="text-ink/60">Saldo antes</dt>
+              <dt className="text-ink/60">{t('Saldo antes')}</dt>
               <dd className="font-medium tabular-nums">{hidden ? '••••' : formatMoney(opened.before)}</dd>
             </div>
             <div className="flex items-center justify-between gap-4 py-3.5">
-              <dt className="text-ink/60">Saldo después</dt>
+              <dt className="text-ink/60">{t('Saldo después')}</dt>
               <dd className="font-semibold tabular-nums">{hidden ? '••••' : formatMoney(opened.after)}</dd>
             </div>
             <div className="flex items-center justify-between gap-4 py-3.5">
-              <dt className="text-ink/60">Diferencia</dt>
+              <dt className="text-ink/60">{t('Diferencia')}</dt>
               <dd className="font-medium tabular-nums">
                 {hidden ? '••••' : `${opened.after >= opened.before ? '+' : '−'}${formatMoney(Math.abs(opened.after - opened.before))}`}
               </dd>
@@ -424,7 +425,7 @@ export default function MovementList({ names, hidden = false, standalone = false
 
       {result && result.data.length < result.total && (
         <Button variant="soft" className="mt-4 w-full" onClick={() => setPage((p) => p + 1)}>
-          Ver más
+          {t('Ver más')}
         </Button>
       )}
     </section>

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { formatRelativeDay } from '@/components/transactions/format';
 import { ROLES, ROLE_OPTIONS, inviteLink } from './negocioFormat';
+import { t } from '@/lib/i18n';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -37,7 +38,7 @@ export default function NegocioInvitePanel({ business, online, onInvite, onCance
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError('No se pudo copiar. Selecciona el enlace y cópialo a mano.');
+      setError(t('No se pudo copiar. Selecciona el enlace y cópialo a mano.'));
     }
   };
 
@@ -45,7 +46,7 @@ export default function NegocioInvitePanel({ business, online, onInvite, onCance
     try {
       await navigator.share({
         title: `Negocio "${business.name}"`,
-        text: `Únete al negocio "${business.name}" en Rinde (código ${business.code}):`,
+        text: t('Únete al negocio "{name}" en Rinde (código {code}):', { name: business.name, code: business.code }),
         url: link,
       });
     } catch {
@@ -70,7 +71,7 @@ export default function NegocioInvitePanel({ business, online, onInvite, onCance
     event.preventDefault();
     const clean = email.trim().toLowerCase();
     if (!EMAIL_RE.test(clean)) {
-      setError('Escribe un correo válido.');
+      setError(t('Escribe un correo válido.'));
       return;
     }
     run(async () => {
@@ -78,8 +79,8 @@ export default function NegocioInvitePanel({ business, online, onInvite, onCance
       setEmail('');
       setMessage(
         result.sent
-          ? `Invitación enviada a ${clean} como ${ROLES[role].label.toLowerCase()}.`
-          : `Ya le enviamos la invitación a ${clean} hace un momento (quedó como ${ROLES[role].label.toLowerCase()}).`,
+          ? t('Invitación enviada a {clean} como {toLowerCase}.', { clean, toLowerCase: ROLES[role].label.toLowerCase() })
+          : t('Ya le enviamos la invitación a {clean} hace un momento (quedó como {toLowerCase}).', { clean, toLowerCase: ROLES[role].label.toLowerCase() }),
       );
     });
   };
@@ -87,28 +88,27 @@ export default function NegocioInvitePanel({ business, online, onInvite, onCance
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-sm font-medium text-ink/80">Enlace para unirse</p>
+        <p className="text-sm font-medium text-ink/80">{t('Enlace para unirse')}</p>
         <div className="mt-2 flex gap-2">
-          <Input readOnly value={link} aria-label="Enlace de invitación" className="min-w-0 text-sm" onFocus={(e) => e.target.select()} />
-          <Button type="button" variant="outline" size="icon" className="size-12 shrink-0" onClick={copy} aria-label="Copiar enlace">
+          <Input readOnly value={link} aria-label={t('Enlace de invitación')} className="min-w-0 text-sm" onFocus={(e) => e.target.select()} />
+          <Button type="button" variant="outline" size="icon" className="size-12 shrink-0" onClick={copy} aria-label={t('Copiar enlace')}>
             {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
           </Button>
         </div>
         <p className="mt-2 text-sm text-ink/60">
-          O comparte el código{' '}
-          <span className="font-mono text-base font-semibold tracking-widest text-ink">{business.code}</span>. Con el
-          enlace o el código entran como editores; para otro rol, invita por correo.
+          {t('O comparte el código')}{' '}
+          <span className="font-mono text-base font-semibold tracking-widest text-ink">{business.code}</span>{t('. Con el enlace o el código entran como editores; para otro rol, invita por correo.')}
         </p>
         {canShare && (
           <Button type="button" variant="outline" className="mt-3" onClick={share}>
-            <Share2 aria-hidden="true" /> Compartir
+            <Share2 aria-hidden="true" /> {t('Compartir')}
           </Button>
         )}
       </div>
 
       <form onSubmit={invite} noValidate className="space-y-2">
         <label htmlFor="negocio-invite-email" className="text-sm font-medium text-ink/80">
-          Invitar por correo
+          {t('Invitar por correo')}
         </label>
         <Input
           id="negocio-invite-email"
@@ -120,7 +120,7 @@ export default function NegocioInvitePanel({ business, online, onInvite, onCance
           onChange={(e) => setEmail(e.target.value)}
           disabled={!online}
         />
-        <Select aria-label="Rol de la persona invitada" value={role} onChange={(e) => setRole(e.target.value)} disabled={!online}>
+        <Select aria-label={t('Rol de la persona invitada')} value={role} onChange={(e) => setRole(e.target.value)} disabled={!online}>
           {ROLE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}: {ROLES[option.value].hint.toLowerCase()}
@@ -129,7 +129,7 @@ export default function NegocioInvitePanel({ business, online, onInvite, onCance
         </Select>
         <Button type="submit" size="lg" variant="outline" className="w-full" disabled={!online || busy || !email}>
           {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Mail aria-hidden="true" />}
-          Enviar invitación
+          {t('Enviar invitación')}
         </Button>
       </form>
 
@@ -144,14 +144,14 @@ export default function NegocioInvitePanel({ business, online, onInvite, onCance
 
       {business.invitations?.length > 0 && (
         <div>
-          <p className="text-sm font-medium text-ink/80">Invitaciones pendientes</p>
+          <p className="text-sm font-medium text-ink/80">{t('Invitaciones pendientes')}</p>
           <ul className="mt-2 divide-y divide-ink/10">
             {business.invitations.map((inv) => (
               <li key={inv.email} className="flex items-center justify-between gap-2 py-2">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm">{inv.email}</span>
                   <span className="text-xs text-ink/60">
-                    {ROLES[inv.role].label} · enviada: {formatRelativeDay(inv.sentAt.slice(0, 10))}
+                    {ROLES[inv.role].label} {t('· enviada:')} {formatRelativeDay(inv.sentAt.slice(0, 10))}
                   </span>
                 </span>
                 <Button
@@ -159,7 +159,7 @@ export default function NegocioInvitePanel({ business, online, onInvite, onCance
                   variant="ghost"
                   disabled={!online || busy}
                   onClick={() => run(() => onCancelInvitation(inv.email))}
-                  aria-label={`Cancelar invitación a ${inv.email}`}
+                  aria-label={t('Cancelar invitación a {email}', { email: inv.email })}
                 >
                   <X aria-hidden="true" />
                 </Button>
@@ -171,22 +171,22 @@ export default function NegocioInvitePanel({ business, online, onInvite, onCance
 
       {confirmingCode ? (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-ink/60">El enlace actual dejará de servir. ¿Cambiar el código?</span>
+          <span className="text-sm text-ink/60">{t('El enlace actual dejará de servir. ¿Cambiar el código?')}</span>
           <Button
             size="sm"
             variant="outline"
             disabled={busy}
             onClick={() => run(async () => (await onRegenerate(), setConfirmingCode(false)))}
           >
-            Sí, cambiar
+            {t('Sí, cambiar')}
           </Button>
           <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmingCode(false)}>
-            No
+            {t('No')}
           </Button>
         </div>
       ) : (
         <Button size="sm" variant="ghost" disabled={!online} onClick={() => setConfirmingCode(true)}>
-          <RefreshCw aria-hidden="true" /> Cambiar código
+          <RefreshCw aria-hidden="true" /> {t('Cambiar código')}
         </Button>
       )}
     </div>

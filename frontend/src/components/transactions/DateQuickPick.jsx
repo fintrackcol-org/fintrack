@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import ChipGroup from '@/components/common/ChipGroup';
 import { Input } from '@/components/ui/input';
 import { FUTURE_DATE_MESSAGE, today } from '@/lib/validation/transaction';
+import { t } from '@/lib/i18n';
 
 /** Ayer en la zona del dispositivo, como AAAA-MM-DD. */
 function yesterday() {
@@ -12,9 +13,9 @@ function yesterday() {
 }
 
 const OPTIONS = [
-  { value: 'today', label: 'Hoy' },
-  { value: 'yesterday', label: 'Ayer' },
-  { value: 'other', label: 'Otra fecha' },
+  { value: 'today', label: t('Hoy') },
+  { value: 'yesterday', label: t('Ayer') },
+  { value: 'other', label: t('Otra fecha') },
 ];
 
 /** Qué pastilla corresponde a una fecha. */
@@ -48,11 +49,11 @@ export default function DateQuickPick({ value, onChange, error }) {
 
   return (
     <div className="space-y-2">
-      <ChipGroup legend="Fecha" options={OPTIONS} value={mode} onChange={pick} />
+      <ChipGroup legend={t('Fecha')} options={OPTIONS} value={mode} onChange={pick} />
       {mode === 'other' && (
         <Input
           type="date"
-          aria-label="Fecha del movimiento"
+          aria-label={t('Fecha del movimiento')}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           max={today()}
@@ -63,7 +64,7 @@ export default function DateQuickPick({ value, onChange, error }) {
         <p role="alert" className="text-sm text-negative">
           {FUTURE_DATE_MESSAGE}.{' '}
           <Link to="/app/calendario" className="font-medium underline underline-offset-2">
-            ¿Es un pago que viene? Míralo en el calendario
+            {t('¿Es un pago que viene? Míralo en el calendario')}
           </Link>
         </p>
       ) : (

@@ -1,4 +1,5 @@
-/**
+
+import { t } from '@/lib/i18n';/**
  * Aviso flotante cuando algo no se pudo traer (lienzo «Sin conexión»): qué falló, que se reintenta solo
  * al volver la conexión y un botón para reintentar ya. Va encima de la barra de pestañas en el celular.
  * @param {{ message: string, onRetry: () => void }} props
@@ -11,14 +12,14 @@ export default function LoadErrorToast({ message, onRetry }) {
     >
       <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full bg-negative" />
       <p className="min-w-0 flex-1 text-sm">
-        <b className="font-semibold text-negative">{message}</b> Lo intentamos solos cuando vuelva la conexión.
+        <b className="font-semibold text-negative">{message}</b> {t('Lo intentamos solos cuando vuelva la conexión.')}
       </p>
       <button
         type="button"
         onClick={onRetry}
         className="min-h-11 shrink-0 rounded-full px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-violet"
       >
-        Reintentar
+        {t('Reintentar')}
       </button>
     </div>
   );

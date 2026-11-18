@@ -5,11 +5,12 @@ import { PayDaysField } from '@/components/money/IncomeFields';
 import { Label } from '@/components/ui/label';
 import { SOURCE_KINDS, toggleKind } from '@/lib/incomeSources';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 const PERIODS = [
-  { value: 'mensual', label: 'Al mes' },
-  { value: 'quincenal', label: 'Quincena' },
-  { value: 'semanal', label: 'Semana' },
+  { value: 'mensual', label: t('Al mes') },
+  { value: 'quincenal', label: t('Quincena') },
+  { value: 'semanal', label: t('Semana') },
 ];
 
 /** Un monto con su etiqueta. `MoneyInput` ya guarda el texto crudo. */
@@ -31,27 +32,27 @@ function KindQuestions({ form, onChange }) {
     case 'sueldo':
       return (
         <>
-          <Amount id={id('amount')} label="¿Cuánto te pagan al mes?" value={form.amount} onChange={(amount) => set({ amount })} />
-          <PayDaysField legend="¿Qué días te pagan? (opcional)" payDays={form.payDays} onChange={(payDays) => set({ payDays })} />
+          <Amount id={id('amount')} label={t('¿Cuánto te pagan al mes?')} value={form.amount} onChange={(amount) => set({ amount })} />
+          <PayDaysField legend={t('¿Qué días te pagan? (opcional)')} payDays={form.payDays} onChange={(payDays) => set({ payDays })} />
         </>
       );
     case 'comisiones':
       return (
         <>
-          <Amount id={id('amount')} label="Tu base fija al mes" value={form.amount} onChange={(amount) => set({ amount })} />
+          <Amount id={id('amount')} label={t('Tu base fija al mes')} value={form.amount} onChange={(amount) => set({ amount })} />
           <div className="grid grid-cols-2 gap-3">
-            <Amount id={id('low')} label="Comisión en un mes malo" value={form.low} onChange={(low) => set({ low })} />
-            <Amount id={id('high')} label="En un mes bueno" value={form.high} onChange={(high) => set({ high })} />
+            <Amount id={id('low')} label={t('Comisión en un mes malo')} value={form.low} onChange={(low) => set({ low })} />
+            <Amount id={id('high')} label={t('En un mes bueno')} value={form.high} onChange={(high) => set({ high })} />
           </div>
-          <PayDaysField legend="¿Qué días te pagan? (opcional)" payDays={form.payDays} onChange={(payDays) => set({ payDays })} />
+          <PayDaysField legend={t('¿Qué días te pagan? (opcional)')} payDays={form.payDays} onChange={(payDays) => set({ payDays })} />
         </>
       );
     case 'proyectos':
       return (
         <fieldset className="space-y-2">
-          <legend className="text-sm font-medium text-ink/80">¿Cuánto te entró los últimos 3 meses? Más o menos.</legend>
+          <legend className="text-sm font-medium text-ink/80">{t('¿Cuánto te entró los últimos 3 meses? Más o menos.')}</legend>
           <div className="grid grid-cols-3 gap-2">
-            {['Este mes', 'Hace 1 mes', 'Hace 2'].map((label, i) => (
+            {[t('Este mes'), t('Hace 1 mes'), t('Hace 2')].map((label, i) => (
               <Amount
                 key={label}
                 id={id(`month-${i}`)}
@@ -67,22 +68,22 @@ function KindQuestions({ form, onChange }) {
       return (
         <>
           <div className="space-y-1.5">
-            <p className="text-sm font-medium">¿Cuántos días trabajas a la semana?</p>
+            <p className="text-sm font-medium">{t('¿Cuántos días trabajas a la semana?')}</p>
             <Segmented
-              label="Días que trabajas a la semana"
+              label={t('Días que trabajas a la semana')}
               options={['3', '4', '5', '6', '7'].map((d) => ({ value: d, label: d }))}
               value={form.workDays}
               onChange={(workDays) => set({ workDays })}
             />
           </div>
-          <Amount id={id('amount')} label="¿Cuánto haces en un día normal?" value={form.amount} onChange={(amount) => set({ amount })} />
+          <Amount id={id('amount')} label={t('¿Cuánto haces en un día normal?')} value={form.amount} onChange={(amount) => set({ amount })} />
         </>
       );
     default:
       return (
         <>
-          <Amount id={id('amount')} label="¿Cuánto te dan cada vez?" value={form.amount} onChange={(amount) => set({ amount })} />
-          <Segmented label="Cada cuánto" options={PERIODS} value={form.frequency} onChange={(frequency) => set({ frequency })} />
+          <Amount id={id('amount')} label={t('¿Cuánto te dan cada vez?')} value={form.amount} onChange={(amount) => set({ amount })} />
+          <Segmented label={t('Cada cuánto')} options={PERIODS} value={form.frequency} onChange={(frequency) => set({ frequency })} />
         </>
       );
   }
@@ -95,7 +96,7 @@ function KindQuestions({ form, onChange }) {
  */
 export default function IncomeSourcesFields({ forms, onChange }) {
   return (
-    <div className="space-y-3" role="group" aria-label="Cómo te entra la plata (puedes elegir varias)">
+    <div className="space-y-3" role="group" aria-label={t('Cómo te entra la plata (puedes elegir varias)')}>
       {SOURCE_KINDS.map(({ kind, title, text, icon: Icon }) => {
         const form = forms[kind];
         const checked = Boolean(form);
@@ -127,7 +128,7 @@ export default function IncomeSourcesFields({ forms, onChange }) {
           </div>
         );
       })}
-      <p className="text-sm text-ink/60">Elige todas las que apliquen. Los montos son aproximados: más o menos está bien.</p>
+      <p className="text-sm text-ink/60">{t('Elige todas las que apliquen. Los montos son aproximados: más o menos está bien.')}</p>
     </div>
   );
 }

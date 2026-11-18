@@ -6,9 +6,10 @@
  * su `code` y, en los 422, `fields` con el problema por campo.
  */
 import { authFetch } from '@/lib/authFetch';
+import { t } from '@/lib/i18n';
 
-const SESSION_EXPIRED = 'Tu sesión venció. Inicia sesión de nuevo.';
-export const CONNECTION_ERROR = 'No pudimos conectar con el servidor. Revisa tu conexión.';
+const SESSION_EXPIRED = t('Tu sesión venció. Inicia sesión de nuevo.');
+export const CONNECTION_ERROR = t('No pudimos conectar con el servidor. Revisa tu conexión.');
 
 /**
  * Convierte una respuesta de error de la API en un `Error` listo para mostrar.
@@ -21,7 +22,7 @@ export async function toApiError(res) {
   const err = new Error(
     code === 'UNAUTHORIZED' || code === 'TOKEN_EXPIRED'
       ? SESSION_EXPIRED
-      : details?.[0]?.problem || message || 'Algo salió mal. Inténtalo de nuevo.',
+      : details?.[0]?.problem || message || t('Algo salió mal. Inténtalo de nuevo.'),
   );
   err.code = code;
   if (details) err.fields = Object.fromEntries(details.map((d) => [d.field, d.problem]));

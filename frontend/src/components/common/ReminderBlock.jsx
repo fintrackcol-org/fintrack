@@ -4,10 +4,11 @@ import ChipGroup from '@/components/common/ChipGroup';
 import { Input } from '@/components/ui/input';
 import { REMINDER_CHANNEL_OPTIONS, REMINDER_DAY_OPTIONS, reminderSummary } from '@/lib/reminder';
 import { getWhatsappLink } from '@/services/whatsappService';
+import { t } from '@/lib/i18n';
 
 const TIME_OPTIONS = [
-  { value: 'default', label: 'A mi hora de avisos' },
-  { value: 'custom', label: 'Otra hora' },
+  { value: 'default', label: t('A mi hora de avisos') },
+  { value: 'custom', label: t('Otra hora') },
 ];
 
 /**
@@ -46,15 +47,15 @@ export default function ReminderBlock({ value, onChange, disabled = false }) {
 
   return (
     <div className="space-y-4 rounded-2xl border border-ink/10 p-4">
-      <ChipGroup multiple legend="Avisarme" options={REMINDER_DAY_OPTIONS} value={value.daysBefore} onChange={(daysBefore) => set({ daysBefore })} disabled={disabled} />
+      <ChipGroup multiple legend={t('Avisarme')} options={REMINDER_DAY_OPTIONS} value={value.daysBefore} onChange={(daysBefore) => set({ daysBefore })} disabled={disabled} />
       {active && (
         <>
           <div className="space-y-2">
-            <ChipGroup legend="¿A qué hora?" options={TIME_OPTIONS} value={customTime ? 'custom' : 'default'} onChange={pickTime} disabled={disabled} />
+            <ChipGroup legend={t('¿A qué hora?')} options={TIME_OPTIONS} value={customTime ? 'custom' : 'default'} onChange={pickTime} disabled={disabled} />
             {customTime && (
               <Input
                 type="time"
-                aria-label="Hora del aviso"
+                aria-label={t('Hora del aviso')}
                 value={value.time ?? ''}
                 // Si la borran, vuelve a la hora de Notificaciones: nunca se guarda una hora vacía.
                 onChange={(e) => set({ time: e.target.value || null })}
@@ -62,12 +63,12 @@ export default function ReminderBlock({ value, onChange, disabled = false }) {
               />
             )}
           </div>
-          <ChipGroup legend="¿Por dónde?" options={REMINDER_CHANNEL_OPTIONS} value={value.channel} onChange={(channel) => set({ channel })} disabled={disabled} />
+          <ChipGroup legend={t('¿Por dónde?')} options={REMINDER_CHANNEL_OPTIONS} value={value.channel} onChange={(channel) => set({ channel })} disabled={disabled} />
           {needsWhatsapp && (
             <p className="text-sm text-caution">
-              Aún no has conectado WhatsApp: mientras tanto te llega por notificación.{' '}
+              {t('Aún no has conectado WhatsApp: mientras tanto te llega por notificación.')}{' '}
               <Link to="/app/cuenta" className="font-medium underline underline-offset-2">
-                Conectarlo
+                {t('Conectarlo')}
               </Link>
             </p>
           )}

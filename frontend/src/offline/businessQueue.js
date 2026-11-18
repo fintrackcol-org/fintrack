@@ -15,6 +15,7 @@
 import { db } from './db';
 import { getSession } from '@/auth/tokenStorage';
 import { createMovement } from '@/services/negocioService';
+import { t } from '@/lib/i18n';
 
 /** Evento en `window`: `detail` es `{ businessId?, synced?, rejected? }`. */
 export const BUSINESS_SYNC_EVENT = 'fintrack:business-sync';
@@ -47,7 +48,7 @@ async function requestBackgroundSync() {
  */
 export async function saveBusinessMovement(businessId, values) {
   const userId = currentUserId();
-  if (!userId) throw new Error('Tu sesión venció. Inicia sesión de nuevo.');
+  if (!userId) throw new Error(t('Tu sesión venció. Inicia sesión de nuevo.'));
   const movement = { ...values, localId: values.localId ?? crypto.randomUUID() };
 
   if (navigator.onLine) {
@@ -117,7 +118,7 @@ async function doFlush() {
  */
 export function flushBusinessMovements() {
   running ??= doFlush()
-    .catch((err) => console.error('No se pudieron enviar los movimientos del negocio', err))
+    .catch((err) => console.error(t('No se pudieron enviar los movimientos del negocio'), err))
     .finally(() => {
       running = null;
     });

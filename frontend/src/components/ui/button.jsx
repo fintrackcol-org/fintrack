@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /** Variantes del botón (shadcn/ui) ajustadas a la línea gráfica de Revio. */
 const buttonVariants = cva(
@@ -37,6 +38,6 @@ const Button = forwardRef(({ className, variant, size, asChild = false, ...props
   const Comp = asChild ? Slot : 'button';
   return <Comp ref={ref} className={cn(buttonVariants({ variant, size }), className)} {...props} />;
 });
-Button.displayName = 'Button';
+Button.displayName = t('Button');
 
 export { Button, buttonVariants };

@@ -14,6 +14,7 @@
 import { db } from './db';
 import { getSession } from '@/auth/tokenStorage';
 import { contribute } from '@/services/vacaService';
+import { t } from '@/lib/i18n';
 
 /**
  * Evento en `window`: `detail` es `{ vacaId?, synced?, rejected?, fromQueue? }`. `fromQueue`: el
@@ -69,7 +70,7 @@ async function cacheResult(userId, { transaction, vaca }) {
  */
 export async function saveContribution(vacaId, values) {
   const userId = currentUserId();
-  if (!userId) throw new Error('Tu sesión venció. Inicia sesión de nuevo.');
+  if (!userId) throw new Error(t('Tu sesión venció. Inicia sesión de nuevo.'));
   const localId = crypto.randomUUID();
 
   if (navigator.onLine) {
@@ -143,7 +144,7 @@ async function doFlush() {
  */
 export function flushContributions() {
   running ??= doFlush()
-    .catch((err) => console.error('No se pudieron enviar los aportes', err))
+    .catch((err) => console.error(t('No se pudieron enviar los aportes'), err))
     .finally(() => {
       running = null;
     });

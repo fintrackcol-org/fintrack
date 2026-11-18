@@ -1,18 +1,20 @@
-/** "15 nov" a partir de AAAA-MM-DD, sin pasar por UTC. */
+
+import { dateLocale } from '@/lib/region';
+import { t } from '@/lib/i18n';/** "15 nov" a partir de AAAA-MM-DD, sin pasar por UTC. */
 export function shortDate(iso) {
   const [y, m, d] = iso.split('-').map(Number);
-  const month = new Date(y, m - 1, d).toLocaleDateString('es-CO', { month: 'short' }).replace('.', '');
+  const month = new Date(y, m - 1, d).toLocaleDateString(dateLocale(), { month: 'short' }).replace('.', '');
   return `${d} ${month}`;
 }
 
 /** Cuándo toca pagar: "Pagas en 5 días (15 nov)". */
 export function paymentText(card) {
-  if (card.paidThisCycle) return 'Pago de este mes al día';
-  if (card.daysToPayment < 0) return `Pago atrasado desde el ${shortDate(card.nextPaymentDate)}`;
+  if (card.paidThisCycle) return t('Pago de este mes al día');
+  if (card.daysToPayment < 0) return t('Pago atrasado desde el {nextPaymentDate}', { nextPaymentDate: shortDate(card.nextPaymentDate) });
   const when = card.nextPaymentDate ? ` (${shortDate(card.nextPaymentDate)})` : '';
-  if (card.daysToPayment === 0) return `Pagas hoy${when}`;
-  if (card.daysToPayment === 1) return `Pagas en 1 día${when}`;
-  return `Pagas en ${card.daysToPayment} días${when}`;
+  if (card.daysToPayment === 0) return t('Pagas hoy{when}', { when });
+  if (card.daysToPayment === 1) return t('Pagas en 1 día{when}', { when });
+  return t('Pagas en {daysToPayment} días{when}', { daysToPayment: card.daysToPayment, when });
 }
 
 /**
@@ -27,8 +29,8 @@ export function syncPreview({ limit, used }, available, money) {
   if (!Number.isFinite(value)) return '';
   const difference = Math.round((limit - value - used) * 100) / 100;
   return difference > 0
-    ? `Se registrará un gasto de ${money(difference)} en Cargos del banco.`
-    : 'Se corregirá el cupo sin registrar gasto.';
+    ? t('Se registrará un gasto de {difference} en Cargos del banco.', { difference: money(difference) })
+    : t('Se corregirá el cupo sin registrar gasto.');
 }
 
 /**
@@ -45,7 +47,7 @@ export function syncPreview({ limit, used }, available, money) {
 export function dueText(card) {
   const { daysToPayment: days } = card;
   if (card.paidThisCycle || days < 0) return paymentText(card);
-  return `Se paga ${days === 0 ? 'hoy' : days === 1 ? 'mañana' : `en ${days} días`}`;
+  return t('Se paga {v1}', { v1: days === 0 ? 'hoy' : days === 1 ? t('mañana') : `en ${days} días` });
 }
 
 export function cardMark({ name, last4 }) {
@@ -59,7 +61,7 @@ export function cardMark({ name, last4 }) {
  */
 export function expiryNotice(card) {
   if (!card.expiry) return null;
-  if (card.expiry.expired) return { text: `Vencida (${card.expiry.label}) · actualiza la fecha`, tone: 'negative' };
-  if (card.expiry.soon) return { text: `Vence pronto (${card.expiry.label}) · pide la nueva al banco`, tone: 'caution' };
+  if (card.expiry.expired) return { text: t('Vencida ({label}) · actualiza la fecha', { label: card.expiry.label }), tone: 'negative' };
+  if (card.expiry.soon) return { text: t('Vence pronto ({label}) · pide la nueva al banco', { label: card.expiry.label }), tone: 'caution' };
   return null;
 }

@@ -1,5 +1,6 @@
 import { BriefcaseBusiness, Bike, Gift, TrendingUp, Wallet } from 'lucide-react';
 import { formatMoney } from '@/components/transactions/format';
+import { t } from '@/lib/i18n';
 
 /**
  * Fuentes de ingreso (FT-0060): las tarjetas de "¿Cómo te entra la plata?" y la conversión entre lo
@@ -7,11 +8,11 @@ import { formatMoney } from '@/components/transactions/format';
  */
 
 export const SOURCE_KINDS = [
-  { kind: 'sueldo', title: 'Sueldo fijo', text: 'Te pagan lo mismo cada mes o quincena', icon: Wallet },
-  { kind: 'comisiones', title: 'Sueldo + comisiones', text: 'Una base fija y lo que vendas', icon: TrendingUp },
-  { kind: 'proyectos', title: 'Por proyectos u honorarios', text: 'Diseño, programación, asesorías…', icon: BriefcaseBusiness },
-  { kind: 'diario', title: 'Por días o por apps', text: 'Domicilios, Uber, ventas diarias', icon: Bike },
-  { kind: 'mesada', title: 'Mesada o ayuda', text: 'Lo que te dan tus papás u otra persona', icon: Gift },
+  { kind: 'sueldo', title: t('Sueldo fijo'), text: t('Te pagan lo mismo cada mes o quincena'), icon: Wallet },
+  { kind: 'comisiones', title: t('Sueldo + comisiones'), text: t('Una base fija y lo que vendas'), icon: TrendingUp },
+  { kind: 'proyectos', title: t('Por proyectos u honorarios'), text: t('Diseño, programación, asesorías…'), icon: BriefcaseBusiness },
+  { kind: 'diario', title: t('Por días o por apps'), text: t('Domicilios, Uber, ventas diarias'), icon: Bike },
+  { kind: 'mesada', title: t('Mesada o ayuda'), text: t('Lo que te dan tus papás u otra persona'), icon: Gift },
 ];
 
 /** Lo que muestra el formulario de cada tipo al elegirlo. Todo es texto: `''` es "no lo dijo". */
@@ -98,8 +99,8 @@ const pesos = { format: (value) => formatMoney(Math.round(value)) };
  */
 export function incomeHeadline({ normal, lean, basis }) {
   if (basis === 'none' || normal <= 0) return null;
-  if (lean >= normal) return `Te entran unos ${pesos.format(normal)} al mes.`;
-  return `En un mes normal te entran ${pesos.format(normal)}; en uno flaco, ${pesos.format(lean)}. Planeamos con el flaco para que no te coja la tarde.`;
+  if (lean >= normal) return t('Te entran unos {normal} al mes.', { normal: pesos.format(normal) });
+  return t('En un mes normal te entran {normal}; en uno flaco, {lean}. Planeamos con el flaco para que no te coja la tarde.', { normal: pesos.format(normal), lean: pesos.format(lean) });
 }
 
 /**
@@ -111,18 +112,18 @@ export function sourceSummary(source) {
   const money = (v) => (v ? pesos.format(v) : null);
   switch (source.kind) {
     case 'sueldo':
-      return [money(source.amount) && `${money(source.amount)} al mes`, source.payDays.length && `días ${source.payDays.join(' y ')}`]
+      return [money(source.amount) && t('{amount} al mes', { amount: money(source.amount) }), source.payDays.length && t('días {join}', { join: source.payDays.join(' y ') })]
         .filter(Boolean)
-        .join(' · ') || 'Sueldo fijo';
+        .join(' · ') || t('Sueldo fijo');
     case 'comisiones':
-      return money(source.amount) ? `Base de ${money(source.amount)} + comisiones` : 'Base + comisiones';
+      return money(source.amount) ? t('Base de {amount} + comisiones', { amount: money(source.amount) }) : t('Base + comisiones');
     case 'proyectos':
-      return source.lastMonths.length ? `Últimos meses: ${source.lastMonths.map((m) => pesos.format(m)).join(', ')}` : 'Por proyectos';
+      return source.lastMonths.length ? t('Últimos meses: {join}', { join: source.lastMonths.map((m) => pesos.format(m)).join(', ') }) : t('Por proyectos');
     case 'diario':
-      return [source.workDays && `${source.workDays} días a la semana`, money(source.amount) && `${money(source.amount)} en un día normal`]
+      return [source.workDays && t('{workDays} días a la semana', { workDays: source.workDays }), money(source.amount) && t('{amount} en un día normal', { amount: money(source.amount) })]
         .filter(Boolean)
-        .join(' · ') || 'Por días';
+        .join(' · ') || t('Por días');
     default:
-      return money(source.amount) ? `${money(source.amount)} ${source.frequency === 'mensual' ? 'al mes' : `cada ${source.frequency === 'quincenal' ? 'quincena' : 'semana'}`}` : 'Mesada';
+      return money(source.amount) ? `${money(source.amount)} ${source.frequency === 'mensual' ? 'al mes' : `cada ${source.frequency === 'quincenal' ? 'quincena' : 'semana'}`}` : t('Mesada');
   }
 }

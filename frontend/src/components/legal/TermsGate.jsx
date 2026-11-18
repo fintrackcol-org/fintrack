@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/auth/AuthContext';
 import { LEGAL_VERSION } from '@/pages/legal/legalContent';
 import { acceptTerms, getProfile } from '@/services/userService';
+import { t } from '@/lib/i18n';
 
 /** Usuario cuyo perfil ya se consultó en esta carga (si entra otra persona, se consulta de nuevo). */
 let checkedFor = null;
@@ -72,21 +73,20 @@ export default function TermsGate() {
           <FileText className="size-5" />
         </span>
         <h2 id="terms-gate-title" className="mt-4 text-lg font-semibold tracking-tight">
-          Publicamos nuestros términos y la política de privacidad
+          {t('Publicamos nuestros términos y la política de privacidad')}
         </h2>
         <p id="terms-gate-text" className="mt-2 text-ink/70">
-          Explican qué hace Rinde con tus datos, con qué servicios los procesamos y cómo pedir que los veamos,
-          corrijamos o borremos. Para seguir usando la app necesitamos que los aceptes.
+          {t('Explican qué hace Rinde con tus datos, con qué servicios los procesamos y cómo pedir que los veamos, corrijamos o borremos. Para seguir usando la app necesitamos que los aceptes.')}
         </p>
         <ul className="mt-4 space-y-2 text-sm">
           <li>
             <Link to="/terminos" target="_blank" rel="noopener" className="font-medium text-brand underline-offset-4 hover:underline">
-              Leer los términos de uso
+              {t('Leer los términos de uso')}
             </Link>
           </li>
           <li>
             <Link to="/privacidad" target="_blank" rel="noopener" className="font-medium text-brand underline-offset-4 hover:underline">
-              Leer la política de privacidad
+              {t('Leer la política de privacidad')}
             </Link>
           </li>
         </ul>
@@ -98,10 +98,10 @@ export default function TermsGate() {
         <div className="mt-6 flex flex-col gap-2">
           <Button ref={buttonRef} size="lg" onClick={accept} disabled={busy}>
             {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
-            Acepto los términos y la política
+            {t('Acepto los términos y la política')}
           </Button>
           <Button size="lg" variant="ghost" onClick={signOut} disabled={busy}>
-            Cerrar sesión
+            {t('Cerrar sesión')}
           </Button>
         </div>
       </div>

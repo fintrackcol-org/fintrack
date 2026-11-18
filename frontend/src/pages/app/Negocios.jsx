@@ -13,6 +13,7 @@ import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { cn } from '@/lib/utils';
 import { createBusiness, listBusinesses } from '@/services/negocioService';
+import { t } from '@/lib/i18n';
 
 /**
  * Tarjeta de un negocio en la lista: socios, rol y participación del usuario.
@@ -52,7 +53,7 @@ function BusinessCard({ business }) {
  * van aparte de las personales.
  */
 export default function Negocios() {
-  usePageTitle('Negocios');
+  usePageTitle(t('Negocios'));
   const online = useOnlineStatus();
   const navigate = useNavigate();
   const [businesses, setBusinesses] = useState(null);
@@ -81,15 +82,15 @@ export default function Negocios() {
     <>
       <GroupSwitch />
       <PageHeader
-        title="Negocios"
-        description="Las cuentas de tus emprendimientos, con tus socios."
+        title={t('Negocios')}
+        description={t('Las cuentas de tus emprendimientos, con tus socios.')}
         actions={
           <>
             <Button onClick={() => setSheet('nuevo')} disabled={!online}>
-              <Plus aria-hidden="true" /> Nuevo negocio
+              <Plus aria-hidden="true" /> {t('Nuevo negocio')}
             </Button>
             <Button variant="ghost" onClick={() => setSheet('codigo')} disabled={!online}>
-              <KeyRound aria-hidden="true" /> Tengo un código
+              <KeyRound aria-hidden="true" /> {t('Tengo un código')}
             </Button>
           </>
         }
@@ -97,33 +98,32 @@ export default function Negocios() {
 
       {error && (
         <p role="alert" className="mb-3 text-sm text-negative">
-          {online ? error : 'Sin conexión: los negocios se ven con internet.'}{' '}
+          {online ? error : t('Sin conexión: los negocios se ven con internet.')}{' '}
           {online && (
             <button type="button" className="underline" onClick={reload}>
-              Reintentar
+              {t('Reintentar')}
             </button>
           )}
         </p>
       )}
       {businesses === null && !error ? (
         <p className="flex items-center gap-2 py-10 text-ink/60">
-          <Loader2 className="animate-spin" aria-hidden="true" /> Cargando…
+          <Loader2 className="animate-spin" aria-hidden="true" /> {t('Cargando…')}
         </p>
       ) : businesses?.length === 0 ? (
         <Panel className="mx-auto max-w-xl text-center">
           <Briefcase className="mx-auto size-10 text-brand" aria-hidden="true" />
-          <p className="mt-3 text-lg font-semibold">Aún no tienes negocios</p>
+          <p className="mt-3 text-lg font-semibold">{t('Aún no tienes negocios')}</p>
           <p className="mx-auto mt-1 max-w-md text-ink/60">
-            Crea uno para tu emprendimiento e invita a tus socios: cada uno con su rol y su participación. Sus finanzas
-            quedan aparte de las tuyas.
+            {t('Crea uno para tu emprendimiento e invita a tus socios: cada uno con su rol y su participación. Sus finanzas quedan aparte de las tuyas.')}
           </p>
           <Button className="mt-4" onClick={() => setSheet('nuevo')} disabled={!online}>
-            Crear mi primer negocio
+            {t('Crear mi primer negocio')}
           </Button>
         </Panel>
       ) : (
         businesses && (
-          <ul aria-label="Mis negocios" className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+          <ul aria-label={t('Mis negocios')} className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
             {businesses.map((business) => (
               <BusinessCard key={business.id} business={business} />
             ))}
@@ -131,13 +131,13 @@ export default function Negocios() {
         )
       )}
 
-      <Sheet open={sheet === 'nuevo'} title="Nuevo negocio" onClose={() => setSheet(null)}>
+      <Sheet open={sheet === 'nuevo'} title={t('Nuevo negocio')} onClose={() => setSheet(null)}>
         <NegocioForm disabled={!online} onSubmit={handleCreate} onCancel={() => setSheet(null)} />
       </Sheet>
       <Sheet
         open={sheet === 'codigo'}
-        title="Unirme a un negocio"
-        description="Escribe el código que te compartió un socio."
+        title={t('Unirme a un negocio')}
+        description={t('Escribe el código que te compartió un socio.')}
         onClose={() => setSheet(null)}
       >
         <JoinByCode basePath="/app/negocios" disabled={!online} />

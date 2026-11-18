@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { CloudUpload, Info, Loader2, TriangleAlert, WifiOff } from 'lucide-react';
+import { t } from '@/lib/i18n';
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
@@ -31,7 +32,7 @@ export default function SyncStatus({ online, pending, rejected, conflicts = 0, c
   };
   const detail = (
     <Link to="/app/mi-plata#movimientos" className="font-medium underline">
-      Ver detalle
+      {t('Ver detalle')}
     </Link>
   );
 
@@ -40,7 +41,7 @@ export default function SyncStatus({ online, pending, rejected, conflicts = 0, c
       {!online ? (
         <p className={`${box} bg-caution/10 text-ink md:mt-6`}>
           <WifiOff className="size-4 shrink-0 text-caution" aria-hidden="true" />
-          Sin conexión. Los movimientos nuevos se guardan en este dispositivo y se envían al volver internet
+          {t('Sin conexión. Los movimientos nuevos se guardan en este dispositivo y se envían al volver internet')}
           {pending > 0 && ` (${plural(pending, 'pendiente', 'pendientes')})`}.
         </p>
       ) : (
@@ -53,7 +54,7 @@ export default function SyncStatus({ online, pending, rejected, conflicts = 0, c
             )}
             {syncing
               ? `Sincronizando ${plural(pending, 'movimiento', 'movimientos')}…`
-              : `${plural(pending, 'movimiento pendiente', 'movimientos pendientes')} de sincronizar. Se reintentará automáticamente.`}
+              : t('{pending} de sincronizar. Se reintentará automáticamente.', { pending: plural(pending, 'movimiento pendiente', 'movimientos pendientes') })}
           </p>
         )
       )}
@@ -62,10 +63,10 @@ export default function SyncStatus({ online, pending, rejected, conflicts = 0, c
           <TriangleAlert className="size-4 shrink-0 text-negative" aria-hidden="true" />
           <span>
             {rejected === 1
-              ? 'Un movimiento guardado sin conexión no se pudo sincronizar. '
-              : `${rejected} movimientos guardados sin conexión no se pudieron sincronizar. `}
+              ? t('Un movimiento guardado sin conexión no se pudo sincronizar. ')
+              : t('{rejected} movimientos guardados sin conexión no se pudieron sincronizar. ', { rejected })}
             <Link to="/app/mi-plata#movimientos" className="font-medium underline">
-              Revisar en Mi plata
+              {t('Revisar en Mi plata')}
             </Link>
           </span>
         </p>
@@ -76,8 +77,8 @@ export default function SyncStatus({ online, pending, rejected, conflicts = 0, c
             <TriangleAlert className="size-4 shrink-0 text-caution" aria-hidden="true" />
             <span>
               {conflictsLost === 1
-                ? '1 cambio tuyo no se aplicó porque otro dispositivo lo modificó después. '
-                : `${conflictsLost} cambios tuyos no se aplicaron porque otro dispositivo los modificó después. `}
+                ? t('1 cambio tuyo no se aplicó porque otro dispositivo lo modificó después. ')
+                : t('{conflictsLost} cambios tuyos no se aplicaron porque otro dispositivo los modificó después. ', { conflictsLost })}
               {detail}
             </span>
           </p>
@@ -86,8 +87,8 @@ export default function SyncStatus({ online, pending, rejected, conflicts = 0, c
             <Info className="size-4 shrink-0" aria-hidden="true" />
             <span>
               {conflicts === 1
-                ? 'Un conflicto de sincronización se resolvió a tu favor. '
-                : `${conflicts} conflictos de sincronización se resolvieron a tu favor. `}
+                ? t('Un conflicto de sincronización se resolvió a tu favor. ')
+                : t('{conflicts} conflictos de sincronización se resolvieron a tu favor. ', { conflicts })}
               {detail}
             </span>
           </p>

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatRelativeDay } from '@/components/transactions/format';
 import { inviteLink } from './vacaFormat';
+import { t } from '@/lib/i18n';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -35,7 +36,7 @@ export default function InvitePanel({ vaca, online, onInvite, onCancelInvitation
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError('No se pudo copiar. Selecciona el enlace y cópialo a mano.');
+      setError(t('No se pudo copiar. Selecciona el enlace y cópialo a mano.'));
     }
   };
 
@@ -43,7 +44,7 @@ export default function InvitePanel({ vaca, online, onInvite, onCancelInvitation
     try {
       await navigator.share({
         title: `Vaca "${vaca.name}"`,
-        text: `Únete a la vaca "${vaca.name}" en Rinde (código ${vaca.code}):`,
+        text: t('Únete a la vaca "{name}" en Rinde (código {code}):', { name: vaca.name, code: vaca.code }),
         url: link,
       });
     } catch {
@@ -68,40 +69,40 @@ export default function InvitePanel({ vaca, online, onInvite, onCancelInvitation
     event.preventDefault();
     const clean = email.trim().toLowerCase();
     if (!EMAIL_RE.test(clean)) {
-      setError('Escribe un correo válido.');
+      setError(t('Escribe un correo válido.'));
       return;
     }
     run(async () => {
       const result = await onInvite(clean);
       setEmail('');
-      setMessage(result.sent ? `Invitación enviada a ${clean}.` : `Ya le enviamos la invitación a ${clean} hace un momento.`);
+      setMessage(result.sent ? t('Invitación enviada a {clean}.', { clean }) : t('Ya le enviamos la invitación a {clean} hace un momento.', { clean }));
     });
   };
 
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-sm font-medium text-ink/80">Enlace para unirse</p>
+        <p className="text-sm font-medium text-ink/80">{t('Enlace para unirse')}</p>
         <div className="mt-2 flex gap-2">
-          <Input readOnly value={link} aria-label="Enlace de invitación" className="min-w-0 text-sm" onFocus={(e) => e.target.select()} />
-          <Button type="button" variant="outline" size="icon" className="size-12 shrink-0" onClick={copy} aria-label="Copiar enlace">
+          <Input readOnly value={link} aria-label={t('Enlace de invitación')} className="min-w-0 text-sm" onFocus={(e) => e.target.select()} />
+          <Button type="button" variant="outline" size="icon" className="size-12 shrink-0" onClick={copy} aria-label={t('Copiar enlace')}>
             {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
           </Button>
         </div>
         <p className="mt-2 text-sm text-ink/60">
-          O comparte el código <span className="font-mono text-base font-semibold tracking-widest text-ink">{vaca.code}</span>{' '}
-          (en Vacas → Tengo un código).
+          {t('O comparte el código')} <span className="font-mono text-base font-semibold tracking-widest text-ink">{vaca.code}</span>{' '}
+          {t('(en Vacas → Tengo un código).')}
         </p>
         {canShare && (
           <Button type="button" variant="outline" className="mt-3" onClick={share}>
-            <Share2 aria-hidden="true" /> Compartir
+            <Share2 aria-hidden="true" /> {t('Compartir')}
           </Button>
         )}
       </div>
 
       <form onSubmit={invite} noValidate className="space-y-2">
         <label htmlFor="invite-email" className="text-sm font-medium text-ink/80">
-          Invitar por correo
+          {t('Invitar por correo')}
         </label>
         <Input
           id="invite-email"
@@ -115,7 +116,7 @@ export default function InvitePanel({ vaca, online, onInvite, onCancelInvitation
         />
         <Button type="submit" size="lg" variant="outline" className="w-full" disabled={!online || busy || !email}>
           {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Mail aria-hidden="true" />}
-          Enviar invitación
+          {t('Enviar invitación')}
         </Button>
       </form>
 
@@ -130,20 +131,20 @@ export default function InvitePanel({ vaca, online, onInvite, onCancelInvitation
 
       {isAdmin && vaca.invitations?.length > 0 && (
         <div>
-          <p className="text-sm font-medium text-ink/80">Invitaciones pendientes</p>
+          <p className="text-sm font-medium text-ink/80">{t('Invitaciones pendientes')}</p>
           <ul className="mt-2 divide-y divide-ink/10">
             {vaca.invitations.map((inv) => (
               <li key={inv.email} className="flex items-center justify-between gap-2 py-2">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm">{inv.email}</span>
-                  <span className="text-xs text-ink/60">Enviada: {formatRelativeDay(inv.sentAt.slice(0, 10))}</span>
+                  <span className="text-xs text-ink/60">{t('Enviada:')} {formatRelativeDay(inv.sentAt.slice(0, 10))}</span>
                 </span>
                 <Button
                   size="icon"
                   variant="ghost"
                   disabled={!online || busy}
                   onClick={() => run(() => onCancelInvitation(inv.email))}
-                  aria-label={`Cancelar invitación a ${inv.email}`}
+                  aria-label={t('Cancelar invitación a {email}', { email: inv.email })}
                 >
                   <X aria-hidden="true" />
                 </Button>
@@ -156,22 +157,22 @@ export default function InvitePanel({ vaca, online, onInvite, onCancelInvitation
       {isAdmin &&
         (confirmingCode ? (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-ink/60">El enlace actual dejará de servir. ¿Cambiar el código?</span>
+            <span className="text-sm text-ink/60">{t('El enlace actual dejará de servir. ¿Cambiar el código?')}</span>
             <Button
               size="sm"
               variant="outline"
               disabled={busy}
               onClick={() => run(async () => (await onRegenerate(), setConfirmingCode(false)))}
             >
-              Sí, cambiar
+              {t('Sí, cambiar')}
             </Button>
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmingCode(false)}>
-              No
+              {t('No')}
             </Button>
           </div>
         ) : (
           <Button size="sm" variant="ghost" disabled={!online} onClick={() => setConfirmingCode(true)}>
-            <RefreshCw aria-hidden="true" /> Cambiar código
+            <RefreshCw aria-hidden="true" /> {t('Cambiar código')}
           </Button>
         ))}
     </div>

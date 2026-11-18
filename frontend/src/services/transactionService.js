@@ -8,6 +8,7 @@
 import { authFetch } from '@/lib/authFetch';
 import { registerCategories } from '@/lib/categoryStyles';
 import { db } from '@/offline/db';
+import { t } from '@/lib/i18n';
 
 /**
  * @typedef {object} Transaction
@@ -43,7 +44,7 @@ import { db } from '@/offline/db';
  * @property {boolean} [custom] `true` si la creó el usuario.
  */
 
-const SESSION_EXPIRED = 'Tu sesión venció. Inicia sesión de nuevo.';
+const SESSION_EXPIRED = t('Tu sesión venció. Inicia sesión de nuevo.');
 
 /**
  * Hace una petición autenticada y devuelve el JSON (o `null` si la respuesta es 204).
@@ -58,7 +59,7 @@ async function request(path, { method = 'GET', body } = {}) {
     res = await authFetch(path, { method, body });
   } catch (cause) {
     if (cause.code === 'REFRESH_FAILED') throw cause;
-    const err = new Error('No pudimos conectar con el servidor. Revisa tu conexión.');
+    const err = new Error(t('No pudimos conectar con el servidor. Revisa tu conexión.'));
     // Permite a la página guardar el movimiento en la cola offline (FT-0009).
     err.code = 'NETWORK_ERROR';
     throw err;
@@ -71,7 +72,7 @@ async function request(path, { method = 'GET', body } = {}) {
     const err = new Error(
       code === 'UNAUTHORIZED' || code === 'TOKEN_EXPIRED'
         ? SESSION_EXPIRED
-        : details?.[0]?.problem || message || 'Algo salió mal. Inténtalo de nuevo.',
+        : details?.[0]?.problem || message || t('Algo salió mal. Inténtalo de nuevo.'),
     );
     err.code = code;
     if (details) err.fields = Object.fromEntries(details.map((d) => [d.field, d.problem]));

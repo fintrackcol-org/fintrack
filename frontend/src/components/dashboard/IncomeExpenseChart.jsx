@@ -2,10 +2,11 @@ import { lazy, Suspense, useMemo } from 'react';
 import { formatMoney } from '@/components/transactions/format';
 import { periodBuckets } from '@/lib/period';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 const SERIES = [
-  { key: 'income', label: 'Ingresos', color: 'var(--app-chart-income)' },
-  { key: 'expense', label: 'Gastos', color: 'var(--app-chart-expense)' },
+  { key: 'income', label: t('Ingresos'), color: 'var(--app-chart-income)' },
+  { key: 'expense', label: t('Gastos'), color: 'var(--app-chart-expense)' },
 ];
 
 // Recharts va en un chunk aparte: el dashboard se pinta sin esperarlo.
@@ -48,9 +49,9 @@ export default function IncomeExpenseChart({ period, date, timeSeries, hidden, c
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div>
           <h2 id="trend-title" className="text-base font-semibold">
-            Ingresos y gastos
+            {t('Ingresos y gastos')}
           </h2>
-          <p className="mt-0.5 text-sm text-ink/60">{period === 'year' ? 'Por mes' : 'Por día'}</p>
+          <p className="mt-0.5 text-sm text-ink/60">{period === 'year' ? t('Por mes') : t('Por día')}</p>
         </div>
         <ul className="flex gap-4 text-sm text-ink/70">
           {SERIES.map((s) => (
@@ -64,11 +65,11 @@ export default function IncomeExpenseChart({ period, date, timeSeries, hidden, c
 
       {timeSeries === undefined && <div className="mt-5 h-56 animate-pulse rounded-2xl bg-ink/6" aria-hidden="true" />}
 
-      {empty && <p className="mt-5 text-sm text-ink/60">No hay movimientos en este periodo.</p>}
+      {empty && <p className="mt-5 text-sm text-ink/60">{t('No hay movimientos en este periodo.')}</p>}
 
       {!empty && timeSeries && (
         <>
-          <div className="mt-5 h-56" role="img" aria-label="Gráfico de columnas de ingresos y gastos; los valores están en la tabla siguiente">
+          <div className="mt-5 h-56" role="img" aria-label={t('Gráfico de columnas de ingresos y gastos; los valores están en la tabla siguiente')}>
             <Suspense fallback={<div className="h-full animate-pulse rounded-2xl bg-ink/6" />}>
               <IncomeExpenseBars data={data} period={period} hidden={hidden} series={SERIES} />
             </Suspense>
@@ -77,12 +78,12 @@ export default function IncomeExpenseChart({ period, date, timeSeries, hidden, c
           {/* sr-only va en un div: en una tabla el ancho de 1 px no aplica y la página se desbordaba en celular. */}
           <div className="sr-only">
             <table>
-              <caption>Ingresos y gastos {period === 'year' ? 'por mes' : 'por día'}</caption>
+              <caption>{t('Ingresos y gastos')} {period === 'year' ? 'por mes' : t('por día')}</caption>
               <thead>
                 <tr>
-                  <th scope="col">Fecha</th>
-                  <th scope="col">Ingresos</th>
-                  <th scope="col">Gastos</th>
+                  <th scope="col">{t('Fecha')}</th>
+                  <th scope="col">{t('Ingresos')}</th>
+                  <th scope="col">{t('Gastos')}</th>
                 </tr>
               </thead>
               <tbody>

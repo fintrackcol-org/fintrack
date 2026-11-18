@@ -1,10 +1,11 @@
 import { CalendarDays, Shuffle } from 'lucide-react';
 import { MAX_PAY_DAYS, togglePayDay } from '@/lib/moneyProfile';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 const INCOME_OPTIONS = [
-  { value: 'fecha_fija', icon: CalendarDays, title: 'Con fecha fija', text: 'Sueldo, quincena o mesada que llega segura' },
-  { value: 'sin_fecha', icon: Shuffle, title: 'Sin fecha fija', text: 'Trabajos, ventas, ayudas o mesada que varía' },
+  { value: 'fecha_fija', icon: CalendarDays, title: t('Con fecha fija'), text: t('Sueldo, quincena o mesada que llega segura') },
+  { value: 'sin_fecha', icon: Shuffle, title: t('Sin fecha fija'), text: t('Trabajos, ventas, ayudas o mesada que varía') },
 ];
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -19,7 +20,7 @@ const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 export default function IncomeFields({ incomeType, payDays, onChange }) {
   return (
     <div className="space-y-4">
-      <div role="radiogroup" aria-label="Cómo te entra la plata" className="grid gap-3">
+      <div role="radiogroup" aria-label={t('Cómo te entra la plata')} className="grid gap-3">
         {INCOME_OPTIONS.map(({ value, icon: Icon, title, text }) => {
           const checked = incomeType === value;
           return (
@@ -54,7 +55,7 @@ export default function IncomeFields({ incomeType, payDays, onChange }) {
  * fuentes de ingreso de FT-0060.
  * @param {{ payDays: number[], onChange: (days: number[]) => void, legend?: string }} props
  */
-export function PayDaysField({ payDays, onChange, legend = `¿Qué días te llega? Hasta ${MAX_PAY_DAYS}.` }) {
+export function PayDaysField({ payDays, onChange, legend = t('¿Qué días te llega? Hasta {MAX_PAY_DAYS}.', { MAX_PAY_DAYS }) }) {
   return (
     <fieldset>
       <legend className="mb-2 text-sm font-medium text-ink/80">{legend}</legend>
@@ -78,7 +79,7 @@ export function PayDaysField({ payDays, onChange, legend = `¿Qué días te lleg
           );
         })}
       </div>
-      <p className="mt-2 text-sm text-ink/60">Si eliges 31, en los meses cortos contamos el último día.</p>
+      <p className="mt-2 text-sm text-ink/60">{t('Si eliges 31, en los meses cortos contamos el último día.')}</p>
     </fieldset>
   );
 }

@@ -8,6 +8,7 @@ import CategoryPicker from '@/components/categories/CategoryPicker';
 import { Button } from '@/components/ui/button';
 import MoneyInput from '@/components/common/MoneyInput';
 import { budgetSchema } from '@/lib/validation/budget';
+import { t } from '@/lib/i18n';
 
 /**
  * Valores iniciales: los del presupuesto que se edita, o vacíos para uno nuevo.
@@ -79,17 +80,16 @@ export default function BudgetForm({
   if (!initial && available.length === 0 && categories.length > 0) {
     return (
       <p className="text-ink/60">
-        Todas tus categorías de gasto ya tienen presupuesto en {monthLabel}. Puedes cambiar sus
-        límites desde la lista.
+        {t('Todas tus categorías de gasto ya tienen presupuesto en')} {monthLabel}{t('. Puedes cambiar sus límites desde la lista.')}
       </p>
     );
   }
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-5" aria-label="Formulario de presupuesto">
+    <form onSubmit={submit} noValidate className="space-y-5" aria-label={t('Formulario de presupuesto')}>
       {initial ? (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-ink/80">Categoría</p>
+          <p className="text-sm font-medium text-ink/80">{t('Categoría')}</p>
           <p className="flex items-center gap-3 text-lg font-medium">
             <CategoryIcon category={initial.category} />
             {editingName ?? initial.category}
@@ -101,7 +101,7 @@ export default function BudgetForm({
           name="category"
           render={({ field }) => (
             <CategoryPicker
-              legend="Categoría de gasto"
+              legend={t('Categoría de gasto')}
               categories={available}
               value={field.value}
               onChange={field.onChange}
@@ -118,7 +118,7 @@ export default function BudgetForm({
         control={control}
         name="amount"
         render={({ field }) => (
-          <FormField id="budget-amount" label="Límite del mes (COP)" error={errors.amount?.message}>
+          <FormField id="budget-amount" label={t('Límite del mes (COP)')} error={errors.amount?.message}>
             <MoneyInput
               name={field.name}
               value={field.value}
@@ -133,8 +133,8 @@ export default function BudgetForm({
       />
 
       <p className="-mt-2 text-sm text-ink/60">
-        {initial ? 'Aplica a ' : 'Se crea para '}
-        {monthLabel}. Te avisamos al llegar al 80 % y al pasarte del 100 %.
+        {initial ? t('Aplica a ') : t('Se crea para ')}
+        {monthLabel}{t('. Te avisamos al llegar al 80 % y al pasarte del 100 %.')}
       </p>
 
       {serverError && (
@@ -146,11 +146,11 @@ export default function BudgetForm({
       <div className="flex gap-3">
         <Button type="submit" size="lg" className="flex-1" disabled={disabled || isSubmitting}>
           {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-          {isSubmitting ? 'Guardando…' : initial ? 'Guardar límite' : 'Crear presupuesto'}
+          {isSubmitting ? t('Guardando…') : initial ? t('Guardar límite') : t('Crear presupuesto')}
         </Button>
         {onCancel && (
           <Button type="button" variant="outline" size="lg" onClick={onCancel} disabled={isSubmitting}>
-            Cancelar
+            {t('Cancelar')}
           </Button>
         )}
       </div>

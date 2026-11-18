@@ -4,6 +4,7 @@ import { ChevronLeft, Mic, Pause, Play, Users, Wallet } from 'lucide-react';
 import { LogoMark } from '@/components/common/Logo';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /** Cuánto dura cada paso cuando avanza solo. */
 export const STEP_MS = 7000;
@@ -25,7 +26,7 @@ function BalanceIllustration() {
   }, [reduced]);
   return (
     <div className="w-full rounded-3xl bg-violet p-5 text-white shadow-[0_20px_40px_-20px_rgb(97_66_255/0.7)]">
-      <p className="text-sm text-white/80">Saldo disponible</p>
+      <p className="text-sm text-white/80">{t('Saldo disponible')}</p>
       <motion.p
         key={money}
         initial={{ opacity: 0.4, y: -6 }}
@@ -34,10 +35,10 @@ function BalanceIllustration() {
       >
         {pesos(money)}
       </motion.p>
-      <p className="mt-3 rounded-full bg-white/15 px-3 py-1 text-sm">Banco + Nequi + efectivo</p>
+      <p className="mt-3 rounded-full bg-white/15 px-3 py-1 text-sm">{t('Banco + Nequi + efectivo')}</p>
       {money < 100000 && (
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-2 text-sm text-white/90">
-          − {pesos(20000)} · almuerzo
+          − {pesos(20000)} {t('· almuerzo')}
         </motion.p>
       )}
     </div>
@@ -50,7 +51,7 @@ function VoiceIllustration() {
     <div className="flex w-full flex-col gap-3">
       <div className="flex items-center gap-3 self-end rounded-3xl rounded-br-md bg-violet px-4 py-3 text-white">
         <Mic className="size-4" aria-hidden="true" />
-        <span>“gasolina 40 mil”</span>
+        <span>{t('“gasolina 40 mil”')}</span>
       </div>
       <motion.div
         initial={{ opacity: 0, y: 12 }}
@@ -58,9 +59,9 @@ function VoiceIllustration() {
         transition={{ delay: 0.9, duration: 0.4, ease: EASE }}
         className="rounded-2xl border border-ink/10 bg-surface p-4"
       >
-        <p className="text-sm text-ink/60">Anotado</p>
+        <p className="text-sm text-ink/60">{t('Anotado')}</p>
         <p className="mt-1 flex justify-between font-medium">
-          <span>Transporte · gasolina</span>
+          <span>{t('Transporte · gasolina')}</span>
           <span className="tabular-nums text-negative">− {pesos(40000)}</span>
         </p>
       </motion.div>
@@ -74,7 +75,7 @@ function PlanIllustration() {
     <div className="w-full rounded-3xl border border-ink/10 bg-surface p-5">
       <p className="flex items-center gap-2 text-sm text-ink/60">
         <Wallet className="size-4 text-brand" aria-hidden="true" />
-        Hoy puedes gastar
+        {t('Hoy puedes gastar')}
       </p>
       <p className="mt-1 text-3xl font-semibold tabular-nums">{pesos(32000)}</p>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-ink/10">
@@ -85,7 +86,7 @@ function PlanIllustration() {
           transition={{ delay: 0.4, duration: 1, ease: EASE }}
         />
       </div>
-      <p className="mt-3 text-sm text-ink/70">Faltan 12 días para tu sueldo y ya apartamos el arriendo.</p>
+      <p className="mt-3 text-sm text-ink/70">{t('Faltan 12 días para tu sueldo y ya apartamos el arriendo.')}</p>
     </div>
   );
 }
@@ -96,10 +97,10 @@ function VacaIllustration() {
     <div className="w-full rounded-3xl border border-ink/10 bg-surface p-5">
       <p className="flex items-center gap-2 font-medium">
         <Users className="size-4 text-brand" aria-hidden="true" />
-        Paseo a Villa de Leyva
+        {t('Paseo a Villa de Leyva')}
       </p>
       <p className="mt-1 text-sm text-ink/60">
-        {pesos(450000)} de {pesos(600000)} · 4 amigos
+        {pesos(450000)} {t('de')} {pesos(600000)} {t('· 4 amigos')}
       </p>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-ink/10">
         <motion.div
@@ -117,14 +118,14 @@ function VacaIllustration() {
 function WhatsappIllustration() {
   return (
     <div className="flex w-full flex-col gap-2 rounded-3xl bg-ink/5 p-4">
-      <p className="self-end rounded-2xl rounded-br-md bg-[#d9fdd3] px-3 py-2 text-sm text-[#111b21]">hice 38 mil</p>
+      <p className="self-end rounded-2xl rounded-br-md bg-[#d9fdd3] px-3 py-2 text-sm text-[#111b21]">{t('hice 38 mil')}</p>
       <motion.p
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.9, duration: 0.4, ease: EASE }}
         className="self-start rounded-2xl rounded-bl-md bg-white px-3 py-2 text-sm text-[#111b21]"
       >
-        Listo, anoté un ingreso de {pesos(38000)}. Hoy llevas {pesos(38000)}.
+        {t('Listo, anoté un ingreso de')} {pesos(38000)}{t('. Hoy llevas')} {pesos(38000)}.
       </motion.p>
     </div>
   );
@@ -133,28 +134,28 @@ function WhatsappIllustration() {
 /** Pasos del recorrido. El primero viene de FT-0057: sin la plata inicial, el saldo no es el real. */
 export const TOUR_STEPS = [
   {
-    title: 'Empieza con tu plata de hoy',
-    text: 'Dinos cuánta plata tienes hoy (banco, Nequi y efectivo). Desde ahí sumamos y restamos lo que anotes.',
+    title: t('Empieza con tu plata de hoy'),
+    text: t('Dinos cuánta plata tienes hoy (banco, Nequi y efectivo). Desde ahí sumamos y restamos lo que anotes.'),
     Illustration: BalanceIllustration,
   },
   {
-    title: 'Anota hablando',
-    text: 'Di “gasolina 40 mil” o “corte 25 mil” y Rinde lo anota con su categoría. También puedes escribirlo.',
+    title: t('Anota hablando'),
+    text: t('Di “gasolina 40 mil” o “corte 25 mil” y Rinde lo anota con su categoría. También puedes escribirlo.'),
     Illustration: VoiceIllustration,
   },
   {
-    title: 'Mi plata te dice cuánto puedes gastar',
-    text: 'Con tus pagos del mes y el día en que te pagan, te decimos cuánto te alcanza hoy sin quedarte corto.',
+    title: t('Mi plata te dice cuánto puedes gastar'),
+    text: t('Con tus pagos del mes y el día en que te pagan, te decimos cuánto te alcanza hoy sin quedarte corto.'),
     Illustration: PlanIllustration,
   },
   {
-    title: 'Vacas con tus amigos',
-    text: 'Junten plata para un plan, vean quién ya aportó y recuérdenle al que falta.',
+    title: t('Vacas con tus amigos'),
+    text: t('Junten plata para un plan, vean quién ya aportó y recuérdenle al que falta.'),
     Illustration: VacaIllustration,
   },
   {
-    title: 'También por WhatsApp',
-    text: 'Escríbele a Rinde desde WhatsApp para anotar o preguntar cómo vas, sin abrir la app.',
+    title: t('También por WhatsApp'),
+    text: t('Escríbele a Rinde desde WhatsApp para anotar o preguntar cómo vas, sin abrir la app.'),
     Illustration: WhatsappIllustration,
   },
 ];
@@ -196,15 +197,15 @@ export default function HowItWorksTour({ name, onDone }) {
       <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
         <LogoMark className="size-16" />
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">{name ? `Hola, ${name}` : 'Hola'}</h1>
-          <p className="mt-2 text-ink/70">Te mostramos en un minuto qué puedes hacer con Rinde.</p>
+          <h1 className="text-3xl font-semibold tracking-tight">{name ? `Hola, ${name}` : t('Hola')}</h1>
+          <p className="mt-2 text-ink/70">{t('Te mostramos en un minuto qué puedes hacer con Rinde.')}</p>
         </div>
         <div className="flex w-full flex-col gap-2">
           <Button size="lg" onClick={() => go(0)}>
-            Ver cómo funciona (1 min)
+            {t('Ver cómo funciona (1 min)')}
           </Button>
           <Button variant="ghost" onClick={onDone}>
-            Saltar, ya me ubico
+            {t('Saltar, ya me ubico')}
           </Button>
         </div>
       </div>
@@ -221,7 +222,7 @@ export default function HowItWorksTour({ name, onDone }) {
           <div
             className="flex flex-1 gap-1"
             role="progressbar"
-            aria-label="Avance del recorrido"
+            aria-label={t('Avance del recorrido')}
             aria-valuemin={1}
             aria-valuemax={TOUR_STEPS.length}
             aria-valuenow={step + 1}
@@ -248,14 +249,14 @@ export default function HowItWorksTour({ name, onDone }) {
             <button
               type="button"
               onClick={() => setPaused((p) => !p)}
-              aria-label={paused ? 'Seguir avanzando solo' : 'Pausar'}
+              aria-label={paused ? t('Seguir avanzando solo') : t('Pausar')}
               className="grid size-10 place-items-center rounded-full text-ink/60 hover:text-ink focus-visible:outline-2 focus-visible:outline-violet"
             >
               {paused ? <Play className="size-4" aria-hidden="true" /> : <Pause className="size-4" aria-hidden="true" />}
             </button>
           )}
           <Button variant="ghost" size="sm" onClick={onDone}>
-            Saltar
+            {t('Saltar')}
           </Button>
         </div>
 
@@ -291,7 +292,7 @@ export default function HowItWorksTour({ name, onDone }) {
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Paso anterior"
+            aria-label={t('Paso anterior')}
             disabled={step === 0}
             className={cn(step === 0 && 'invisible')}
             onClick={() => {
@@ -308,7 +309,7 @@ export default function HowItWorksTour({ name, onDone }) {
               go(step + 1);
             }}
           >
-            {step === last ? 'Empezar' : 'Siguiente'}
+            {step === last ? t('Empezar') : t('Siguiente')}
           </Button>
         </div>
       </div>

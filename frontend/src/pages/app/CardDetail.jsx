@@ -20,8 +20,9 @@ import useHiddenAmounts from '@/hooks/useHiddenAmounts';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { deleteCard, deleteCardPayment, getCard, getCardMovements, payCard, syncCardWithBank, updateCard } from '@/services/cardService';
+import { t } from '@/lib/i18n';
 
-const INTEREST_NOTE = 'Los intereses los calcula tu banco a la fecha de corte.';
+const INTEREST_NOTE = t('Los intereses los calcula tu banco a la fecha de corte.');
 
 /** Una fila del historial: compra, pago (que se puede eliminar) o ajuste con el banco. */
 function MovementRow({ m, money, online, onDeletePayment }) {
@@ -30,8 +31,8 @@ function MovementRow({ m, money, online, onDeletePayment }) {
     m.kind === 'purchase'
       ? m.description
       : m.kind === 'payment'
-        ? 'Pago'
-        : `Ajuste con el banco ${m.amount < 0 ? '−' : '+'}${money(Math.abs(m.amount))}`;
+        ? t('Pago')
+        : t('Ajuste con el banco {v1}{money}', { v1: m.amount < 0 ? '−' : '+', money: money(Math.abs(m.amount)) });
   return (
     <li className="flex items-start justify-between gap-3 py-3">
       <div className="min-w-0">
@@ -40,7 +41,7 @@ function MovementRow({ m, money, online, onDeletePayment }) {
           {formatDate(m.date)}
           {m.installments > 1 && (
             <>
-              {' · '}a {m.installments} cuotas
+              {' · '}{t('a')} {m.installments} {t('cuotas')}
               <span title={INTEREST_NOTE} aria-hidden="true">*</span>
             </>
           )}
@@ -55,9 +56,9 @@ function MovementRow({ m, money, online, onDeletePayment }) {
           </p>
           {m.kind === 'payment' && (
             <ConfirmButton
-              label="Eliminar pago"
-              question="¿Eliminar este pago? Lo usado vuelve a subir."
-              confirmLabel="Sí, eliminar"
+              label={t('Eliminar pago')}
+              question={t('¿Eliminar este pago? Lo usado vuelve a subir.')}
+              confirmLabel={t('Sí, eliminar')}
               icon={Trash2}
               disabled={!online}
               onConfirm={() => onDeletePayment(m.id)}
@@ -80,29 +81,29 @@ export function CardDetailView({ card, movements, online, hidden, onAction, onDe
   if (actions) {
     return (
       <>
-        <p className="text-[15px] text-ink/70">{NETWORK_LABELS[card.network] ?? card.name} ••{card.last4} · Lo que debes</p>
+        <p className="text-[15px] text-ink/70">{NETWORK_LABELS[card.network] ?? card.name} ••{card.last4} {t('· Lo que debes')}</p>
         <p className="mt-1 text-[42px] font-semibold leading-tight tracking-tight tabular-nums">{money(card.used)}</p>
         <p className="mt-2 text-[15px] font-medium text-caution">{dueText(card)}</p>
         <ExpiryBadge card={card} />
         {card.statementTotal != null && (
           <p className="mt-1 text-sm tabular-nums text-ink/70">
-            Total del extracto {money(card.statementTotal)}
-            {card.statementDueDate && ` · vence el ${shortDate(card.statementDueDate)}`}
+            {t('Total del extracto')} {money(card.statementTotal)}
+            {card.statementDueDate && t(' · vence el {statementDueDate}', { statementDueDate: shortDate(card.statementDueDate) })}
           </p>
         )}
         <div role="progressbar" aria-label={`Uso de ${card.name}`} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} className="mt-4 h-2 overflow-hidden rounded-full bg-ink/10">
           <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
         </div>
         <p className="mt-2 text-sm tabular-nums text-ink/70">
-          Disponible {money(card.available)} de {money(card.limit)}
+          {t('Disponible')} {money(card.available)} {t('de')} {money(card.limit)}
         </p>
-        {!online && <p className="mt-2 text-sm text-ink/60">Necesitas conexión</p>}
+        {!online && <p className="mt-2 text-sm text-ink/60">{t('Necesitas conexión')}</p>}
         <div className="mt-5">{actions}</div>
-        <h2 className="mb-1 mt-6 text-lg font-semibold tracking-tight">Compras y pagos</h2>
+        <h2 className="mb-1 mt-6 text-lg font-semibold tracking-tight">{t('Compras y pagos')}</h2>
         {movements.length === 0 ? (
-          <p className="text-ink/60">Aún no hay movimientos.</p>
+          <p className="text-ink/60">{t('Aún no hay movimientos.')}</p>
         ) : (
-          <ul aria-label="Historial de la tarjeta" className="divide-y divide-ink/10 rounded-2xl border border-ink/10 bg-surface px-3.5">
+          <ul aria-label={t('Historial de la tarjeta')} className="divide-y divide-ink/10 rounded-2xl border border-ink/10 bg-surface px-3.5">
             {movements.map((m) => (
               <MovementRow key={`${m.kind}-${m.id}`} m={m} money={money} online={online} onDeletePayment={onDeletePayment} />
             ))}
@@ -110,9 +111,9 @@ export function CardDetailView({ card, movements, online, hidden, onAction, onDe
         )}
         <div className="mt-6">
           <ConfirmButton
-            label="Eliminar tarjeta"
-            question="¿Eliminar esta tarjeta? Las compras se quedan en tu historial."
-            confirmLabel="Sí, eliminar"
+            label={t('Eliminar tarjeta')}
+            question={t('¿Eliminar esta tarjeta? Las compras se quedan en tu historial.')}
+            confirmLabel={t('Sí, eliminar')}
             icon={Trash2}
             disabled={!online}
             onConfirm={onDelete}
@@ -132,42 +133,42 @@ export function CardDetailView({ card, movements, online, hidden, onAction, onDe
           <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
         </div>
         <p className="mt-2 tabular-nums text-ink/70">
-          Usado {money(card.used)} · Disponible {money(card.available)} · Cupo {money(card.limit)}
+          {t('Usado')} {money(card.used)} {t('· Disponible')} {money(card.available)} {t('· Cupo')} {money(card.limit)}
         </p>
         <p className="mt-1 font-medium">{paymentText(card)}</p>
         <ExpiryBadge card={card} />
         {card.statementTotal != null && (
           <p className="mt-1 text-sm tabular-nums text-ink/70">
-            Total del extracto {money(card.statementTotal)}
-            {card.statementDueDate && ` · vence el ${shortDate(card.statementDueDate)}`}
+            {t('Total del extracto')} {money(card.statementTotal)}
+            {card.statementDueDate && t(' · vence el {statementDueDate}', { statementDueDate: shortDate(card.statementDueDate) })}
           </p>
         )}
         <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Button size="lg" disabled={!online} onClick={() => onAction('pay')} className="max-md:hidden">
-            Ya pagué
+            {t('Ya pagué')}
           </Button>
           <Button size="lg" variant="outline" disabled={!online} onClick={() => onAction('sync')} className="max-md:hidden">
-            Actualizar con el banco
+            {t('Actualizar con el banco')}
           </Button>
           <Button variant="ghost" className="min-h-11 justify-start max-md:hidden" disabled={!online} onClick={() => onAction('edit')}>
-            <Pencil aria-hidden="true" /> Editar
+            <Pencil aria-hidden="true" /> {t('Editar')}
           </Button>
           <ConfirmButton
-            label="Eliminar"
-            question="¿Eliminar esta tarjeta? Las compras se quedan en tu historial."
-            confirmLabel="Sí, eliminar"
+            label={t('Eliminar')}
+            question={t('¿Eliminar esta tarjeta? Las compras se quedan en tu historial.')}
+            confirmLabel={t('Sí, eliminar')}
             icon={Trash2}
             disabled={!online}
             onConfirm={onDelete}
           />
         </div>
-        {!online && <p className="mt-2 text-sm text-ink/60">Necesitas conexión</p>}
+        {!online && <p className="mt-2 text-sm text-ink/60">{t('Necesitas conexión')}</p>}
       </Panel>
-      <h2 className="mb-1 mt-6 text-lg font-semibold">Historial</h2>
+      <h2 className="mb-1 mt-6 text-lg font-semibold">{t('Historial')}</h2>
       {movements.length === 0 ? (
-        <p className="text-ink/60">Aún no hay movimientos.</p>
+        <p className="text-ink/60">{t('Aún no hay movimientos.')}</p>
       ) : (
-        <ul aria-label="Historial de la tarjeta" className="divide-y divide-ink/10">
+        <ul aria-label={t('Historial de la tarjeta')} className="divide-y divide-ink/10">
           {movements.map((m) => (
             <MovementRow key={`${m.kind}-${m.id}`} m={m} money={money} online={online} onDeletePayment={onDeletePayment} />
           ))}
@@ -189,7 +190,7 @@ export default function CardDetail() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [sheet, setSheet] = useState(null); // 'pay' | 'sync' | 'edit'
-  usePageTitle(card?.name ?? 'Tarjeta');
+  usePageTitle(card?.name ?? t('Tarjeta'));
 
   const load = useCallback(async () => {
     try {
@@ -218,10 +219,10 @@ export default function CardDetail() {
     return error ? (
       <p role="alert" className="text-negative">
         {error}{' '}
-        <button type="button" className="underline" onClick={load}>Reintentar</button>
+        <button type="button" className="underline" onClick={load}>{t('Reintentar')}</button>
       </p>
     ) : (
-      <p className="flex items-center gap-2 py-10 text-ink/60"><Loader2 className="animate-spin" aria-hidden="true" /> Cargando…</p>
+      <p className="flex items-center gap-2 py-10 text-ink/60"><Loader2 className="animate-spin" aria-hidden="true" /> {t('Cargando…')}</p>
     );
   }
 
@@ -229,7 +230,7 @@ export default function CardDetail() {
     <>
       {/* En el celular ya está el botón de volver arriba. */}
       <Link to="/app/tarjetas" className="mb-3 inline-flex min-h-11 items-center gap-1 text-sm text-ink/70 max-md:hidden">
-        <ArrowLeft className="size-4" aria-hidden="true" /> Tarjetas
+        <ArrowLeft className="size-4" aria-hidden="true" /> {t('Tarjetas')}
       </Link>
       {notice && <p role="status" className="mb-3 rounded-xl bg-positive/10 p-3 text-sm">{notice}</p>}
       {error && <p role="alert" className="mb-3 text-sm text-negative">{error}</p>}
@@ -243,12 +244,12 @@ export default function CardDetail() {
         actions={
           mobile ? (
             <CircleActions
-              label="Acciones de la tarjeta"
+              label={t('Acciones de la tarjeta')}
               actions={[
-                { to: `/app/anotar?tarjeta=${id}`, label: 'Anotar', icon: Plus, primary: true },
-                { onClick: () => setSheet('pay'), label: 'Abonar', icon: CircleDollarSign, disabled: !online },
-                { onClick: () => setSheet('sync'), label: 'Actualizar saldo', icon: RefreshCw, disabled: !online },
-                { onClick: () => setSheet('edit'), label: 'Editar', icon: Pencil, disabled: !online },
+                { to: `/app/anotar?tarjeta=${id}`, label: t('Anotar'), icon: Plus, primary: true },
+                { onClick: () => setSheet('pay'), label: t('Abonar'), icon: CircleDollarSign, disabled: !online },
+                { onClick: () => setSheet('sync'), label: t('Actualizar saldo'), icon: RefreshCw, disabled: !online },
+                { onClick: () => setSheet('edit'), label: t('Editar'), icon: Pencil, disabled: !online },
               ]}
             />
           ) : undefined
@@ -259,18 +260,18 @@ export default function CardDetail() {
         }}
         onDeletePayment={async (paymentId) => {
           await deleteCardPayment(id, paymentId);
-          setNotice('Pago eliminado.');
+          setNotice(t('Pago eliminado.'));
           await load();
         }}
       />
-      <Sheet open={sheet === 'pay'} title="Ya pagué" onClose={close}>
+      <Sheet open={sheet === 'pay'} title={t('Ya pagué')} onClose={close}>
         <PayCardForm
           suggested={card.statementTotal ?? card.used}
           disabled={!online}
-          onSubmit={(v) => apply(() => payCard(id, v), 'Pago registrado.')}
+          onSubmit={(v) => apply(() => payCard(id, v), t('Pago registrado.'))}
         />
       </Sheet>
-      <Sheet open={sheet === 'sync'} title="Actualizar con el banco" onClose={close}>
+      <Sheet open={sheet === 'sync'} title={t('Actualizar con el banco')} onClose={close}>
         <BankSyncForm
           card={card}
           hidden={hidden}
@@ -280,14 +281,14 @@ export default function CardDetail() {
               () => syncCardWithBank(id, v),
               (r) =>
                 r.chargeTransaction
-                  ? `Se registró un gasto de ${hidden ? MASK : formatMoney(r.chargeTransaction.amount)} en Cargos del banco.`
-                  : 'Tarjeta actualizada con el banco.',
+                  ? t('Se registró un gasto de {v1} en Cargos del banco.', { v1: hidden ? MASK : formatMoney(r.chargeTransaction.amount) })
+                  : t('Tarjeta actualizada con el banco.'),
             )
           }
         />
       </Sheet>
-      <Sheet open={sheet === 'edit'} title="Editar tarjeta" onClose={close}>
-        <CardForm initial={card} disabled={!online} onSubmit={(v) => apply(() => updateCard(id, v), 'Cambios guardados.')} onCancel={close} />
+      <Sheet open={sheet === 'edit'} title={t('Editar tarjeta')} onClose={close}>
+        <CardForm initial={card} disabled={!online} onSubmit={(v) => apply(() => updateCard(id, v), t('Cambios guardados.'))} onCancel={close} />
       </Sheet>
     </>
   );

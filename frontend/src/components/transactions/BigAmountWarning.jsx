@@ -1,6 +1,7 @@
 import { TriangleAlert } from 'lucide-react';
 import { formatMoney } from '@/components/transactions/format';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /**
  * Desde este monto se pide confirmar antes de guardar. Para un universitario es raro, y un cero de
@@ -27,8 +28,7 @@ export default function BigAmountWarning({ amount, className }) {
     <div role="alert" className={cn('flex items-start gap-3 rounded-lg border border-caution/40 bg-caution/10 p-3 text-left text-sm', className)}>
       <TriangleAlert className="mt-0.5 size-5 shrink-0 text-caution" aria-hidden="true" />
       <p>
-        <strong className="font-semibold">¿Seguro que son {formatMoney(amount)}?</strong> Es un monto muy alto: revisa que no
-        sobre un cero. Si está bien, toca de nuevo para guardar.
+        <strong className="font-semibold">{t('¿Seguro que son')} {formatMoney(amount)}?</strong> {t('Es un monto muy alto: revisa que no sobre un cero. Si está bien, toca de nuevo para guardar.')}
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /**
  * Lista desplegable nativa con el mismo aspecto que `Input` (48 px, colores del tema).
@@ -21,6 +22,6 @@ const Select = forwardRef(({ className, children, ...props }, ref) => (
     {children}
   </select>
 ));
-Select.displayName = 'Select';
+Select.displayName = t('Select');
 
 export { Select };

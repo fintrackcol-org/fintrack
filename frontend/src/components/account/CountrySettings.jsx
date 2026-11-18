@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { countryName, currencyName, getRegion, setRegion } from '@/lib/region';
 import { saveCountry } from '@/services/userService';
+import { t } from '@/lib/i18n';
 
 /**
  * El país donde está la persona, en Cuenta. Reemplaza la fila fija «Moneda»: quien viaja cambia el
@@ -26,7 +27,7 @@ export default function CountrySettings({ onSaved }) {
       const profile = await saveCountry(country);
       // Sin movimientos, la moneda principal siguió al país: se recarga para ver todo en la nueva.
       if (setRegion(profile)) return window.location.reload();
-      setNotice(`Listo: estás en ${countryName(profile.country)}.`);
+      setNotice(t('Listo: estás en {country}.', { country: countryName(profile.country) }));
       onSaved?.();
     } catch (err) {
       setError(err.message);
@@ -38,7 +39,7 @@ export default function CountrySettings({ onSaved }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="space-y-1.5">
-        <Label htmlFor="cuenta-pais">¿En qué país estás?</Label>
+        <Label htmlFor="cuenta-pais">{t('¿En qué país estás?')}</Label>
         <CountrySelect
           id="cuenta-pais"
           value={country}
@@ -47,8 +48,7 @@ export default function CountrySettings({ onSaved }) {
         />
       </div>
       <p id="cuenta-pais-ayuda" className="text-sm text-ink/60">
-        Tus cuentas siguen en {currencyName(current.currency)} ({current.currency}). Si viajas, cambia el país: lo que anotes
-        allá se convierte solo a tu moneda.
+        {t('Tus cuentas siguen en')} {currencyName(current.currency)} ({current.currency}{t('). Si viajas, cambia el país: lo que anotes allá se convierte solo a tu moneda.')}
       </p>
       {error && (
         <p role="alert" className="text-sm text-negative">
@@ -60,7 +60,7 @@ export default function CountrySettings({ onSaved }) {
       </p>
       <Button size="lg" disabled={saving || country === current.country} onClick={save}>
         {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-        Guardar país
+        {t('Guardar país')}
       </Button>
     </div>
   );

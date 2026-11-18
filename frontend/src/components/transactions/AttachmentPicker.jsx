@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { formatSize } from '@/components/transactions/AttachmentsPanel';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import { prepareUpload } from '@/lib/compressImage';
+import { t } from '@/lib/i18n';
 
 /**
  * @typedef {object} PendingFile Soporte elegido antes de guardar el movimiento.
@@ -47,10 +48,10 @@ export default function AttachmentPicker({ files, onChange, limits, className })
     setMessage('');
     try {
       const { blob, name } = await prepareUpload(file);
-      if (blob.size > limits.maxBytes) throw new Error('El archivo pesa más de 5 MB.');
+      if (blob.size > limits.maxBytes) throw new Error(t('El archivo pesa más de 5 MB.'));
       onChange([...files, { id: crypto.randomUUID(), blob, name }]);
     } catch (err) {
-      setMessage(err.message || 'No pudimos leer el archivo.');
+      setMessage(err.message || t('No pudimos leer el archivo.'));
     } finally {
       setBusy(false);
     }
@@ -62,12 +63,12 @@ export default function AttachmentPicker({ files, onChange, limits, className })
     <section aria-labelledby="adjuntar-soportes" className={className}>
       <div className="mb-2 flex items-center justify-between gap-3">
         <h3 id="adjuntar-soportes" className="flex items-center gap-2 text-sm font-medium">
-          <Paperclip className="size-4 text-brand" aria-hidden="true" /> Soportes{' '}
-          <span className="font-normal text-ink/50">(opcional)</span>
+          <Paperclip className="size-4 text-brand" aria-hidden="true" /> {t('Soportes')}{' '}
+          <span className="font-normal text-ink/50">{t('(opcional)')}</span>
         </h3>
         {files.length > 0 && (
           <span className="text-sm text-ink/60">
-            {files.length} de {limits.max}
+            {files.length} {t('de')} {limits.max}
           </span>
         )}
       </div>
@@ -85,7 +86,7 @@ export default function AttachmentPicker({ files, onChange, limits, className })
               )}
               <span className="min-w-0 flex-1 text-sm">
                 <span className="block truncate font-medium">{f.name}</span>
-                <span className="text-xs text-ink/60">{formatSize(f.blob.size)} · Se sube al guardar</span>
+                <span className="text-xs text-ink/60">{formatSize(f.blob.size)} {t('· Se sube al guardar')}</span>
               </span>
               <Button
                 type="button"
@@ -102,16 +103,16 @@ export default function AttachmentPicker({ files, onChange, limits, className })
       )}
 
       {!online ? (
-        <p className="text-sm text-ink/60">Sin conexión no se pueden adjuntar soportes. Podrás hacerlo desde el movimiento.</p>
+        <p className="text-sm text-ink/60">{t('Sin conexión no se pueden adjuntar soportes. Podrás hacerlo desde el movimiento.')}</p>
       ) : (
         !full && (
           <div className="grid grid-cols-2 gap-2">
             <Button type="button" variant="outline" disabled={busy} onClick={() => cameraInput.current?.click()}>
               {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Camera aria-hidden="true" />}
-              Tomar foto
+              {t('Tomar foto')}
             </Button>
             <Button type="button" variant="outline" disabled={busy} onClick={() => fileInput.current?.click()}>
-              <FileText aria-hidden="true" /> Subir archivo
+              <FileText aria-hidden="true" /> {t('Subir archivo')}
             </Button>
           </div>
         )
@@ -126,7 +127,7 @@ export default function AttachmentPicker({ files, onChange, limits, className })
         </p>
       )}
       {files.length === 0 && online && (
-        <p className="mt-2 text-xs text-ink/50">Foto de la factura o PDF, hasta {limits.max} y de 5 MB cada uno.</p>
+        <p className="mt-2 text-xs text-ink/50">{t('Foto de la factura o PDF, hasta')} {limits.max} {t('y de 5 MB cada uno.')}</p>
       )}
     </section>
   );

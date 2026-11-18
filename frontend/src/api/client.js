@@ -1,5 +1,6 @@
 import { API_V1 } from '@/lib/api';
 import { getSession } from '@/auth/tokenStorage';
+import { t } from '@/lib/i18n';
 
 function send(path, options = {}) {
   const session = getSession();
@@ -24,7 +25,7 @@ export async function apiFetch(path, options = {}) {
   }
   const info = await res.json();
   if (!res.ok) {
-    throw new Error(info.error?.message || 'Algo salió mal. Inténtalo de nuevo.');
+    throw new Error(info.error?.message || t('Algo salió mal. Inténtalo de nuevo.'));
   }
   return info;
 }

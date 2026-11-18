@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { EMOTIONS, KAKEIBO, kakeiboOf, toggle } from './reflection';
+import { t } from '@/lib/i18n';
 
 /**
  * Las 4 caras de "¿Cómo te sentiste?" (FT-0070). Tocar la elegida la quita.
@@ -97,7 +98,7 @@ export function KakeiboPicker({ value, onChange, disabled = false, labelledBy, v
         })}
       </div>
       <p className="mt-2 text-[13px] text-ink/60" aria-live="polite">
-        {picked ? picked.hint : 'Elige el grupo que mejor lo describe. Es opcional.'}
+        {picked ? picked.hint : t('Elige el grupo que mejor lo describe. Es opcional.')}
       </p>
     </div>
   );

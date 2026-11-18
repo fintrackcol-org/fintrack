@@ -1,14 +1,15 @@
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /** Datos de ejemplo: ingresos y gastos de los últimos 6 meses (en miles de pesos). */
 const DATA = [
-  { month: 'Abr', ingresos: 2100, gastos: 1650 },
-  { month: 'May', ingresos: 2250, gastos: 1900 },
-  { month: 'Jun', ingresos: 2100, gastos: 1500 },
-  { month: 'Jul', ingresos: 2400, gastos: 2050 },
-  { month: 'Ago', ingresos: 2300, gastos: 1750 },
-  { month: 'Sep', ingresos: 2450, gastos: 1620 },
+  { month: t('Abr'), ingresos: 2100, gastos: 1650 },
+  { month: t('May'), ingresos: 2250, gastos: 1900 },
+  { month: t('Jun'), ingresos: 2100, gastos: 1500 },
+  { month: t('Jul'), ingresos: 2400, gastos: 2050 },
+  { month: t('Ago'), ingresos: 2300, gastos: 1750 },
+  { month: t('Sep'), ingresos: 2450, gastos: 1620 },
 ];
 
 const money = (value) => `$${(value * 1000).toLocaleString('es-CO')}`;
@@ -22,7 +23,7 @@ function ChartTooltip({ active, payload, label }) {
       {payload.map((p) => (
         <p key={p.dataKey} className="flex items-center gap-2">
           <span className="size-2 rounded-full" style={{ background: p.color }} />
-          {p.dataKey === 'ingresos' ? 'Ingresos' : 'Gastos'}: {money(p.value)}
+          {p.dataKey === 'ingresos' ? t('Ingresos') : t('Gastos')}: {money(p.value)}
         </p>
       ))}
     </div>
@@ -39,14 +40,14 @@ export default function ReportCard({ className }) {
     <div className={cn('w-full rounded-3xl bg-white p-5 text-left text-obsidian shadow-elevated', className)}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">Reporte de septiembre</p>
+          <p className="text-sm text-muted-foreground">{t('Reporte de septiembre')}</p>
           <p className="text-2xl font-semibold tracking-tight">{money(last.ingresos - last.gastos)}</p>
-          <p className="text-sm text-muted-foreground">ahorrados este mes</p>
+          <p className="text-sm text-muted-foreground">{t('ahorrados este mes')}</p>
         </div>
         <span className="rounded-md bg-mint px-1.5 py-0.5 text-sm font-medium text-emerald-700">+12%</span>
       </div>
 
-      <div className="mt-4 h-36" role="img" aria-label="Gráfico de barras de ingresos y gastos de abril a septiembre">
+      <div className="mt-4 h-36" role="img" aria-label={t('Gráfico de barras de ingresos y gastos de abril a septiembre')}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={DATA} barGap={3} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6e6e6e' }} />
@@ -59,10 +60,10 @@ export default function ReportCard({ className }) {
 
       <div className="mt-3 flex gap-4 text-sm">
         <span className="inline-flex items-center gap-2">
-          <span className="size-2.5 rounded-full bg-violet" /> Ingresos
+          <span className="size-2.5 rounded-full bg-violet" /> {t('Ingresos')}
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="size-2.5 rounded-full bg-orchid" /> Gastos
+          <span className="size-2.5 rounded-full bg-orchid" /> {t('Gastos')}
         </span>
       </div>
     </div>

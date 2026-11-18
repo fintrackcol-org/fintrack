@@ -20,11 +20,12 @@ import { removeTransaction } from '@/offline/removeTransaction';
 import { saveTransactionChanges } from '@/offline/saveTransactionChanges';
 import { getTransaction } from '@/services/transactionService';
 import { listBudgets } from '@/services/budgetService';
+import { t as tr } from '@/lib/i18n';
 
 /** "Hoy, 4 nov 2026" o, si no es hoy ni ayer, solo la fecha. */
 function longDay(iso) {
   const near = formatRelativeDay(iso);
-  return near === 'Hoy' || near === 'Ayer' ? `${near}, ${formatDate(iso)}` : formatDate(iso);
+  return near === tr('Hoy') || near === tr('Ayer') ? `${near}, ${formatDate(iso)}` : formatDate(iso);
 }
 
 /**
@@ -67,41 +68,41 @@ export default function TransactionDetail() {
   const [deleting, setDeleting] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [deleteError, setDeleteError] = useState('');
-  usePageTitle(t ? t.description : 'Movimiento');
+  usePageTitle(t ? t.description : tr('Movimiento'));
 
   if (!t) {
     return fetched.error ? (
       <p role="alert" className="text-sm text-negative">
         {fetched.error}{' '}
         <button type="button" className="underline" onClick={fetched.reload}>
-          Reintentar
+          {tr('Reintentar')}
         </button>
       </p>
     ) : (
       <p className="flex items-center gap-2 py-10 text-ink/60" aria-busy="true">
-        <Loader2 className="size-5 animate-spin" aria-hidden="true" /> Cargando…
+        <Loader2 className="size-5 animate-spin" aria-hidden="true" /> {tr('Cargando…')}
       </p>
     );
   }
 
   const income = t.type === 'ingreso';
-  const categoryName = t.category ? (names[t.category] ?? t.category) : 'Sin clasificar';
+  const categoryName = t.category ? (names[t.category] ?? t.category) : tr('Sin clasificar');
   const budget = budgets.data?.find((b) => b.category === t.category);
   const rows = [
-    ['Cuándo', longDay(t.date)],
+    [tr('Cuándo'), longDay(t.date)],
     ...(income
       ? []
-      : [['Pagado con', t.card ? (t.card.deleted ? 'Tarjeta eliminada' : cardMark(t.card)) : 'Efectivo o débito']]),
-    ...(t.card && t.installments > 1 ? [['Cuotas', String(t.installments)]] : []),
+      : [[tr('Pagado con'), t.card ? (t.card.deleted ? tr('Tarjeta eliminada') : cardMark(t.card)) : tr('Efectivo o débito')]]),
+    ...(t.card && t.installments > 1 ? [[tr('Cuotas'), String(t.installments)]] : []),
     // Anotado de viaje: lo que se pagó allá y la tasa con que se convirtió.
     ...(t.original
-      ? [[income ? 'Recibido allá' : 'Pagado allá', `${hidden ? MASK : formatIn(t.original.amount, t.original.currency)} · 1 ${t.original.currency} = ${formatMoney(t.original.rate)}`]]
+      ? [[income ? tr('Recibido allá') : tr('Pagado allá'), `${hidden ? MASK : formatIn(t.original.amount, t.original.currency)} · 1 ${t.original.currency} = ${formatMoney(t.original.rate)}`]]
       : []),
     // Rinde v2: en qué presupuesto cuenta el gasto, y cómo va, con enlace al presupuesto.
     ...(!income && budget
       ? [
           [
-            'Cuenta en el presupuesto',
+            tr('Cuenta en el presupuesto'),
             <Link key="presupuesto" to={`/app/presupuestos/${budget.category}`} className="font-semibold text-brand underline-offset-2 hover:underline">
               {categoryName} · {Math.round(budget.percentage)} %
             </Link>,
@@ -119,7 +120,7 @@ export default function TransactionDetail() {
     setLocal({ ...(local ?? {}), id: t.id, ...changes });
     try {
       const { offline } = await saveTransactionChanges(t, changes);
-      setNotice(offline ? 'Guardado sin conexión. Se sincronizará cuando vuelva internet.' : 'Guardado.');
+      setNotice(offline ? tr('Guardado sin conexión. Se sincronizará cuando vuelva internet.') : tr('Guardado.'));
     } catch (err) {
       setLocal(before);
       setError(err.message);
@@ -146,17 +147,17 @@ export default function TransactionDetail() {
       {/* Rinde v2: el tipo y la categoría arriba en pequeño, la descripción como título y el monto grande. */}
       <div className="flex flex-col gap-2">
         <p className="text-[13px] text-ink/60">
-          {income ? 'Ingreso' : 'Gasto'} · {categoryName}
+          {income ? tr('Ingreso') : tr('Gasto')} · {categoryName}
         </p>
         <h1 className="text-2xl font-bold tracking-tight">{t.description}</h1>
         <p className={cn('text-[40px] font-extrabold leading-[44px] tracking-[-0.02em] tabular-nums', income && 'text-positive')}>
-          <span className="sr-only">{income ? 'Ingreso de ' : 'Gasto de '}</span>
+          <span className="sr-only">{income ? tr('Ingreso de ') : tr('Gasto de ')}</span>
           {hidden ? MASK : `${income ? '+ ' : '− '}${formatMoney(t.amount)}`}
         </p>
         {t.category && (
           <span className="inline-flex min-h-9 items-center gap-1 self-start rounded-lg bg-brand px-3 text-[13px] font-semibold text-white">
             {categoryName}
-            {t.source === 'ia' && <small className="font-normal opacity-85">· sugerida por la IA</small>}
+            {t.source === 'ia' && <small className="font-normal opacity-85">{tr('· sugerida por la IA')}</small>}
           </span>
         )}
       </div>
@@ -174,10 +175,10 @@ export default function TransactionDetail() {
 
       {/* FT-0070: cómo se sintió con el gasto y en qué grupo Kakeibo va. Ambos opcionales. */}
       {!income && (
-        <Panel aria-label="Reflexión del gasto" className="flex flex-col gap-5">
+        <Panel aria-label={tr('Reflexión del gasto')} className="flex flex-col gap-5">
           <div>
             <h2 id={feelingId} className="mb-3 text-[15px] font-semibold">
-              ¿Cómo te sentiste?
+              {tr('¿Cómo te sentiste?')}
             </h2>
             <EmotionPicker
               value={t.emotion ?? null}
@@ -188,9 +189,9 @@ export default function TransactionDetail() {
           </div>
           <div>
             <h2 id={kakeiboId} className="text-[15px] font-semibold">
-              ¿Podías evitarlo?
+              {tr('¿Podías evitarlo?')}
             </h2>
-            <p className="mb-3 text-[13px] text-ink/60">El grupo Kakeibo del gasto. Cámbialo cuando quieras.</p>
+            <p className="mb-3 text-[13px] text-ink/60">{tr('El grupo Kakeibo del gasto. Cámbialo cuando quieras.')}</p>
             <KakeiboPicker
               variant="cards"
               value={t.kakeibo ?? null}
@@ -219,7 +220,7 @@ export default function TransactionDetail() {
       <div className="flex flex-col gap-2">
         <Button size="lg" onClick={() => navigate(`/app/transacciones/${t.id}/editar`, { state: { transaction: t } })}>
           <Pencil aria-hidden="true" />
-          {income ? 'Editar ingreso' : 'Editar gasto'}
+          {income ? tr('Editar ingreso') : tr('Editar gasto')}
         </Button>
         <Button
           size="lg"
@@ -228,14 +229,14 @@ export default function TransactionDetail() {
           onClick={() => (setDeleteError(''), setDeleting(true))}
         >
           <Trash2 aria-hidden="true" />
-          {income ? 'Eliminar ingreso' : 'Eliminar gasto'}
+          {income ? tr('Eliminar ingreso') : tr('Eliminar gasto')}
         </Button>
       </div>
 
       <Sheet
         open={deleting}
-        title="¿Eliminar este movimiento?"
-        description={`${t.description} · ${hidden ? MASK : formatMoney(t.amount)}. Se quita de tus totales.`}
+        title={tr('¿Eliminar este movimiento?')}
+        description={tr('{description} · {v2}. Se quita de tus totales.', { description: t.description, v2: hidden ? MASK : formatMoney(t.amount) })}
         onClose={() => !removing && setDeleting(false)}
       >
         {deleteError && (
@@ -246,10 +247,10 @@ export default function TransactionDetail() {
         <div className="flex flex-col gap-2">
           <Button size="lg" className="bg-negative text-white hover:bg-negative/90" disabled={removing} onClick={remove}>
             {removing && <Loader2 className="animate-spin" aria-hidden="true" />}
-            Sí, eliminar
+            {tr('Sí, eliminar')}
           </Button>
           <Button size="lg" variant="ghost" disabled={removing} onClick={() => setDeleting(false)}>
-            Cancelar
+            {tr('Cancelar')}
           </Button>
         </div>
       </Sheet>

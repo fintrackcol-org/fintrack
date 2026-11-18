@@ -1,4 +1,5 @@
 import { getRegion, regionFormats } from "@/lib/region";
+import { t } from '@/lib/i18n';
 
 /**
  * Utilidades para escribir montos con los separadores de miles del país de la persona.
@@ -76,23 +77,23 @@ export function describeAmount(raw) {
     return { level: "none", message: "" };
   // "de pesos" y "menos de $1.000" solo tienen sentido en pesos colombianos.
   const pesos = getRegion().currency === "COP";
-  const unit = pesos ? " de pesos" : "";
+  const unit = pesos ? t(' de pesos') : "";
   if (value > MAX_AMOUNT) {
     return {
       level: "error",
-      message: `Supera el máximo permitido (${regionFormats().money(MAX_AMOUNT)}).`,
+      message: t('Supera el máximo permitido ({MAX_AMOUNT}).', { MAX_AMOUNT: regionFormats().money(MAX_AMOUNT) }),
     };
   }
   if (value >= LARGE_AMOUNT) {
     return {
       level: "warning",
-      message: `Monto muy grande (${compact(value)}${unit}). Revisa que no sobren ceros.`,
+      message: t('Monto muy grande ({value}{unit}). Revisa que no sobren ceros.', { value: compact(value), unit }),
     };
   }
   if (value >= 1_000_000)
     return { level: "info", message: `≈ ${compact(value)}${unit}` };
   if (value < 1_000 && pesos) {
-    return { level: "info", message: `Son menos de $1.000. ¿Faltan ceros?` };
+    return { level: "info", message: t('Son menos de $1.000. ¿Faltan ceros?') };
   }
   return { level: "none", message: "" };
 }
@@ -105,7 +106,7 @@ export function describeAmount(raw) {
 function compact(value) {
   const compactFormat = new Intl.NumberFormat(regionFormats().locale, { maximumFractionDigits: 1 });
   if (value >= 1_000_000_000)
-    return `${compactFormat.format(value / 1_000_000_000)} mil millones`;
+    return t('{format} mil millones', { format: compactFormat.format(value / 1_000_000_000) });
   const millions = Math.round((value / 1_000_000) * 10) / 10;
-  return `${compactFormat.format(millions)} ${millions === 1 ? "millón" : "millones"}`;
+  return `${compactFormat.format(millions)} ${millions === 1 ? t('millón') : "millones"}`;
 }

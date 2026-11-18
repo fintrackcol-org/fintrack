@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { periodRange, shiftPeriod, todayIso } from '@/lib/period';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
+import { dateLocale } from '@/lib/region';
 
 /** Años que se ven a la vez en el panel de "Año". */
 const YEARS_PER_PAGE = 12;
@@ -57,18 +59,18 @@ function MonthGrid({ date, onPick }) {
   return (
     <>
       <div className="mb-2 flex items-center justify-between">
-        <NavButton label="Año anterior" onClick={() => setYear((y) => y - 1)}>
+        <NavButton label={t('Año anterior')} onClick={() => setYear((y) => y - 1)}>
           <ChevronLeft className="size-4" aria-hidden="true" />
         </NavButton>
         <p className="text-sm font-semibold">{year}</p>
-        <NavButton label="Año siguiente" onClick={() => setYear((y) => y + 1)} disabled={year >= nowYear}>
+        <NavButton label={t('Año siguiente')} onClick={() => setYear((y) => y + 1)} disabled={year >= nowYear}>
           <ChevronRight className="size-4" aria-hidden="true" />
         </NavButton>
       </div>
       <div className="grid grid-cols-3 gap-1">
         {Array.from({ length: 12 }, (_, i) => {
           const month = i + 1;
-          const name = new Date(year, i, 1).toLocaleDateString('es-CO', { month: 'short' }).replace('.', '');
+          const name = new Date(year, i, 1).toLocaleDateString(dateLocale(), { month: 'short' }).replace('.', '');
           return (
             <GridOption
               key={month}
@@ -97,14 +99,14 @@ function YearGrid({ date, onPick }) {
   return (
     <>
       <div className="mb-2 flex items-center justify-between">
-        <NavButton label="Años anteriores" onClick={() => setLastYear((y) => y - YEARS_PER_PAGE)}>
+        <NavButton label={t('Años anteriores')} onClick={() => setLastYear((y) => y - YEARS_PER_PAGE)}>
           <ChevronLeft className="size-4" aria-hidden="true" />
         </NavButton>
         <p className="text-sm font-semibold">
           {firstYear} – {lastYear}
         </p>
         <NavButton
-          label="Años siguientes"
+          label={t('Años siguientes')}
           onClick={() => setLastYear((y) => y + YEARS_PER_PAGE)}
           disabled={lastYear >= nowYear}
         >
@@ -165,16 +167,16 @@ function WeekGrid({ date, onPick }) {
     monday = shiftPeriod('week', monday, 1);
   }
 
-  const title = new Date(view.year, view.month, 1).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+  const title = new Date(view.year, view.month, 1).toLocaleDateString(dateLocale(), { month: 'long', year: 'numeric' });
 
   return (
     <>
       <div className="mb-2 flex items-center justify-between">
-        <NavButton label="Mes anterior" onClick={() => move(-1)}>
+        <NavButton label={t('Mes anterior')} onClick={() => move(-1)}>
           <ChevronLeft className="size-4" aria-hidden="true" />
         </NavButton>
         <p className="text-sm font-semibold first-letter:uppercase">{title}</p>
-        <NavButton label="Mes siguiente" onClick={() => move(1)} disabled={atLastMonth}>
+        <NavButton label={t('Mes siguiente')} onClick={() => move(1)} disabled={atLastMonth}>
           <ChevronRight className="size-4" aria-hidden="true" />
         </NavButton>
       </div>
@@ -194,7 +196,7 @@ function WeekGrid({ date, onPick }) {
               onClick={() => onPick(week.from)}
               disabled={week.from > today}
               aria-pressed={selected}
-              aria-label={`Semana del ${week.days[0].toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })} al ${end.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })}`}
+              aria-label={t('Semana del {toLocaleDateString} al {toLocaleDateString2}', { toLocaleDateString: week.days[0].toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }), toLocaleDateString2: end.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }) })}
               className={cn(
                 'grid h-9 w-full grid-cols-7 items-center rounded-xl text-sm tabular-nums transition-colors',
                 'disabled:cursor-not-allowed disabled:opacity-30',
@@ -289,7 +291,7 @@ export default function PeriodJumpPicker({ period, date, label, onPick }) {
       {open && (
         <div
           role="dialog"
-          aria-label="Ir a otro periodo"
+          aria-label={t('Ir a otro periodo')}
           className="absolute left-0 top-full z-30 mt-2 w-64 rounded-2xl border border-ink/10 bg-surface p-3 shadow-xl sm:left-1/2 sm:-translate-x-1/2"
         >
           {/* key: al cambiar de periodo el panel se monta de nuevo, con su estado inicial. */}

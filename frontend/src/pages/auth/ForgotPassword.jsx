@@ -11,10 +11,11 @@ import { Input } from '@/components/ui/input';
 import usePageTitle from '@/hooks/usePageTitle';
 import { forgotPasswordSchema } from '@/lib/validation/auth';
 import { requestPasswordReset } from '@/services/authService';
+import { t } from '@/lib/i18n';
 
 const backToLogin = (
   <Link to="/login" className="font-medium text-violet-light transition-colors hover:text-white">
-    Volver a iniciar sesión
+    {t('Volver a iniciar sesión')}
   </Link>
 );
 
@@ -24,7 +25,7 @@ const backToLogin = (
  * la pantalla tampoco lo afirma: dice "si tiene cuenta, te llegará".
  */
 export default function ForgotPassword() {
-  usePageTitle('Recuperar contraseña');
+  usePageTitle(t('Recuperar contraseña'));
   const location = useLocation();
   const [sentTo, setSentTo] = useState(null);
   const [serverError, setServerError] = useState('');
@@ -53,20 +54,19 @@ export default function ForgotPassword() {
     <>
       {/* Anuncia el cambio de estado a los lectores de pantalla (la pantalla se reemplaza entera). */}
       <p className="sr-only" role="status">
-        {sentTo ? `Te enviamos un enlace a ${sentTo} si tiene una cuenta.` : ''}
+        {sentTo ? t('Te enviamos un enlace a {sentTo} si tiene una cuenta.', { sentTo }) : ''}
       </p>
       {sentTo ? (
         <CheckInbox
           key="sent"
           subtitle={
             <>
-              Si <strong className="font-medium text-white">{sentTo}</strong> tiene una cuenta, te llegará un
-              enlace para crear una contraseña nueva.
+              {t('Si')} <strong className="font-medium text-white">{sentTo}</strong> {t('tiene una cuenta, te llegará un enlace para crear una contraseña nueva.')}
             </>
           }
           tips={[
-            'El enlace vence en 30 minutos y sirve una sola vez.',
-            '¿No lo ves? Revisa las carpetas de spam o promociones.',
+            t('El enlace vence en 30 minutos y sirve una sola vez.'),
+            t('¿No lo ves? Revisa las carpetas de spam o promociones.'),
           ]}
           onResend={() => requestPasswordReset(sentTo)}
           onChangeEmail={() => setSentTo(null)}
@@ -76,12 +76,12 @@ export default function ForgotPassword() {
         <AuthLayout
           key="form"
           icon={Mail}
-          title="Recupera tu contraseña"
-          subtitle="Escribe tu correo y te enviamos un enlace para crear una nueva."
+          title={t('Recupera tu contraseña')}
+          subtitle={t('Escribe tu correo y te enviamos un enlace para crear una nueva.')}
           footer={backToLogin}
         >
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
-            <FormField id="email" label="Correo electrónico" error={errors.email?.message}>
+            <FormField id="email" label={t('Correo electrónico')} error={errors.email?.message}>
               <Input
                 type="email"
                 autoComplete="email"
@@ -100,7 +100,7 @@ export default function ForgotPassword() {
 
             <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-              {isSubmitting ? 'Enviando…' : 'Enviar enlace'}
+              {isSubmitting ? t('Enviando…') : t('Enviar enlace')}
             </Button>
           </form>
         </AuthLayout>

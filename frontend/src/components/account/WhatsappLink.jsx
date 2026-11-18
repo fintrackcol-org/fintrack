@@ -12,6 +12,7 @@ import {
   getWhatsappLink,
   requestWhatsappAccess,
 } from '@/services/whatsappService';
+import { t } from '@/lib/i18n';
 
 /**
  * Enlace que abre el chat del bot con el código ya escrito.
@@ -27,20 +28,20 @@ export function chatUrl(botNumber, code) {
 function CodeStep({ pending, checking, onCheck }) {
   return (
     <div className="space-y-3 rounded-xl bg-brand-soft p-4">
-      <p className="text-sm text-ink/60">Envíale este código al bot. Vence en 10 minutos y sirve una sola vez.</p>
+      <p className="text-sm text-ink/60">{t('Envíale este código al bot. Vence en 10 minutos y sirve una sola vez.')}</p>
       <p className="select-all text-xl font-semibold tabular-nums tracking-wider text-brand">{pending.code}</p>
       <div className="flex flex-wrap gap-2">
         {pending.botNumber && (
           <Button asChild>
             <a href={chatUrl(pending.botNumber, pending.code)} target="_blank" rel="noreferrer">
               <MessageCircle aria-hidden="true" />
-              Abrir WhatsApp
+              {t('Abrir WhatsApp')}
             </a>
           </Button>
         )}
         <Button variant="soft" onClick={onCheck} disabled={checking}>
           {checking ? <Loader2 className="animate-spin" aria-hidden="true" /> : <RefreshCw aria-hidden="true" />}
-          Ya lo envié
+          {t('Ya lo envié')}
         </Button>
       </div>
     </div>
@@ -55,19 +56,19 @@ function AccessStep({ access, asking, online, onAsk }) {
     return (
       <p className="flex items-start gap-2 text-sm">
         <Clock className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden="true" />
-        Ya pediste acceso. Te avisamos por correo cuando esté listo.
+        {t('Ya pediste acceso. Te avisamos por correo cuando esté listo.')}
       </p>
     );
   }
   if (access === 'rejected') {
-    return <p className="text-sm text-ink/60">Por ahora no hay cupo para tu cuenta.</p>;
+    return <p className="text-sm text-ink/60">{t('Por ahora no hay cupo para tu cuenta.')}</p>;
   }
   return (
     <>
-      <p className="text-sm text-ink/60">Lo estamos abriendo de a pocos. Pide acceso y te avisamos por correo.</p>
+      <p className="text-sm text-ink/60">{t('Lo estamos abriendo de a pocos. Pide acceso y te avisamos por correo.')}</p>
       <Button onClick={onAsk} disabled={asking || !online}>
         {asking ? <Loader2 className="animate-spin" aria-hidden="true" /> : <MessageCircle aria-hidden="true" />}
-        Pedir acceso
+        {t('Pedir acceso')}
       </Button>
     </>
   );
@@ -129,9 +130,9 @@ export default function WhatsappLink() {
   return (
     <Panel aria-labelledby="whatsapp-title">
       <h2 id="whatsapp-title" className="text-lg font-semibold tracking-tight">
-        WhatsApp
+        {t('WhatsApp')}
       </h2>
-      <p className="mt-1 text-sm text-ink/60">Registra movimientos desde el chat, como "almuerzo 15 mil".</p>
+      <p className="mt-1 text-sm text-ink/60">{t('Registra movimientos desde el chat, como "almuerzo 15 mil".')}</p>
 
       <div className="mt-5 space-y-3">
         {(data.access ?? 'approved') !== 'approved' ? (
@@ -140,12 +141,12 @@ export default function WhatsappLink() {
           <>
             <p className="flex items-center gap-2 text-sm">
               <CircleCheck className="size-5 shrink-0 text-positive" aria-hidden="true" />
-              {data.phone ? `Conectado con ${data.phone}` : 'Conectado con tu WhatsApp'}
+              {data.phone ? t('Conectado con {phone}', { phone: data.phone }) : t('Conectado con tu WhatsApp')}
             </p>
             <ConfirmButton
-              label="Desconectar"
-              question="¿Desconectar este número? Tus movimientos no se borran."
-              confirmLabel="Sí, desconectar"
+              label={t('Desconectar')}
+              question={t('¿Desconectar este número? Tus movimientos no se borran.')}
+              confirmLabel={t('Sí, desconectar')}
               icon={Unlink}
               disabled={!online}
               onConfirm={unlink}
@@ -156,7 +157,7 @@ export default function WhatsappLink() {
         ) : (
           <Button onClick={createCode} disabled={creating || !online}>
             {creating ? <Loader2 className="animate-spin" aria-hidden="true" /> : <MessageCircle aria-hidden="true" />}
-            Conectar WhatsApp
+            {t('Conectar WhatsApp')}
           </Button>
         )}
         {createError && (
@@ -166,7 +167,7 @@ export default function WhatsappLink() {
         )}
         {data.admin && (
           <Link to="/app/whatsapp/admin" className="block text-sm font-medium text-brand hover:underline">
-            Ver uso y accesos del equipo
+            {t('Ver uso y accesos del equipo')}
           </Link>
         )}
       </div>

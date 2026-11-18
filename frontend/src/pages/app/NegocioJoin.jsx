@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { joinBusiness, previewInvitation } from '@/services/negocioService';
+import { t } from '@/lib/i18n';
 
 /**
  * Página privada `/app/negocios/unirse/:code` (FT-0016): a donde lleva el enlace de invitación.
@@ -14,7 +15,7 @@ import { joinBusiness, previewInvitation } from '@/services/negocioService';
  * manda al login (o al registro) y vuelve aquí después.
  */
 export default function NegocioJoin() {
-  usePageTitle('Unirse a un negocio');
+  usePageTitle(t('Unirse a un negocio'));
   const { code } = useParams();
   const online = useOnlineStatus();
   const navigate = useNavigate();
@@ -55,42 +56,42 @@ export default function NegocioJoin() {
       <Panel className="text-center">
         <Briefcase className="mx-auto size-12 text-brand" aria-hidden="true" />
         {!online ? (
-          <p className="mt-4 text-ink/60">Necesitas conexión para unirte a un negocio. Vuelve a intentarlo con internet.</p>
+          <p className="mt-4 text-ink/60">{t('Necesitas conexión para unirte a un negocio. Vuelve a intentarlo con internet.')}</p>
         ) : error && !preview ? (
           <>
             <p role="alert" className="mt-4 font-medium text-negative">
               {error}
             </p>
-            <p className="mt-2 text-ink/60">Pídele a quien te invitó el enlace o el código nuevo.</p>
+            <p className="mt-2 text-ink/60">{t('Pídele a quien te invitó el enlace o el código nuevo.')}</p>
             <Button asChild variant="outline" className="mt-5">
-              <Link to="/app/negocios">Ir a mis negocios</Link>
+              <Link to="/app/negocios">{t('Ir a mis negocios')}</Link>
             </Button>
           </>
         ) : !preview ? (
           <p className="mt-4 flex items-center justify-center gap-2 text-ink/60">
-            <Loader2 className="animate-spin" aria-hidden="true" /> Cargando la invitación…
+            <Loader2 className="animate-spin" aria-hidden="true" /> {t('Cargando la invitación…')}
           </p>
         ) : (
           <>
             <p className="mt-4 text-sm text-ink/60">
-              {preview.createdBy ? `${preview.createdBy} te invitó a` : 'Te invitaron a'}
+              {preview.createdBy ? t('{createdBy} te invitó a', { createdBy: preview.createdBy }) : t('Te invitaron a')}
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">{preview.name}</h1>
             {preview.description && <p className="mt-2 text-ink/70">{preview.description}</p>}
             <dl className="mt-5 grid grid-cols-2 gap-2 rounded-xl bg-ink/5 p-4 text-sm">
               <div>
-                <dt className="text-ink/60">Entras como</dt>
+                <dt className="text-ink/60">{t('Entras como')}</dt>
                 <dd className="font-semibold">{role.label}</dd>
               </div>
               <div>
-                <dt className="text-ink/60">Socios</dt>
+                <dt className="text-ink/60">{t('Socios')}</dt>
                 <dd className="inline-flex items-center gap-1 font-semibold">
                   <Users className="size-3.5" aria-hidden="true" /> {preview.membersCount}
                 </dd>
               </div>
             </dl>
             <p className="mt-4 text-sm text-ink/60">
-              {role.hint}. Los demás socios verán tu nombre. Las finanzas del negocio quedan aparte de las tuyas.
+              {role.hint}{t('. Los demás socios verán tu nombre. Las finanzas del negocio quedan aparte de las tuyas.')}
             </p>
             {error && (
               <p role="alert" className="mt-3 text-sm text-negative">
@@ -100,10 +101,10 @@ export default function NegocioJoin() {
             <div className="mt-5 flex justify-center gap-3">
               <Button size="lg" onClick={join} disabled={joining}>
                 {joining && <Loader2 className="animate-spin" aria-hidden="true" />}
-                Unirme al negocio
+                {t('Unirme al negocio')}
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link to="/app/negocios">Ahora no</Link>
+                <Link to="/app/negocios">{t('Ahora no')}</Link>
               </Button>
             </div>
           </>

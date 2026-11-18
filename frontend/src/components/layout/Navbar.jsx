@@ -5,12 +5,13 @@ import { Menu, X } from 'lucide-react';
 import Logo from '@/components/common/Logo';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /** Enlaces a las secciones de la landing. */
 const NAV_LINKS = [
-  { href: '#funcionalidades', label: 'Funcionalidades' },
-  { href: '#app', label: 'App' },
-  { href: '#seguridad', label: 'Seguridad' },
+  { href: '#funcionalidades', label: t('Funcionalidades') },
+  { href: '#app', label: t('App') },
+  { href: '#seguridad', label: t('Seguridad') },
   { href: '#faq', label: 'FAQ' },
 ];
 
@@ -47,7 +48,7 @@ export default function Navbar() {
     >
       <nav
         className="container-page flex h-20 items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr]"
-        aria-label="Principal"
+        aria-label={t('Principal')}
       >
         <Logo />
 
@@ -63,13 +64,13 @@ export default function Navbar() {
 
         <div className="hidden items-center justify-end gap-2 lg:flex">
           <Button asChild variant="ghost">
-            <Link to="/login">Iniciar sesión</Link>
+            <Link to="/login">{t('Iniciar sesión')}</Link>
           </Button>
           <Button
             asChild
             className="rounded-full px-5 motion-safe:transition-[background-color,transform] motion-safe:active:scale-[0.98]"
           >
-            <Link to="/registro">Crear cuenta</Link>
+            <Link to="/registro">{t('Crear cuenta')}</Link>
           </Button>
         </div>
 
@@ -81,13 +82,13 @@ export default function Navbar() {
             size="sm"
             className="rounded-full border border-white/15 px-3.5 text-white hover:bg-white/10 hover:text-white motion-safe:transition-[color,background-color,transform] motion-safe:active:scale-[0.97]"
           >
-            <Link to="/login">Iniciar sesión</Link>
+            <Link to="/login">{t('Iniciar sesión')}</Link>
           </Button>
           <Button
             variant="ghost"
             size="icon"
             className="[&_svg]:size-6"
-            aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+            aria-label={open ? t('Cerrar menú') : t('Abrir menú')}
             aria-expanded={open}
             aria-controls="mobile-menu"
             onClick={() => setOpen((v) => !v)}
@@ -122,10 +123,10 @@ export default function Navbar() {
             </ul>
             <div className="container-page flex flex-col gap-3 pb-8">
               <Button asChild variant="outline" size="lg">
-                <Link to="/login">Iniciar sesión</Link>
+                <Link to="/login">{t('Iniciar sesión')}</Link>
               </Button>
               <Button asChild size="lg">
-                <Link to="/registro">Crear cuenta</Link>
+                <Link to="/registro">{t('Crear cuenta')}</Link>
               </Button>
             </div>
           </motion.div>

@@ -2,6 +2,7 @@ import { Component } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Logo from './Logo';
+import { t } from '@/lib/i18n';
 
 /** Errores típicos de un `import()` dinámico que no se pudo descargar. */
 const CHUNK_ERROR = /dynamically imported module|Importing a module script failed|Loading chunk/i;
@@ -33,7 +34,7 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     if (CHUNK_ERROR.test(error.message ?? '')) chunkFailed = true;
-    console.error('Error de render:', error, info.componentStack);
+    console.error(t('Error de render:'), error, info.componentStack);
   }
 
   render() {
@@ -48,19 +49,19 @@ export default class ErrorBoundary extends Component {
         role="alert"
       >
         <Logo />
-        <h1 className="text-3xl font-semibold tracking-tight">Algo salió mal</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">{t('Algo salió mal')}</h1>
         <p className="max-w-sm text-white/60">
           {isChunkError
-            ? 'No pudimos cargar esta sección. Revisa tu conexión e inténtalo de nuevo.'
-            : 'Ocurrió un error inesperado. Intenta recargar la página.'}
+            ? t('No pudimos cargar esta sección. Revisa tu conexión e inténtalo de nuevo.')
+            : t('Ocurrió un error inesperado. Intenta recargar la página.')}
         </p>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button size="lg" onClick={() => window.location.reload()}>
-            Reintentar
+            {t('Reintentar')}
           </Button>
           {/* Link (no <a>): navega sin recargar, así funciona sin conexión; el key del boundary lo resetea. */}
           <Button asChild variant="outline" size="lg">
-            <Link to="/">Ir al inicio</Link>
+            <Link to="/">{t('Ir al inicio')}</Link>
           </Button>
         </div>
       </main>

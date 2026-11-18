@@ -2,8 +2,10 @@
  * Textos y estilos compartidos de La Vaca Inteligente (FT-0014/FT-0015).
  */
 import { formatDate, formatMoney } from '@/components/transactions/format';
+import { t as tr } from '@/lib/i18n';
+import { numberLocale } from '@/lib/region';
 
-const percent = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 });
+const percent = new Intl.NumberFormat(numberLocale(), { maximumFractionDigits: 1 });
 
 /**
  * @param {number} value
@@ -25,17 +27,17 @@ export function formatPesos(value) {
 
 /** Etiqueta y colores de cada estado de un miembro. */
 export const MEMBER_STATUS = {
-  cumplido: { label: 'Cumplió', chip: 'bg-positive/15 text-positive', bar: 'bg-positive' },
-  al_dia: { label: 'Al día', chip: 'bg-brand-soft text-brand', bar: 'bg-brand' },
-  atrasado: { label: 'Atrasado', chip: 'bg-caution/15 text-caution', bar: 'bg-caution' },
-  pendiente: { label: 'Le falta', chip: 'bg-ink/10 text-ink/70', bar: 'bg-brand' },
+  cumplido: { label: tr('Cumplió'), chip: 'bg-positive/15 text-positive', bar: 'bg-positive' },
+  al_dia: { label: tr('Al día'), chip: 'bg-brand-soft text-brand', bar: 'bg-brand' },
+  atrasado: { label: tr('Atrasado'), chip: 'bg-caution/15 text-caution', bar: 'bg-caution' },
+  pendiente: { label: tr('Le falta'), chip: 'bg-ink/10 text-ink/70', bar: 'bg-brand' },
 };
 
 /** Etiqueta y colores del estado de la vaca. */
 export const VACA_STATUS = {
-  activa: { label: 'Activa', chip: 'bg-brand-soft text-brand', bar: 'bg-brand' },
-  completada: { label: 'Meta cumplida', chip: 'bg-positive/15 text-positive', bar: 'bg-positive' },
-  vencida: { label: 'Venció', chip: 'bg-negative/15 text-negative', bar: 'bg-negative' },
+  activa: { label: tr('Activa'), chip: 'bg-brand-soft text-brand', bar: 'bg-brand' },
+  completada: { label: tr('Meta cumplida'), chip: 'bg-positive/15 text-positive', bar: 'bg-positive' },
+  vencida: { label: tr('Venció'), chip: 'bg-negative/15 text-negative', bar: 'bg-negative' },
 };
 
 /**
@@ -75,37 +77,37 @@ export function todayIso(now = new Date()) {
  * @returns {string}
  */
 export function deadlineText({ deadline, projection, status }, { withDate = true } = {}) {
-  if (!deadline) return 'Sin fecha límite';
+  if (!deadline) return tr('Sin fecha límite');
   const date = formatDate(deadline);
-  if (status === 'completada') return withDate ? `Fecha límite: ${date}` : 'Cumplida';
+  if (status === 'completada') return withDate ? tr('Fecha límite: {date}', { date }) : tr('Cumplida');
   const days = projection.daysLeft;
-  if (days < 0) return withDate ? `Venció el ${date}` : 'Venció';
-  if (days === 0) return withDate ? `Vence hoy (${date})` : 'Vence hoy';
-  const left = days === 1 ? 'Falta 1 día' : `Faltan ${days} días`;
+  if (days < 0) return withDate ? `Venció el ${date}` : tr('Venció');
+  if (days === 0) return withDate ? tr('Vence hoy ({date})', { date }) : tr('Vence hoy');
+  const left = days === 1 ? tr('Falta 1 día') : tr('Faltan {days} días', { days });
   return withDate ? `${left} · ${date}` : left;
 }
 
 /** Textos de la lectura del ritmo: al grupo (vaca) o a una persona (meta personal). */
 const GROUP = {
-  done: '¡Meta cumplida! Ya juntaron toda la plata.',
-  empty: 'Aún no hay aportes. Con el primero calculamos el ritmo del grupo.',
+  done: tr('¡Meta cumplida! Ya juntaron toda la plata.'),
+  empty: tr('Aún no hay aportes. Con el primero calculamos el ritmo del grupo.'),
   complete: 'completan',
-  keep: 'Sigan aportando para ver cuándo completan la meta.',
-  onTime: 'Van a tiempo',
+  keep: tr('Sigan aportando para ver cuándo completan la meta.'),
+  onTime: tr('Van a tiempo'),
   late: 'no llegan',
-  would: 'terminarían',
-  need: 'Necesitan',
-  each: ' entre todos',
+  would: tr('terminarían'),
+  need: tr('Necesitan'),
+  each: tr(' entre todos'),
 };
 const SOLO = {
-  done: '¡Meta cumplida! Ya tienes toda la plata.',
-  empty: 'Aún no has apartado nada. Con el primer aporte calculamos tu ritmo.',
+  done: tr('¡Meta cumplida! Ya tienes toda la plata.'),
+  empty: tr('Aún no has apartado nada. Con el primer aporte calculamos tu ritmo.'),
   complete: 'completas',
-  keep: 'Sigue aportando para ver cuándo completas la meta.',
-  onTime: 'Vas a tiempo',
+  keep: tr('Sigue aportando para ver cuándo completas la meta.'),
+  onTime: tr('Vas a tiempo'),
   late: 'no llegas',
-  would: 'terminarías',
-  need: 'Necesitas',
+  would: tr('terminarías'),
+  need: tr('Necesitas'),
   each: '',
 };
 
@@ -122,24 +124,24 @@ export function projectionText({ deadline, projection, status, total, personal =
   if (total === 0) return { tone: 'neutral', text: t.empty };
   const estimated = projection.estimatedDate ? formatDate(projection.estimatedDate) : null;
   if (status === 'vencida') {
-    return { tone: 'caution', text: `Pasó la fecha límite y faltan ${formatPesos(projection.remaining)}.` };
+    return { tone: 'caution', text: tr('Pasó la fecha límite y faltan {remaining}.', { remaining: formatPesos(projection.remaining) }) };
   }
   if (!deadline) {
     return {
       tone: 'neutral',
       text: estimated
-        ? `A este ritmo (${formatPesos(projection.averagePerDay)} por día) ${t.complete} la meta hacia el ${estimated}.`
+        ? tr('A este ritmo ({averagePerDay} por día) {complete} la meta hacia el {estimated}.', { averagePerDay: formatPesos(projection.averagePerDay), complete: t.complete, estimated })
         : t.keep,
     };
   }
   if (projection.onTrack) {
     return {
       tone: 'positive',
-      text: `${t.onTime}: a este ritmo ${t.complete} la meta hacia el ${estimated}.`,
+      text: tr('{onTime}: a este ritmo {complete} la meta hacia el {estimated}.', { onTime: t.onTime, complete: t.complete, estimated }),
     };
   }
   return {
     tone: 'caution',
-    text: `A este ritmo ${t.late}${estimated ? ` (${t.would} hacia el ${estimated})` : ''}. ${t.need} ${formatPesos(projection.neededPerWeek ?? projection.remaining)} por semana${t.each}.`,
+    text: tr('A este ritmo {late}{v2}. {need} {formatPesos} por semana{each}.', { late: t.late, v2: estimated ? ` (${t.would} hacia el ${estimated})` : '', need: t.need, formatPesos: formatPesos(projection.neededPerWeek ?? projection.remaining), each: t.each }),
   };
 }

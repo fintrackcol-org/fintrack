@@ -1,4 +1,6 @@
-/**
+
+import { dateLocale } from '@/lib/region';
+import { t } from '@/lib/i18n';/**
  * Periodos del dashboard (FT-0004): semana (lunes a domingo), mes y año.
  * Las fechas van en AAAA-MM-DD y se calculan con la hora local del dispositivo,
  * igual que el backend (que usa la hora de Colombia), para no saltar de día de noche.
@@ -8,9 +10,9 @@
 
 /** Opciones del selector, en el orden en que se muestran. */
 export const PERIOD_OPTIONS = [
-  { value: 'week', label: 'Semana' },
-  { value: 'month', label: 'Mes' },
-  { value: 'year', label: 'Año' },
+  { value: 'week', label: t('Semana') },
+  { value: 'month', label: t('Mes') },
+  { value: 'year', label: t('Año') },
 ];
 
 /**
@@ -97,7 +99,7 @@ export function periodLabel(period, date) {
   const thisYear = new Date().getFullYear();
   if (period === 'year') return String(d.getFullYear());
   if (period === 'month') {
-    return d.toLocaleDateString('es-CO', {
+    return d.toLocaleDateString(dateLocale(), {
       month: 'long',
       ...(d.getFullYear() !== thisYear && { year: 'numeric' }),
     });
@@ -106,7 +108,7 @@ export function periodLabel(period, date) {
   const { from, to } = periodRange('week', date);
   const start = fromIso(from);
   const end = fromIso(to);
-  const endText = end.toLocaleDateString('es-CO', {
+  const endText = end.toLocaleDateString(dateLocale(), {
     day: 'numeric',
     month: 'short',
     ...(end.getFullYear() !== thisYear && { year: 'numeric' }),
@@ -115,8 +117,8 @@ export function periodLabel(period, date) {
   const startText =
     start.getMonth() === end.getMonth()
       ? String(start.getDate())
-      : start.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
-  return `semana del ${startText} al ${endText}`;
+      : start.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' });
+  return t('semana del {startText} al {endText}', { startText, endText });
 }
 
 /**
@@ -136,8 +138,8 @@ export function periodBuckets(period, date) {
       const d = new Date(year, m, 1);
       buckets.push({
         date: toIso(d),
-        label: d.toLocaleDateString('es-CO', { month: 'short' }).replace('.', ''),
-        fullLabel: d.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' }),
+        label: d.toLocaleDateString(dateLocale(), { month: 'short' }).replace('.', ''),
+        fullLabel: d.toLocaleDateString(dateLocale(), { month: 'long', year: 'numeric' }),
       });
     }
     return buckets;
@@ -147,9 +149,9 @@ export function periodBuckets(period, date) {
       date: toIso(d),
       label:
         period === 'week'
-          ? d.toLocaleDateString('es-CO', { weekday: 'short' }).replace('.', '')
+          ? d.toLocaleDateString(dateLocale(), { weekday: 'short' }).replace('.', '')
           : String(d.getDate()),
-      fullLabel: d.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }),
+      fullLabel: d.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' }),
     });
   }
   return buckets;

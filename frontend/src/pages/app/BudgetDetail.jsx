@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { TRANSACTION_SAVED_EVENT } from '@/offline/saveNewTransaction';
 import { deleteBudget, listBudgets, updateBudget } from '@/services/budgetService';
 import { monthRange } from '@/services/summaryService';
+import { t } from '@/lib/i18n';
 
 const BAR = { none: 'bg-positive', warning_80: 'bg-caution', exceeded_100: 'bg-negative' };
 
@@ -51,7 +52,7 @@ export default function BudgetDetail() {
       <p role="alert" className="text-sm text-negative">
         {budgets.error}{' '}
         <button type="button" className="underline" onClick={reload}>
-          Reintentar
+          {t('Reintentar')}
         </button>
       </p>
     );
@@ -59,11 +60,11 @@ export default function BudgetDetail() {
   if (!budgets.data) {
     return (
       <p className="flex items-center gap-2 py-10 text-ink/60" aria-busy="true">
-        <Loader2 className="size-5 animate-spin" aria-hidden="true" /> Cargando…
+        <Loader2 className="size-5 animate-spin" aria-hidden="true" /> {t('Cargando…')}
       </p>
     );
   }
-  if (!budget) return <p className="py-10 text-center text-ink/60">Este presupuesto ya no existe.</p>;
+  if (!budget) return <p className="py-10 text-center text-ink/60">{t('Este presupuesto ya no existe.')}</p>;
 
   const level = displayLevel(budget.alert);
   const money = (value) => (hidden ? '$ ••••••' : formatMoney(value));
@@ -72,7 +73,7 @@ export default function BudgetDetail() {
   return (
     <div className="mx-auto flex max-w-xl flex-col">
       <h1 className="text-[28px] font-semibold tracking-tight">{name}</h1>
-      <p className="mt-4 text-[15px] text-ink/70">Vas en</p>
+      <p className="mt-4 text-[15px] text-ink/70">{t('Vas en')}</p>
       <p className="text-[42px] font-semibold leading-tight tracking-tight tabular-nums">{Math.round(budget.percentage)} %</p>
       <div
         role="meter"
@@ -86,28 +87,28 @@ export default function BudgetDetail() {
       </div>
       <p className="mt-2 text-sm tabular-nums text-ink/70">
         {over
-          ? `Te pasaste por ${money(budget.consumed - budget.amount)} de ${money(budget.amount)}`
+          ? t('Te pasaste por {money} de {amount}', { money: money(budget.consumed - budget.amount), amount: money(budget.amount) })
           : `Quedan ${money(Math.max(0, budget.amount - budget.consumed))} de ${money(budget.amount)}`}
       </p>
 
       <CircleActions
-        label="Acciones del presupuesto"
+        label={t('Acciones del presupuesto')}
         className="mt-5 md:mx-0"
         actions={[
-          { to: `/app/anotar?categoria=${encodeURIComponent(category)}`, label: 'Anotar', icon: Plus, primary: true },
-          { onClick: () => setEditing(true), label: 'Modificar presupuesto', icon: Pencil, disabled: !online },
+          { to: `/app/anotar?categoria=${encodeURIComponent(category)}`, label: t('Anotar'), icon: Plus, primary: true },
+          { onClick: () => setEditing(true), label: t('Modificar presupuesto'), icon: Pencil, disabled: !online },
         ]}
       />
 
-      <h2 className="mb-2 mt-6 text-lg font-semibold tracking-tight">Movimientos de {name}</h2>
+      <h2 className="mb-2 mt-6 text-lg font-semibold tracking-tight">{t('Movimientos de')} {name}</h2>
       <FilteredMovements
         filters={{ type: 'gasto', category, ...monthRange(month) }}
         names={names}
         hidden={hidden}
-        empty="Aún no hay movimientos en este presupuesto."
+        empty={t('Aún no hay movimientos en este presupuesto.')}
       />
 
-      <Sheet open={editing} title="Modificar presupuesto" onClose={() => setEditing(false)}>
+      <Sheet open={editing} title={t('Modificar presupuesto')} onClose={() => setEditing(false)}>
         <BudgetForm
           categories={expense}
           usedCategories={[]}
@@ -123,9 +124,9 @@ export default function BudgetDetail() {
         />
         <div className="mt-3 text-center">
           <ConfirmButton
-            label="Eliminar presupuesto"
-            question="¿Eliminar este presupuesto?"
-            confirmLabel="Sí, eliminar"
+            label={t('Eliminar presupuesto')}
+            question={t('¿Eliminar este presupuesto?')}
+            confirmLabel={t('Sí, eliminar')}
             icon={Trash2}
             disabled={!online}
             onConfirm={async () => {

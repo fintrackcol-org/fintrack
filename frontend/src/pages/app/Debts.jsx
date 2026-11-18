@@ -28,6 +28,7 @@ import {
   settleDebt,
   updateDebt,
 } from '@/services/debtService';
+import { t } from '@/lib/i18n';
 
 /**
  * Hoja "Ya me pagó todo / Ya pagué todo": salda lo que falta y, por defecto, registra el movimiento.
@@ -51,7 +52,7 @@ function SettleForm({ debt, money, disabled, onConfirm }) {
   return (
     <div className="space-y-4">
       <p>
-        {debt.kind === 'receivable' ? `${debt.person} te pagó lo que faltaba: ` : `Le pagaste a ${debt.person} lo que faltaba: `}
+        {debt.kind === 'receivable' ? t('{person} te pagó lo que faltaba: ', { person: debt.person }) : t('Le pagaste a {person} lo que faltaba: ', { person: debt.person })}
         <span className="font-semibold tabular-nums">{money(debt.pending)}</span>.
       </p>
       <label className="flex items-start gap-3 rounded-xl bg-ink/5 p-3 text-sm">
@@ -64,8 +65,7 @@ function SettleForm({ debt, money, disabled, onConfirm }) {
         <span>
           <span className="font-medium">{words.movement}</span>
           <span className="block text-ink/60">
-            Así tu saldo de hoy queda bien. Va en {debt.kind === 'receivable' ? 'Otros ingresos' : 'Otros'}; puedes cambiar la
-            categoría después.
+            {t('Así tu saldo de hoy queda bien. Va en')} {debt.kind === 'receivable' ? t('Otros ingresos') : t('Otros')}{t('; puedes cambiar la categoría después.')}
           </span>
         </span>
       </label>
@@ -115,7 +115,7 @@ function DebtCard({ debt, today, money, online, onPay, onSettle, onEdit }) {
           <p className="break-words font-semibold">{debt.person}</p>
           {debt.note && <p className="break-words text-sm text-ink/60">{debt.note}</p>}
         </div>
-        <Button size="icon" variant="ghost" className="size-11" onClick={onEdit} disabled={!online} aria-label={`Editar la cuenta de ${debt.person}`}>
+        <Button size="icon" variant="ghost" className="size-11" onClick={onEdit} disabled={!online} aria-label={t('Editar la cuenta de {person}', { person: debt.person })}>
           <Pencil aria-hidden="true" />
         </Button>
       </div>
@@ -136,12 +136,12 @@ function DebtCard({ debt, today, money, online, onPay, onSettle, onEdit }) {
       )}
       {lastPayment && (
         <p className="mt-2 text-xs text-ink/60">
-          Último abono: <span className="tabular-nums">{money(lastPayment.amount)}</span> el {shortDate(lastPayment.date, today)}
+          {t('Último abono:')} <span className="tabular-nums">{money(lastPayment.amount)}</span> {t('el')} {shortDate(lastPayment.date, today)}
         </p>
       )}
       <div className="mt-4 flex flex-col gap-1">
         <Button size="lg" className="w-full" onClick={onPay} disabled={!online}>
-          Registrar abono
+          {t('Registrar abono')}
         </Button>
         <Button variant="ghost" className="w-full text-brand" onClick={onSettle} disabled={!online}>
           {words.settleAll}
@@ -159,12 +159,12 @@ function SettledRow({ debt, money }) {
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{debt.person}</p>
         <p className="text-sm text-ink/60">
-          Saldada
+          {t('Saldada')}
           {debt.transactionId && (
             <>
               {' · '}
               <Link to={`/app/transacciones/${debt.transactionId}`} className="underline">
-                ver el movimiento
+                {t('ver el movimiento')}
               </Link>
             </>
           )}
@@ -187,7 +187,7 @@ export function DebtList({ items, kind, today, money, online, onAdd, onPay, onSe
       <Panel className="text-center">
         <p className="mx-auto max-w-md text-ink/60">{DEBT_WORDS[kind].empty}</p>
         <Button className="mt-4" onClick={onAdd} disabled={!online}>
-          <Plus aria-hidden="true" /> Agregar
+          <Plus aria-hidden="true" /> {t('Agregar')}
         </Button>
       </Panel>
     );
@@ -210,11 +210,11 @@ export function DebtList({ items, kind, today, money, online, onAdd, onPay, onSe
           ))}
         </ul>
       ) : (
-        <p className="text-ink/60">Todo está saldado.</p>
+        <p className="text-ink/60">{t('Todo está saldado.')}</p>
       )}
       {settled.length > 0 && (
         <section>
-          <h2 className="mb-2 text-sm font-medium text-ink/60">Saldadas</h2>
+          <h2 className="mb-2 text-sm font-medium text-ink/60">{t('Saldadas')}</h2>
           <ul aria-label={`${DEBT_WORDS[kind].tab}: saldadas`} className="space-y-2">
             {settled.map((d) => (
               <SettledRow key={d.id} debt={d} money={money} />
@@ -232,7 +232,7 @@ export function DebtList({ items, kind, today, money, online, onAdd, onPay, onSe
  */
 function SideSwitch({ value, totals, counts, money, onChange }) {
   return (
-    <div role="tablist" aria-label="Cuentas" className="grid grid-cols-2 gap-1 rounded-2xl bg-surface p-1 ring-1 ring-ink/10">
+    <div role="tablist" aria-label={t('Cuentas')} className="grid grid-cols-2 gap-1 rounded-2xl bg-surface p-1 ring-1 ring-ink/10">
       {['receivable', 'payable'].map((kind) => {
         const selected = value === kind;
         return (
@@ -271,7 +271,7 @@ function PaymentHistory({ debt, money, today, online, onDelete }) {
   if (!debt.payments?.length) return null;
   return (
     <section className="space-y-2 border-t border-ink/10 pt-4">
-      <h3 className="text-sm font-medium text-ink/70">Abonos</h3>
+      <h3 className="text-sm font-medium text-ink/70">{t('Abonos')}</h3>
       <ul className="space-y-2">
         {debt.payments.map((p) => (
           <li key={p.id} className="rounded-xl bg-ink/5 p-3">
@@ -280,9 +280,9 @@ function PaymentHistory({ debt, money, today, online, onDelete }) {
               <span className="font-semibold tabular-nums">{money(p.amount)}</span>
             </p>
             <ConfirmButton
-              label="Borrar abono"
-              question={`¿Borrar el abono de ${money(p.amount)}?${p.transactionId ? ' También se borra el movimiento que se anotó con él.' : ''}`}
-              confirmLabel="Sí, borrar"
+              label={t('Borrar abono')}
+              question={t('¿Borrar el abono de {amount}?{v2}', { amount: money(p.amount), v2: p.transactionId ? t(' También se borra el movimiento que se anotó con él.') : '' })}
+              confirmLabel={t('Sí, borrar')}
               icon={Trash2}
               disabled={!online}
               onConfirm={() => onDelete(p.id)}
@@ -296,7 +296,7 @@ function PaymentHistory({ debt, money, today, online, onDelete }) {
 
 /** Página privada `/app/cuentas`: lo que te deben y lo que debes, con abonos y cuotas (FT-0046, FT-0064). */
 export default function Debts() {
-  usePageTitle('Cuentas');
+  usePageTitle(t('Cuentas'));
   const online = useOnlineStatus();
   const [hidden] = useHiddenAmounts();
   const money = (n) => (hidden ? MASK : formatMoney(n));
@@ -358,35 +358,35 @@ export default function Debts() {
     payable: data?.items.filter((d) => d.kind === 'payable' && !d.settledAt).length ?? 0,
   };
   const titles = {
-    new: 'Nueva cuenta',
-    edit: 'Editar cuenta',
-    pay: 'Registrar abono',
+    new: t('Nueva cuenta'),
+    edit: t('Editar cuenta'),
+    pay: t('Registrar abono'),
     settle: sheet?.debt && DEBT_WORDS[sheet.debt.kind].settleAll,
   };
 
   return (
     <>
       <PageHeader
-        title="Cuentas"
-        description="Quién te debe y a quién le debes."
+        title={t('Cuentas')}
+        description={t('Quién te debe y a quién le debes.')}
         actions={
           <Button onClick={() => setSheet({ mode: 'new' })} disabled={!online}>
-            <Plus aria-hidden="true" /> Agregar
+            <Plus aria-hidden="true" /> {t('Agregar')}
           </Button>
         }
       />
-      {!online && <p className="mb-3 text-sm text-ink/60">Necesitas conexión para ver o cambiar tus cuentas.</p>}
+      {!online && <p className="mb-3 text-sm text-ink/60">{t('Necesitas conexión para ver o cambiar tus cuentas.')}</p>}
       {error && (
         <p role="alert" className="mb-3 text-sm text-negative">
           {error}{' '}
           <button type="button" className="underline" onClick={reload}>
-            Reintentar
+            {t('Reintentar')}
           </button>
         </p>
       )}
       {data === null && !error && (
         <p className="flex items-center gap-2 py-10 text-ink/60">
-          <Loader2 className="animate-spin" aria-hidden="true" /> Cargando…
+          <Loader2 className="animate-spin" aria-hidden="true" /> {t('Cargando…')}
         </p>
       )}
       {data && (
@@ -414,9 +414,9 @@ export default function Debts() {
             <DebtForm key={sheet.debt.id} debt={sheet.debt} disabled={!online} onSubmit={handleEdit} />
             <PaymentHistory debt={sheet.debt} money={money} today={today} online={online} onDelete={handleDeletePayment} />
             <ConfirmButton
-              label="Borrar cuenta"
-              question={`¿Borrar la cuenta de ${sheet.debt.person}? No se puede deshacer.`}
-              confirmLabel="Sí, borrar"
+              label={t('Borrar cuenta')}
+              question={t('¿Borrar la cuenta de {person}? No se puede deshacer.', { person: sheet.debt.person })}
+              confirmLabel={t('Sí, borrar')}
               icon={Trash2}
               disabled={!online}
               onConfirm={handleDelete}

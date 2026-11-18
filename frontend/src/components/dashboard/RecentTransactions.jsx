@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import Panel from '@/components/layout/Panel';
 import MovementRow from '@/components/transactions/MovementRow';
 import { formatRelativeDay } from '@/components/transactions/format';
+import { t } from '@/lib/i18n';
 
 /**
  * Últimos movimientos del usuario, con ícono de categoría, día y monto con signo.
@@ -16,14 +17,14 @@ export default function RecentTransactions({ transactions, names, hidden, error 
     <Panel aria-labelledby="recent-title">
       <div className="flex items-center justify-between gap-2">
         <h2 id="recent-title" className="text-lg font-semibold tracking-tight">
-          Últimos movimientos
+          {t('Últimos movimientos')}
         </h2>
         {/* En el celular la lista completa está en Mi plata, como en el diseño. */}
         <Link to="/app/mi-plata" className="-my-3 py-3 text-sm font-medium text-brand hover:underline md:hidden">
-          Ver todos
+          {t('Ver todos')}
         </Link>
         <Link to="/app/mi-plata" className="hidden text-sm font-medium text-brand hover:underline md:inline">
-          Ver todo
+          {t('Ver todo')}
         </Link>
       </div>
 
@@ -37,12 +38,12 @@ export default function RecentTransactions({ transactions, names, hidden, error 
         </ul>
       ) : transactions.length === 0 ? (
         <div className="mt-4">
-          <p className="text-sm text-ink/60">Aún no tienes movimientos. Registra tu primer gasto o ingreso.</p>
+          <p className="text-sm text-ink/60">{t('Aún no tienes movimientos. Registra tu primer gasto o ingreso.')}</p>
           <Link
             to="/app/anotar"
             className="mt-4 inline-flex h-10 items-center rounded-xl bg-brand-soft px-4 text-sm font-medium text-brand"
           >
-            Registrar movimiento
+            {t('Registrar movimiento')}
           </Link>
         </div>
       ) : (

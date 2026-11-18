@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { CommitmentDialog, EMPTY_COMMITMENT } from '@/pages/app/MiPlata';
 import { createDebt } from '@/services/debtService';
 import { getLiquidity, getPaymentCalendar } from '@/services/moneyProfileService';
+import { t } from '@/lib/i18n';
 
 /** Color de cada tono de la cuadrícula y del saldo: el semáforo, más lo que no se calcula y lo que entra. */
 const TONE_CLASS = {
@@ -31,13 +32,13 @@ const TONE_CLASS = {
 const DOT_CLASS = { negativo: 'bg-negative', riesgo: 'bg-caution', ok: 'bg-positive' };
 
 const RISK_TEXT = {
-  negativo: 'No te alcanza',
-  riesgo: 'Te queda poco',
+  negativo: t('No te alcanza'),
+  riesgo: t('Te queda poco'),
 };
 
 /** Qué dice el lector de pantalla de cada tono (el color no puede ser lo único). */
 const TONE_SPOKEN = {
-  negativo: 'no alcanza o está atrasado',
+  negativo: t('no alcanza o está atrasado'),
   riesgo: 'te queda poco',
   ok: 'te alcanza',
   pago: 'por pagar',
@@ -70,7 +71,7 @@ function PaymentGrid({ month, events, today, shortfallDate, onSelect }) {
         return { text: tone === 'negativo' ? `!${cell.total > 0 ? ` ${text}` : ''}` : text, className: TONE_CLASS[tone] };
       }}
       footer={
-        <ul aria-label="Qué significa cada color" className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-ink/10 pt-3 text-xs text-ink/70">
+        <ul aria-label={t('Qué significa cada color')} className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-ink/10 pt-3 text-xs text-ink/70">
           {LEGEND.map(({ tone, label }) => (
             <li key={tone} className="flex items-center gap-1.5">
               <span aria-hidden="true" className={cn('size-2 rounded-full', DOT_CLASS[tone])} />
@@ -91,11 +92,11 @@ function EventRow({ event }) {
   const income = event.kind === 'ingreso';
   const receivable = event.kind === 'cobro';
   const paid = event.status === 'pagado';
-  let detail = income ? 'Te entra plata' : STATUS_TEXT[event.status];
-  if (event.kind === 'vaca' && !paid) detail = `${detail} · tu aporte a la vaca`;
-  if (event.kind === 'cuenta') detail = `${detail} · le debes`;
-  if (event.subscription) detail = `${detail} · suscripción`; // FT-0067
-  if (receivable) detail = event.status === 'atrasado' ? 'Atrasado · te debe' : 'Te debe · no se suma a tu plata';
+  let detail = income ? t('Te entra plata') : STATUS_TEXT[event.status];
+  if (event.kind === 'vaca' && !paid) detail = t('{detail} · tu aporte a la vaca', { detail });
+  if (event.kind === 'cuenta') detail = t('{detail} · le debes', { detail });
+  if (event.subscription) detail = t('{detail} · suscripción', { detail }); // FT-0067
+  if (receivable) detail = event.status === 'atrasado' ? t('Atrasado · te debe') : t('Te debe · no se suma a tu plata');
   return (
     <li>
       <Link
@@ -116,7 +117,7 @@ function EventRow({ event }) {
           <span className={cn('block text-xs text-ink/60', event.status === 'atrasado' && 'text-negative')}>{detail}</span>
           {event.balanceAfter !== null && (
             <span className={cn('block text-xs', TONE_CLASS[event.risk] ?? 'text-ink/60')}>
-              {RISK_TEXT[event.risk] ? `${RISK_TEXT[event.risk]}: ` : 'Te quedan '}
+              {RISK_TEXT[event.risk] ? `${RISK_TEXT[event.risk]}: ` : t('Te quedan ')}
               {formatMoney(event.balanceAfter)}
             </span>
           )}
@@ -161,7 +162,7 @@ function AddOption({ icon: Icon, title, text, onClick }) {
  * los días llevan semáforo con leyenda, se pueden tocar y se les puede agregar un pago o una cuenta.
  */
 export default function Calendar() {
-  usePageTitle('Calendario');
+  usePageTitle(t('Calendario'));
   const online = useOnlineStatus();
   // `undefined`: el mes actual, que decide la API con la zona horaria del usuario.
   const [month, setMonth] = useState();
@@ -181,28 +182,28 @@ export default function Calendar() {
   const unknownAfter = data?.projectedUntil && events.some((e) => e.kind !== 'ingreso' && e.date >= data.projectedUntil);
   // En la ventana del día va todo, sin el filtro: es "todo lo de ese día".
   const dayEvents = day && data ? data.events.filter((e) => e.date === day) : [];
-  const dayName = day ? (day === data?.today ? 'Hoy' : dayLabel(day)) : '';
+  const dayName = day ? (day === data?.today ? t('Hoy') : dayLabel(day)) : '';
   const closeDay = () => {
     setDay(null);
     setAdding(null);
   };
-  const sheetTitle = adding === 'debt' ? 'Nueva cuenta' : adding === 'choose' ? `Agregar al ${day ? dayLabel(day) : ''}` : dayName;
+  const sheetTitle = adding === 'debt' ? t('Nueva cuenta') : adding === 'choose' ? `Agregar al ${day ? dayLabel(day) : ''}` : dayName;
 
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
-        title="Calendario"
-        description="Tus pagos del mes y cuánto te queda después de cada uno."
+        title={t('Calendario')}
+        description={t('Tus pagos del mes y cuánto te queda después de cada uno.')}
         actions={
           shown && (
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="size-11" aria-label="Mes anterior" onClick={() => setMonth(shiftMonth(shown, -1))}>
+              <Button variant="ghost" size="icon" className="size-11" aria-label={t('Mes anterior')} onClick={() => setMonth(shiftMonth(shown, -1))}>
                 <ChevronLeft />
               </Button>
               <span className="min-w-36 text-center font-medium" aria-live="polite">
                 {monthLabel(shown)}
               </span>
-              <Button variant="ghost" size="icon" className="size-11" aria-label="Mes siguiente" onClick={() => setMonth(shiftMonth(shown, 1))}>
+              <Button variant="ghost" size="icon" className="size-11" aria-label={t('Mes siguiente')} onClick={() => setMonth(shiftMonth(shown, 1))}>
                 <ChevronRight />
               </Button>
             </div>
@@ -214,12 +215,12 @@ export default function Calendar() {
         <p role="alert" className="text-sm text-negative">
           {calendar.error}{' '}
           <button type="button" className="underline" onClick={calendar.reload}>
-            Reintentar
+            {t('Reintentar')}
           </button>
         </p>
       )}
       {!data && !calendar.error && (
-        <p className="flex justify-center py-10" role="status" aria-label="Cargando el calendario">
+        <p className="flex justify-center py-10" role="status" aria-label={t('Cargando el calendario')}>
           <Loader2 className="animate-spin text-ink/50" aria-hidden="true" />
         </p>
       )}
@@ -228,14 +229,14 @@ export default function Calendar() {
         <div className={cn('flex flex-col gap-4', calendar.loading && 'opacity-60')}>
           <div className="grid grid-cols-2 gap-3">
             <Panel className="p-4 md:p-4">
-              <p className="text-xs text-ink/60">Por pagar este mes</p>
+              <p className="text-xs text-ink/60">{t('Por pagar este mes')}</p>
               <p className="mt-1 text-xl font-bold tabular-nums">{formatMoney(data.totals.pending)}</p>
             </Panel>
             <Panel className="p-4 md:p-4">
-              <p className="text-xs text-ink/60">Tienes hoy</p>
+              <p className="text-xs text-ink/60">{t('Tienes hoy')}</p>
               {data.money === null ? (
                 <Link to="/app/mi-plata" className="mt-1 block text-sm font-medium text-brand underline-offset-4 hover:underline">
-                  Dinos cuánto tienes
+                  {t('Dinos cuánto tienes')}
                 </Link>
               ) : (
                 <p className="mt-1 text-xl font-bold tabular-nums">{formatMoney(data.money)}</p>
@@ -243,7 +244,7 @@ export default function Calendar() {
             </Panel>
           </div>
 
-          <div role="radiogroup" aria-label="Qué pagos mostrar" className="flex gap-1 rounded-2xl bg-ink/5 p-1">
+          <div role="radiogroup" aria-label={t('Qué pagos mostrar')} className="flex gap-1 rounded-2xl bg-ink/5 p-1">
             {FILTERS.map((f) => (
               <button
                 key={f.id}
@@ -268,7 +269,7 @@ export default function Calendar() {
             >
               <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
               <span className="min-w-0 flex-1">
-                El {dayLabel(shortfallHere.date)} te faltan {formatMoney(shortfallHere.missing)}. Ver qué pasa
+                {t('El')} {dayLabel(shortfallHere.date)} {t('te faltan')} {formatMoney(shortfallHere.missing)}{t('. Ver qué pasa')}
               </span>
               <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
             </Link>
@@ -276,16 +277,16 @@ export default function Calendar() {
 
           <div>
             <PaymentGrid month={data.month} events={events} today={data.today} shortfallDate={shortfallHere?.date} onSelect={setDay} />
-            <p className="mt-2 text-center text-xs text-ink/60">Toca un día para ver lo que tiene o agregarle algo.</p>
+            <p className="mt-2 text-center text-xs text-ink/60">{t('Toca un día para ver lo que tiene o agregarle algo.')}</p>
           </div>
 
           {events.length === 0 ? (
             <Panel className="text-center">
-              <p className="font-medium">No hay pagos este mes.</p>
+              <p className="font-medium">{t('No hay pagos este mes.')}</p>
               <p className="mt-1 text-sm text-ink/60">
-                Toca un día para agregar un pago o una cuenta, o agrega tus pagos de cada mes en{' '}
+                {t('Toca un día para agregar un pago o una cuenta, o agrega tus pagos de cada mes en')}{' '}
                 <Link to="/app/mi-plata" className="font-medium text-brand underline-offset-4 hover:underline">
-                  Mi plata
+                  {t('Mi plata')}
                 </Link>
                 .
               </p>
@@ -295,7 +296,7 @@ export default function Calendar() {
               {groupByDate(events).map((group) => (
                 <section key={group.date} aria-label={dayLabel(group.date)}>
                   <h2 className="mb-2 text-sm font-semibold text-ink/70">
-                    {group.date === data.today ? 'Hoy' : dayLabel(group.date)}
+                    {group.date === data.today ? t('Hoy') : dayLabel(group.date)}
                   </h2>
                   <ul className="flex flex-col gap-2">
                     {group.events.map((event) => (
@@ -309,8 +310,7 @@ export default function Calendar() {
 
           {unknownAfter && (
             <p className="text-center text-xs text-ink/60">
-              Después del {dayLabel(data.projectedUntil)} no calculamos cuánto te queda: todavía no sabemos cuánto
-              te van a pagar.
+              {t('Después del')} {dayLabel(data.projectedUntil)} {t('no calculamos cuánto te queda: todavía no sabemos cuánto te van a pagar.')}
             </p>
           )}
         </div>
@@ -320,7 +320,7 @@ export default function Calendar() {
         {day && adding === null && (
           <div className="space-y-4">
             {dayEvents.length === 0 ? (
-              <p className="text-ink/60">No tienes pagos ni cuentas este día.</p>
+              <p className="text-ink/60">{t('No tienes pagos ni cuentas este día.')}</p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {dayEvents.map((event) => (
@@ -330,12 +330,12 @@ export default function Calendar() {
             )}
             {day === shortfallHere?.date && (
               <Link to="/app/liquidez" className="block text-sm font-medium text-negative underline underline-offset-2">
-                Este día te faltarían {formatMoney(shortfallHere.missing)}. Ver qué pasa
+                {t('Este día te faltarían')} {formatMoney(shortfallHere.missing)}{t('. Ver qué pasa')}
               </Link>
             )}
             <Button size="lg" className="w-full" onClick={() => setAdding('choose')}>
               <Plus aria-hidden="true" />
-              Agregar a este día
+              {t('Agregar a este día')}
             </Button>
           </div>
         )}
@@ -343,8 +343,8 @@ export default function Calendar() {
           <ul className="flex flex-col gap-2">
             <AddOption
               icon={CalendarClock}
-              title="Pago de cada mes"
-              text={`Arriendo, servicios, cuotas. Se repite el día ${Number(day.slice(8))} de cada mes.`}
+              title={t('Pago de cada mes')}
+              text={t('Arriendo, servicios, cuotas. Se repite el día {Number} de cada mes.', { Number: Number(day.slice(8)) })}
               onClick={() => {
                 setCommitment({ ...EMPTY_COMMITMENT, dayOfMonth: String(Number(day.slice(8))), month: String(Number(day.slice(5, 7))) });
                 closeDay();
@@ -352,8 +352,8 @@ export default function Calendar() {
             />
             <AddOption
               icon={HandCoins}
-              title="Cuenta"
-              text="Plata que debes o que te deben, con el aviso que elijas."
+              title={t('Cuenta')}
+              text={t('Plata que debes o que te deben, con el aviso que elijas.')}
               onClick={() => setAdding('debt')}
             />
           </ul>

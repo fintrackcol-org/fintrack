@@ -29,6 +29,7 @@ import {
   scoreChange,
   smallExpensesMessage,
 } from './analytics';
+import { t } from '@/lib/i18n';
 
 // Recharts va en un chunk aparte, como en Inicio: el panel se pinta sin esperarlo.
 const SpendingPaceLines = lazy(() => import('./SpendingPaceLines'));
@@ -85,12 +86,12 @@ function ScoreBlock({ health, previousScore, month }) {
         <p className="absolute inset-0 grid place-items-center text-2xl font-semibold tabular-nums">
           <span>
             {health.score}
-            <span className="sr-only"> de 100</span>
+            <span className="sr-only"> {t('de 100')}</span>
           </span>
         </p>
       </div>
       <div>
-        <BlockTitle icon={HeartPulse}>Salud financiera</BlockTitle>
+        <BlockTitle icon={HeartPulse}>{t('Salud financiera')}</BlockTitle>
         <p className={cn('mt-1 text-xl font-semibold', TEXT[tone])}>{label}</p>
         {change && (
           <p className={cn('mt-1 flex items-center gap-1 text-xs font-medium', CHANGE[change.direction].className)}>
@@ -110,8 +111,8 @@ function ActionBlock({ action }) {
       <div className="flex items-start gap-3 rounded-2xl bg-positive/10 p-4">
         <CircleCheck className="mt-0.5 size-5 shrink-0 text-positive" aria-hidden="true" />
         <div>
-          <p className="font-semibold">Vas muy bien</p>
-          <p className="mt-1 text-sm text-ink/75">Todas las partes de tu puntaje están en buen nivel. Sigue así.</p>
+          <p className="font-semibold">{t('Vas muy bien')}</p>
+          <p className="mt-1 text-sm text-ink/75">{t('Todas las partes de tu puntaje están en buen nivel. Sigue así.')}</p>
         </div>
       </div>
     );
@@ -120,12 +121,12 @@ function ActionBlock({ action }) {
     <div className="flex flex-col gap-3 rounded-2xl bg-brand-soft/60 p-4 sm:flex-row sm:items-start">
       <Lightbulb className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden="true" />
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-brand">Lo que más te sube el puntaje</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-brand">{t('Lo que más te sube el puntaje')}</p>
         <p className="mt-1 font-semibold">{action.title}</p>
         <p className="mt-1 text-sm text-ink/75">{action.detail}</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-brand">
-            Hasta +{action.gain} puntos
+            {t('Hasta +')}{action.gain} {t('puntos')}
           </span>
           {action.to && (
             <Link
@@ -146,7 +147,7 @@ function ActionBlock({ action }) {
 function PartsBlock({ parts }) {
   return (
     <div>
-      <BlockTitle icon={HeartPulse}>Cómo se arma tu puntaje</BlockTitle>
+      <BlockTitle icon={HeartPulse}>{t('Cómo se arma tu puntaje')}</BlockTitle>
       <ul className="mt-3 space-y-2">
         {parts.map((part) => {
           const { label: name, detail } = describePart(part);
@@ -163,7 +164,7 @@ function PartsBlock({ parts }) {
                       />
                     </span>
                     <span className="tabular-nums text-ink/60">
-                      {formatNumber(part.points)} <span className="sr-only">de</span>
+                      {formatNumber(part.points)} <span className="sr-only">{t('de')}</span>
                       <span aria-hidden="true">/</span> 25
                     </span>
                   </div>
@@ -183,7 +184,7 @@ function PartsBlock({ parts }) {
           );
         })}
       </ul>
-      <p className="mt-2 text-xs text-ink/55">Cada parte vale 25 puntos. Toca una para ver la fórmula.</p>
+      <p className="mt-2 text-xs text-ink/55">{t('Cada parte vale 25 puntos. Toca una para ver la fórmula.')}</p>
     </div>
   );
 }
@@ -202,41 +203,40 @@ function PaceBlock({ data }) {
     <div>
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 max-w-xl">
-          <BlockTitle icon={CalendarClock}>Proyección a fin de mes</BlockTitle>
+          <BlockTitle icon={CalendarClock}>{t('Proyección a fin de mes')}</BlockTitle>
           <p className={cn('mt-2 text-2xl font-semibold tabular-nums', over && 'text-negative')}>
             {projection.available ? formatMoney(projection.projected) : '—'}
           </p>
           <p className="mt-1 text-sm text-ink/75">{projectionMessage(projection)}</p>
           <p className="mt-1 text-xs text-ink/60">
-            Llevas {formatMoney(projection.spent)} en el día {day} de {daysInMonth}.
+            {t('Llevas')} {formatMoney(projection.spent)} {t('en el día')} {day} {t('de')} {daysInMonth}.
             {projection.pendingFixed > 0 &&
-              ` Incluye ${formatMoney(projection.pendingFixed)} de arriendo o servicios que aún no registras.`}
-            {projection.oneOff > 0 && ` Las compras grandes (${formatMoney(projection.oneOff)}) se cuentan una sola vez.`}
+              t(' Incluye {pendingFixed} de arriendo o servicios que aún no registras.', { pendingFixed: formatMoney(projection.pendingFixed) })}
+            {projection.oneOff > 0 && t(' Las compras grandes ({oneOff}) se cuentan una sola vez.', { oneOff: formatMoney(projection.oneOff) })}
           </p>
           {projection.possibleIncome > 0 && (
             <p className="mt-1 text-xs text-ink/60">
-              Posible: {formatMoney(projection.possibleIncome)} más, según lo que entró el mes pasado. No lo contamos hasta
-              que lo registres.
+              {t('Posible:')} {formatMoney(projection.possibleIncome)} {t('más, según lo que entró el mes pasado. No lo contamos hasta que lo registres.')}
             </p>
           )}
         </div>
         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink/70" aria-hidden="true">
           <li className="inline-flex items-center gap-1.5">
-            <span className="h-0.5 w-4 rounded bg-brand" /> Gastado
+            <span className="h-0.5 w-4 rounded bg-brand" /> {t('Gastado')}
           </li>
           {projection.available && (
             <li className="inline-flex items-center gap-1.5">
-              <span className="w-4 border-t-2 border-dashed border-brand" /> Proyección
+              <span className="w-4 border-t-2 border-dashed border-brand" /> {t('Proyección')}
             </li>
           )}
           {projection.income > 0 && (
             <li className="inline-flex items-center gap-1.5">
-              <span className="h-0.5 w-4 rounded bg-chart-income" /> Ingresos
+              <span className="h-0.5 w-4 rounded bg-chart-income" /> {t('Ingresos')}
             </li>
           )}
         </ul>
       </div>
-      <div role="img" aria-label="Gráfico del gasto acumulado del mes y su proyección" className="mt-4 h-56">
+      <div role="img" aria-label={t('Gráfico del gasto acumulado del mes y su proyección')} className="mt-4 h-56">
         <Suspense fallback={<div className="h-full rounded-xl bg-ink/5" />}>
           <SpendingPaceLines data={series} income={projection.income} month={month} />
         </Suspense>
@@ -249,7 +249,7 @@ function PaceBlock({ data }) {
 function SmallExpensesBlock({ small }) {
   return (
     <div>
-      <BlockTitle icon={Bug}>Gastos hormiga</BlockTitle>
+      <BlockTitle icon={Bug}>{t('Gastos hormiga')}</BlockTitle>
       <p className={cn('mt-3 text-2xl font-semibold tabular-nums', small.flagged && 'text-caution')}>
         {formatMoney(small.total)}
       </p>
@@ -290,22 +290,22 @@ export default function MonthAnalytics() {
   return (
     <Panel aria-labelledby="analitica-title">
       <h2 id="analitica-title" className="text-lg font-semibold tracking-tight">
-        Tu mes en números
+        {t('Tu mes en números')}
       </h2>
       <div className="mt-5" aria-busy={loading}>
         {loading && !data ? (
           <p className="flex items-center gap-2 py-6 text-ink/60">
-            <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Calculando…
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" /> {t('Calculando…')}
           </p>
         ) : error && !data ? (
           <p role="alert" className="text-sm text-negative">
             {error}{' '}
             <button type="button" className="underline" onClick={reload}>
-              Reintentar
+              {t('Reintentar')}
             </button>
           </p>
         ) : data.empty ? (
-          <p className="text-sm text-ink/70">Registra movimientos este mes para ver tu puntaje y tu proyección.</p>
+          <p className="text-sm text-ink/70">{t('Registra movimientos este mes para ver tu puntaje y tu proyección.')}</p>
         ) : (
           <div className="space-y-8">
             <div className="grid gap-4 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">

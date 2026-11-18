@@ -19,13 +19,15 @@ import { listCards } from '@/services/cardService';
 import { getMoneyPlan, getMoneyProfile, getPaymentCalendar } from '@/services/moneyProfileService';
 import { getSummary } from '@/services/summaryService';
 import { getCategories, listTransactions } from '@/services/transactionService';
+import { t } from '@/lib/i18n';
+import { dateLocale } from '@/lib/region';
 
 const RECENT_COUNT = 6;
 
 /** `octubre` a partir de `2026-10`. */
 function monthName(month) {
   const [year, m] = month.split('-').map(Number);
-  return new Date(year, m - 1, 1).toLocaleDateString('es-CO', { month: 'long' });
+  return new Date(year, m - 1, 1).toLocaleDateString(dateLocale(), { month: 'long' });
 }
 
 /**
@@ -40,7 +42,7 @@ function monthName(month) {
  * Con la bienvenida respondida, lo primero es la tarjeta de Mi plata (FT-0037); si la omitió, un acceso para configurarla.
  */
 export default function Dashboard() {
-  usePageTitle('Inicio');
+  usePageTitle(t('Inicio'));
   const [hidden, toggleHidden] = useHiddenAmounts();
   const mobile = useMediaQuery('(width < 48rem)');
   const online = useOnlineStatus();
@@ -143,7 +145,7 @@ export default function Dashboard() {
       {/* Sin red: un aviso neutral, no de error; lo que se ve es la copia del dispositivo. */}
       {!online && (
         <p role="status" className="mb-3 rounded-xl bg-ink/5 px-3 py-2 text-sm text-ink/70 md:mb-4">
-          Sin conexión: se actualiza al volver internet.
+          {t('Sin conexión: se actualiza al volver internet.')}
         </p>
       )}
       {mobile ? (
@@ -185,7 +187,7 @@ export default function Dashboard() {
           onToggleHidden={toggleHidden}
         />
       )}
-      {loadError && <LoadErrorToast message="No pudimos traer tus movimientos." onRetry={retry} />}
+      {loadError && <LoadErrorToast message={t('No pudimos traer tus movimientos.')} onRetry={retry} />}
       {touring && <CoachTour onClose={closeTour} />}
     </>
   );

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { CircleAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /**
  * Plata en negativo casi siempre es un dato mal anotado (un cero de más, un ingreso que faltó):
@@ -15,9 +16,9 @@ export default function NegativeBalanceNote({ money, className }) {
     <p className={cn('flex items-start gap-2 text-sm', className)}>
       <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
       <span>
-        Tus gastos superan lo que tienes. ¿Anotaste algo mal?{' '}
+        {t('Tus gastos superan lo que tienes. ¿Anotaste algo mal?')}{' '}
         <Link to="/app/gastos" className="inline-flex min-h-6 items-center font-medium underline underline-offset-2">
-          Revisa tus gastos
+          {t('Revisa tus gastos')}
         </Link>
       </span>
     </p>

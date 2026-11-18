@@ -6,13 +6,14 @@ import useMediaQuery from '@/hooks/useMediaQuery';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import { cn } from '@/lib/utils';
 import { askAssistant, MAX_QUESTION_CHARS, sourceLabels } from '@/services/assistantService';
+import { t } from '@/lib/i18n';
 
 /** Preguntas para empezar: se tocan y se envían. */
 export const SUGGESTIONS = [
-  '¿En qué gasto más?',
-  '¿A cómo está el dólar hoy?',
-  '¿Cuánto paga un CDT a un año?',
-  'Si invierto lo que me sobra al mes, ¿cuánto gano?',
+  t('¿En qué gasto más?'),
+  t('¿A cómo está el dólar hoy?'),
+  t('¿Cuánto paga un CDT a un año?'),
+  t('Si invierto lo que me sobra al mes, ¿cuánto gano?'),
 ];
 
 /**
@@ -22,8 +23,8 @@ export const SUGGESTIONS = [
  * @returns {string}
  */
 function errorText(err, online) {
-  if (!online) return 'Sin conexión. El asistente necesita internet.';
-  if (err.code === 'AI_UNAVAILABLE') return 'El asistente no está disponible ahora. Inténtalo en unos minutos.';
+  if (!online) return t('Sin conexión. El asistente necesita internet.');
+  if (err.code === 'AI_UNAVAILABLE') return t('El asistente no está disponible ahora. Inténtalo en unos minutos.');
   return err.message;
 }
 
@@ -94,9 +95,9 @@ export default function AssistantChat({ className, embedded = false }) {
         </span>
         <div className="min-w-0 flex-1">
           <h2 id={titleId} className="text-lg font-semibold tracking-tight">
-            Pregúntale a Rinde
+            {t('Pregúntale a Rinde')}
           </h2>
-          <p className="text-sm text-ink/70">Responde con los totales de tu mes.</p>
+          <p className="text-sm text-ink/70">{t('Responde con los totales de tu mes.')}</p>
         </div>
         {messages.length > 0 && (
           <button
@@ -104,7 +105,7 @@ export default function AssistantChat({ className, embedded = false }) {
             onClick={restart}
             className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-ink/70 transition-colors hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet"
           >
-            <RotateCcw className="size-4" aria-hidden="true" /> Nueva
+            <RotateCcw className="size-4" aria-hidden="true" /> {t('Nueva')}
           </button>
         )}
       </div>
@@ -118,7 +119,7 @@ export default function AssistantChat({ className, embedded = false }) {
       >
         {messages.length === 0 ? (
           <div className="my-auto">
-            <p className="text-sm text-ink/70">Prueba con una de estas preguntas:</p>
+            <p className="text-sm text-ink/70">{t('Prueba con una de estas preguntas:')}</p>
             <ul className="mt-3 flex flex-wrap gap-2">
               {SUGGESTIONS.map((suggestion) => (
                 <li key={suggestion}>
@@ -144,12 +145,12 @@ export default function AssistantChat({ className, embedded = false }) {
                   : 'self-start rounded-bl-md bg-surface-muted text-ink',
               )}
             >
-              <span className="sr-only">{message.role === 'user' ? 'Tú: ' : 'Rinde: '}</span>
+              <span className="sr-only">{message.role === 'user' ? t('Tú: ') : t('Rinde: ')}</span>
               {message.text}
               {message.sources?.length > 0 && (
                 <span className="mt-2 flex items-center gap-1.5 border-t border-ink/10 pt-2 text-xs text-ink/60">
                   <Database className="size-3.5 shrink-0" aria-hidden="true" />
-                  Consultó: {message.sources.join(' · ')}
+                  {t('Consultó:')} {message.sources.join(' · ')}
                 </span>
               )}
             </p>
@@ -158,7 +159,7 @@ export default function AssistantChat({ className, embedded = false }) {
 
         {pending && (
           <p className="flex items-center gap-1 self-start rounded-2xl rounded-bl-md bg-surface-muted px-4 py-3">
-            <span className="sr-only">Rinde está escribiendo…</span>
+            <span className="sr-only">{t('Rinde está escribiendo…')}</span>
             {[0, 150, 300].map((delay) => (
               <span
                 key={delay}
@@ -174,7 +175,7 @@ export default function AssistantChat({ className, embedded = false }) {
           <p role="alert" className="self-start text-sm text-negative">
             {error}{' '}
             <button type="button" className="underline" onClick={() => send(messages)}>
-              Reintentar
+              {t('Reintentar')}
             </button>
           </p>
         )}
@@ -196,15 +197,15 @@ export default function AssistantChat({ className, embedded = false }) {
           ref={inputRef}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          aria-label="Escribe tu pregunta"
-          placeholder="¿Cuánto llevo en domicilios?"
+          aria-label={t('Escribe tu pregunta')}
+          placeholder={t('¿Cuánto llevo en domicilios?')}
           maxLength={MAX_QUESTION_CHARS}
           enterKeyHint="send"
           className="min-w-0 flex-1 bg-transparent py-1.5 text-base text-ink placeholder:text-ink/45 focus:outline-none"
         />
         <button
           type="submit"
-          aria-label="Enviar pregunta"
+          aria-label={t('Enviar pregunta')}
           disabled={pending || !draft.trim()}
           className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-[transform,opacity] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet disabled:opacity-40 motion-safe:active:scale-95"
         >
@@ -212,7 +213,7 @@ export default function AssistantChat({ className, embedded = false }) {
         </button>
       </form>
       <p className="mt-2 text-xs text-ink/55">
-        Es orientación, no asesoría financiera. No escribas cédulas ni números de cuenta.
+        {t('Es orientación, no asesoría financiera. No escribas cédulas ni números de cuenta.')}
       </p>
     </Panel>
   );
