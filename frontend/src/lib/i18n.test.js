@@ -18,4 +18,9 @@ describe('textos en el idioma de la persona', () => {
     await loadMessages('pt');
     expect(t('Guardar gasto')).toBe('Salvar gasto');
   });
+
+  it('con dos cambios seguidos queda el último idioma elegido', async () => {
+    await Promise.all([loadMessages('en'), loadMessages('pt')]);
+    expect(t('Guardar gasto')).toBe('Salvar gasto');
+  });
 });

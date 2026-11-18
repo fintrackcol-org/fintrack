@@ -2,7 +2,7 @@ import CountrySelect from '@/components/account/CountrySelect';
 import Segmented from '@/components/common/Segmented';
 import { StepTitle } from '@/components/onboarding/OnboardingShell';
 import { Label } from '@/components/ui/label';
-import { currentLanguage, t } from '@/lib/i18n';
+import { t } from '@/lib/i18n';
 import { LANGUAGES, currencyName, moneySample, regionForCountry } from '@/lib/region';
 
 const LANGUAGE_OPTIONS = LANGUAGES.map(({ code, name }) => ({ value: code, label: name }));
@@ -22,7 +22,6 @@ const sampleAmount = (currency) => (currency === 'COP' ? 1250000 : 1250.5);
  */
 export default function CountryStep({ country, language, onCountry, onLanguage }) {
   const { currency } = regionForCountry(country);
-  const languageName = LANGUAGES.find((l) => l.code === language)?.name;
 
   return (
     <div className="flex flex-col gap-6">
@@ -42,7 +41,7 @@ export default function CountryStep({ country, language, onCountry, onLanguage }
           {moneySample(country, sampleAmount(currency))}
         </p>
         <p key={`${currency}-name`} className="mt-3 inline-block rounded-full bg-white/15 px-3 py-1 text-sm motion-safe:animate-swap-in">
-          {currencyName(currency)} · {currency}
+          {currencyName(currency, language)} · {currency}
         </p>
       </div>
 
@@ -51,11 +50,7 @@ export default function CountryStep({ country, language, onCountry, onLanguage }
           {t('Idioma')}
         </p>
         <Segmented label={t('Idioma')} options={LANGUAGE_OPTIONS} value={language} onChange={onLanguage} />
-        <p className="text-sm text-ink/60">
-          {language === currentLanguage()
-            ? t('Los dos se cambian cuando quieras en Cuenta.')
-            : t('Al seguir, Rinde pasa a {language}. Lo cambias cuando quieras en Cuenta.', { language: languageName })}
-        </p>
+        <p className="text-sm text-ink/60">{t('Los dos se cambian cuando quieras en Cuenta.')}</p>
       </div>
     </div>
   );
