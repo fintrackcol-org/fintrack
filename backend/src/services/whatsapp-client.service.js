@@ -1,5 +1,4 @@
 import { env } from '../config/env.js';
-import { t } from '../i18n/index.js';
 
 /** Versión de la Graph API de Meta. */
 const GRAPH_URL = 'https://graph.facebook.com/v25.0';

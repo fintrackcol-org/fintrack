@@ -1,5 +1,5 @@
 import express from 'express';
-import { regionMiddleware, t } from './i18n/index.js';
+import { regionMiddleware } from './i18n/index.js';
 import cors from 'cors';
 import { env } from './config/env.js';
 import healthRoutes from './routes/health.routes.js';

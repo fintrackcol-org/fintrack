@@ -1,5 +1,4 @@
 import JSZip from 'jszip';
-import { t } from '../i18n/index.js';
 
 /*
  * Gráficos nativos de Excel para el reporte (FT-0012).

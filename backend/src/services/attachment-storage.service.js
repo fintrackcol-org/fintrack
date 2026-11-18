@@ -2,7 +2,6 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { DeleteObjectsCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import path from 'node:path';
 import { env } from '../config/env.js';
-import { t } from '../i18n/index.js';
 
 /**
  * Dónde viven los archivos de los soportes de pago (FT-0044). Hay tres formas con las mismas tres
