@@ -7,12 +7,13 @@ import { t } from '@/lib/i18n';
  * que se escribe en el formulario (texto de `MoneyInput`) y lo que recibe la API.
  */
 
+/** `tone`: color del ícono de cada fuente, de los tonos de categorías (manual visual, sección 3). */
 export const SOURCE_KINDS = [
-  { kind: 'sueldo', title: t('Sueldo fijo'), text: t('Te pagan lo mismo cada mes o quincena'), icon: Wallet },
-  { kind: 'comisiones', title: t('Sueldo + comisiones'), text: t('Una base fija y lo que vendas'), icon: TrendingUp },
-  { kind: 'proyectos', title: t('Por proyectos u honorarios'), text: t('Diseño, programación, asesorías…'), icon: BriefcaseBusiness },
-  { kind: 'diario', title: t('Por días o por apps'), text: t('Domicilios, Uber, ventas diarias'), icon: Bike },
-  { kind: 'mesada', title: t('Mesada o ayuda'), text: t('Lo que te dan tus papás u otra persona'), icon: Gift },
+  { kind: 'sueldo', title: t('Sueldo fijo'), text: t('Te pagan lo mismo cada mes o quincena'), icon: Wallet, tone: 'bg-emerald-500/15 text-emerald-600' },
+  { kind: 'comisiones', title: t('Sueldo + comisiones'), text: t('Una base fija y lo que vendas'), icon: TrendingUp, tone: 'bg-sky-500/15 text-sky-600' },
+  { kind: 'proyectos', title: t('Por proyectos u honorarios'), text: t('Diseño, programación, asesorías…'), icon: BriefcaseBusiness, tone: 'bg-indigo-500/15 text-indigo-500' },
+  { kind: 'diario', title: t('Por días o por apps'), text: t('Domicilios, Uber, ventas diarias'), icon: Bike, tone: 'bg-amber-500/15 text-amber-600' },
+  { kind: 'mesada', title: t('Mesada o ayuda'), text: t('Lo que te dan tus papás u otra persona'), icon: Gift, tone: 'bg-pink-500/15 text-pink-500' },
 ];
 
 /** Lo que muestra el formulario de cada tipo al elegirlo. Todo es texto: `''` es "no lo dijo". */

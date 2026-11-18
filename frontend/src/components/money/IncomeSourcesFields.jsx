@@ -89,46 +89,80 @@ function KindQuestions({ form, onChange }) {
   }
 }
 
+/** Lo que tardan en abrirse las preguntas de una fuente (igual a `duration-300`). */
+const OPEN_MS = 300;
+
 /**
- * "¿Cómo te entra la plata?" (FT-0060): tarjetas grandes, se puede elegir más de una, y debajo de
- * cada una sus preguntas. Todo es opcional y aproximado: nunca bloquea al usuario.
+ * "¿Cómo te entra la plata?" (FT-0060): una lista de fuentes en un solo bloque, con casilla
+ * cuadrada (se pueden marcar varias; una redonda diría «solo una») y un ícono de color propio para
+ * distinguirlas de un vistazo. Al marcar una, se abren debajo sus preguntas. Todo es opcional y
+ * aproximado: son datos para planear, nunca movimientos, y nunca bloquean al usuario.
+ *
+ * La elegida se nota por tres cosas, no solo por el color: la casilla llena, el visto y el fondo.
+ *
  * @param {{ forms: Record<string, object>, onChange: (forms: Record<string, object>) => void }} props
  */
 export default function IncomeSourcesFields({ forms, onChange }) {
   return (
     <div className="space-y-3" role="group" aria-label={t('Cómo te entra la plata (puedes elegir varias)')}>
-      {SOURCE_KINDS.map(({ kind, title, text, icon: Icon }) => {
-        const form = forms[kind];
-        const checked = Boolean(form);
-        return (
-          <div key={kind} className={cn('rounded-2xl border transition-colors', checked ? 'border-brand bg-brand-soft/40' : 'border-ink/12')}>
-            <button
-              type="button"
-              aria-pressed={checked}
-              onClick={() => onChange(toggleKind(forms, kind))}
-              className="flex w-full items-center gap-3 rounded-2xl p-4 text-left focus-visible:outline-2 focus-visible:outline-violet"
-            >
-              <Icon className={cn('size-5 shrink-0', checked ? 'text-brand' : 'text-ink/60')} aria-hidden="true" />
-              <span className="min-w-0 flex-1">
-                <span className={cn('block font-medium', checked && 'text-brand')}>{title}</span>
-                <span className="block text-sm text-ink/60">{text}</span>
-              </span>
-              <span
-                aria-hidden="true"
-                className={cn('grid size-6 shrink-0 place-items-center rounded-full border', checked ? 'border-brand bg-brand text-white' : 'border-ink/20')}
+      <p className="text-base text-ink/60">{t('Elige todas las que apliquen. Los montos son aproximados: más o menos está bien.')}</p>
+      <div className="divide-y divide-ink/8 overflow-hidden rounded-3xl bg-surface ring-1 ring-ink/10">
+        {SOURCE_KINDS.map(({ kind, title, text, icon: Icon, tone }) => {
+          const form = forms[kind];
+          const checked = Boolean(form);
+          return (
+            <div key={kind} className={cn('scroll-mb-28 transition-colors duration-200', checked && 'bg-brand-soft/50')}>
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={checked}
+                onClick={(event) => {
+                  onChange(toggleKind(forms, kind));
+                  // Al marcarla, sus preguntas pueden quedar bajo el borde: se acercan cuando terminan de abrirse.
+                  const row = event.currentTarget.parentElement;
+                  if (!checked) setTimeout(() => row.scrollIntoView({ block: 'nearest' }), OPEN_MS);
+                }}
+                className="flex w-full items-center gap-3.5 p-4 text-left transition-transform duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-violet motion-safe:active:scale-[0.985]"
               >
-                {checked && <Check className="size-4" />}
-              </span>
-            </button>
-            {checked && (
-              <div className="space-y-4 px-4 pb-4">
-                <KindQuestions form={form} onChange={(next) => onChange({ ...forms, [kind]: next })} />
+                <span aria-hidden="true" className={cn('grid size-11 shrink-0 place-items-center rounded-2xl', tone)}>
+                  <Icon className="size-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">{title}</span>
+                  <span className="block text-sm text-ink/60">{text}</span>
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'grid size-6 shrink-0 place-items-center rounded-lg border-2 transition-colors duration-150',
+                    checked ? 'border-brand bg-brand text-white' : 'border-ink/25',
+                  )}
+                >
+                  <Check
+                    strokeWidth={3}
+                    className={cn('size-4 transition-[opacity,transform] duration-150', checked ? 'scale-100 opacity-100' : 'scale-75 opacity-0')}
+                  />
+                </span>
+              </button>
+              {/* Se abre de 0 a su alto sin medir nada: la fila de la cuadrícula pasa de 0fr a 1fr. */}
+              <div
+                className={cn(
+                  'grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+                  checked ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+                )}
+              >
+                <div className="overflow-hidden">
+                  {checked && (
+                    <div className="space-y-4 px-4 pb-4 pt-1">
+                      <KindQuestions form={form} onChange={(next) => onChange({ ...forms, [kind]: next })} />
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-        );
-      })}
-      <p className="text-sm text-ink/60">{t('Elige todas las que apliquen. Los montos son aproximados: más o menos está bien.')}</p>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

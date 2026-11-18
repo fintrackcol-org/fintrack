@@ -82,6 +82,9 @@
   --animate-bar-in: bar-in 0.6s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-ring-in: ring-in 0.7s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-row-in: row-in 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  /* Bienvenida: cada bloque sube un poco al llegar (con retraso en línea) y un dato que cambia en su sitio. */
+  --animate-rise: rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-swap-in: swap-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
   /* Registro por voz (FT-0013): anillos del micrófono y barras de la onda mientras escucha. */
   --animate-voice-ring: voice-ring 1.6s cubic-bezier(0.23, 1, 0.32, 1) infinite;
   --animate-voice-wave: voice-wave 0.9s ease-in-out infinite;
@@ -177,6 +180,22 @@
     }
     to {
       max-height: 6rem;
+    }
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
+  /* El dato nuevo llega un poco desenfocado: se lee como un cambio, no como dos textos encimados. */
+  @keyframes swap-in {
+    from {
+      opacity: 0;
+      filter: blur(3px);
+      transform: translateY(4px);
     }
   }
 
