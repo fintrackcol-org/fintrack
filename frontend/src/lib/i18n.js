@@ -4,7 +4,8 @@
  * El texto en español es el original y la clave: `t('Guardar gasto')` da «Save expense» en inglés.
  * Lo que no tenga traducción sale en español, nunca vacío. Las traducciones viven en
  * `src/locales/<idioma>/*.json` y se cargan una sola vez al abrir la app, antes que el resto del
- * código (ver `main.jsx`): así `t()` sirve también en constantes de módulo. Cambiar de idioma recarga.
+ * código (ver `main.jsx`): así `t()` sirve también en constantes de módulo. Cambiar de idioma recarga (la
+ * bienvenida lo muestra al instante en su pantalla y recarga al seguir).
  *
  * Variables con llaves: `t('Hola, {name}', { name })`.
  */
@@ -28,7 +29,9 @@ export async function loadMessages(language) {
     return;
   }
   const own = Object.entries(LOADERS).filter(([path]) => path.includes(`/locales/${language}/`));
-  messages = Object.assign({}, ...(await Promise.all(own.map(([, load]) => load()))));
+  const loaded = Object.assign({}, ...(await Promise.all(own.map(([, load]) => load()))));
+  // Dos toques seguidos (inglés y luego portugués): gana el último, no el que termine de cargar después.
+  if (current === language) messages = loaded;
 }
 
 /**

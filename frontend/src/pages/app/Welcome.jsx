@@ -17,11 +17,11 @@ import { SUGGESTED_COMMITMENTS, balanceProposal, readCommitmentForm, toProfileDa
 import { clearDraft, loadDraft, saveDraft } from '@/lib/onboardingDraft';
 import { cn } from '@/lib/utils';
 import { toApiSources } from '@/lib/incomeSources';
-import { regionForCountry, setRegion, suggestCountry } from '@/lib/region';
+import { getRegion, regionForCountry, setRegion, suggestCountry } from '@/lib/region';
 import { finishWelcome, getMoneyProfile, saveIncomeSources } from '@/services/moneyProfileService';
 import { saveCountry } from '@/services/userService';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
-import { currentLanguage, t } from '@/lib/i18n';
+import { currentLanguage, loadMessages, t } from '@/lib/i18n';
 
 /**
  * Las pantallas de la bienvenida, en orden y numeradas de corrido: una sola cuenta para todo.
@@ -89,6 +89,15 @@ function WelcomeSteps() {
   // (duplicaría los pagos del mes).
   const answersSaved = useRef(false);
 
+  // El idioma elegido se ve al instante en esta pantalla; el resto de la app lo toma al recargar (al seguir).
+  const [, setShownLanguage] = useState(currentLanguage);
+  useEffect(() => {
+    if (language === currentLanguage()) return;
+    loadMessages(language)
+      .then(() => setShownLanguage(currentLanguage()))
+      .catch(() => {});
+  }, [language]);
+
   useEffect(() => {
     saveDraft(userId, { position, country, language, languagePicked, sources, balance, items });
   }, [userId, position, country, language, languagePicked, sources, balance, items]);
@@ -143,8 +152,10 @@ function WelcomeSteps() {
     setSaving(true);
     setError('');
     try {
+      // El idioma con el que abrió la app (el de la región guardada), no el que ya se ve en pantalla.
+      const openedIn = getRegion().language;
       setRegion(await saveCountry(country, language));
-      if (language !== currentLanguage()) {
+      if (language !== openedIn) {
         // Otro idioma: se recarga para verlo todo con sus textos. El borrador la trae de vuelta aquí.
         saveDraft(userId, { position: TOUR, country, language, languagePicked, sources, balance, items });
         window.location.reload();
