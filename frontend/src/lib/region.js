@@ -131,6 +131,18 @@ export function localeFor({ country, currency }) {
   return home ? `${home.language}-${home.code}` : 'es-CO';
 }
 
+/**
+ * Cómo se escribe el dinero en un país, para mostrarlo antes de que la persona lo elija.
+ * @param {string} code País.
+ * @param {number} amount
+ * @returns {string} `$ 1.250.000` en Colombia, `$1,250.50` en Estados Unidos.
+ */
+export function moneySample(code, amount) {
+  const { country, currency } = regionForCountry(code);
+  const digits = Number.isInteger(amount) ? { minimumFractionDigits: 0, maximumFractionDigits: 0 } : {};
+  return new Intl.NumberFormat(localeFor({ country, currency }), { style: 'currency', currency, ...digits }).format(amount);
+}
+
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));

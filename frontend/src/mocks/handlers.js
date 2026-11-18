@@ -1179,6 +1179,14 @@ export const handlers = [
     return HttpResponse.json(profile);
   }),
 
+  // Fuentes de ingreso (FT-0060): aquí solo se aceptan, para poder terminar la bienvenida sin servidor.
+  http.put(`${API_V1}/money-profile/sources`, async ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const { sources = [] } = (await readJson(request)) ?? {};
+    return HttpResponse.json({ sources });
+  }),
+
   // Calendario simplificado (FT-0025, FT-0069): compromisos y cuentas con fecha del mes pedido.
   http.get(`${API_V1}/money-profile/calendar`, ({ request }) => {
     const user = authUser(request);

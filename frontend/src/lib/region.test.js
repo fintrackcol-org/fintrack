@@ -8,6 +8,7 @@ import {
   isAbroad,
   localCurrency,
   localeFor,
+  moneySample,
   regionForCountry,
   setRegion,
   suggestCountry,
@@ -63,5 +64,12 @@ describe('país, moneda e idioma', () => {
     expect(formatMoneyInput('1234567.5')).toBe('1,234,567.5');
     expect(parseMoneyInput('1,234.5')).toBe('1234.5');
     expect(parsePastedMoney('12,50')).toBe('12.50');
+  });
+
+  it('muestra cómo se escribe la plata de un país antes de elegirlo, sin cambiar el actual', () => {
+    expect(moneySample('CO', 1250000)).toMatch(/^\$\s1\.250\.000$/);
+    expect(moneySample('US', 1250.5)).toBe('$1,250.50');
+    expect(moneySample('BR', 1250.5)).toMatch(/^R\$\s1\.250,50$/);
+    expect(formatMoney(12500)).toMatch(/^\$\s12\.500$/); // sigue en pesos colombianos
   });
 });

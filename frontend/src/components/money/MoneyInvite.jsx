@@ -34,7 +34,7 @@ export default function MoneyInvite({ onDone }) {
       </div>
       <div className="flex gap-2">
         <Button asChild size="sm">
-          <Link to="/app/bienvenida">{t('Responder')}</Link>
+          <Link to="/app/bienvenida?paso=preguntas">{t('Responder')}</Link>
         </Button>
         <Button variant="ghost" size="sm" onClick={dismiss}>
           {t('Ahora no')}
