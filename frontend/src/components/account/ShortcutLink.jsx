@@ -36,7 +36,7 @@ function CopyField({ label, value }) {
       <p className="text-sm text-ink/60">{label}</p>
       <div className="mt-1 flex items-center gap-2">
         <code className="min-w-0 flex-1 select-all break-all rounded-lg bg-surface px-3 py-2 text-sm">{value}</code>
-        <Button size="icon" variant="outline" onClick={copy} aria-label={`Copiar ${label.toLowerCase()}`}>
+        <Button size="icon" variant="outline" onClick={copy} aria-label={t('Copiar {toLowerCase}', { toLowerCase: label.toLowerCase() })}>
           {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
         </Button>
       </div>

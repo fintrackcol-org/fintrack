@@ -37,7 +37,7 @@ export default function VacaCalendar({ vaca }) {
       </div>
 
       <MonthGrid
-        label={`Aportes de ${monthLabel(month)}`}
+        label={t('Aportes de {month}', { month: monthLabel(month) })}
         className="border-0 bg-transparent p-0 md:p-0"
         cells={vacaCells(month, today, vaca.contributions, vaca.deadline)}
         renderMark={(cell) => {

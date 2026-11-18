@@ -270,7 +270,7 @@ function WelcomeSteps() {
                         )}
                         <button
                           type="button"
-                          aria-label={`Quitar ${item.name || 'este pago'}`}
+                          aria-label={t('Quitar {v1}', { v1: item.name || 'este pago' })}
                           onClick={() => setItems((current) => current.filter((i) => i.key !== item.key))}
                           className="grid size-10 shrink-0 place-items-center rounded-full text-ink/60 hover:text-ink"
                         >

@@ -42,7 +42,7 @@ export function dueText({ status, dueDate }, today) {
   const days = daysBetween(today, dueDate);
   if (days === 0) return t('Vence hoy');
   if (days === 1) return t('Vence mañana');
-  if (days > 0) return `Vence el ${dayLabel(dueDate)}`;
+  if (days > 0) return t('Vence el {dueDate}', { dueDate: dayLabel(dueDate) });
   return days === -1 ? t('Venció ayer') : t('Venció hace {v1} días', { v1: -days });
 }
 

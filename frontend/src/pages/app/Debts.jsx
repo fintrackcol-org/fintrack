@@ -130,7 +130,7 @@ function DebtCard({ debt, today, money, online, onPay, onSettle, onEdit }) {
             due?.late ? 'bg-negative/10 font-medium text-negative' : 'bg-ink/5 text-ink/80',
           )}
         >
-          {debt.installments ? `Cuota ${next.number}: ` : ''}
+          {debt.installments ? t('Cuota {number}: ', { number: next.number }) : ''}
           <span className="font-semibold tabular-nums">{money(next.amount)}</span> · {due.text.toLowerCase()}
         </p>
       )}

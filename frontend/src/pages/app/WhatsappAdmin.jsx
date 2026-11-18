@@ -50,7 +50,7 @@ function MonthMeter({ month }) {
         aria-valuemin={0}
         aria-valuemax={month.max}
         aria-valuenow={Math.min(month.sent, month.max)}
-        aria-valuetext={`${month.sent} de ${month.max}`}
+        aria-valuetext={t('{sent} de {max}', { sent: month.sent, max: month.max })}
         className="mt-3 h-2.5 rounded-full bg-ink/10"
       >
         <div

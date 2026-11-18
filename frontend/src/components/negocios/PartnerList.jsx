@@ -120,7 +120,7 @@ function PartnerRow({ partner, isOwner, online, onUpdate, onRemove }) {
                 variant="ghost"
                 className="-my-1.5 -mr-2 size-9 shrink-0"
                 aria-expanded={managing}
-                aria-label={`Gestionar a ${partner.name}`}
+                aria-label={t('Gestionar a {name}', { name: partner.name })}
                 onClick={() => setManaging((v) => !v)}
               >
                 <MoreVertical aria-hidden="true" />

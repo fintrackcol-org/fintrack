@@ -53,7 +53,7 @@ export default function SyncStatus({ online, pending, rejected, conflicts = 0, c
               <CloudUpload className="size-4 shrink-0" aria-hidden="true" />
             )}
             {syncing
-              ? `Sincronizando ${plural(pending, 'movimiento', 'movimientos')}…`
+              ? t('Sincronizando {pending}…', { pending: plural(pending, 'movimiento', 'movimientos') })
               : t('{pending} de sincronizar. Se reintentará automáticamente.', { pending: plural(pending, 'movimiento pendiente', 'movimientos pendientes') })}
           </p>
         )

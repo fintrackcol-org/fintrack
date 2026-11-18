@@ -52,7 +52,7 @@ function VacaCard({ vaca }) {
           <VacaProgress
             value={vaca.percentage}
             barClass={status.bar}
-            label={`Avance de ${vaca.name}`}
+            label={t('Avance de {name}', { name: vaca.name })}
             valueText={`${formatPercent(vaca.percentage)}: ${formatPesos(vaca.total)} de ${formatPesos(vaca.goal)}`}
           />
         </div>

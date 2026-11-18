@@ -122,7 +122,7 @@ function MemberRow({ member, isAdmin, customSplit, online, onUpdate, onRemove })
                 variant="ghost"
                 className="-my-1.5 -mr-2 size-9 shrink-0"
                 aria-expanded={managing}
-                aria-label={`Gestionar a ${member.name}`}
+                aria-label={t('Gestionar a {name}', { name: member.name })}
                 onClick={() => setManaging((v) => !v)}
               >
                 <MoreVertical aria-hidden="true" />
@@ -147,7 +147,7 @@ function MemberRow({ member, isAdmin, customSplit, online, onUpdate, onRemove })
               size="sm"
               value={member.percentage}
               barClass={status.bar}
-              label={`Avance de ${member.name}`}
+              label={t('Avance de {name}', { name: member.name })}
               valueText={t('{percentage} de su cuota', { percentage: formatPercent(member.percentage) })}
             />
           </div>

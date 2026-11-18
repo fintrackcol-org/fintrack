@@ -197,7 +197,7 @@ export default function HowItWorksTour({ name, onDone }) {
       <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
         <LogoMark className="size-16" />
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">{name ? `Hola, ${name}` : t('Hola')}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{name ? t('Hola, {name}', { name }) : t('Hola')}</h1>
           <p className="mt-2 text-ink/70">{t('Te mostramos en un minuto qué puedes hacer con Rinde.')}</p>
         </div>
         <div className="flex w-full flex-col gap-2">

@@ -135,7 +135,7 @@ function MetaCard({ meta, onSave }) {
           </h3>
           <p className="mt-0.5 text-sm text-ink/60">
             {meta.deadline
-              ? `Para el ${shortDate(meta.deadline)}${days > 0 ? ` · faltan ${days === 1 ? t('1 día') : `${days} días`}` : ''}`
+              ? t('Para el {deadline}{v2}', { deadline: shortDate(meta.deadline), v2: days > 0 ? ` · faltan ${days === 1 ? t('1 día') : `${days} días`}` : '' })
               : deadlineText(meta, { withDate: false })}
           </p>
         </div>
@@ -228,7 +228,7 @@ function SaveSheet({ meta, balance, monthExpense, onDone }) {
       )}
       <Button type="submit" size="lg" className="w-full rounded-full" disabled={busy}>
         {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {value > 0 ? `Apartar ${formatPesos(value)}` : t('Apartar')}
+        {value > 0 ? t('Apartar {value}', { value: formatPesos(value) }) : t('Apartar')}
       </Button>
     </form>
   );

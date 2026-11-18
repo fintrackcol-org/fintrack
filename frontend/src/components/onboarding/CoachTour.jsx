@@ -201,7 +201,7 @@ export default function CoachTour({ onClose }) {
   let label = '';
   let dots = [];
   if (step.tramo === 'corto') {
-    label = `Paso ${index + 1} de ${corto.length}`;
+    label = t('Paso {v1} de {length}', { v1: index + 1, length: corto.length });
     dots = corto.map((_, k) => ({ current: k === index, done: k <= index, tone: 'bg-brand' }));
   } else if (step.tramo === 'largo') {
     const k0 = index - firstLong;

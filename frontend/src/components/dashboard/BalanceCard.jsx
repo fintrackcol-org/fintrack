@@ -83,7 +83,7 @@ export default function BalanceCard({ periodLabel, selected, totals, note, plan 
         <div className="relative flex items-start justify-between gap-4">
           <h2 id="balance-title" className="text-sm font-medium text-white/90">
             <Link to="/app/mi-plata" className="-my-2 inline-flex min-h-11 items-center gap-1 focus-visible:outline-2 focus-visible:outline-white">
-              {plan ? t('Cuánta plata tienes') : `Balance de ${periodLabel}`}
+              {plan ? t('Cuánta plata tienes') : t('Balance de {periodLabel}', { periodLabel })}
               <span className="sr-only">{t(', ver Mi plata')}</span>
               <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
             </Link>

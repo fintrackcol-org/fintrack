@@ -71,7 +71,7 @@ export default function SwipeRow({ children, editTo, editState, onDelete, label,
           to={editTo}
           state={editState}
           tabIndex={open ? 0 : -1}
-          aria-label={`Editar ${label}`}
+          aria-label={t('Editar {label}', { label })}
           className="flex w-[72px] flex-col items-center justify-center gap-1 bg-brand text-xs font-semibold text-white focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"
         >
           <Pencil className="size-5" aria-hidden="true" />
@@ -81,7 +81,7 @@ export default function SwipeRow({ children, editTo, editState, onDelete, label,
           type="button"
           tabIndex={open ? 0 : -1}
           onClick={() => (setOffset(0), onDelete())}
-          aria-label={`Eliminar ${label}`}
+          aria-label={t('Eliminar {label}', { label })}
           className="flex w-[72px] flex-col items-center justify-center gap-1 bg-negative text-xs font-semibold text-white focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"
         >
           <Trash2 className="size-5" aria-hidden="true" />

@@ -117,7 +117,7 @@ export default function Login() {
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
         <div className="space-y-4">
           <FormField id="email" label={t('Correo electrónico')} error={errors.email?.message}>
-            <Input type="email" autoComplete="email" inputMode="email" placeholder="tu@correo.com" {...register('email')} />
+            <Input type="email" autoComplete="email" inputMode="email" placeholder={t('tu@correo.com')} {...register('email')} />
           </FormField>
           <FormField id="password" label={t('Contraseña')} error={errors.password?.message}>
             <PasswordInput autoComplete="current-password" placeholder={t('Tu contraseña')} {...register('password')} />

@@ -117,8 +117,12 @@ export function sortCategories(list) {
  * @returns {{ expense: Category[], income: Category[] }}
  */
 function withStyles(categories) {
-  registerCategories([...categories.expense, ...categories.income]);
-  return { expense: sortCategories(categories.expense), income: sortCategories(categories.income) };
+  // Las 15 de siempre llegan en español desde el servidor; las propias quedan como las escribió.
+  const translate = (list) => list.map((c) => (c.custom ? c : { ...c, name: t(c.name) }));
+  const expense = translate(categories.expense);
+  const income = translate(categories.income);
+  registerCategories([...expense, ...income]);
+  return { expense: sortCategories(expense), income: sortCategories(income) };
 }
 
 /**

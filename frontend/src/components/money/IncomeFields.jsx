@@ -67,7 +67,7 @@ export function PayDaysField({ payDays, onChange, legend = t('¿Qué días te ll
               key={day}
               type="button"
               aria-pressed={selected}
-              aria-label={`Día ${day}`}
+              aria-label={t('Día {day}', { day })}
               onClick={() => onChange(togglePayDay(payDays, day))}
               className={cn(
                 'grid h-10 place-items-center rounded-xl border text-sm font-medium tabular-nums transition-colors',

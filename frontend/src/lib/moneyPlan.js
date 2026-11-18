@@ -51,7 +51,7 @@ export function planHeadline(plan, money) {
     return {
       label: t('Para cubrir todo necesitas hacer'),
       value: `${money(plan.goal)} al día`,
-      note: `Hasta ${plan.until}, en ${daysText(plan.days)}`,
+      note: t('Hasta {until}, en {days}', { until: plan.until, days: daysText(plan.days) }),
     };
   }
   if (plan.shortfall > 0) {

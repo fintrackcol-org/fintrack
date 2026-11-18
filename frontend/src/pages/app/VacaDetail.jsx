@@ -292,7 +292,7 @@ export default function VacaDetail() {
             {status.label}
           </span>
         </div>
-        <Button variant="outline" size="icon" className="shrink-0" onClick={() => setSheet('opciones')} aria-label={`Opciones de ${noun}`}>
+        <Button variant="outline" size="icon" className="shrink-0" onClick={() => setSheet('opciones')} aria-label={t('Opciones de {noun}', { noun })}>
           <MoreHorizontal aria-hidden="true" />
         </Button>
       </header>
@@ -321,7 +321,7 @@ export default function VacaDetail() {
         </p>
       )}
 
-      <Panel aria-label={`Avance de ${noun}`} className="mb-6">
+      <Panel aria-label={t('Avance de {noun}', { noun })} className="mb-6">
         <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
           <p className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 tabular-nums text-ink/60">
             <span className="text-3xl font-semibold tracking-tight text-ink md:text-4xl">{formatPesos(vaca.total)}</span>
@@ -334,7 +334,7 @@ export default function VacaDetail() {
             size="lg"
             value={vaca.percentage}
             barClass={status.bar}
-            label={`Avance de ${vaca.name}`}
+            label={t('Avance de {name}', { name: vaca.name })}
             valueText={`${formatPercent(vaca.percentage)}: ${formatPesos(vaca.total)} de ${formatPesos(vaca.goal)}`}
           />
         </div>
@@ -481,7 +481,7 @@ export default function VacaDetail() {
         />
       </Sheet>
 
-      <Sheet open={sheet === 'editar'} title={`Editar ${noun}`} onClose={closeSheet}>
+      <Sheet open={sheet === 'editar'} title={t('Editar {noun}', { noun })} onClose={closeSheet}>
         <VacaForm
           initial={vaca}
           personal={personal}
@@ -491,7 +491,7 @@ export default function VacaDetail() {
         />
       </Sheet>
 
-      <Sheet open={sheet === 'opciones'} title={`Opciones de ${noun}`} onClose={closeSheet}>
+      <Sheet open={sheet === 'opciones'} title={t('Opciones de {noun}', { noun })} onClose={closeSheet}>
         <div className="flex flex-col gap-1">
           {isAdmin && (
             <Button variant="ghost" className="justify-start" disabled={!online} onClick={() => setSheet('editar')}>
@@ -510,7 +510,7 @@ export default function VacaDetail() {
           )}
           {isAdmin && (
             <ConfirmButton
-              label={`Eliminar ${noun}`}
+              label={t('Eliminar {noun}', { noun })}
               question={
                 personal
                   ? t('Se borra la meta. Los gastos de tus aportes quedan en tus movimientos.')

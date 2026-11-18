@@ -138,7 +138,7 @@ export default function BudgetOverview({ budgets, names, monthLabel, error, note
                     </div>
                     <div
                       role="meter"
-                      aria-label={`Consumo de ${name}`}
+                      aria-label={t('Consumo de {name}', { name })}
                       aria-valuemin={0}
                       aria-valuemax={100}
                       aria-valuenow={Math.min(b.percentage, 100)}

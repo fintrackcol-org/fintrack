@@ -57,7 +57,7 @@ export function savedMessage(saved, names) {
     return t('Guardado sin clasificar: no pudimos sugerir una categoría. Puedes elegirla editando el movimiento.');
   }
   const name = names[saved.category] ?? saved.category;
-  return saved.source === 'ia' ? t('Guardado en {name} (sugerida por IA).', { name }) : `Guardado en ${name}.`;
+  return saved.source === 'ia' ? t('Guardado en {name} (sugerida por IA).', { name }) : t('Guardado en {name}.', { name });
 }
 
 /**

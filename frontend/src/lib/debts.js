@@ -34,7 +34,7 @@ export function dueText(dueDate, today) {
   if (days <= 7) return { text: t('Vence en {days} días', { days }), late: false };
   const [y, m, d] = dueDate.split('-').map(Number);
   const year = today.slice(0, 4) === dueDate.slice(0, 4) ? '' : ` ${y}`;
-  return { text: `Vence el ${d} ${MONTHS[m - 1]}${year}`, late: false };
+  return { text: t('Vence el {d} {v2}{year}', { d, v2: MONTHS[m - 1], year }), late: false };
 }
 
 /** Palabras de cada lado: la pestaña, el botón de saldar y el movimiento que se crea. */
@@ -77,7 +77,7 @@ export function shortDate(date, today) {
  * @returns {string} "Pagado $50.000 de $200.000 · 1 de 4 cuotas"
  */
 export function progressText(debt, money) {
-  const base = `Pagado ${money(debt.paid ?? 0)} de ${money(debt.amount)}`;
+  const base = t('Pagado {money} de {amount}', { money: money(debt.paid ?? 0), amount: money(debt.amount) });
   return debt.installments ? t('{base} · {v2} de {installments} cuotas', { base, v2: debt.paidInstallments ?? 0, installments: debt.installments }) : base;
 }
 

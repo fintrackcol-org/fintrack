@@ -122,7 +122,7 @@ export default function MoneyPayments() {
           <Button
             variant="ghost"
             size="icon"
-            aria-label={`Editar ${event.name}`}
+            aria-label={t('Editar {name}', { name: event.name })}
             onClick={() => setForm(commitmentToForm(commitment))}
           >
             <Pencil aria-hidden="true" />
@@ -190,7 +190,7 @@ export default function MoneyPayments() {
                         {c.kind === 'subscription' && t(' · suscripción')}
                       </p>
                     </div>
-                    <Button variant="ghost" size="icon" aria-label={`Editar ${c.name}`} onClick={() => setForm(commitmentToForm(c))}>
+                    <Button variant="ghost" size="icon" aria-label={t('Editar {name}', { name: c.name })} onClick={() => setForm(commitmentToForm(c))}>
                       <Pencil aria-hidden="true" />
                     </Button>
                   </li>

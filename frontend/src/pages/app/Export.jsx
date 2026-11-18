@@ -262,7 +262,7 @@ export default function Export() {
     try {
       const result = await exportTransactions({ format, ...range, detail });
       downloadFile(result.blob, result.filename);
-      setDone(`Descargado ${result.filename}`);
+      setDone(t('Descargado {filename}', { filename: result.filename }));
     } catch (err) {
       setError(err.code === 'NO_DATA' ? t('No tienes movimientos {rangeText}. Prueba con otro periodo.', { rangeText }) : err.message);
     } finally {
@@ -378,7 +378,7 @@ export default function Export() {
             <div className="flex flex-col gap-3 border-t border-ink/10 pt-5 sm:flex-row sm:items-center">
               <Button size="lg" className="w-full sm:w-auto" onClick={handleDownload} disabled={!canDownload}>
                 {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Download aria-hidden="true" />}
-                {busy ? t('Preparando archivo…') : `Descargar ${selected.label}`}
+                {busy ? t('Preparando archivo…') : t('Descargar {label}', { label: selected.label })}
               </Button>
               <p role="status" className="text-sm text-positive">
                 {done && (

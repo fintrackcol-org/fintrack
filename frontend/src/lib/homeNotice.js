@@ -22,7 +22,7 @@ export function pickHomeNotice({ cards = [], budgets = [], pending = [], names, 
   const cardNotice = (title) => ({
     to: `/app/tarjetas/${nextCard.id}`,
     title,
-    detail: `Debes ${money(nextCard.used)}`,
+    detail: t('Debes {used}', { used: money(nextCard.used) }),
   });
   const budgetName = (budget) => names[budget.category] ?? budget.category;
 
@@ -33,7 +33,7 @@ export function pickHomeNotice({ cards = [], budgets = [], pending = [], names, 
     return {
       to: '/app/presupuestos',
       title: t('Te pasaste en {exceeded}', { exceeded: budgetName(exceeded) }),
-      detail: `Llevas ${money(exceeded.consumed)} de ${money(exceeded.amount)}`,
+      detail: t('Llevas {consumed} de {amount}', { consumed: money(exceeded.consumed), amount: money(exceeded.amount) }),
     };
   }
 
@@ -54,7 +54,7 @@ export function pickHomeNotice({ cards = [], budgets = [], pending = [], names, 
     return {
       to: '/app/presupuestos',
       title: t('{warning} ya casi llega al límite', { warning: budgetName(warning) }),
-      detail: `Quedan ${money(Math.max(0, warning.amount - warning.consumed))}`,
+      detail: t('Quedan {money}', { money: money(Math.max(0, warning.amount - warning.consumed)) }),
     };
   }
 

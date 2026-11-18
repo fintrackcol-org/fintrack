@@ -218,7 +218,7 @@ export default function IdeasAdmin() {
                         size="icon"
                         variant="ghost"
                         onClick={() => setEditing(idea)}
-                        aria-label={`Editar ${idea.title}`}
+                        aria-label={t('Editar {title}', { title: idea.title })}
                         className="shrink-0"
                       >
                         <Pencil aria-hidden="true" />
@@ -230,7 +230,7 @@ export default function IdeasAdmin() {
                         {idea.votes === 1 ? 'voto' : 'votos'}
                       </p>
                       <StatusSelect
-                        label={`Estado de ${idea.title}`}
+                        label={t('Estado de {title}', { title: idea.title })}
                         value={idea.status}
                         onChange={(status) => changeStatus(idea, status)}
                         disabled={changing === idea.id}

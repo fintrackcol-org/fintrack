@@ -86,7 +86,7 @@ export default function AttachmentsPanel({ transactionId, bare = false }) {
   };
 
   const remove = async (attachment) => {
-    if (!window.confirm(`¿Borrar "${attachment.name}"?`)) return;
+    if (!window.confirm(t('¿Borrar "{name}"?', { name: attachment.name }))) return;
     setMessage('');
     try {
       await deleteAttachment(transactionId, attachment.id);
@@ -135,7 +135,7 @@ export default function AttachmentsPanel({ transactionId, bare = false }) {
                       <span className="block truncate font-medium">{a.name}</span>
                       <span className="text-xs text-ink/60">{formatSize(a.size)} {t('· Toca para verlo')}</span>
                     </button>
-                    <Button type="button" variant="ghost" size="icon" aria-label={`Borrar ${a.name}`} onClick={() => remove(a)}>
+                    <Button type="button" variant="ghost" size="icon" aria-label={t('Borrar {name}', { name: a.name })} onClick={() => remove(a)}>
                       <Trash2 />
                     </Button>
                   </li>

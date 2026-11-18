@@ -56,7 +56,7 @@ export default function AdviceCard({ vaca, online, onRemind }) {
         message:
           reminded === 0
             ? t('Nadie está atrasado: no hizo falta recordar.')
-            : `Recordamos a ${reminded === 1 ? t('1 miembro') : `${reminded} miembros`}${delivered === 0 ? t(', pero no tienen las notificaciones activas en ningún dispositivo') : ''}.`,
+            : t('Recordamos a {v1}{v2}.', { v1: reminded === 1 ? t('1 miembro') : `${reminded} miembros`, v2: delivered === 0 ? t(', pero no tienen las notificaciones activas en ningún dispositivo') : '' }),
       });
     } catch (err) {
       setRemindState({ busy: false, message: '', error: err.message });

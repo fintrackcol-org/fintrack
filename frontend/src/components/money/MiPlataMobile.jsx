@@ -80,7 +80,7 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
             <RindeLine value={(today.getDate() + Math.min(r.days, lastDay - today.getDate())) / lastDay} />
             <span className="flex items-center justify-between gap-2 text-[13px]">
               <span className="text-white/85">1 {month}</span>
-              <b className="font-semibold">{r.lasts ? t('Alcanza todo el mes') : `Alcanza ${untilText(r)}`}</b>
+              <b className="font-semibold">{r.lasts ? t('Alcanza todo el mes') : t('Alcanza {r}', { r: untilText(r) })}</b>
               <span className="text-white/85">
                 {lastDay} {month}
               </span>
@@ -146,7 +146,7 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
                   </span>
                   <span
                     role="meter"
-                    aria-label={`Consumo de ${label}`}
+                    aria-label={t('Consumo de {label}', { label })}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={Math.min(Math.round(b.percentage), 100)}

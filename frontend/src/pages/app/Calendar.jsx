@@ -55,7 +55,7 @@ function PaymentGrid({ month, events, today, shortfallDate, onSelect }) {
   const toneOfCell = (cell) => (cell.date === shortfallDate ? 'negativo' : cell.tone);
   return (
     <MonthGrid
-      label={`Pagos de ${monthLabel(month)}`}
+      label={t('Pagos de {month}', { month: monthLabel(month) })}
       cells={calendarCells(month, events, today)}
       onSelect={(cell) => onSelect(cell.date)}
       cellLabel={(cell) => {
@@ -187,7 +187,7 @@ export default function Calendar() {
     setDay(null);
     setAdding(null);
   };
-  const sheetTitle = adding === 'debt' ? t('Nueva cuenta') : adding === 'choose' ? `Agregar al ${day ? dayLabel(day) : ''}` : dayName;
+  const sheetTitle = adding === 'debt' ? t('Nueva cuenta') : adding === 'choose' ? t('Agregar al {v1}', { v1: day ? dayLabel(day) : '' }) : dayName;
 
   return (
     <div className="mx-auto max-w-3xl">

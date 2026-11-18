@@ -77,7 +77,7 @@ export default function BudgetDetail() {
       <p className="text-[42px] font-semibold leading-tight tracking-tight tabular-nums">{Math.round(budget.percentage)} %</p>
       <div
         role="meter"
-        aria-label={`Consumo de ${name}`}
+        aria-label={t('Consumo de {name}', { name })}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.min(budget.percentage, 100)}
@@ -88,7 +88,7 @@ export default function BudgetDetail() {
       <p className="mt-2 text-sm tabular-nums text-ink/70">
         {over
           ? t('Te pasaste por {money} de {amount}', { money: money(budget.consumed - budget.amount), amount: money(budget.amount) })
-          : `Quedan ${money(Math.max(0, budget.amount - budget.consumed))} de ${money(budget.amount)}`}
+          : t('Quedan {money} de {amount}', { money: money(Math.max(0, budget.amount - budget.consumed)), amount: money(budget.amount) })}
       </p>
 
       <CircleActions

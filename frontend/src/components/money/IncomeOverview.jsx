@@ -57,7 +57,7 @@ function Cushion({ cushion, onChanged }) {
           <VacaProgress
             value={percent}
             label={t('Avance del colchón')}
-            valueText={`${formatMoney(cushion.saved)} de ${formatMoney(cushion.goal)}`}
+            valueText={t('{saved} de {goal}', { saved: formatMoney(cushion.saved), goal: formatMoney(cushion.goal) })}
           />
           <p>
             {t('Llevas')} <strong className="tabular-nums">{formatMoney(cushion.saved)}</strong> {t('de')} {formatMoney(cushion.goal)}.

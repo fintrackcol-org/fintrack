@@ -577,7 +577,7 @@ export default function Anotar() {
         </div>
         <p id="anotar-ayuda" className={cn('text-[13px]', descriptionError ? 'text-negative' : 'text-ink/60')}>
           {descriptionError
-            ? `Escribe ${expense ? t('en qué fue, p. ej. «almuerzo»') : t('de qué fue, p. ej. «salario»')}.`
+            ? t('Escribe {v1}.', { v1: expense ? t('en qué fue, p. ej. «almuerzo»') : t('de qué fue, p. ej. «salario»') })
             : t('O toca el micrófono y dilo: «almuerzo 15 mil» llena las dos casillas.')}
         </p>
       </div>

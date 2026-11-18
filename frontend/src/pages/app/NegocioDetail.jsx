@@ -142,7 +142,7 @@ export default function NegocioDetail() {
               ? business.totalShare > 0
                 ? t('{totalShare} de la participación asignada', { totalShare: formatShare(business.totalShare) })
                 : t('Toca ⋮ en un socio para cambiar su rol o su participación.')
-              : `Eres ${role.label.toLowerCase()}: ${role.hint.toLowerCase()}.`}
+              : t('Eres {toLowerCase}: {toLowerCase2}.', { toLowerCase: role.label.toLowerCase(), toLowerCase2: role.hint.toLowerCase() })}
           </p>
         </div>
         {isOwner && (

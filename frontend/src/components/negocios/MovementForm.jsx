@@ -206,7 +206,7 @@ export default function MovementForm({
       )}
       <Button type="submit" size="lg" className="w-full" disabled={disabled || isSubmitting}>
         {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {isSubmitting ? t('Guardando…') : `Registrar ${MOVEMENT_KINDS[kind].label.toLowerCase()}`}
+        {isSubmitting ? t('Guardando…') : t('Registrar {toLowerCase}', { toLowerCase: MOVEMENT_KINDS[kind].label.toLowerCase() })}
       </Button>
     </form>
   );

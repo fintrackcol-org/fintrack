@@ -43,7 +43,7 @@ export default function InvitePanel({ vaca, online, onInvite, onCancelInvitation
   const share = async () => {
     try {
       await navigator.share({
-        title: `Vaca "${vaca.name}"`,
+        title: t('Vaca "{name}"', { name: vaca.name }),
         text: t('Únete a la vaca "{name}" en Rinde (código {code}):', { name: vaca.name, code: vaca.code }),
         url: link,
       });

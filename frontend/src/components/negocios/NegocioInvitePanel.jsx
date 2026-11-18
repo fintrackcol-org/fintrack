@@ -45,7 +45,7 @@ export default function NegocioInvitePanel({ business, online, onInvite, onCance
   const share = async () => {
     try {
       await navigator.share({
-        title: `Negocio "${business.name}"`,
+        title: t('Negocio "{name}"', { name: business.name }),
         text: t('Únete al negocio "{name}" en Rinde (código {code}):', { name: business.name, code: business.code }),
         url: link,
       });

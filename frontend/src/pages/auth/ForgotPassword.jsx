@@ -86,7 +86,7 @@ export default function ForgotPassword() {
                 type="email"
                 autoComplete="email"
                 inputMode="email"
-                placeholder="tu@correo.com"
+                placeholder={t('tu@correo.com')}
                 autoFocus
                 {...register('email')}
               />

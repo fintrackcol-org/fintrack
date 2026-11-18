@@ -325,7 +325,7 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
       return;
     }
     const { movement } = result;
-    setNotice(`Registrado: ${movement.description}.`);
+    setNotice(t('Registrado: {description}.', { description: movement.description }));
     if (movement.date.slice(0, 7) !== month) setMonth(movement.date.slice(0, 7));
     else reload();
   };
@@ -456,7 +456,7 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
               label={t('Utilidad')}
               value={formatMoney(panel.netProfit)}
               tone={panel.netProfit > 0 ? 'text-positive' : panel.netProfit < 0 ? 'text-negative' : 'text-ink/50'}
-              note={panel.netMargin === null ? null : `Margen ${percent(panel.netMargin)}`}
+              note={panel.netMargin === null ? null : t('Margen {netMargin}', { netMargin: percent(panel.netMargin) })}
             />
           </dl>
 
@@ -518,7 +518,7 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
 
               <div>
                 <h3 className="mb-2 text-sm font-medium text-ink/60">
-                  {t('Movimientos (')}{shown.length === data.movements.length ? data.movements.length : `${shown.length} de ${data.movements.length}`})
+                  {t('Movimientos (')}{shown.length === data.movements.length ? data.movements.length : t('{length} de {length2}', { length: shown.length, length2: data.movements.length })})
                 </h3>
                 <div className="mb-3 space-y-2">
                   <ChipGroup

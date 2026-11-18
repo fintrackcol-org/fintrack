@@ -91,7 +91,7 @@ export default function CategoryPicker({
                   setStatus('');
                   setDialog({ category: c });
                 }}
-                aria-label={`Editar ${c.name}`}
+                aria-label={t('Editar {name}', { name: c.name })}
                 className="absolute right-0 top-0 grid size-7 place-items-center rounded-lg text-ink/50 transition-colors hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-violet"
               >
                 <Pencil className="size-3.5" aria-hidden="true" />

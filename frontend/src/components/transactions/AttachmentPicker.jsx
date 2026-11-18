@@ -92,7 +92,7 @@ export default function AttachmentPicker({ files, onChange, limits, className })
                 type="button"
                 variant="ghost"
                 size="icon"
-                aria-label={`Quitar ${f.name}`}
+                aria-label={t('Quitar {name}', { name: f.name })}
                 onClick={() => onChange(files.filter((other) => other.id !== f.id))}
               >
                 <X />

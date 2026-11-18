@@ -67,14 +67,14 @@ function CategoryRow({ category, onEdit, onDeleted }) {
           </>
         ) : (
           <>
-            <Button size="icon" variant="ghost" onClick={() => onEdit(category)} aria-label={`Editar ${category.name}`}>
+            <Button size="icon" variant="ghost" onClick={() => onEdit(category)} aria-label={t('Editar {name}', { name: category.name })}>
               <Pencil aria-hidden="true" />
             </Button>
             <Button
               size="icon"
               variant="ghost"
               onClick={() => setConfirming(true)}
-              aria-label={`Eliminar ${category.name}`}
+              aria-label={t('Eliminar {name}', { name: category.name })}
             >
               <Trash2 aria-hidden="true" />
             </Button>
@@ -128,7 +128,7 @@ export default function CustomCategories() {
           </h2>
           <p className="mt-1 text-sm text-ink/60">
             {t('Además de las 15 de siempre, puedes crear hasta')} {MAX_OWN} {t('propias.')}
-            {categories && ` Tienes ${count} de ${MAX_OWN}.`}
+            {categories && t(' Tienes {count} de {MAX_OWN}.', { count, MAX_OWN })}
           </p>
         </div>
         <Button

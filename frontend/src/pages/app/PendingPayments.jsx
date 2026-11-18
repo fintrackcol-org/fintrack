@@ -158,7 +158,7 @@ export default function PendingPayments() {
 
   const handleConfirm = async (values) => {
     const { transaction } = await confirmPendingPayment(sheet.id, values);
-    setNotice(`Anotado: ${transaction.description}, ${money(transaction.amount)}.`);
+    setNotice(t('Anotado: {description}, {amount}.', { description: transaction.description, amount: money(transaction.amount) }));
     setSheet(null);
     reload();
   };

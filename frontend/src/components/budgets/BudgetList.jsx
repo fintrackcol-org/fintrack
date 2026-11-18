@@ -36,7 +36,7 @@ const LEVEL_STYLES = {
 function statusText({ amount, consumed, alert }) {
   if (isAtLimit(alert)) return t('Ya usaste todo tu presupuesto');
   if (alert.level === 'exceeded_100') return t('Te pasaste por {formatMoney}', { formatMoney: formatMoney(consumed - amount) });
-  const left = `Quedan ${formatMoney(amount - consumed)}`;
+  const left = t('Quedan {formatMoney}', { formatMoney: formatMoney(amount - consumed) });
   return alert.level === 'warning_80' ? t('{left}, cerca del límite', { left }) : left;
 }
 
@@ -51,11 +51,11 @@ function Meter({ budget, label }) {
   return (
     <div
       role="meter"
-      aria-label={`Consumo de ${label}`}
+      aria-label={t('Consumo de {label}', { label })}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={filled}
-      aria-valuetext={`${formatPercent(budget.percentage)} de ${formatMoney(budget.amount)}`}
+      aria-valuetext={t('{percentage} de {amount}', { percentage: formatPercent(budget.percentage), amount: formatMoney(budget.amount) })}
       className="relative h-2.5 rounded-full bg-ink/10"
     >
       <div
@@ -187,7 +187,7 @@ function CompactRow({ budget, name, disabled, onEdit }) {
         <span className="mt-2 block text-sm tabular-nums text-ink/70">
           {over
             ? t('Te pasaste por {formatMoney} de {amount}', { formatMoney: formatMoney(budget.consumed - budget.amount), amount: formatMoney(budget.amount) })
-            : `Quedan ${formatMoney(Math.max(0, budget.amount - budget.consumed))} de ${formatMoney(budget.amount)}`}
+            : t('Quedan {formatMoney} de {amount}', { formatMoney: formatMoney(Math.max(0, budget.amount - budget.consumed)), amount: formatMoney(budget.amount) })}
         </span>
       </button>
     </li>

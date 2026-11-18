@@ -97,7 +97,7 @@ export function CardsList({ cards, online, hidden, onAdd, compact = false }) {
               <CreditCardArt network={card.network} tier={card.tier} last4={card.last4} name={card.name} expiry={card.expiry?.label} size="lg" />
               <div
                 role="progressbar"
-                aria-label={`Uso de ${card.name}`}
+                aria-label={t('Uso de {name}', { name: card.name })}
                 aria-valuenow={pct}
                 aria-valuemin={0}
                 aria-valuemax={100}

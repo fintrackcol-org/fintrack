@@ -36,14 +36,14 @@ export function buildMonthHighlights({ summary, budgets, names }) {
         kind: 'budget',
         tone: 'caution',
         title: t('Ya usaste todo tu presupuesto de {category}', { category: name(tightest.category) }),
-        detail: `Llevas ${formatMoney(tightest.consumed)} de ${formatMoney(tightest.amount)}`,
+        detail: t('Llevas {consumed} de {amount}', { consumed: formatMoney(tightest.consumed), amount: formatMoney(tightest.amount) }),
       });
     } else if (tightest.percentage > 100) {
       highlights.push({
         kind: 'budget',
         tone: 'negative',
         title: t('Te pasaste en {category}', { category: name(tightest.category) }),
-        detail: `Llevas ${formatMoney(tightest.consumed)} de ${formatMoney(tightest.amount)}`,
+        detail: t('Llevas {consumed} de {amount}', { consumed: formatMoney(tightest.consumed), amount: formatMoney(tightest.amount) }),
       });
     } else if (tightest.percentage >= 80) {
       highlights.push({

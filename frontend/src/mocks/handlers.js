@@ -194,6 +194,14 @@ function checkCredentials(body) {
 
 /** Perfil de `GET /users/me`. Las cuentas de los mocks son de Colombia, en pesos y en español. */
 function mockProfile(user) {
+  // Sin datos propios, los mocks siguen la región guardada en el navegador (para probar otros idiomas).
+  let saved = {};
+  try {
+    saved = JSON.parse(localStorage.getItem('rinde.region')) ?? {};
+  } catch {
+    // Sin región guardada: Colombia.
+  }
+  user = { ...saved, ...user };
   return {
     id: user.id,
     email: user.email,

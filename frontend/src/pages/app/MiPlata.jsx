@@ -435,10 +435,10 @@ function PaymentsSection({ commitments, subscriptions, onChanged }) {
                   {c.kind === 'subscription' && t(' · suscripción')}
                 </p>
               </div>
-              <Button variant="ghost" size="icon" aria-label={`Editar ${c.name}`} onClick={() => edit(c)}>
+              <Button variant="ghost" size="icon" aria-label={t('Editar {name}', { name: c.name })} onClick={() => edit(c)}>
                 <Pencil aria-hidden="true" />
               </Button>
-              <Button variant="ghost" size="icon" aria-label={`Eliminar ${c.name}`} onClick={() => remove(c)}>
+              <Button variant="ghost" size="icon" aria-label={t('Eliminar {name}', { name: c.name })} onClick={() => remove(c)}>
                 <Trash2 aria-hidden="true" />
               </Button>
             </li>

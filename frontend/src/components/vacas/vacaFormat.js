@@ -81,7 +81,7 @@ export function deadlineText({ deadline, projection, status }, { withDate = true
   const date = formatDate(deadline);
   if (status === 'completada') return withDate ? tr('Fecha límite: {date}', { date }) : tr('Cumplida');
   const days = projection.daysLeft;
-  if (days < 0) return withDate ? `Venció el ${date}` : tr('Venció');
+  if (days < 0) return withDate ? tr('Venció el {date}', { date }) : tr('Venció');
   if (days === 0) return withDate ? tr('Vence hoy ({date})', { date }) : tr('Vence hoy');
   const left = days === 1 ? tr('Falta 1 día') : tr('Faltan {days} días', { days });
   return withDate ? `${left} · ${date}` : left;

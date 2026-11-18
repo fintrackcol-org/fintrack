@@ -91,7 +91,7 @@ export function CardDetailView({ card, movements, online, hidden, onAction, onDe
             {card.statementDueDate && t(' · vence el {statementDueDate}', { statementDueDate: shortDate(card.statementDueDate) })}
           </p>
         )}
-        <div role="progressbar" aria-label={`Uso de ${card.name}`} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} className="mt-4 h-2 overflow-hidden rounded-full bg-ink/10">
+        <div role="progressbar" aria-label={t('Uso de {name}', { name: card.name })} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} className="mt-4 h-2 overflow-hidden rounded-full bg-ink/10">
           <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
         </div>
         <p className="mt-2 text-sm tabular-nums text-ink/70">
@@ -129,7 +129,7 @@ export function CardDetailView({ card, movements, online, hidden, onAction, onDe
         <CreditCardArt network={card.network} tier={card.tier} last4={card.last4} name={card.name} expiry={card.expiry?.label} size="lg" />
       </div>
       <Panel className="mt-4">
-        <div role="progressbar" aria-label={`Uso de ${card.name}`} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} className="h-2 overflow-hidden rounded-full bg-ink/10">
+        <div role="progressbar" aria-label={t('Uso de {name}', { name: card.name })} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} className="h-2 overflow-hidden rounded-full bg-ink/10">
           <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
         </div>
         <p className="mt-2 tabular-nums text-ink/70">

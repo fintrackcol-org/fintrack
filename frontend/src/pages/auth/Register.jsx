@@ -116,7 +116,7 @@ export default function Register() {
           {!errors.name && <p className="-mt-2 text-xs text-white/55">{t('Así te saludamos en la app.')}</p>}
 
           <FormField id="email" label={t('Correo *')} error={errors.email?.message}>
-            <Input type="email" autoComplete="email" inputMode="email" placeholder="tu@correo.com" aria-required="true" {...register('email')} />
+            <Input type="email" autoComplete="email" inputMode="email" placeholder={t('tu@correo.com')} aria-required="true" {...register('email')} />
           </FormField>
           {!errors.email && <p className="-mt-2 text-xs text-white/55">{t('Te enviamos un enlace para confirmarlo.')}</p>}
 
