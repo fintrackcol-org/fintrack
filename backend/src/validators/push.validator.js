@@ -1,10 +1,11 @@
 import { AppError } from '../errors/app-error.js';
+import { t } from '../i18n/index.js';
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** @returns {AppError} 400: el cuerpo no tiene la forma esperada. */
 function invalidBody() {
-  return new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+  return new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
 }
 
 /**
@@ -108,24 +109,24 @@ export function parseReminderSettings(body) {
   if (invalid.length > 0) {
     details.push({
       field,
-      problem: `Cada hora debe tener el formato HH:mm (00:00 a 23:59); no válidas: ${invalid.join(', ')}`,
+      problem: t('Cada hora debe tener el formato HH:mm (00:00 a 23:59); no válidas: {join}', { join: invalid.join(', ') }),
     });
   }
   const times = [...new Set(raw)].sort();
   if (times.length > MAX_REMINDERS_PER_DAY) {
     details.push({
       field,
-      problem: `Máximo ${MAX_REMINDERS_PER_DAY} recordatorios al día`,
+      problem: t('Máximo {MAX_REMINDERS_PER_DAY} recordatorios al día', { MAX_REMINDERS_PER_DAY }),
     });
   }
   if (!isValidTimezone(body.timezone)) {
     details.push({
       field: 'timezone',
-      problem: 'Debe ser una zona horaria válida, p. ej. America/Bogota',
+      problem: t('Debe ser una zona horaria válida, p. ej. America/Bogota'),
     });
   }
   if (details.length > 0) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   }
   return body.cardReminders === undefined
     ? { times, timezone: body.timezone }

@@ -35,6 +35,7 @@ import {
   UtensilsCrossed,
   Wallet,
 } from 'lucide-react';
+import { t } from '@/lib/i18n';
 
 /**
  * Ícono y color de cada categoría del catálogo (`db/init/02_seed_categorias.sql`).
@@ -67,38 +68,38 @@ const FALLBACK = { icon: CircleHelp, className: 'bg-ink/10 text-ink/60' };
  * acepta la API (`CATEGORY_ICONS` en el backend).
  */
 export const ICON_OPTIONS = [
-  { key: 'paw-print', icon: PawPrint, label: 'Mascota' },
-  { key: 'dumbbell', icon: Dumbbell, label: 'Gimnasio' },
-  { key: 'gift', icon: Gift, label: 'Regalo' },
-  { key: 'plane', icon: Plane, label: 'Viaje' },
-  { key: 'baby', icon: Baby, label: 'Bebé' },
-  { key: 'car', icon: Car, label: 'Carro' },
-  { key: 'fuel', icon: Fuel, label: 'Gasolina' },
-  { key: 'coffee', icon: Coffee, label: 'Café' },
-  { key: 'pizza', icon: Pizza, label: 'Comida' },
-  { key: 'beer', icon: Beer, label: 'Salidas' },
-  { key: 'gamepad', icon: Gamepad2, label: 'Juegos' },
-  { key: 'music', icon: Music, label: 'Música' },
-  { key: 'book', icon: BookOpen, label: 'Libros' },
-  { key: 'shopping-cart', icon: ShoppingCart, label: 'Compras' },
-  { key: 'heart', icon: Heart, label: 'Pareja' },
-  { key: 'smartphone', icon: Smartphone, label: 'Celular' },
-  { key: 'scissors', icon: Scissors, label: 'Belleza' },
-  { key: 'briefcase', icon: Briefcase, label: 'Trabajo' },
-  { key: 'piggy-bank', icon: PiggyBank, label: 'Ahorro' },
-  { key: 'sparkles', icon: Sparkles, label: 'Otro' },
+  { key: 'paw-print', icon: PawPrint, label: t('Mascota') },
+  { key: 'dumbbell', icon: Dumbbell, label: t('Gimnasio') },
+  { key: 'gift', icon: Gift, label: t('Regalo') },
+  { key: 'plane', icon: Plane, label: t('Viaje') },
+  { key: 'baby', icon: Baby, label: t('Bebé') },
+  { key: 'car', icon: Car, label: t('Carro') },
+  { key: 'fuel', icon: Fuel, label: t('Gasolina') },
+  { key: 'coffee', icon: Coffee, label: t('Café') },
+  { key: 'pizza', icon: Pizza, label: t('Comida') },
+  { key: 'beer', icon: Beer, label: t('Salidas') },
+  { key: 'gamepad', icon: Gamepad2, label: t('Juegos') },
+  { key: 'music', icon: Music, label: t('Música') },
+  { key: 'book', icon: BookOpen, label: t('Libros') },
+  { key: 'shopping-cart', icon: ShoppingCart, label: t('Compras') },
+  { key: 'heart', icon: Heart, label: t('Pareja') },
+  { key: 'smartphone', icon: Smartphone, label: t('Celular') },
+  { key: 'scissors', icon: Scissors, label: t('Belleza') },
+  { key: 'briefcase', icon: Briefcase, label: t('Trabajo') },
+  { key: 'piggy-bank', icon: PiggyBank, label: t('Ahorro') },
+  { key: 'sparkles', icon: Sparkles, label: t('Otro') },
 ];
 
 /** Colores que puede elegir el usuario (`CATEGORY_COLORS` en el backend). */
 export const COLOR_OPTIONS = [
-  { key: 'orange', label: 'Naranja', className: 'bg-orange-500/15 text-orange-500', swatch: 'bg-orange-500' },
-  { key: 'sky', label: 'Celeste', className: 'bg-sky-500/15 text-sky-500', swatch: 'bg-sky-500' },
-  { key: 'amber', label: 'Ámbar', className: 'bg-amber-500/15 text-amber-500', swatch: 'bg-amber-500' },
-  { key: 'rose', label: 'Rosado', className: 'bg-rose-500/15 text-rose-500', swatch: 'bg-rose-500' },
-  { key: 'teal', label: 'Verde azulado', className: 'bg-teal-500/15 text-teal-500', swatch: 'bg-teal-500' },
-  { key: 'fuchsia', label: 'Fucsia', className: 'bg-fuchsia-500/15 text-fuchsia-500', swatch: 'bg-fuchsia-500' },
-  { key: 'indigo', label: 'Índigo', className: 'bg-indigo-500/15 text-indigo-500', swatch: 'bg-indigo-500' },
-  { key: 'emerald', label: 'Esmeralda', className: 'bg-emerald-500/15 text-emerald-500', swatch: 'bg-emerald-500' },
+  { key: 'orange', label: t('Naranja'), className: 'bg-orange-500/15 text-orange-500', swatch: 'bg-orange-500' },
+  { key: 'sky', label: t('Celeste'), className: 'bg-sky-500/15 text-sky-500', swatch: 'bg-sky-500' },
+  { key: 'amber', label: t('Ámbar'), className: 'bg-amber-500/15 text-amber-500', swatch: 'bg-amber-500' },
+  { key: 'rose', label: t('Rosado'), className: 'bg-rose-500/15 text-rose-500', swatch: 'bg-rose-500' },
+  { key: 'teal', label: t('Verde azulado'), className: 'bg-teal-500/15 text-teal-500', swatch: 'bg-teal-500' },
+  { key: 'fuchsia', label: t('Fucsia'), className: 'bg-fuchsia-500/15 text-fuchsia-500', swatch: 'bg-fuchsia-500' },
+  { key: 'indigo', label: t('Índigo'), className: 'bg-indigo-500/15 text-indigo-500', swatch: 'bg-indigo-500' },
+  { key: 'emerald', label: t('Esmeralda'), className: 'bg-emerald-500/15 text-emerald-500', swatch: 'bg-emerald-500' },
 ];
 
 const ICON_BY_KEY = Object.fromEntries(ICON_OPTIONS.map((o) => [o.key, o.icon]));

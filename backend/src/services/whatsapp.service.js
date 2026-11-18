@@ -12,6 +12,7 @@ import { getLiquidity } from './liquidity.service.js';
 import { getPlan } from './money-plan.service.js';
 import { create as createTransaction, summary as summarizePeriod } from './transactions.service.js';
 import { sendText } from './whatsapp-client.service.js';
+import { categoryText, currentRegion, dateLocale, formatMoney, t, withRegion } from '../i18n/index.js';
 
 /** Minutos que dura el código para vincular; la pantalla de Cuenta dice lo mismo. */
 export const LINK_CODE_MINUTES = 10;
@@ -33,36 +34,36 @@ const ACCESS_TO_DB = { approved: 'aprobado', rejected: 'rechazado' };
 
 /** Preguntas que entiende el bot, sobre el texto en minúsculas y sin tildes. */
 const BALANCE_QUESTION =
-  /(?<!\p{L})(cuanto tengo|cuanta plata tengo|cuanto me queda|saldo|balance)(?!\p{L})/u;
+  /(?<!\p{L})(cuanto tengo|cuanta plata tengo|cuanto me queda|saldo|balance|how much do i have|how much money do i have|quanto tenho|quanto me sobra)(?!\p{L})/u;
 const EXPENSE_QUESTION =
-  /(?<!\p{L})(cuanto (he gastado|llevo gastado|gaste)|mis gastos|gastos del mes)(?!\p{L})/u;
+  /(?<!\p{L})(cuanto (he gastado|llevo gastado|gaste)|mis gastos|gastos del mes|how much (have i spent|did i spend)|my (expenses|spending)|quanto (gastei|ja gastei)|meus gastos)(?!\p{L})/u;
 const PROGRESS_QUESTION =
-  /(?<!\p{L})(como voy|como vamos|como va mi dia|mi meta|meta de hoy|cuanto puedo gastar|cuanto me falta|cuanto (tengo|debo|necesito) (que )?hacer|me alcanza|avance)(?!\p{L})/u;
-const ANY_QUESTION = /\?|^¿?\s*(cuanto|cuanta|que|como|cual)(?!\p{L})/u;
+  /(?<!\p{L})(como voy|como vamos|como va mi dia|mi meta|meta de hoy|cuanto puedo gastar|cuanto me falta|cuanto (tengo|debo|necesito) (que )?hacer|me alcanza|avance|how am i doing|how much can i spend|can i afford|my goal|progress|como estou|como vou|quanto posso gastar|da para|minha meta)(?!\p{L})/u;
+const ANY_QUESTION = /\?|^¿?\s*(cuanto|cuanta|que|como|cual|how|what|which|quanto|qual|o que)(?!\p{L})/u;
 
 /** Desde este monto el bot pregunta antes de guardar; la app usa el mismo (`BigAmountWarning.jsx`). */
 export const BIG_AMOUNT = 5_000_000;
-/** "sí" al inicio del mensaje confirma un monto muy alto: "sí carro 50 millones". */
-const CONFIRM_PREFIX = /^\s*s[ií](?![\p{L}\d])[\s,.:;!]*/iu;
+/** "sí" (o "yes", "sim") al inicio del mensaje confirma un monto muy alto: "sí carro 50 millones". */
+const CONFIRM_PREFIX = /^\s*(s[ií]|yes|sim)(?![\p{L}\d])[\s,.:;!]*/iu;
 
 export const REPLIES = {
-  unlinked: 'Hola. Para usar este chat, conecta tu número en Rinde, en Cuenta → WhatsApp.',
-  linked: 'Listo, tu número quedó conectado. Escríbeme algo como "almuerzo 15 mil".',
-  invalidCode: 'Ese código no es válido o ya venció. Genera uno nuevo en Rinde, en Cuenta.',
-  taken: 'Este número ya está conectado a otra cuenta de Rinde.',
-  textOnly: 'Por ahora solo leo mensajes de texto. Prueba con "almuerzo 15 mil".',
-  noAmount: 'No encontré el monto. Prueba con algo como "almuerzo 15 mil".',
-  severalAmounts: 'Vi varios números. Escríbelo con un solo monto, como "almuerzos 24 mil".',
-  noDescription: '¿En qué fue? Agrega una palabra, como "almuerzo 15 mil".',
-  dailyLimit: 'Llegaste al límite de mensajes de hoy. Mañana sigo registrando.',
-  failed: 'No pude guardar ese movimiento. Inténtalo de nuevo en un momento.',
-  help: 'Puedo decirte cómo vas hoy, tu saldo y tus gastos del mes. Prueba con "cómo voy", "cuánto tengo" o "cuánto he gastado".',
-  noPlan: `Para decirte cómo vas hoy, primero cuéntame cómo te entra la plata en Rinde: ${env.appUrl}/app/mi-plata`,
-  queryFailed: 'No pude consultar tus movimientos. Inténtalo de nuevo en un momento.',
-  noMovements: (month) => `En ${month} aún no tienes movimientos.`,
-  noExpenses: (month) => `En ${month} aún no tienes gastos.`,
+  get unlinked() { return t('Hola. Para usar este chat, conecta tu número en Rinde, en Cuenta → WhatsApp.'); },
+  get linked() { return t('Listo, tu número quedó conectado. Escríbeme algo como "almuerzo 15 mil".'); },
+  get invalidCode() { return t('Ese código no es válido o ya venció. Genera uno nuevo en Rinde, en Cuenta.'); },
+  get taken() { return t('Este número ya está conectado a otra cuenta de Rinde.'); },
+  get textOnly() { return t('Por ahora solo leo mensajes de texto. Prueba con "almuerzo 15 mil".'); },
+  get noAmount() { return t('No encontré el monto. Prueba con algo como "almuerzo 15 mil".'); },
+  get severalAmounts() { return t('Vi varios números. Escríbelo con un solo monto, como "almuerzos 24 mil".'); },
+  get noDescription() { return t('¿En qué fue? Agrega una palabra, como "almuerzo 15 mil".'); },
+  get dailyLimit() { return t('Llegaste al límite de mensajes de hoy. Mañana sigo registrando.'); },
+  get failed() { return t('No pude guardar ese movimiento. Inténtalo de nuevo en un momento.'); },
+  get help() { return t('Puedo decirte cómo vas hoy, tu saldo y tus gastos del mes. Prueba con "cómo voy", "cuánto tengo" o "cuánto he gastado".'); },
+  get noPlan() { return t('Para decirte cómo vas hoy, primero cuéntame cómo te entra la plata en Rinde: {url}', { url: `${env.appUrl}/app/mi-plata` }); },
+  get queryFailed() { return t('No pude consultar tus movimientos. Inténtalo de nuevo en un momento.'); },
+  noMovements: (month) => t('En {month} aún no tienes movimientos.', { month }),
+  noExpenses: (month) => t('En {month} aún no tienes gastos.', { month }),
   bigAmount: (amount, text) =>
-    `¿Seguro que son ${money(amount)}? Es un monto muy alto, revisa que no sobre un cero. Si está bien, envíalo de nuevo empezando con "sí", así: "sí ${text.trim()}".`,
+    t('¿Seguro que son {amount}? Es un monto muy alto, revisa que no sobre un cero. Si está bien, envíalo de nuevo empezando con "sí", así: "sí {trim}".', { amount: money(amount), trim: text.trim() }),
 };
 
 /**
@@ -177,8 +178,7 @@ export function extractMessages(payload, phoneNumberId = env.whatsappPhoneNumber
  * @returns {string} Monto en pesos, p. ej. "$15.000" o "-$15.000".
  */
 export function money(value) {
-  const sign = value < 0 ? '-' : '';
-  return `${sign}$${Math.abs(value).toLocaleString('es-CO', { maximumFractionDigits: 2 })}`;
+  return formatMoney(value);
 }
 
 /**
@@ -186,7 +186,7 @@ export function money(value) {
  * @returns {string} Nombre del mes, p. ej. "noviembre".
  */
 function monthName(date) {
-  return new Intl.DateTimeFormat('es-CO', { month: 'long', timeZone: 'UTC' }).format(
+  return new Intl.DateTimeFormat(dateLocale(), { month: 'long', timeZone: 'UTC' }).format(
     new Date(`${date}T12:00:00Z`),
   );
 }
@@ -195,7 +195,7 @@ function monthName(date) {
  * @param {number} days
  * @returns {string} `1 día` o `3 días`.
  */
-const daysText = (days) => (days === 1 ? '1 día' : `${days} días`);
+const daysText = (days) => (days === 1 ? t('1 día') : t('{days} días', { days }));
 
 /**
  * `15 de noviembre` a partir de `2026-11-15`.
@@ -203,7 +203,7 @@ const daysText = (days) => (days === 1 ? '1 día' : `${days} días`);
  * @returns {string}
  */
 function dayAndMonth(date) {
-  return new Intl.DateTimeFormat('es-CO', {
+  return new Intl.DateTimeFormat(dateLocale(), {
     day: 'numeric',
     month: 'long',
     timeZone: 'UTC',
@@ -221,27 +221,27 @@ export function planProgress(plan) {
   if (!plan?.ready) return null;
   if (plan.mode === 'daily') {
     if (plan.shortfall > 0) {
-      return `Te faltan ${money(plan.shortfall)} para tus pagos antes del ${dayAndMonth(plan.nextPay)}.`;
+      return t('Te faltan {shortfall} para tus pagos antes del {nextPay}.', { shortfall: money(plan.shortfall), nextPay: dayAndMonth(plan.nextPay) });
     }
     if (plan.dayStatus === 'over') {
-      return `Hoy te pasaste ${money(plan.overBy)} de tu límite de ${money(plan.perDay)}.`;
+      return t('Hoy te pasaste {overBy} de tu límite de {perDay}.', { overBy: money(plan.overBy), perDay: money(plan.perDay) });
     }
-    const left = `${money(plan.leftToday)} más`;
-    if (plan.dayStatus === 'near') return `Ya casi llegas: hoy puedes gastar ${left}.`;
-    return `Hoy puedes gastar ${left}; faltan ${daysText(plan.days)} para tu pago.`;
+    const left = t('{leftToday} más', { leftToday: money(plan.leftToday) });
+    if (plan.dayStatus === 'near') return t('Ya casi llegas: hoy puedes gastar {left}.', { left });
+    return t('Hoy puedes gastar {left}; faltan {days} para tu pago.', { left, days: daysText(plan.days) });
   }
   if (plan.mode === 'goal') {
-    const usual = plan.usualIncome ? ` (sueles hacer ${money(plan.usualIncome)})` : '';
+    const usual = plan.usualIncome ? t(' (sueles hacer {usualIncome})', { usualIncome: money(plan.usualIncome) }) : '';
     return [
-      `Hoy llevas ${money(plan.todayIncome)}${usual}.`,
-      `Para cubrir todo necesitas hacer ${money(plan.goal)} al día hasta ${plan.until} (${daysText(plan.days)}).`,
+      t('Hoy llevas {todayIncome}{usual}.', { todayIncome: money(plan.todayIncome), usual }),
+      t('Para cubrir todo necesitas hacer {goal} al día hasta {until} ({days}).', { goal: money(plan.goal), until: plan.until, days: daysText(plan.days) }),
     ].join('\n');
   }
   if (plan.shortfall > 0) {
-    return `Te faltan ${money(plan.shortfall)}. Revisa tus movimientos o corrige tu saldo en Rinde.`;
+    return t('Te faltan {shortfall}. Revisa tus movimientos o corrige tu saldo en Rinde.', { shortfall: money(plan.shortfall) });
   }
-  if (plan.runwayDays === null) return `Ya cubres tus pagos. Tienes libres ${money(plan.free)}.`;
-  return `Ya cubres tus pagos. Lo que tienes te alcanza para ${daysText(plan.runwayDays)} a tu ritmo.`;
+  if (plan.runwayDays === null) return t('Ya cubres tus pagos. Tienes libres {free}.', { free: money(plan.free) });
+  return t('Ya cubres tus pagos. Lo que tienes te alcanza para {runwayDays} a tu ritmo.', { runwayDays: daysText(plan.runwayDays) });
 }
 
 /**
@@ -378,7 +378,7 @@ export function createWhatsappService(deps = {}) {
   async function requestAccess(userId) {
     const current = await status(userId);
     if (!current.available) {
-      throw new AppError(403, 'FORBIDDEN', 'WhatsApp aún no está disponible para tu cuenta');
+      throw new AppError(403, 'FORBIDDEN', t('WhatsApp aún no está disponible para tu cuenta'));
     }
     if (current.access !== 'none' || !(await store.requestAccess(userId))) return current;
     const user = await findUser(userId);
@@ -410,12 +410,12 @@ export function createWhatsappService(deps = {}) {
    */
   async function setAccess(userId, access) {
     const email = await store.setAccess(userId, ACCESS_TO_DB[access]);
-    if (!email) throw new AppError(404, 'NOT_FOUND', 'Usuario no encontrado');
+    if (!email) throw new AppError(404, 'NOT_FOUND', t('Usuario no encontrado'));
     if (access !== 'approved') return;
-    const text = `Ya puedes anotar tus movimientos por WhatsApp.\nConecta tu número en ${env.appUrl}/app/cuenta`;
+    const text = t('Ya puedes anotar tus movimientos por WhatsApp.\nConecta tu número en {appUrl}/app/cuenta', { appUrl: env.appUrl });
     await mail({
       to: email,
-      subject: 'Ya tienes WhatsApp en Rinde',
+      subject: t('Ya tienes WhatsApp en Rinde'),
       text,
       html: `<p>${text.replaceAll('\n', '<br>')}</p>`,
     }).catch((err) => {
@@ -431,7 +431,7 @@ export function createWhatsappService(deps = {}) {
    */
   async function createLinkCode(userId) {
     if (!(await canUse(userId))) {
-      throw new AppError(403, 'FORBIDDEN', 'WhatsApp aún no está disponible para tu cuenta');
+      throw new AppError(403, 'FORBIDDEN', t('WhatsApp aún no está disponible para tu cuenta'));
     }
     const code = generateCode();
     const expiresAt = new Date(now().getTime() + LINK_CODE_MINUTES * 60 * 1000);
@@ -455,7 +455,8 @@ export function createWhatsappService(deps = {}) {
    */
   async function categoryName(userId, key) {
     const categories = await categoriesOf(userId);
-    return categories.find((c) => c.key === key)?.name ?? 'Sin clasificar';
+    const category = categories.find((c) => c.key === key);
+    return category?.custom ? category.name : categoryText(category?.name);
   }
 
   /**
@@ -471,8 +472,8 @@ export function createWhatsappService(deps = {}) {
     if (income.total === 0 && expense.total === 0 && savings.total === 0)
       return REPLIES.noMovements(month);
     const balance = Math.round((income.total - expense.total - savings.total) * 100) / 100;
-    const saved = savings.total > 0 ? `\nAhorro: ${money(savings.total)}` : '';
-    return `En ${month} llevas:\nIngresos: ${money(income.total)}\nGastos: ${money(expense.total)}${saved}\nBalance: ${money(balance)}`;
+    const saved = savings.total > 0 ? t('\nAhorro: {total}', { total: money(savings.total) }) : '';
+    return t('En {month} llevas:\nIngresos: {total}\nGastos: {total2}{saved}\nBalance: {balance}', { month, total: money(income.total), total2: money(expense.total), saved, balance: money(balance) });
   }
 
   /**
@@ -487,7 +488,7 @@ export function createWhatsappService(deps = {}) {
     if (expense.total === 0) return REPLIES.noExpenses(month);
     const [top] = expense.byCategory;
     const name = await categoryName(userId, top.category);
-    return `En ${month} has gastado ${money(expense.total)}.\nLo que más pesa: ${name}, ${money(top.total)}.`;
+    return t('En {month} has gastado {total}.\nLo que más pesa: {name}, {total2}.', { month, total: money(expense.total), name, total2: money(top.total) });
   }
 
   /**
@@ -557,6 +558,8 @@ export function createWhatsappService(deps = {}) {
     const parsed = parseSpokenTransaction(
       confirmed ? text.replace(CONFIRM_PREFIX, '') : text,
       new Date(`${today}T12:00:00`),
+      // «almuerzo 15» son 15 mil solo en pesos; en dólares son 15.
+      { smallMeansThousands: currentRegion().currency === 'COP', receivedLabel: t('Pago recibido') },
     );
     if (parsed.amount === null) return answer(userId, text, today);
     if (parsed.ambiguous) return REPLIES.severalAmounts;
@@ -573,9 +576,9 @@ export function createWhatsappService(deps = {}) {
       localId: `wa-${hashCode(id).slice(0, 61)}`,
     });
     const name = await categoryName(userId, saved.category);
-    const when = saved.date === today ? '' : ` del ${saved.date}`;
-    const what = saved.type === 'ingreso' ? 'ingreso' : 'gasto';
-    const done = `Guardé un ${what} de ${money(saved.amount)}${when} en ${name}.`;
+    const when = saved.date === today ? '' : t(' del {date}', { date: saved.date });
+    const what = saved.type === 'ingreso' ? t('un ingreso') : t('un gasto');
+    const done = t('Guardé {what} de {amount}{when} en {name}.', { what, amount: money(saved.amount), when, name });
     // Lo guardado ya quedó: si el avance falla, se responde sin él.
     const progress = await planOf(userId)
       .then(planProgress)
@@ -614,6 +617,20 @@ export function createWhatsappService(deps = {}) {
       await deliver(address, replies[result]);
       return;
     }
+    // El bot no pasa por la app: habla en el idioma y la moneda guardados de la persona.
+    const user = await findUser(userId);
+    await withRegion(user ?? {}, () => handleLinked(message, userId, address));
+  }
+
+  /**
+   * Sigue con el mensaje de un número conectado, ya en la región de la persona.
+   * @param {{ id: string, text: string|null }} message
+   * @param {string} userId
+   * @param {string} address A dónde se responde.
+   * @returns {Promise<void>}
+   */
+  async function handleLinked(message, userId, address) {
+    const { text } = message;
     // A quien se le quitó el acceso no se le responde: cada respuesta se cobra.
     if ((await accessOf(userId)).access !== 'approved') return;
     const used = await store.countRecentMessages(userId);

@@ -66,11 +66,11 @@ test('responde con los totales del mes actual y del anterior en las instruccione
     { from: '2026-09-01', to: '2026-09-30' },
   ]);
   assert.equal(state.budgetMonth, '2026-10');
-  assert.match(state.request.system, /Alimentación: \$420\.000/);
+  assert.match(state.request.system, /Alimentación: \$\s420\.000/);
   // El ahorro no suma a los gastos: se informa aparte.
   assert.match(
     state.request.system,
-    /ingresos \$1\.500\.000, gastos \$500\.000, ahorro \$200\.000/,
+    /ingresos \$\s1\.500\.000, gastos \$\s500\.000, ahorro \$\s200\.000/,
   );
   // La conversación viaja tal cual; los datos van en las instrucciones, no como mensaje.
   assert.deepEqual(state.request.messages, question);
@@ -91,8 +91,8 @@ test('ordena los gastos de mayor a menor y nombra las categorías', () => {
     budgets: [{ category: 'alimentacion', amount: 500000, consumed: 425000, percentage: 85 }],
     names: new Map([['alimentacion', 'Alimentación']]),
   });
-  assert.match(context, /Sin clasificar: \$1/);
-  assert.match(context, /Alimentación: límite \$500\.000, gastado \$425\.000 \(85 %\)/);
+  assert.match(context, /Sin clasificar: \$\s1/);
+  assert.match(context, /Alimentación: límite \$\s500\.000, gastado \$\s425\.000 \(85 %\)/);
 });
 
 test('funciona sin historial ni presupuestos (no exige un mes como los insights)', () => {

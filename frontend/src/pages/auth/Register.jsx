@@ -17,6 +17,7 @@ import { getReturnTo, invitationKind } from '@/auth/returnTo';
 import usePageTitle from '@/hooks/usePageTitle';
 import { registerSchema } from '@/lib/validation/auth';
 import { register as registerUser, resendVerification } from '@/services/authService';
+import { t } from '@/lib/i18n';
 
 /**
  * Pantalla de registro (Rinde v2): nombre, correo y una contraseña con su fuerza en vivo. Valida en el
@@ -24,7 +25,7 @@ import { register as registerUser, resendVerification } from '@/services/authSer
  * sesión hasta abrir el enlace que llega al correo (FT-0016).
  */
 export default function Register() {
-  usePageTitle('Crear cuenta');
+  usePageTitle(t('Crear cuenta'));
   const location = useLocation();
   const invitation = invitationKind(getReturnTo(location.state?.from));
   const [serverError, setServerError] = useState('');
@@ -52,23 +53,22 @@ export default function Register() {
       const { email } = await registerUser(data);
       setSentTo(email);
     } catch (err) {
-      setServerError(err.message || 'No pudimos crear tu cuenta. Inténtalo de nuevo.');
+      setServerError(err.message || t('No pudimos crear tu cuenta. Inténtalo de nuevo.'));
     }
   };
 
   if (sentTo) {
     return (
       <CheckInbox
-        title="Confirma tu correo"
+        title={t('Confirma tu correo')}
         subtitle={
           <>
-            Te enviamos un enlace a <strong className="font-medium text-white">{sentTo}</strong>. Ábrelo
-            para activar tu cuenta y entrar.
+            {t('Te enviamos un enlace a')} <strong className="font-medium text-white">{sentTo}</strong>{t('. Ábrelo para activar tu cuenta y entrar.')}
           </>
         }
         tips={[
-          'El enlace vence en 24 horas y sirve una sola vez.',
-          '¿No lo ves? Revisa las carpetas de spam o promociones.',
+          t('El enlace vence en 24 horas y sirve una sola vez.'),
+          t('¿No lo ves? Revisa las carpetas de spam o promociones.'),
         ]}
         onResend={() => resendVerification(sentTo)}
         onChangeEmail={() => setSentTo(null)}
@@ -78,7 +78,7 @@ export default function Register() {
             state={{ email: sentTo, from: location.state?.from }}
             className="font-medium text-violet-light transition-colors hover:text-white"
           >
-            Ya lo confirmé, iniciar sesión
+            {t('Ya lo confirmé, iniciar sesión')}
           </Link>
         }
       />
@@ -88,43 +88,43 @@ export default function Register() {
   return (
     <AuthLayout
       mode="register"
-      title="Que tu plata alcance"
-      subtitle="Crea tu cuenta en un minuto. Los campos con * son obligatorios."
+      title={t('Que tu plata alcance')}
+      subtitle={t('Crea tu cuenta en un minuto. Los campos con * son obligatorios.')}
       footer={
         <>
-          <span className="text-white/55">¿Ya tienes cuenta? </span>
+          <span className="text-white/55">{t('¿Ya tienes cuenta?')} </span>
           <Link
             to="/login"
             state={location.state?.from ? { from: location.state.from } : undefined}
             className="font-medium text-violet-light transition-colors hover:text-white"
           >
-            Inicia sesión
+            {t('Inicia sesión')}
           </Link>
         </>
       }
     >
       {invitation && (
         <p className="rounded-xl bg-violet/15 px-4 py-3 text-sm text-violet-light" role="status">
-          Te invitaron a {invitation === 'vaca' ? 'una vaca' : 'un negocio'}. Al crear tu cuenta e iniciar sesión te llevamos a la invitación.
+          {t('Te invitaron a')} {invitation === 'vaca' ? 'una vaca' : 'un negocio'}{t('. Al crear tu cuenta e iniciar sesión te llevamos a la invitación.')}
         </p>
       )}
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
         <div className="space-y-4">
-          <FormField id="name" label="¿Cómo te llamas? *" error={errors.name?.message}>
-            <Input autoComplete="given-name" placeholder="Tu nombre" maxLength={60} aria-required="true" {...register('name')} />
+          <FormField id="name" label={t('¿Cómo te llamas? *')} error={errors.name?.message}>
+            <Input autoComplete="given-name" placeholder={t('Tu nombre')} maxLength={60} aria-required="true" {...register('name')} />
           </FormField>
-          {!errors.name && <p className="-mt-2 text-xs text-white/55">Así te saludamos en la app.</p>}
+          {!errors.name && <p className="-mt-2 text-xs text-white/55">{t('Así te saludamos en la app.')}</p>}
 
-          <FormField id="email" label="Correo *" error={errors.email?.message}>
-            <Input type="email" autoComplete="email" inputMode="email" placeholder="tu@correo.com" aria-required="true" {...register('email')} />
+          <FormField id="email" label={t('Correo *')} error={errors.email?.message}>
+            <Input type="email" autoComplete="email" inputMode="email" placeholder={t('tu@correo.com')} aria-required="true" {...register('email')} />
           </FormField>
-          {!errors.email && <p className="-mt-2 text-xs text-white/55">Te enviamos un enlace para confirmarlo.</p>}
+          {!errors.email && <p className="-mt-2 text-xs text-white/55">{t('Te enviamos un enlace para confirmarlo.')}</p>}
 
           <div className="space-y-2">
-            <FormField id="password" label="Contraseña *" error={errors.password?.message}>
+            <FormField id="password" label={t('Contraseña *')} error={errors.password?.message}>
               <PasswordInput
                 autoComplete="new-password"
-                placeholder="Crea una contraseña"
+                placeholder={t('Crea una contraseña')}
                 aria-required="true"
                 aria-describedby="password-strength"
                 {...register('password')}
@@ -151,15 +151,15 @@ export default function Register() {
               )}
             />
             <Label htmlFor="acceptTerms" className="leading-snug text-white/55">
-              Soy mayor de edad y acepto los{' '}
+              {t('Soy mayor de edad y acepto los')}{' '}
               <Link to="/terminos" target="_blank" rel="noopener" className="text-violet-light underline underline-offset-4">
-                términos de uso
+                {t('términos de uso')}
               </Link>{' '}
-              y la{' '}
+              {t('y la')}{' '}
               <Link to="/privacidad" target="_blank" rel="noopener" className="text-violet-light underline underline-offset-4">
-                política de privacidad
+                {t('política de privacidad')}
               </Link>{' '}
-              de Rinde.
+              {t('de Rinde.')}
             </Label>
           </div>
           {errors.acceptTerms && (
@@ -177,7 +177,7 @@ export default function Register() {
 
         <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-          {isSubmitting ? 'Creando cuenta…' : 'Crear cuenta'}
+          {isSubmitting ? t('Creando cuenta…') : t('Crear cuenta')}
         </Button>
       </form>
 

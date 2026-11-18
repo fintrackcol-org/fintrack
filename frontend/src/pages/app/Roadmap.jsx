@@ -10,19 +10,20 @@ import usePageTitle from '@/hooks/usePageTitle';
 import { cn } from '@/lib/utils';
 import { getIdeas, sendIdea, setVote } from '@/services/ideasService';
 import { getProfile } from '@/services/userService';
+import { t } from '@/lib/i18n';
 
 export const MIN_IDEA_LENGTH = 5;
 export const MAX_IDEA_LENGTH = 120;
 
 const TABS = [
-  { key: 'upcoming', label: 'Próximamente' },
-  { key: 'done', label: 'Ya disponible' },
+  { key: 'upcoming', label: t('Próximamente') },
+  { key: 'done', label: t('Ya disponible') },
 ];
 
 const STATUS = {
-  planeada: { label: 'Planeada', className: 'bg-ink/5 text-ink/70' },
-  en_progreso: { label: 'En progreso', className: 'bg-brand-soft text-brand' },
-  lista: { label: 'Disponible', className: 'bg-positive/12 text-positive' },
+  planeada: { label: t('Planeada'), className: 'bg-ink/5 text-ink/70' },
+  en_progreso: { label: t('En progreso'), className: 'bg-brand-soft text-brand' },
+  lista: { label: t('Disponible'), className: 'bg-positive/12 text-positive' },
 };
 
 /**
@@ -64,14 +65,14 @@ function IdeaSheet({ open, onClose }) {
   };
 
   return (
-    <Sheet open={open} title="Pedir una función" description="¿Qué le falta a Rinde?" onClose={close}>
+    <Sheet open={open} title={t('Pedir una función')} description={t('¿Qué le falta a Rinde?')} onClose={close}>
       {sent ? (
         <div role="status">
           <p className="text-sm text-ink/70">
-            Gracias por tu idea. La revisamos y, si entra al plan, aparecerá aquí para que todos la voten.
+            {t('Gracias por tu idea. La revisamos y, si entra al plan, aparecerá aquí para que todos la voten.')}
           </p>
           <Button size="lg" className="mt-5 w-full" onClick={close}>
-            Listo
+            {t('Listo')}
           </Button>
         </div>
       ) : (
@@ -79,14 +80,14 @@ function IdeaSheet({ open, onClose }) {
           <textarea
             value={text}
             onChange={(event) => setText(event.target.value)}
-            aria-label="Tu idea"
-            placeholder="Por ejemplo: recordarme pagar el arriendo"
+            aria-label={t('Tu idea')}
+            placeholder={t('Por ejemplo: recordarme pagar el arriendo')}
             maxLength={MAX_IDEA_LENGTH}
             rows={3}
             className="w-full resize-none rounded-xl bg-field p-3 text-base text-ink ring-1 ring-field-line placeholder:text-ink/45 focus:outline-none focus:ring-brand/50"
           />
           <p className="mt-1 text-right text-xs tabular-nums text-ink/60">
-            {text.length} de {MAX_IDEA_LENGTH}
+            {text.length} {t('de')} {MAX_IDEA_LENGTH}
           </p>
           {error && (
             <p role="alert" className="mt-1 text-sm text-negative">
@@ -95,7 +96,7 @@ function IdeaSheet({ open, onClose }) {
           )}
           <Button type="submit" size="lg" className="mt-3 w-full" disabled={sending || !isValidIdea(text)}>
             {sending && <Loader2 className="animate-spin" aria-hidden="true" />}
-            {sending ? 'Enviando…' : 'Enviar idea'}
+            {sending ? t('Enviando…') : t('Enviar idea')}
           </Button>
         </form>
       )}
@@ -114,7 +115,7 @@ function IdeaRow({ idea, busy, onVote }) {
           onClick={() => onVote(idea)}
           disabled={busy}
           aria-pressed={idea.voted}
-          aria-label={`Votar por ${idea.title}. ${idea.votes} votos`}
+          aria-label={t('Votar por {title}. {votes} votos', { title: idea.title, votes: idea.votes })}
           className={cn(
             'grid h-14 w-12 shrink-0 place-items-center rounded-xl text-sm font-semibold tabular-nums ring-1 transition-colors focus-visible:outline-2 focus-visible:outline-violet disabled:opacity-60',
             idea.voted ? 'bg-brand-soft text-brand ring-brand/40' : 'ring-ink/15 hover:bg-ink/5',
@@ -139,7 +140,7 @@ function IdeaRow({ idea, busy, onVote }) {
  * por lo que aún no está y se piden funciones nuevas, que el equipo revisa antes de publicar.
  */
 export default function Roadmap() {
-  usePageTitle('Lo que viene');
+  usePageTitle(t('Lo que viene'));
   const { data, error, loading, reload } = useAsync(getIdeas, []);
   const profile = useAsync(getProfile, []);
   const [tab, setTab] = useState('upcoming');
@@ -164,21 +165,21 @@ export default function Roadmap() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
-        title="Lo que viene"
-        description="Vota por lo que quieres primero."
+        title={t('Lo que viene')}
+        description={t('Vota por lo que quieres primero.')}
         actions={
           <>
             {profile.data?.isAdmin && (
               <Button asChild variant="outline">
                 <Link to="/app/lo-que-viene/admin">
                   <Settings2 aria-hidden="true" />
-                  Administrar
+                  {t('Administrar')}
                 </Link>
               </Button>
             )}
             <Button onClick={() => setAsking(true)}>
               <Plus aria-hidden="true" />
-              Pedir una función
+              {t('Pedir una función')}
             </Button>
           </>
         }
@@ -215,14 +216,14 @@ export default function Roadmap() {
         {!error && loading && !data && (
           <p className="flex items-center gap-2 text-sm text-ink/60">
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-            Cargando…
+            {t('Cargando…')}
           </p>
         )}
         {data && ideas.length === 0 && (
           <div className="py-6 text-center">
             <Lightbulb className="mx-auto size-6 text-brand" aria-hidden="true" />
             <p className="mt-2 text-sm text-ink/60">
-              {tab === 'upcoming' ? 'Aún no hay ideas publicadas. Cuéntanos la tuya.' : 'Pronto verás aquí las novedades.'}
+              {tab === 'upcoming' ? t('Aún no hay ideas publicadas. Cuéntanos la tuya.') : t('Pronto verás aquí las novedades.')}
             </p>
           </div>
         )}

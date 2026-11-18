@@ -4,6 +4,7 @@
  */
 
 import { dayLabel } from './calendar';
+import { t } from '@/lib/i18n';
 
 /**
  * "20 nov" a partir de AAAA-MM-DD, sin corrimientos por zona horaria (el mismo del Calendario).
@@ -32,9 +33,9 @@ export function chartPoints(days, shortfallDate) {
 
 /** Tipos de pago que se pueden mover o reducir, con el texto de la sugerencia. */
 const MOVABLE = {
-  card: (name) => `Paga el mínimo de ${name} y abona el resto después.`,
-  compromiso: (name) => `Mira si puedes correr unos días «${name}».`,
-  deuda: (name) => `Habla con ${name} para pagarle por partes.`,
+  card: (name) => t('Paga el mínimo de {name} y abona el resto después.', { name }),
+  compromiso: (name) => t('Mira si puedes correr unos días «{name}».', { name }),
+  deuda: (name) => t('Habla con {name} para pagarle por partes.', { name }),
 };
 
 /**
@@ -49,13 +50,13 @@ export function avoidTips(liquidity, money) {
   if (risk !== 'falta' || !firstShortfall) return [];
   const tips = [];
   if (pace !== null && safeDailySpend > 0 && safeDailySpend < pace) {
-    tips.push(`Gasta máximo ${money(safeDailySpend)} al día (hoy gastas unos ${money(pace)}).`);
+    tips.push(t('Gasta máximo {safeDailySpend} al día (hoy gastas unos {pace}).', { safeDailySpend: money(safeDailySpend), pace: money(pace) }));
   }
   if (receivable > 0) {
     tips.push(
       receivable >= firstShortfall.missing
-        ? `Cobra lo que te deben (${money(receivable)}): con eso llegas.`
-        : `Cobra lo que te deben (${money(receivable)}): te faltaría menos.`,
+        ? t('Cobra lo que te deben ({receivable}): con eso llegas.', { receivable: money(receivable) })
+        : t('Cobra lo que te deben ({receivable}): te faltaría menos.', { receivable: money(receivable) }),
     );
   }
   const seen = new Set();

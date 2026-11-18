@@ -1,4 +1,5 @@
-/**
+
+import { dateLocale } from '@/lib/region';/**
  * Dictado con el reconocimiento de voz del navegador (Web Speech API), sin React, para poder
  * probarlo con un micrófono simulado. El navegador convierte la voz en texto (Chrome y Edge con
  * servidores de Google o Microsoft, Safari con los de Apple); Rinde solo recibe el texto.
@@ -52,7 +53,7 @@ export function speechErrorCode(error) {
  * @param {(state: SpeechState) => void} options.onChange
  * @returns {{ stop: () => void, cancel: () => void }}
  */
-export function startSpeechSession({ Recognition, online = true, lang = 'es-CO', onChange }) {
+export function startSpeechSession({ Recognition, online = true, lang = dateLocale(), onChange }) {
   const state = { status: 'listening', transcript: '', error: null };
   const emit = (patch) => {
     Object.assign(state, patch);

@@ -192,6 +192,29 @@ function checkCredentials(body) {
   return details.length ? error(422, 'VALIDATION_ERROR', 'Datos inválidos', details) : null;
 }
 
+/** Perfil de `GET /users/me`. Las cuentas de los mocks son de Colombia, en pesos y en español. */
+function mockProfile(user) {
+  // Sin datos propios, los mocks siguen la región guardada en el navegador (para probar otros idiomas).
+  let saved = {};
+  try {
+    saved = JSON.parse(localStorage.getItem('rinde.region')) ?? {};
+  } catch {
+    // Sin región guardada: Colombia.
+  }
+  user = { ...saved, ...user };
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name ?? null,
+    timezone: user.timezone,
+    isAdmin: true,
+    termsAccepted: true,
+    country: user.country ?? 'CO',
+    currency: user.currency ?? 'COP',
+    language: user.language ?? 'es',
+  };
+}
+
 /** Usuario dueño del Bearer token, o `null`. */
 function authUser(request) {
   const token = request.headers.get('Authorization')?.replace(/^Bearer /, '');
@@ -626,7 +649,31 @@ export const handlers = [
   http.get(`${API_V1}/users/me`, ({ request }) => {
     const user = authUser(request);
     if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
-    return HttpResponse.json({ id: user.id, email: user.email, timezone: user.timezone, isAdmin: true });
+    return HttpResponse.json(mockProfile(user));
+  }),
+
+  // Tasas de cambio: unas fijas de ejemplo (el servidor las trae de Frankfurter).
+  http.get(`${API_V1}/exchange-rates`, ({ request }) => {
+    if (!authUser(request)) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const url = new URL(request.url);
+    const [from, to] = [url.searchParams.get('from'), url.searchParams.get('to')];
+    const perUsd = { USD: 1, COP: 3319.65, MXN: 18.53, BRL: 5.74, EUR: 0.908, PEN: 3.41, CLP: 999.9, ARS: 1550, CNY: 7.1 };
+    if (!perUsd[from] || !perUsd[to]) return error(503, 'RATE_UNAVAILABLE', 'No pudimos traer la tasa de cambio. Escríbela tú.');
+    const date = url.searchParams.get('date') ?? new Date().toISOString().slice(0, 10);
+    return HttpResponse.json({ from, to, date, rate: Math.round((perUsd[to] / perUsd[from]) * 1e6) / 1e6, stale: false });
+  }),
+
+  // País, moneda principal, idioma o nombre. La moneda no cambia si ya hay movimientos (como el servidor).
+  http.patch(`${API_V1}/users/me`, async ({ request }) => {
+    const user = authUser(request);
+    if (!user) return error(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    const body = (await readJson(request)) ?? {};
+    const current = mockProfile(user);
+    if (body.currency && body.currency !== current.currency && (transactions.get(user.id) ?? []).length > 0) {
+      return error(409, 'CURRENCY_LOCKED', `Ya tienes movimientos en ${current.currency}: tu moneda principal no se puede cambiar`);
+    }
+    for (const field of ['name', 'country', 'currency', 'language']) if (field in body) user[field] = body[field];
+    return HttpResponse.json(mockProfile(user));
   }),
 
   http.get(`${API_V1}/categories`, ({ request }) => {
@@ -745,6 +792,9 @@ export const handlers = [
       // FT-0070: solo en gastos.
       emotion: body.type === 'gasto' ? (body.emotion ?? null) : null,
       kakeibo: body.type === 'gasto' ? (body.kakeibo ?? null) : null,
+      // En otra moneda el monto lo calcula el servidor: lo pagado allá × la tasa.
+      original: body.original ?? null,
+      ...(body.original && { amount: Math.round(body.original.amount * body.original.rate * 100) / 100 }),
       createdAt: now,
       updatedAt: now,
       deletedAt: null,

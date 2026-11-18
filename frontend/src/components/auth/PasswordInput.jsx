@@ -1,6 +1,7 @@
 import { forwardRef, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { t } from '@/lib/i18n';
 
 /** Campo de contraseña con botón para mostrar u ocultar el texto. */
 const PasswordInput = forwardRef((props, ref) => {
@@ -11,7 +12,7 @@ const PasswordInput = forwardRef((props, ref) => {
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
-        aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+        aria-label={visible ? t('Ocultar contraseña') : t('Mostrar contraseña')}
         aria-pressed={visible}
         className="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-xl text-white/45 transition-colors hover:text-white"
       >

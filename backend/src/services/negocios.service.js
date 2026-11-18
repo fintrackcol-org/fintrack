@@ -1,10 +1,12 @@
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
 import { findUserById } from '../repositories/users.repository.js';
+import { asUser } from './users.service.js';
 import * as repo from '../repositories/negocios.repository.js';
 import { sendBusinessInvitationEmail } from './mail.service.js';
 import { pushService } from './push.service.js';
 import { displayName, generateCode } from './vacas.service.js';
+import { t } from '../i18n/index.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_PARTNERS = 20;
@@ -22,12 +24,12 @@ const DEFAULT_ROLE = 'editor';
 
 /** @returns {AppError} 404: no existe o el usuario no es socio (no se revela cuál). */
 function notFound() {
-  return new AppError(404, 'NOT_FOUND', 'Negocio no encontrado');
+  return new AppError(404, 'NOT_FOUND', t('Negocio no encontrado'));
 }
 
 /** @returns {AppError} 403 para acciones de dueño. Solo se usa con socios. */
 function ownerOnly() {
-  return new AppError(403, 'FORBIDDEN', 'Solo un dueño del negocio puede hacer esto');
+  return new AppError(403, 'FORBIDDEN', t('Solo un dueño del negocio puede hacer esto'));
 }
 
 /** @returns {AppError} 409: el negocio se quedaría sin dueño. */
@@ -35,7 +37,7 @@ function lastOwner() {
   return new AppError(
     409,
     'LAST_OWNER',
-    'El negocio necesita al menos un dueño. Pásale el rol a otro socio primero.',
+    t('El negocio necesita al menos un dueño. Pásale el rol a otro socio primero.'),
   );
 }
 
@@ -139,13 +141,12 @@ async function loadDetail(userId, business) {
 /**
  * Envía un push a varios socios sin esperar ni fallar: las notificaciones son un extra.
  * @param {string[]} userIds
- * @param {{ title: string, body: string, url: string }} payload
+ * @param {() => { title: string, body: string, url: string }} payloadOf Arma el aviso en el idioma de cada socio.
  * @returns {void}
  */
-function notify(userIds, payload) {
+function notify(userIds, payloadOf) {
   for (const id of userIds) {
-    pushService
-      .sendToUser(id, payload)
+    asUser(id, () => pushService.sendToUser(id, payloadOf()))
       .catch((err) => console.error('No se pudo enviar el push del negocio', err));
   }
 }
@@ -231,7 +232,7 @@ export async function remove(userId, id) {
 export async function preview(userId, code) {
   const business = await repo.findBusinessByCode(code);
   if (!business) {
-    throw new AppError(404, 'NOT_FOUND', 'El código de invitación no existe o ya cambió');
+    throw new AppError(404, 'NOT_FOUND', t('El código de invitación no existe o ya cambió'));
   }
   const [member, user] = await Promise.all([
     repo.findBusinessForMember(business.id, userId),
@@ -259,12 +260,12 @@ export async function preview(userId, code) {
 export async function join(userId, code) {
   const business = await repo.findBusinessByCode(code);
   if (!business) {
-    throw new AppError(404, 'NOT_FOUND', 'El código de invitación no existe o ya cambió');
+    throw new AppError(404, 'NOT_FOUND', t('El código de invitación no existe o ya cambió'));
   }
   let joined = false;
   if (!(await repo.findBusinessForMember(business.id, userId))) {
     if (business.membersCount >= MAX_PARTNERS) {
-      throw new AppError(409, 'BUSINESS_FULL', `El negocio ya tiene ${MAX_PARTNERS} socios`);
+      throw new AppError(409, 'BUSINESS_FULL', t('El negocio ya tiene {MAX_PARTNERS} socios', { MAX_PARTNERS }));
     }
     const user = await findUserById(userId);
     const invitation = user ? await repo.findInvitation(business.id, user.email) : null;
@@ -276,11 +277,11 @@ export async function join(userId, code) {
       );
       notify(
         owners.map((p) => p.userId),
-        {
+        () => ({
           title: business.name,
-          body: `${displayName(user?.name, user?.email)} se unió al negocio.`,
+          body: t('{displayName} se unió al negocio.', { displayName: displayName(user?.name, user?.email) }),
           url: `/app/negocios/${business.id}`,
-        },
+        }),
       );
     }
   }
@@ -323,14 +324,14 @@ export async function invite(userId, id, { email, role }, mailer = sendBusinessI
   const business = await requireOwner(userId, id);
   const partners = await repo.listPartners(id);
   if (partners.some((p) => p.email.toLowerCase() === email)) {
-    throw new AppError(409, 'ALREADY_MEMBER', 'Esa persona ya es socia del negocio');
+    throw new AppError(409, 'ALREADY_MEMBER', t('Esa persona ya es socia del negocio'));
   }
   const pending = await repo.findInvitation(id, email);
   if (!pending && (await repo.countInvitations(id)) >= MAX_INVITATIONS) {
     throw new AppError(
       409,
       'TOO_MANY_INVITATIONS',
-      'Hay demasiadas invitaciones pendientes. Cancela alguna primero.',
+      t('Hay demasiadas invitaciones pendientes. Cancela alguna primero.'),
     );
   }
   const invitation = await repo.upsertInvitation({
@@ -355,7 +356,7 @@ export async function invite(userId, id, { email, role }, mailer = sendBusinessI
       throw new AppError(
         503,
         'EMAIL_UNAVAILABLE',
-        'No pudimos enviar el correo. Comparte el enlace mientras tanto.',
+        t('No pudimos enviar el correo. Comparte el enlace mientras tanto.'),
       );
     });
   }
@@ -377,7 +378,7 @@ export async function invite(userId, id, { email, role }, mailer = sendBusinessI
 export async function cancelInvitation(userId, id, email) {
   await requireOwner(userId, id);
   if (!(await repo.deleteInvitation(id, email))) {
-    throw new AppError(404, 'NOT_FOUND', 'Invitación no encontrada');
+    throw new AppError(404, 'NOT_FOUND', t('Invitación no encontrada'));
   }
 }
 
@@ -392,18 +393,18 @@ export async function cancelInvitation(userId, id, email) {
  */
 export async function updatePartner(userId, id, partnerId, changes) {
   await requireOwner(userId, id);
-  if (!UUID_RE.test(partnerId)) throw new AppError(404, 'NOT_FOUND', 'Socio no encontrado');
+  if (!UUID_RE.test(partnerId)) throw new AppError(404, 'NOT_FOUND', t('Socio no encontrado'));
   const partners = await repo.listPartners(id);
   if (!partners.some((p) => p.userId === partnerId)) {
-    throw new AppError(404, 'NOT_FOUND', 'Socio no encontrado');
+    throw new AppError(404, 'NOT_FOUND', t('Socio no encontrado'));
   }
   if (changes.role && ownersAfter(partners, partnerId, changes.role) === 0) throw lastOwner();
   if ('share' in changes && totalShareWith(partners, partnerId, changes.share) > 100) {
     const free = 100 - totalShareWith(partners, partnerId, 0);
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
       {
         field: 'share',
-        problem: `Las participaciones no pueden pasar de 100 %. Queda ${Math.max(free, 0)} % libre.`,
+        problem: t('Las participaciones no pueden pasar de 100 %. Queda {free} % libre.', { free: Math.max(free, 0) }),
       },
     ]);
   }
@@ -424,7 +425,7 @@ export async function removePartner(userId, id, partnerId) {
   if (partnerId !== userId && business.role !== 'dueno') throw ownerOnly();
   const partners = await repo.listPartners(id);
   if (!UUID_RE.test(partnerId) || !partners.some((p) => p.userId === partnerId)) {
-    throw new AppError(404, 'NOT_FOUND', 'Socio no encontrado');
+    throw new AppError(404, 'NOT_FOUND', t('Socio no encontrado'));
   }
   if (partners.length === 1) {
     await repo.deleteBusiness(id);

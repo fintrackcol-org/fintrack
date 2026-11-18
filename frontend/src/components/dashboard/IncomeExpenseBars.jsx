@@ -1,9 +1,8 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { formatMoney } from '@/components/transactions/format';
+import { formatMoney, formatMoneyCompact } from '@/components/transactions/format';
 
 /** Montos cortos para el eje Y: `$ 850 mil`, `$ 1,2 M`. */
-const compact = new Intl.NumberFormat('es-CO', { notation: 'compact', maximumFractionDigits: 1 });
-const formatAxis = (value) => (value === 0 ? '0' : `$ ${compact.format(value)}`);
+const formatAxis = (value) => (value === 0 ? '0' : formatMoneyCompact(value));
 
 /**
  * Cuadro que aparece al pasar el mouse (o tocar) una columna: fecha, ingresos y gastos.

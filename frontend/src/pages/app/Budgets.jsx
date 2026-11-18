@@ -15,6 +15,7 @@ import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { createBudget, deleteBudget, listBudgets, updateBudget } from '@/services/budgetService';
 import { CATEGORIES_CHANGED_EVENT, applyCategoryChange, getCategories } from '@/services/transactionService';
+import { t } from '@/lib/i18n';
 
 /**
  * Suma de los topes del mes y cuánto va gastado en ellos, con la línea de avance.
@@ -26,16 +27,16 @@ function BudgetsTotal({ budgets }) {
   const share = limit > 0 ? Math.min(spent / limit, 1) : 0;
   return (
     <div className="flex flex-col gap-2.5 rounded-2xl bg-surface p-4 ring-1 ring-ink/10">
-      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink/60">Topes del mes</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink/60">{t('Topes del mes')}</p>
       <p className="flex items-baseline justify-between gap-3">
         <span className="text-[22px] font-extrabold tracking-tight tabular-nums">{formatMoney(limit)}</span>
         <span className="text-[13px] text-ink/60 tabular-nums">
-          llevas {formatMoney(spent)} · {Math.round(share * 100)} %
+          {t('llevas')} {formatMoney(spent)} · {Math.round(share * 100)} %
         </span>
       </p>
       <span
         role="meter"
-        aria-label="Gastado de todos los topes"
+        aria-label={t('Gastado de todos los topes')}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(share * 100)}
@@ -53,7 +54,7 @@ function BudgetsTotal({ budgets }) {
  * Necesita conexión: sin ella desactiva los cambios (el aviso lo muestra el marco de la app).
  */
 export default function Budgets() {
-  usePageTitle('Presupuestos');
+  usePageTitle(t('Presupuestos'));
   const online = useOnlineStatus();
   const mobile = useMediaQuery('(width < 48rem)');
   const [formOpen, setFormOpen] = useState(false);
@@ -120,11 +121,11 @@ export default function Budgets() {
   const handleSubmit = async ({ category, amount }) => {
     if (editing) {
       await updateBudget(editing.id, amount);
-      setNotice(`Límite de ${categoryNames[editing.category] ?? editing.category} actualizado.`);
+      setNotice(t('Límite de {v1} actualizado.', { v1: categoryNames[editing.category] ?? editing.category }));
       setEditing(null);
     } else {
       await createBudget({ category, month, amount });
-      setNotice(`Presupuesto de ${categoryNames[category] ?? category} creado.`);
+      setNotice(t('Presupuesto de {v1} creado.', { v1: categoryNames[category] ?? category }));
     }
     reload();
   };
@@ -133,7 +134,7 @@ export default function Budgets() {
     try {
       await deleteBudget(budget.id);
       if (editing?.id === budget.id) setEditing(null);
-      setNotice(`Presupuesto de ${categoryNames[budget.category] ?? budget.category} eliminado.`);
+      setNotice(t('Presupuesto de {v1} eliminado.', { v1: categoryNames[budget.category] ?? budget.category }));
       reload();
     } catch (err) {
       setError(err.message);
@@ -155,18 +156,18 @@ export default function Budgets() {
     <>
       <div className="max-md:hidden">
         <PageHeader
-          title="Presupuestos"
-          description="Un límite por categoría para cada mes. Te avisamos al 80 % y al pasarte."
+          title={t('Presupuestos')}
+          description={t('Un límite por categoría para cada mes. Te avisamos al 80 % y al pasarte.')}
         />
       </div>
       <div className="mb-5 md:hidden">
-        <h1 className="text-2xl font-bold tracking-tight">Tus presupuestos</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('Tus presupuestos')}</h1>
         <div className="-ml-2 flex items-center gap-1 text-[15px] text-ink/70">
-          <button type="button" className="grid size-11 place-items-center" onClick={() => changeMonth(-1)} aria-label="Mes anterior">
+          <button type="button" className="grid size-11 place-items-center" onClick={() => changeMonth(-1)} aria-label={t('Mes anterior')}>
             <ChevronLeft className="size-4" aria-hidden="true" />
           </button>
           <span className="first-letter:uppercase">{monthLabel}</span>
-          <button type="button" className="grid size-11 place-items-center" onClick={() => changeMonth(1)} aria-label="Mes siguiente">
+          <button type="button" className="grid size-11 place-items-center" onClick={() => changeMonth(1)} aria-label={t('Mes siguiente')}>
             <ChevronRight className="size-4" aria-hidden="true" />
           </button>
         </div>
@@ -178,13 +179,13 @@ export default function Budgets() {
         <BudgetAlert budgets={budgets} names={categoryNames} linked={false} />
         <Button size="lg" onClick={() => (setEditing(null), showForm())} disabled={!online}>
           <Plus aria-hidden="true" />
-          Nuevo presupuesto
+          {t('Nuevo presupuesto')}
         </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
         {mobile ? (
-          <Sheet open={formOpen} title={editing ? 'Cambiar límite' : 'Nuevo presupuesto'} onClose={closeForm}>
+          <Sheet open={formOpen} title={editing ? t('Cambiar límite') : t('Nuevo presupuesto')} onClose={closeForm}>
             <BudgetForm
               categories={categories}
               usedCategories={budgets.map((b) => b.category)}
@@ -201,7 +202,7 @@ export default function Budgets() {
         ) : (
           <Panel aria-labelledby="form-title" className="h-fit scroll-mt-4 lg:sticky lg:top-8">
             <h2 id="form-title" className="mb-5 text-lg font-semibold tracking-tight">
-              {editing ? 'Cambiar límite' : 'Nuevo presupuesto'}
+              {editing ? t('Cambiar límite') : t('Nuevo presupuesto')}
             </h2>
             <BudgetForm
               categories={categories}
@@ -217,13 +218,13 @@ export default function Budgets() {
 
         <Panel aria-labelledby="list-title" className="max-md:p-3.5 max-md:py-0">
           <div className="flex items-center justify-between gap-2 max-md:hidden">
-            <Button size="icon" variant="ghost" onClick={() => changeMonth(-1)} aria-label="Mes anterior">
+            <Button size="icon" variant="ghost" onClick={() => changeMonth(-1)} aria-label={t('Mes anterior')}>
               <ChevronLeft aria-hidden="true" />
             </Button>
             <h2 id="list-title" className="text-center text-lg font-semibold tracking-tight first-letter:uppercase">
               {monthLabel}
             </h2>
-            <Button size="icon" variant="ghost" onClick={() => changeMonth(1)} aria-label="Mes siguiente">
+            <Button size="icon" variant="ghost" onClick={() => changeMonth(1)} aria-label={t('Mes siguiente')}>
               <ChevronRight aria-hidden="true" />
             </Button>
           </div>
@@ -235,7 +236,7 @@ export default function Budgets() {
             <p role="alert" className="mt-2 text-sm text-negative">
               {error}{' '}
               <button type="button" className="underline" onClick={reload}>
-                Reintentar
+                {t('Reintentar')}
               </button>
             </p>
           )}
@@ -243,13 +244,12 @@ export default function Budgets() {
           <div className="mt-2 max-md:mt-0" aria-busy={loading}>
             {loading && budgets.length === 0 ? (
               <p className="flex items-center gap-2 py-10 text-ink/60">
-                <Loader2 className="animate-spin" aria-hidden="true" /> Cargando…
+                <Loader2 className="animate-spin" aria-hidden="true" /> {t('Cargando…')}
               </p>
             ) : budgets.length === 0 ? (
               // Si la carga falló (p. ej. sin conexión) no se sabe si hay presupuestos: solo queda el error.
               !error && <p className="py-10 text-center text-ink/60">
-                No tienes presupuestos en {monthLabel}. Crea uno para ver cuánto llevas gastado en
-                esa categoría.
+                {t('No tienes presupuestos en')} {monthLabel}{t('. Crea uno para ver cuánto llevas gastado en esa categoría.')}
               </p>
             ) : (
               <BudgetList

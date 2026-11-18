@@ -4,42 +4,43 @@ import Logo, { Wordmark } from '@/components/common/Logo';
 import { useTour } from '@/components/home/tour/GuidedTour';
 import useApiHealth from '@/hooks/useApiHealth';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 const COLUMNS = [
   {
-    title: 'Producto',
+    title: t('Producto'),
     links: [
-      { href: '#funcionalidades', label: 'Funcionalidades' },
-      { href: '#alertas', label: 'Alertas' },
-      { href: '#app', label: 'App instalable' },
-      { href: '#seguridad', label: 'Seguridad' },
+      { href: '#funcionalidades', label: t('Funcionalidades') },
+      { href: '#alertas', label: t('Alertas') },
+      { href: '#app', label: t('App instalable') },
+      { href: '#seguridad', label: t('Seguridad') },
     ],
   },
   {
-    title: 'Recursos',
+    title: t('Recursos'),
     links: [
-      { href: '#como-funciona', label: 'Cómo funciona' },
-      { href: '#faq', label: 'Preguntas frecuentes' },
-      { tour: true, label: 'Escuchar el recorrido' },
+      { href: '#como-funciona', label: t('Cómo funciona') },
+      { href: '#faq', label: t('Preguntas frecuentes') },
+      { tour: true, label: t('Escuchar el recorrido') },
     ],
   },
   {
-    title: 'Legal',
+    title: t('Legal'),
     links: [
-      { to: '/terminos', label: 'Términos de uso' },
-      { to: '/privacidad', label: 'Política de privacidad' },
+      { to: '/terminos', label: t('Términos de uso') },
+      { to: '/privacidad', label: t('Política de privacidad') },
     ],
   },
   {
-    title: 'Cuenta',
+    title: t('Cuenta'),
     links: [
-      { to: '/login', label: 'Iniciar sesión' },
-      { to: '/registro', label: 'Crear cuenta' },
+      { to: '/login', label: t('Iniciar sesión') },
+      { to: '/registro', label: t('Crear cuenta') },
     ],
   },
 ];
 
-const STATUS_LABEL = { loading: 'Verificando API…', ok: 'API operativa', error: 'API sin conexión' };
+const STATUS_LABEL = { loading: t('Verificando API…'), ok: t('API operativa'), error: t('API sin conexión') };
 const STATUS_DOT = { loading: 'bg-white/40 animate-pulse', ok: 'bg-success', error: 'bg-destructive' };
 
 /** Enlace del pie: gris que se pone blanco y se corre un poco a la derecha. */
@@ -61,9 +62,9 @@ export default function Footer() {
         <div className="col-span-2 max-w-xs md:col-span-1">
           <Logo />
           <p className="mt-4 text-white/65">
-            Registra tus gastos, controla tu presupuesto y sincroniza tus datos, incluso sin conexión.
+            {t('Registra tus gastos, controla tu presupuesto y sincroniza tus datos, incluso sin conexión.')}
           </p>
-          <p className="mt-6 text-sm text-white/40">Proyecto académico · Universidad Surcolombiana</p>
+          <p className="mt-6 text-sm text-white/40">{t('Proyecto académico · Universidad Surcolombiana')}</p>
         </div>
 
         {COLUMNS.map((col) => (
@@ -98,7 +99,7 @@ export default function Footer() {
       </div>
 
       <div className="container-page relative flex flex-col gap-4 border-t border-white/10 py-6 text-sm text-white/55 sm:flex-row sm:items-center sm:justify-between">
-        <p>© {new Date().getFullYear()} Rinde</p>
+        <p>© {new Date().getFullYear()} {t('Rinde')}</p>
         <div className="flex flex-wrap items-center gap-3">
           <p className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5" role="status">
             <span className={cn('size-2 rounded-full', STATUS_DOT[apiStatus])} />
@@ -109,7 +110,7 @@ export default function Footer() {
             onClick={toTop}
             className="group inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-white/70 transition-colors hover:border-white/30 hover:text-white"
           >
-            Volver arriba
+            {t('Volver arriba')}
             <ArrowUp className="size-4 transition-transform group-hover:-translate-y-0.5" aria-hidden="true" />
           </button>
         </div>

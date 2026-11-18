@@ -2,22 +2,23 @@
  * Textos de las cuentas por cobrar y por pagar del negocio (FT-0058).
  */
 import { dayLabel } from '@/lib/calendar';
+import { t } from '@/lib/i18n';
 
 export const ACCOUNT_TABS = [
-  { value: 'receivable', label: 'Por cobrar' },
-  { value: 'payable', label: 'Por pagar' },
+  { value: 'receivable', label: t('Por cobrar') },
+  { value: 'payable', label: t('Por pagar') },
 ];
 
 /** Cómo entra al negocio cada abono, según el tipo de cuenta. */
 export const PAYMENT_KIND_OPTIONS = {
   receivable: [
-    { value: 'sale', label: 'Venta' },
-    { value: 'otherIncome', label: 'Otro ingreso' },
+    { value: 'sale', label: t('Venta') },
+    { value: 'otherIncome', label: t('Otro ingreso') },
   ],
   payable: [
-    { value: 'cost', label: 'Costo de venta' },
-    { value: 'variable', label: 'Gasto variable' },
-    { value: 'fixed', label: 'Gasto fijo' },
+    { value: 'cost', label: t('Costo de venta') },
+    { value: 'variable', label: t('Gasto variable') },
+    { value: 'fixed', label: t('Gasto fijo') },
   ],
 };
 
@@ -36,13 +37,13 @@ const daysBetween = (from, to) =>
  * @returns {string}
  */
 export function dueText({ status, dueDate }, today) {
-  if (status === 'pagada') return 'Pagada';
-  if (!dueDate) return 'Sin fecha';
+  if (status === 'pagada') return t('Pagada');
+  if (!dueDate) return t('Sin fecha');
   const days = daysBetween(today, dueDate);
-  if (days === 0) return 'Vence hoy';
-  if (days === 1) return 'Vence mañana';
-  if (days > 0) return `Vence el ${dayLabel(dueDate)}`;
-  return days === -1 ? 'Venció ayer' : `Venció hace ${-days} días`;
+  if (days === 0) return t('Vence hoy');
+  if (days === 1) return t('Vence mañana');
+  if (days > 0) return t('Vence el {dueDate}', { dueDate: dayLabel(dueDate) });
+  return days === -1 ? t('Venció ayer') : t('Venció hace {v1} días', { v1: -days });
 }
 
 /**

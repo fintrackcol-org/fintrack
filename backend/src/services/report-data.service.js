@@ -3,6 +3,7 @@ import { listForExport } from '../repositories/transactions.repository.js';
 import { findUserById } from '../repositories/users.repository.js';
 import * as budgets from './budgets.service.js';
 import { addDays } from './liquidity.logic.js';
+import { categoryText, currencyDigits, dateLocale, formatMoney, numberLocale, t } from '../i18n/index.js';
 
 const DEFAULT_TIMEZONE = 'America/Bogota';
 const TOP_EXPENSES = 5;
@@ -45,7 +46,7 @@ export function daysBetween(from, to) {
 function byCategory(rows, total) {
   const groups = new Map();
   for (const row of rows) {
-    const name = row.categoryName ?? 'Sin clasificar';
+    const name = categoryText(row.categoryName);
     const group = groups.get(name) ?? { name, amount: 0, count: 0 };
     group.amount += row.amount;
     group.count += 1;
@@ -56,36 +57,26 @@ function byCategory(rows, total) {
     .sort((a, b) => b.amount - a.amount);
 }
 
-const moneyFormat = new Intl.NumberFormat('es-CO', {
-  style: 'currency',
-  currency: 'COP',
-  maximumFractionDigits: 0,
-});
-const percentFormat = new Intl.NumberFormat('es-CO', {
-  style: 'percent',
-  maximumFractionDigits: 1,
-});
-
 /**
  * @param {number} n
- * @returns {string} Pesos sin decimales, p. ej. `$ 18.000`.
+ * @returns {string} En la moneda principal, sin decimales, p. ej. `$ 18.000`.
  */
-export const money = (n) => moneyFormat.format(n);
+export const money = (n) => formatMoney(n, { digits: currencyDigits() });
 
 /**
  * @param {number} n Proporción (0.445 = 44,5 %).
  * @returns {string}
  */
-export const percent = (n) => percentFormat.format(n);
+export const percent = (n) => new Intl.NumberFormat(numberLocale(), { style: 'percent', maximumFractionDigits: 1 }).format(n);
 
 /**
  * @param {string} iso AAAA-MM-DD
  * @param {Intl.DateTimeFormatOptions} options
- * @returns {string} Fecha en español sin pasar por la zona horaria del servidor.
+ * @returns {string} Fecha en el idioma de la persona, sin pasar por la zona horaria del servidor.
  */
 export const dateText = (iso, options) => {
   const [y, m, d] = iso.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('es-CO', {
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(dateLocale(), {
     ...options,
     timeZone: 'UTC',
   });
@@ -165,33 +156,33 @@ export function buildInsights({ totals, expenseByCategory, topExpenseDay }) {
   if (top) {
     insights.push({
       kind: 'top-category',
-      title: `${top.name} fue la categoría con más gasto`,
-      detail: `${money(top.amount)}, el ${percent(top.share)} de tus gastos.`,
+      title: t('{name} fue la categoría con más gasto', { name: top.name }),
+      detail: t('{amount}, el {share} de tus gastos.', { amount: money(top.amount), share: percent(top.share) }),
     });
   }
   if (totals.balance !== 0) {
     const positive = totals.balance > 0;
     const share =
-      positive && totals.income > 0 ? `, el ${percent(totals.savingsRate)} de tus ingresos` : '';
+      positive && totals.income > 0 ? t(', el {savingsRate} de tus ingresos', { savingsRate: percent(totals.savingsRate) }) : '';
     insights.push({
       kind: 'balance',
-      title: positive ? 'Entró más de lo que salió' : 'Salió más de lo que entró',
-      detail: `${positive ? 'Ingresos menos gastos' : 'Gastos menos ingresos'}: ${money(Math.abs(totals.balance))}${share}. Es el balance del periodo, no tu saldo en el banco.`,
+      title: positive ? t('Entró más de lo que salió') : t('Salió más de lo que entró'),
+      detail: t('{v1}: {money}{share}. Es el balance del periodo, no tu saldo en el banco.', { v1: positive ? 'Ingresos menos gastos' : 'Gastos menos ingresos', money: money(Math.abs(totals.balance)), share }),
     });
   }
   if (topExpenseDay) {
     const n = topExpenseDay.count;
     insights.push({
       kind: 'top-day',
-      title: `El ${dateText(topExpenseDay.date, { day: 'numeric', month: 'long' })} fue el día de mayor gasto`,
-      detail: `${money(topExpenseDay.amount)} en ${n} ${n === 1 ? 'movimiento' : 'movimientos'}.`,
+      title: t('El {date} fue el día de mayor gasto', { date: dateText(topExpenseDay.date, { day: 'numeric', month: 'long' }) }),
+      detail: t('{amount} en {n} {v3}.', { amount: money(topExpenseDay.amount), n, v3: n === 1 ? 'movimiento' : 'movimientos' }),
     });
   }
   if (expenseByCategory.length >= CONCENTRATION_FROM) {
     const three = expenseByCategory.slice(0, 3);
     insights.push({
       kind: 'concentration',
-      title: `Tres categorías concentran el ${percent(three.reduce((s, c) => s + c.share, 0))} del gasto`,
+      title: t('Tres categorías concentran el {percent} del gasto', { percent: percent(three.reduce((s, c) => s + c.share, 0)) }),
       detail: `${three.map((c) => c.name).join(', ')}.`,
     });
   }

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useReducedMotion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /**
  * Pasos del tutorial (FT-0071). `target` es el `data-tour` del elemento que se resalta; si no está en
@@ -13,50 +14,50 @@ export const TOUR_STEPS = [
   {
     tramo: 'corto',
     target: 'saldo',
-    title: 'Esto es lo que te queda',
-    text: 'La cifra grande es tu plata del mes. La línea muestra hasta qué día te alcanza, y la moneda verde es donde llega.',
+    title: t('Esto es lo que te queda'),
+    text: t('La cifra grande es tu plata del mes. La línea muestra hasta qué día te alcanza, y la moneda verde es donde llega.'),
   },
   {
     tramo: 'corto',
     target: 'anotar',
-    title: 'Anota en dos toques',
-    text: 'Pon cuánto fue y en qué, o dilo con el micrófono: «taxi 9 mil» llena las dos casillas y la IA elige la categoría. También puedes anotar por WhatsApp.',
+    title: t('Anota en dos toques'),
+    text: t('Pon cuánto fue y en qué, o dilo con el micrófono: «taxi 9 mil» llena las dos casillas y la IA elige la categoría. También puedes anotar por WhatsApp.'),
   },
   {
     tramo: 'corto',
     target: 'totales',
-    title: 'Ingresos y Gastos se tocan',
-    text: 'Ábrelos para ver en qué se fue cada peso y cuánto te entró este mes.',
+    title: t('Ingresos y Gastos se tocan'),
+    text: t('Ábrelos para ver en qué se fue cada peso y cuánto te entró este mes.'),
   },
   {
     tramo: 'corto',
     target: 'graficos',
-    title: 'En qué gastas y cómo van tus topes',
-    text: 'Mira tus categorías más altas y tus presupuestos. Si uno pasa del 90 %, se pone rojo.',
+    title: t('En qué gastas y cómo van tus topes'),
+    text: t('Mira tus categorías más altas y tus presupuestos. Si uno pasa del 90 %, se pone rojo.'),
   },
   {
     tramo: 'corto',
     target: 'metas',
-    title: 'Tus metas de ahorro',
-    text: 'Ponle nombre y fecha a lo que quieres y Rinde te dice cuánto apartar cada semana.',
+    title: t('Tus metas de ahorro'),
+    text: t('Ponle nombre y fecha a lo que quieres y Rinde te dice cuánto apartar cada semana.'),
   },
   {
     tramo: 'pregunta',
     target: null,
-    title: '¿Quieres ver lo demás?',
-    text: 'Hay más en Mi plata: presupuestos con pagos fijos y recordatorios, calendario, cuentas con personas, tarjetas y consejos de la IA.',
+    title: t('¿Quieres ver lo demás?'),
+    text: t('Hay más en Mi plata: presupuestos con pagos fijos y recordatorios, calendario, cuentas con personas, tarjetas y consejos de la IA.'),
   },
   {
     tramo: 'largo',
     target: 'mi-plata',
-    title: 'Mi plata reúne lo demás',
-    text: 'Presupuestos y pagos fijos, calendario, cuentas con personas, tarjetas, por confirmar, liquidez y consejos. Todo a un toque.',
+    title: t('Mi plata reúne lo demás'),
+    text: t('Presupuestos y pagos fijos, calendario, cuentas con personas, tarjetas, por confirmar, liquidez y consejos. Todo a un toque.'),
   },
   {
     tramo: 'largo',
     target: 'cuenta',
-    title: 'Tu cuenta',
-    text: 'Conecta WhatsApp, cambia a modo oscuro o repite este tutorial cuando quieras.',
+    title: t('Tu cuenta'),
+    text: t('Conecta WhatsApp, cambia a modo oscuro o repite este tutorial cuando quieras.'),
   },
 ];
 
@@ -200,11 +201,11 @@ export default function CoachTour({ onClose }) {
   let label = '';
   let dots = [];
   if (step.tramo === 'corto') {
-    label = `Paso ${index + 1} de ${corto.length}`;
+    label = t('Paso {v1} de {length}', { v1: index + 1, length: corto.length });
     dots = corto.map((_, k) => ({ current: k === index, done: k <= index, tone: 'bg-brand' }));
   } else if (step.tramo === 'largo') {
     const k0 = index - firstLong;
-    label = `Lo demás · ${k0 + 1} de ${largo.length}`;
+    label = t('Lo demás · {v1} de {length}', { v1: k0 + 1, length: largo.length });
     dots = largo.map((_, k) => ({ current: k === k0, done: k <= k0, tone: 'bg-success' }));
   }
   // Solo transform: mover top/left recalcula el layout en cada cuadro.
@@ -217,7 +218,7 @@ export default function CoachTour({ onClose }) {
       <button
         type="button"
         tabIndex={-1}
-        aria-label="Cerrar el tutorial"
+        aria-label={t('Cerrar el tutorial')}
         onClick={() => close()}
         className="absolute inset-0 cursor-default bg-black/55 backdrop-blur-[3px]"
         style={{ maskImage: maskFor(hole, viewport.w, viewport.h), WebkitMaskImage: maskFor(hole, viewport.w, viewport.h) }}
@@ -248,7 +249,7 @@ export default function CoachTour({ onClose }) {
             onClick={() => close()}
             className="-mr-2 min-h-11 rounded-full px-3 text-sm font-semibold text-ink/60 hover:text-ink focus-visible:outline-2 focus-visible:outline-violet"
           >
-            Omitir
+            {t('Omitir')}
           </button>
         </div>
         <h2 id={titleId} className="mt-1 text-lg font-semibold tracking-tight">
@@ -271,19 +272,19 @@ export default function CoachTour({ onClose }) {
           {step.tramo === 'pregunta' ? (
             <>
               <Button variant="outline" className="ml-auto" onClick={() => close(true)}>
-                Ya entendí
+                {t('Ya entendí')}
               </Button>
-              <Button onClick={next}>Ver lo demás</Button>
+              <Button onClick={next}>{t('Ver lo demás')}</Button>
             </>
           ) : (
             <>
               {index > 0 && (
                 <Button variant="ghost" className="text-brand" onClick={back}>
-                  Atrás
+                  {t('Atrás')}
                 </Button>
               )}
               <Button onClick={next} className={cn(dots.length === 0 && 'ml-auto')}>
-                {index === TOUR_STEPS.length - 1 ? 'Listo' : 'Siguiente'}
+                {index === TOUR_STEPS.length - 1 ? t('Listo') : t('Siguiente')}
               </Button>
             </>
           )}

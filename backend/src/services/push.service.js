@@ -12,6 +12,7 @@ import {
 } from '../repositories/reminders.repository.js';
 import { notifications } from './notifications.service.js';
 import { createPushSender } from './push-sender.service.js';
+import { t } from '../i18n/index.js';
 
 /**
  * @typedef {object} ReminderSettingsResponse
@@ -58,7 +59,7 @@ export function createPushService(deps = {}) {
   function requireSettings(settings) {
     if (!settings) {
       // El token es válido pero la cuenta ya no existe.
-      throw new AppError(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+      throw new AppError(401, 'UNAUTHORIZED', t('Token inválido o ausente'));
     }
     return {
       times: settings.times,
@@ -71,7 +72,7 @@ export function createPushService(deps = {}) {
   return {
     getVapidPublicKey() {
       if (!vapidPublicKey) {
-        throw new AppError(500, 'INTERNAL_ERROR', 'Las notificaciones push no están configuradas');
+        throw new AppError(500, 'INTERNAL_ERROR', t('Las notificaciones push no están configuradas'));
       }
       return { key: vapidPublicKey };
     },
@@ -82,7 +83,7 @@ export function createPushService(deps = {}) {
 
     async unsubscribe(userId, endpoint) {
       const removed = await subscriptions.deleteSubscription({ userId, endpoint });
-      if (!removed) throw new AppError(404, 'NOT_FOUND', 'Suscripción no encontrada');
+      if (!removed) throw new AppError(404, 'NOT_FOUND', t('Suscripción no encontrada'));
     },
 
     /**

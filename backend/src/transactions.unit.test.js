@@ -6,7 +6,7 @@ import {
   parseListQuery,
   parseUpdateTransaction,
 } from './validators/transactions.validator.js';
-import { FUTURE_DATE_PROBLEM, createTransactionService } from './services/transactions.service.js';
+import { futureDateProblem, createTransactionService } from './services/transactions.service.js';
 
 const TODAY = '2026-11-10';
 
@@ -62,7 +62,7 @@ test('parseCreateTransaction rechaza tipo, fecha y descripción inválidos', () 
 
 test('parseUpdateTransaction exige al menos un campo y solo devuelve los enviados', () => {
   assertInvalid(() => parseUpdateTransaction({}), 'body');
-  assert.deepEqual(parseUpdateTransaction({ amount: 10 }), { amount: 10 });
+  assert.deepEqual(parseUpdateTransaction({ amount: 10 }), { amount: 10, original: null });
   assert.deepEqual(parseUpdateTransaction({ category: null }), { category: null });
   assertInvalid(() => parseUpdateTransaction({ amount: -1 }), 'amount');
 });
@@ -160,7 +160,7 @@ test('create rechaza una categoría inexistente o de otro tipo (RN-02)', async (
 
 test('create rechaza una fecha futura y acepta la de hoy (FT-0061)', async () => {
   const { service, saved } = buildService();
-  const future = { statusCode: 422, details: [{ field: 'date', problem: FUTURE_DATE_PROBLEM }] };
+  const future = { statusCode: 422, details: [{ field: 'date', problem: futureDateProblem() }] };
   await assert.rejects(service.create('u1', { ...VALID, date: '2026-11-11' }), future);
   await assert.rejects(service.create('u1', { ...VALID, date: '2027-11-10' }), future);
   assert.equal(saved.length, 0);
@@ -236,4 +236,22 @@ test('remove responde 404 si no existe y no devuelve nada si se borra', async ()
   const ok = buildService({ current: { id: ID } });
   assert.equal(await ok.service.remove('u1', ID), undefined);
   assert.deepEqual(ok.removedAttachments, [['u1', ID]], 'borra sus soportes (FT-0044)');
+});
+
+test('en otra moneda el monto lo calcula el servidor: lo pagado allá × la tasa', () => {
+  const values = parseCreateTransaction({ ...VALID, amount: 1, original: { currency: 'MXN', amount: 200, rate: 179.123 } });
+  assert.deepEqual(values.original, { currency: 'MXN', amount: 200, rate: 179.123 });
+  assert.equal(values.amount, 35824.6);
+});
+
+test('original rechaza moneda, monto o tasa inválidos (422)', () => {
+  assertInvalid(() => parseCreateTransaction({ ...VALID, original: { currency: 'XXQ', amount: 1, rate: 1 } }), 'original.currency');
+  assertInvalid(() => parseCreateTransaction({ ...VALID, original: { currency: 'MXN', amount: 0, rate: 1 } }), 'original.amount');
+  assertInvalid(() => parseCreateTransaction({ ...VALID, original: { currency: 'MXN', amount: 1, rate: -2 } }), 'original.rate');
+  assertInvalid(() => parseCreateTransaction({ ...VALID, original: 'MXN' }), 'original');
+});
+
+test('editar el monto a mano deja el movimiento en la moneda principal (original: null)', () => {
+  assert.deepEqual(parseUpdateTransaction({ amount: 30000 }), { amount: 30000, original: null });
+  assert.deepEqual(parseUpdateTransaction({ description: 'Taxi' }), { description: 'Taxi' });
 });

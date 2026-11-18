@@ -21,11 +21,13 @@ import { getDisplayName, getInitial } from '@/lib/displayName';
 import { pickHomeNotice } from '@/lib/homeNotice';
 import { cn } from '@/lib/utils';
 import RindeLine from '@/components/common/RindeLine';
+import { t } from '@/lib/i18n';
+import { numberLocale } from '@/lib/region';
 
 const RECENT = 3;
 const BUDGETS = 3;
 const BAR = { none: 'bg-positive', warning_80: 'bg-caution', exceeded_100: 'bg-negative' };
-const percent = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
+const percent = new Intl.NumberFormat(numberLocale(), { maximumFractionDigits: 0 });
 
 /** Bloque gris mientras carga un monto. */
 const Skeleton = ({ className }) => (
@@ -71,7 +73,7 @@ export function MoneyCard({ balance, monthExpense, money, monthLabel, className 
     >
       <span aria-hidden="true" className="absolute -right-16 -top-16 size-40 rounded-full border-[32px] border-white/15" />
       <span className="relative flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-[0.08em] text-white/85 first-letter:uppercase">Mi plata · {monthLabel}</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.08em] text-white/85 first-letter:uppercase">{t('Mi plata ·')} {monthLabel}</span>
         <ChevronRight className="size-5" aria-hidden="true" />
       </span>
       <span className="relative truncate text-[40px] font-extrabold leading-[44px] tracking-[-0.02em] tabular-nums">
@@ -81,7 +83,7 @@ export function MoneyCard({ balance, monthExpense, money, monthLabel, className 
         <>
           <RindeLine value={r.coverage} />
           <span className="flex items-center justify-between gap-3 text-[13px] leading-[18px]">
-            <b className="font-semibold">{r.lasts ? 'Te alcanza para todo el mes' : `Te alcanza ${daysLabel(r.days)} más`}</b>
+            <b className="font-semibold">{r.lasts ? t('Te alcanza para todo el mes') : t('Te alcanza {days} más', { days: daysLabel(r.days) })}</b>
             <span className="text-white/85">{untilText(r)}</span>
           </span>
         </>
@@ -90,15 +92,15 @@ export function MoneyCard({ balance, monthExpense, money, monthLabel, className 
           <span aria-hidden="true" className="relative block h-1 overflow-hidden rounded-full bg-white/30">
             <span className="absolute inset-y-0 left-0 w-1/2 rounded-full bg-white/80 motion-safe:animate-pulse" />
           </span>
-          <span className="text-[13px] leading-[18px] text-white/85">Calculando hasta cuándo te alcanza…</span>
+          <span className="text-[13px] leading-[18px] text-white/85">{t('Calculando hasta cuándo te alcanza…')}</span>
         </>
       ) : (
         <>
           <RindeLine value={0} />
-          <span className="text-[13px] leading-[18px] text-white/85">Anota tu primer ingreso para saber hasta cuándo te alcanza.</span>
+          <span className="text-[13px] leading-[18px] text-white/85">{t('Anota tu primer ingreso para saber hasta cuándo te alcanza.')}</span>
         </>
       )}
-      <span className="sr-only">, ver Mi plata</span>
+      <span className="sr-only">{t(', ver Mi plata')}</span>
     </Link>
   );
 }
@@ -127,12 +129,12 @@ function ChartCard({ expense, budgets, names, money }) {
           };
         });
   const tabs = [
-    { key: 'categorias', label: 'En qué gastas' },
-    { key: 'presupuestos', label: 'Tus presupuestos' },
+    { key: 'categorias', label: t('En qué gastas') },
+    { key: 'presupuestos', label: t('Tus presupuestos') },
   ];
   return (
-    <section data-tour="graficos" aria-label="Resumen en gráficos" className="flex flex-col gap-3 rounded-2xl bg-surface px-4 pb-3.5 pt-3 ring-1 ring-ink/10">
-      <div role="tablist" aria-label="Qué gráfico ver" className="grid grid-cols-2 gap-1 rounded-full bg-canvas p-1">
+    <section data-tour="graficos" aria-label={t('Resumen en gráficos')} className="flex flex-col gap-3 rounded-2xl bg-surface px-4 pb-3.5 pt-3 ring-1 ring-ink/10">
+      <div role="tablist" aria-label={t('Qué gráfico ver')} className="grid grid-cols-2 gap-1 rounded-full bg-canvas p-1">
         {tabs.map(({ key, label }) => (
           <button
             key={key}
@@ -153,7 +155,7 @@ function ChartCard({ expense, budgets, names, money }) {
       <ul className="flex min-h-[132px] flex-col gap-3.5">
         {rows.length === 0 ? (
           <li className="py-6 text-center text-[13px] text-ink/60">
-            {tab === 'categorias' ? 'Aún no hay gastos este mes.' : 'Aún no tienes presupuestos.'}
+            {tab === 'categorias' ? t('Aún no hay gastos este mes.') : t('Aún no tienes presupuestos.')}
           </li>
         ) : (
           rows.map((row) => (
@@ -178,13 +180,13 @@ function ChartCard({ expense, budgets, names, money }) {
       </div>
       <div className="flex items-center justify-between gap-3">
         <span className="text-[13px] text-ink/60">
-          {tab === 'categorias' ? 'Tus 3 categorías más altas del mes' : 'Los 3 presupuestos más usados'}
+          {tab === 'categorias' ? t('Tus 3 categorías más altas del mes') : t('Los 3 presupuestos más usados')}
         </span>
         <Link
           to={tab === 'categorias' ? '/app/gastos' : '/app/presupuestos'}
           className="inline-flex min-h-11 items-center text-[13px] font-semibold text-brand"
         >
-          Ver todo
+          {t('Ver todo')}
         </Link>
       </div>
     </section>
@@ -199,7 +201,7 @@ function SectionTitle({ id, to, children }) {
         {children}
       </h2>
       <Link to={to} className="py-3 text-sm font-medium text-brand">
-        Ver todos
+        {t('Ver todos')}
       </Link>
     </div>
   );
@@ -264,13 +266,13 @@ export default function MobileHome({
     <div className="flex flex-col gap-4 pt-[max(0.5rem,env(safe-area-inset-top))]">
       {/* Rinde v2: el logo a la izquierda; avisos, ocultar montos y la cuenta a la derecha. */}
       <header className="flex items-center justify-between">
-        <span role="img" aria-label="Rinde" className="text-ink">
+        <span role="img" aria-label={t('Rinde')} className="text-ink">
           <Wordmark className="h-7 w-auto" />
         </span>
         <div className="flex items-center gap-1">
           <Link
             to="/app/notificaciones"
-            aria-label={unread === 0 ? 'Notificaciones' : `Notificaciones, ${unread} sin leer`}
+            aria-label={unread === 0 ? t('Notificaciones') : t('Notificaciones, {unread} sin leer', { unread })}
             className="relative grid size-11 place-items-center rounded-full text-ink/70 hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-violet"
           >
             <Bell className="size-[22px]" aria-hidden="true" />
@@ -287,7 +289,7 @@ export default function MobileHome({
             type="button"
             onClick={onToggleHidden}
             aria-pressed={hidden}
-            aria-label={hidden ? 'Mostrar montos' : 'Ocultar montos'}
+            aria-label={hidden ? t('Mostrar montos') : t('Ocultar montos')}
             className="grid size-11 place-items-center rounded-full text-ink/70 hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-violet"
           >
             {hidden ? <EyeOff className="size-[22px]" aria-hidden="true" /> : <Eye className="size-[22px]" aria-hidden="true" />}
@@ -295,7 +297,7 @@ export default function MobileHome({
           <Link
             to="/app/cuenta"
             data-tour="cuenta"
-            aria-label={name ? `Tu cuenta, ${name}` : 'Tu cuenta'}
+            aria-label={name ? t('Tu cuenta, {name}', { name }) : t('Tu cuenta')}
             className="ml-1 grid size-11 place-items-center rounded-full bg-orchid font-bold text-obsidian focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet"
           >
             <span aria-hidden="true">{getInitial(user)}</span>
@@ -312,14 +314,14 @@ export default function MobileHome({
             to="/app/mi-plata/corregir"
             className="inline-flex min-h-11 items-center self-start text-[13px] font-medium text-ink/70 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-violet"
           >
-            {balanceSet ? '¿No es tu plata real? Corrígela' : '¿Ya tenías plata cuando empezaste? Dinos cuánta tienes hoy'}
+            {balanceSet ? t('¿No es tu plata real? Corrígela') : t('¿Ya tenías plata cuando empezaste? Dinos cuánta tienes hoy')}
           </Link>
         )}
       </div>
 
       <div data-tour="totales" className="-mt-2 grid grid-cols-2 gap-3">
-        <Total label="Ingresos" to="/app/ingresos" value={totals?.income} money={money} positive period={monthLabel} />
-        <Total label="Gastos" to="/app/gastos" value={totals?.expense} money={money} period={monthLabel} />
+        <Total label={t('Ingresos')} to="/app/ingresos" value={totals?.income} money={money} positive period={monthLabel} />
+        <Total label={t('Gastos')} to="/app/gastos" value={totals?.expense} money={money} period={monthLabel} />
       </div>
 
       {notice ? (
@@ -348,7 +350,7 @@ export default function MobileHome({
 
           <section aria-labelledby="ultimos">
             <SectionTitle id="ultimos" to="/app/movimientos">
-              Últimos movimientos
+              {t('Últimos movimientos')}
             </SectionTitle>
             <Panel className="mt-1 px-3.5 py-0 md:p-0">
               {recentError ? (

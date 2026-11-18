@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Loader2, RefreshCw, X } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { t } from '@/lib/i18n';
 
 /** Cada cuánto se pregunta al servidor si hay versión nueva mientras la app sigue abierta. */
 export const UPDATE_CHECK_MS = 60 * 60 * 1000;
@@ -48,7 +49,7 @@ export default function UpdatePrompt() {
       className="fixed inset-x-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-[60] mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-obsidian py-2.5 pl-4 pr-2 text-sm text-white shadow-elevated ring-1 ring-white/15"
     >
       <RefreshCw className="size-4 shrink-0 text-violet-light" aria-hidden="true" />
-      <p className="min-w-0 flex-1">Hay una versión nueva de Rinde.</p>
+      <p className="min-w-0 flex-1">{t('Hay una versión nueva de Rinde.')}</p>
       <button
         type="button"
         onClick={() => {
@@ -62,12 +63,12 @@ export default function UpdatePrompt() {
         className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-violet px-3 py-2 font-medium text-white transition-colors hover:bg-violet-light disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
       >
         {updating && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-        Actualizar
+        {t('Actualizar')}
       </button>
       <button
         type="button"
         onClick={() => setNeedRefresh(false)}
-        aria-label="Ahora no"
+        aria-label={t('Ahora no')}
         className="grid size-9 shrink-0 place-items-center rounded-xl text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
       >
         <X className="size-4" aria-hidden="true" />

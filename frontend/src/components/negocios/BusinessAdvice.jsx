@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import Panel from '@/components/layout/Panel';
 import { getBusinessAdvice } from '@/services/negocioService';
+import { t } from '@/lib/i18n';
 
 /**
  * Consejo sobre el mes del negocio (FT-0058): la IA con cifras agregadas del mes (sin nombres ni
@@ -31,17 +32,17 @@ export default function BusinessAdvice({ businessId, month, panel, online }) {
   return (
     <Panel aria-labelledby="consejo-negocio-title" className="p-4 md:p-5">
       <h3 id="consejo-negocio-title" className="flex items-center gap-2 text-sm font-semibold">
-        <Sparkles className="size-4 text-brand" aria-hidden="true" /> Consejo del mes
+        <Sparkles className="size-4 text-brand" aria-hidden="true" /> {t('Consejo del mes')}
       </h3>
       {loading && !advice ? (
         <p className="mt-2 flex items-center gap-2 text-sm text-ink/60">
-          <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Pensando…
+          <Loader2 className="size-4 animate-spin" aria-hidden="true" /> {t('Pensando…')}
         </p>
       ) : (
         <>
           <p className="mt-2 text-sm leading-relaxed">{advice.advice}</p>
           <p className="mt-1 text-xs text-ink/50">
-            {advice.source === 'ia' ? 'Con IA, solo con las cifras del mes.' : 'Calculado con las cifras del mes.'}
+            {advice.source === 'ia' ? t('Con IA, solo con las cifras del mes.') : t('Calculado con las cifras del mes.')}
           </p>
         </>
       )}

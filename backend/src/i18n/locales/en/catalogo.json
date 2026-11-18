@@ -1,0 +1,17 @@
+{
+  "Alimentación": "Food",
+  "Transporte": "Transportation",
+  "Vivienda": "Housing",
+  "Servicios públicos": "Utilities",
+  "Salud": "Health",
+  "Educación": "Education",
+  "Entretenimiento": "Entertainment",
+  "Ropa y accesorios": "Clothing and accessories",
+  "Tecnología": "Technology",
+  "Ahorro/Inversión": "Savings/Investment",
+  "Otros": "Other",
+  "Salario": "Salary",
+  "Freelance": "Freelance",
+  "Inversión y rendimientos": "Investments and returns",
+  "Otros ingresos": "Other income"
+}

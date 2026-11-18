@@ -27,6 +27,7 @@ import {
   updateBusiness,
   updatePartner,
 } from '@/services/negocioService';
+import { t } from '@/lib/i18n';
 
 /**
  * Página privada `/app/negocios/:id` (FT-0016 y FT-0017): las finanzas del mes del negocio y sus socios,
@@ -45,7 +46,7 @@ export default function NegocioDetail() {
   const [error, setError] = useState('');
   const [gone, setGone] = useState(false);
   const [notice, setNotice] = useState(
-    state?.created ? 'Negocio creado. Invita a tus socios.' : state?.joined ? '¡Ya eres socio del negocio!' : '',
+    state?.created ? t('Negocio creado. Invita a tus socios.') : state?.joined ? t('¡Ya eres socio del negocio!') : '',
   );
   const [sheet, setSheet] = useState(state?.created ? 'invitar' : null); // 'invitar' | 'opciones' | 'editar'
   // Las cuentas crean movimientos y el mes puede borrar abonos: cada uno avisa al otro (FT-0058).
@@ -54,7 +55,7 @@ export default function NegocioDetail() {
   // Pestañas (FT-0058): en celular la pantalla quedaba muy larga. Al crear el negocio se abre en
   // Socios, para invitar.
   const [tab, setTab] = useState(state?.created ? 'socios' : 'finanzas');
-  usePageTitle(business?.name ?? 'Negocio');
+  usePageTitle(business?.name ?? t('Negocio'));
 
   const load = useCallback(async () => {
     try {
@@ -99,10 +100,10 @@ export default function NegocioDetail() {
   if (gone) {
     return (
       <Panel className="mx-auto max-w-lg text-center">
-        <p className="text-lg font-semibold">Este negocio ya no está disponible</p>
-        <p className="mt-1 text-ink/60">Se eliminó o ya no eres socio.</p>
+        <p className="text-lg font-semibold">{t('Este negocio ya no está disponible')}</p>
+        <p className="mt-1 text-ink/60">{t('Se eliminó o ya no eres socio.')}</p>
         <Button asChild variant="outline" className="mt-4">
-          <Link to="/app/negocios">Ir a mis negocios</Link>
+          <Link to="/app/negocios">{t('Ir a mis negocios')}</Link>
         </Button>
       </Panel>
     );
@@ -111,14 +112,14 @@ export default function NegocioDetail() {
   if (!business) {
     return error ? (
       <p role="alert" className="text-negative">
-        {online ? error : 'Sin conexión: el negocio se ve con internet.'}{' '}
+        {online ? error : t('Sin conexión: el negocio se ve con internet.')}{' '}
         <button type="button" className="underline" onClick={load}>
-          Reintentar
+          {t('Reintentar')}
         </button>
       </p>
     ) : (
       <p className="flex items-center gap-2 py-10 text-ink/60">
-        <Loader2 className="animate-spin" aria-hidden="true" /> Cargando…
+        <Loader2 className="animate-spin" aria-hidden="true" /> {t('Cargando…')}
       </p>
     );
   }
@@ -134,19 +135,19 @@ export default function NegocioDetail() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 id="partners-title" className="text-lg font-semibold tracking-tight">
-            Socios ({business.membersCount})
+            {t('Socios (')}{business.membersCount})
           </h2>
           <p className="text-sm text-ink/60">
             {isOwner
               ? business.totalShare > 0
-                ? `${formatShare(business.totalShare)} de la participación asignada`
-                : 'Toca ⋮ en un socio para cambiar su rol o su participación.'
-              : `Eres ${role.label.toLowerCase()}: ${role.hint.toLowerCase()}.`}
+                ? t('{totalShare} de la participación asignada', { totalShare: formatShare(business.totalShare) })
+                : t('Toca ⋮ en un socio para cambiar su rol o su participación.')
+              : t('Eres {toLowerCase}: {toLowerCase2}.', { toLowerCase: role.label.toLowerCase(), toLowerCase2: role.hint.toLowerCase() })}
           </p>
         </div>
         {isOwner && (
           <Button onClick={() => setSheet('invitar')}>
-            <UserPlus aria-hidden="true" /> Invitar
+            <UserPlus aria-hidden="true" /> {t('Invitar')}
           </Button>
         )}
       </div>
@@ -154,10 +155,10 @@ export default function NegocioDetail() {
         partners={business.partners}
         isOwner={isOwner}
         online={online}
-        onUpdate={(userId, changes) => apply(() => updatePartner(id, userId, changes), 'Socio actualizado.')}
+        onUpdate={(userId, changes) => apply(() => updatePartner(id, userId, changes), t('Socio actualizado.'))}
         onRemove={async (userId) => {
           await removePartner(id, userId);
-          setNotice('Socio retirado del negocio.');
+          setNotice(t('Socio retirado del negocio.'));
           await load();
         }}
       />
@@ -170,7 +171,7 @@ export default function NegocioDetail() {
         to="/app/negocios"
         className="mb-3 inline-flex items-center gap-1 text-sm text-ink/60 transition-colors hover:text-ink"
       >
-        <ArrowLeft className="size-4" aria-hidden="true" /> Mis negocios
+        <ArrowLeft className="size-4" aria-hidden="true" /> {t('Mis negocios')}
       </Link>
 
       <header className="mb-5 flex items-start gap-3">
@@ -182,10 +183,10 @@ export default function NegocioDetail() {
               {role.label}
               {business.myShare !== null && ` · ${formatShare(business.myShare)}`}
             </span>
-            {business.nit && <span className="break-all">NIT {business.nit}</span>}
+            {business.nit && <span className="break-all">{t('NIT')} {business.nit}</span>}
           </p>
         </div>
-        <Button variant="outline" size="icon" className="shrink-0" onClick={() => setSheet('opciones')} aria-label="Opciones del negocio">
+        <Button variant="outline" size="icon" className="shrink-0" onClick={() => setSheet('opciones')} aria-label={t('Opciones del negocio')}>
           <MoreHorizontal aria-hidden="true" />
         </Button>
       </header>
@@ -195,11 +196,11 @@ export default function NegocioDetail() {
       </p>
 
       <Tabs
-        label="Secciones del negocio"
+        label={t('Secciones del negocio')}
         tabs={[
-          { value: 'finanzas', label: 'Finanzas' },
-          { value: 'cuentas', label: 'Cuentas' },
-          { value: 'socios', label: 'Socios', count: business.membersCount },
+          { value: 'finanzas', label: t('Finanzas') },
+          { value: 'cuentas', label: t('Cuentas') },
+          { value: 'socios', label: t('Socios'), count: business.membersCount },
         ]}
         value={tab}
         onChange={setTab}
@@ -234,7 +235,7 @@ export default function NegocioDetail() {
       </Tabs>
 
       {isOwner && (
-        <Sheet open={sheet === 'invitar'} title="Invitar socios" onClose={closeSheet}>
+        <Sheet open={sheet === 'invitar'} title={t('Invitar socios')} onClose={closeSheet}>
           <NegocioInvitePanel
             business={business}
             online={online}
@@ -255,33 +256,33 @@ export default function NegocioDetail() {
         </Sheet>
       )}
 
-      <Sheet open={sheet === 'editar'} title="Editar el negocio" onClose={closeSheet}>
+      <Sheet open={sheet === 'editar'} title={t('Editar el negocio')} onClose={closeSheet}>
         <NegocioForm
           initial={business}
           disabled={!online}
-          onSubmit={(values) => apply(() => updateBusiness(id, values), 'Cambios guardados.').then(closeSheet)}
+          onSubmit={(values) => apply(() => updateBusiness(id, values), t('Cambios guardados.')).then(closeSheet)}
           onCancel={closeSheet}
         />
       </Sheet>
 
-      <Sheet open={sheet === 'opciones'} title="Opciones del negocio" onClose={closeSheet}>
+      <Sheet open={sheet === 'opciones'} title={t('Opciones del negocio')} onClose={closeSheet}>
         <div className="flex flex-col gap-1">
           {isOwner && (
             <Button variant="ghost" className="justify-start" disabled={!online} onClick={() => setSheet('editar')}>
-              <Pencil aria-hidden="true" /> Editar nombre, descripción y NIT
+              <Pencil aria-hidden="true" /> {t('Editar nombre, descripción y NIT')}
             </Button>
           )}
           {!sole &&
             (lastOwner ? (
               <p className="flex items-start gap-2 px-4 py-2 text-sm text-ink/60">
                 <LogOut className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                Para salirte, primero hazle dueño a otro socio: eres el único.
+                {t('Para salirte, primero hazle dueño a otro socio: eres el único.')}
               </p>
             ) : (
               <ConfirmButton
-                label="Salirme del negocio"
-                question="Dejarás de ver el negocio. Un dueño puede volver a invitarte."
-                confirmLabel="Sí, salirme"
+                label={t('Salirme del negocio')}
+                question={t('Dejarás de ver el negocio. Un dueño puede volver a invitarte.')}
+                confirmLabel={t('Sí, salirme')}
                 icon={LogOut}
                 disabled={!online}
                 onConfirm={leave}
@@ -289,15 +290,15 @@ export default function NegocioDetail() {
             ))}
           {isOwner && (
             <ConfirmButton
-              label="Eliminar el negocio"
-              question="Se borra para todos los socios y no se puede deshacer."
-              confirmLabel="Sí, eliminar"
+              label={t('Eliminar el negocio')}
+              question={t('Se borra para todos los socios y no se puede deshacer.')}
+              confirmLabel={t('Sí, eliminar')}
               icon={Trash2}
               disabled={!online}
               onConfirm={remove}
             />
           )}
-          {!online && <p className="mt-1 text-sm text-ink/60">Necesitas conexión para cambiar el negocio.</p>}
+          {!online && <p className="mt-1 text-sm text-ink/60">{t('Necesitas conexión para cambiar el negocio.')}</p>}
         </div>
       </Sheet>
     </div>

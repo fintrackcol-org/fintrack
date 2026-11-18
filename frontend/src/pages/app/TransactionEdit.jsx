@@ -12,6 +12,7 @@ import useAttachmentLimits from '@/hooks/useAttachmentLimits';
 import { attachedText } from '@/lib/attachedText';
 import usePageTitle from '@/hooks/usePageTitle';
 import { canGoBack } from '@/lib/backPath';
+import { getRegion } from '@/lib/region';
 import { saveNewTransaction } from '@/offline/saveNewTransaction';
 import { cacheTransaction, queueUpdate } from '@/offline/sync';
 import { uploadPending } from '@/services/attachmentService';
@@ -23,6 +24,7 @@ import {
   getTransaction,
   updateTransaction,
 } from '@/services/transactionService';
+import { t } from '@/lib/i18n';
 
 /**
  * Calcula qué campos cambiaron al editar. Si el usuario deja la categoría en
@@ -52,10 +54,10 @@ export function changedFields(initial, values) {
  */
 export function savedMessage(saved, names) {
   if (saved.source === 'sin_clasificar') {
-    return 'Guardado sin clasificar: no pudimos sugerir una categoría. Puedes elegirla editando el movimiento.';
+    return t('Guardado sin clasificar: no pudimos sugerir una categoría. Puedes elegirla editando el movimiento.');
   }
   const name = names[saved.category] ?? saved.category;
-  return saved.source === 'ia' ? `Guardado en ${name} (sugerida por IA).` : `Guardado en ${name}.`;
+  return saved.source === 'ia' ? t('Guardado en {name} (sugerida por IA).', { name }) : t('Guardado en {name}.', { name });
 }
 
 /**
@@ -71,7 +73,7 @@ export default function TransactionEdit() {
   const fetched = useAsync(() => (!id || passed ? Promise.resolve(passed) : getTransaction(id)), [id, passed]);
   const editing = id ? fetched.data : null;
   const draft = id ? null : (state?.voiceDraft ?? null);
-  usePageTitle(id ? 'Editar movimiento' : 'Nuevo movimiento');
+  usePageTitle(id ? t('Editar movimiento') : t('Nuevo movimiento'));
 
   const [categories, setCategories] = useState({ expense: [], income: [] });
   const [cards, setCards] = useState([]);
@@ -121,7 +123,7 @@ export default function TransactionEdit() {
       setDone({
         attached,
         offline,
-        message: offline ? 'Guardado sin conexión. Se sincronizará cuando vuelva internet.' : savedMessage(transaction, names),
+        message: offline ? t('Guardado sin conexión. Se sincronizará cuando vuelva internet.') : savedMessage(transaction, names),
         alert: offline ? null : alert,
         category: transaction.category,
       });
@@ -136,12 +138,12 @@ export default function TransactionEdit() {
     } catch (err) {
       if (err.code !== 'NETWORK_ERROR') throw err;
       await queueUpdate(editing, changes, cards.find((c) => c.id === changes.card));
-      setDone({ offline: true, message: 'Cambios guardados sin conexión. Se sincronizarán cuando vuelva internet.' });
+      setDone({ offline: true, message: t('Cambios guardados sin conexión. Se sincronizarán cuando vuelva internet.') });
       return;
     }
     // La copia local es un respaldo: si falla, se corrige en la próxima sincronización.
     cacheTransaction(updated.transaction).catch(() => {});
-    setDone({ offline: false, message: 'Cambios guardados.', alert: updated.alert, category: updated.transaction.category });
+    setDone({ offline: false, message: t('Cambios guardados.'), alert: updated.alert, category: updated.transaction.category });
   };
 
   if (id && !editing) {
@@ -149,19 +151,19 @@ export default function TransactionEdit() {
       <p role="alert" className="text-sm text-negative">
         {fetched.error}{' '}
         <button type="button" className="underline" onClick={fetched.reload}>
-          Reintentar
+          {t('Reintentar')}
         </button>
       </p>
     ) : (
       <p className="flex items-center gap-2 py-10 text-ink/60" aria-busy="true">
-        <Loader2 className="size-5 animate-spin" aria-hidden="true" /> Cargando…
+        <Loader2 className="size-5 animate-spin" aria-hidden="true" /> {t('Cargando…')}
       </p>
     );
   }
 
   return (
     <div className="mx-auto max-w-xl">
-      <h1 className="mb-5 text-[28px] font-semibold tracking-tight">{id ? 'Editar movimiento' : 'Nuevo movimiento'}</h1>
+      <h1 className="mb-5 text-[28px] font-semibold tracking-tight">{id ? t('Editar movimiento') : t('Nuevo movimiento')}</h1>
       {done ? (
         <div className="flex flex-col gap-4">
           <p role="status" className="rounded-xl bg-brand-soft px-3 py-2.5 text-[15px]">
@@ -178,14 +180,20 @@ export default function TransactionEdit() {
           )}
           <BudgetAlert alert={done.alert} categoryName={names[done.category]} />
           <Button size="lg" onClick={() => leave(done.offline)}>
-            Listo
+            {t('Listo')}
           </Button>
         </div>
       ) : (
         <Panel>
           {draft && (
             <p role="status" className="mb-4 rounded-xl bg-brand-soft px-3 py-2 text-sm text-brand">
-              Revisa lo que anotaste y toca Guardar.
+              {t('Revisa lo que anotaste y toca Guardar.')}
+            </p>
+          )}
+          {/* Anotado de viaje: el monto de aquí ya está convertido. */}
+          {editing?.original && (
+            <p className="mb-4 rounded-xl bg-brand-soft px-3 py-2 text-sm text-brand">
+              {t('Lo pagaste en')} {editing.original.currency}{t('. Si cambias el monto, queda en')} {getRegion().currency} {t('sin la conversión.')}
             </p>
           )}
           {error && (

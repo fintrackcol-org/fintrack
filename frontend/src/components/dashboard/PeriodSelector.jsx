@@ -4,6 +4,7 @@ import Segmented from '@/components/common/Segmented';
 import PeriodJumpPicker from '@/components/dashboard/PeriodJumpPicker';
 import { PERIOD_OPTIONS, isCurrentPeriod, periodLabel, shiftPeriod, todayIso } from '@/lib/period';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /**
  * Botón redondo de flecha para ir al periodo anterior o al siguiente.
@@ -49,7 +50,7 @@ export default function PeriodSelector({ period, date, onChange, className, stac
     return (
       <div className={className}>
         <Segmented
-          label="Periodo del resumen"
+          label={t('Periodo del resumen')}
           options={PERIOD_OPTIONS}
           value={period}
           onChange={(next) => onChange({ period: next, date: todayIso() })}
@@ -57,7 +58,7 @@ export default function PeriodSelector({ period, date, onChange, className, stac
         <div className="mt-3 flex items-center justify-between">
           <button
             type="button"
-            aria-label="Periodo anterior"
+            aria-label={t('Periodo anterior')}
             onClick={() => onChange({ period, date: shiftPeriod(period, date, -1) })}
             className="grid size-11 place-items-center rounded-full"
           >
@@ -66,7 +67,7 @@ export default function PeriodSelector({ period, date, onChange, className, stac
           <PeriodJumpPicker period={period} date={date} label={label} onPick={(next) => onChange({ period, date: next })} />
           <button
             type="button"
-            aria-label="Periodo siguiente"
+            aria-label={t('Periodo siguiente')}
             disabled={atCurrent}
             onClick={() => onChange({ period, date: shiftPeriod(period, date, 1) })}
             className="grid size-11 place-items-center rounded-full disabled:opacity-40"
@@ -81,7 +82,7 @@ export default function PeriodSelector({ period, date, onChange, className, stac
   return (
     <div className={cn('flex flex-wrap items-center justify-between gap-3', className)}>
       <ChipGroup
-        legend="Periodo del resumen"
+        legend={t('Periodo del resumen')}
         hideLegend
         options={PERIOD_OPTIONS}
         value={period}
@@ -90,12 +91,12 @@ export default function PeriodSelector({ period, date, onChange, className, stac
       />
 
       <div className="flex items-center gap-2">
-        <ArrowButton label="Periodo anterior" onClick={() => onChange({ period, date: shiftPeriod(period, date, -1) })}>
+        <ArrowButton label={t('Periodo anterior')} onClick={() => onChange({ period, date: shiftPeriod(period, date, -1) })}>
           <ChevronLeft className="size-4" aria-hidden="true" />
         </ArrowButton>
         <PeriodJumpPicker period={period} date={date} label={label} onPick={(next) => onChange({ period, date: next })} />
         <ArrowButton
-          label="Periodo siguiente"
+          label={t('Periodo siguiente')}
           disabled={atCurrent}
           onClick={() => onChange({ period, date: shiftPeriod(period, date, 1) })}
         >

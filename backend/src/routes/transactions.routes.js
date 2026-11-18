@@ -18,6 +18,7 @@ import {
 import { AppError } from '../errors/app-error.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 import { MAX_ATTACHMENT_BYTES } from '../services/attachments.service.js';
+import { t } from '../i18n/index.js';
 
 /**
  * Rutas de transacciones (se montan en `/api/v1/transactions`). Todas exigen access token
@@ -61,7 +62,7 @@ const readFile = express.raw({ type: () => true, limit: MAX_ATTACHMENT_BYTES });
 function readAttachment(req, res, next) {
   readFile(req, res, (err) => {
     if (err?.type === 'entity.too.large') {
-      next(new AppError(413, 'FILE_TOO_LARGE', 'El archivo pesa más de 5 MB'));
+      next(new AppError(413, 'FILE_TOO_LARGE', t('El archivo pesa más de 5 MB')));
     } else {
       next(err);
     }

@@ -1,6 +1,7 @@
 import { OAuth2Client } from 'google-auth-library';
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
+import { t } from '../i18n/index.js';
 
 /**
  * @typedef {object} GoogleProfile
@@ -33,7 +34,7 @@ export function createGoogleVerifier(deps = {}) {
         throw new AppError(
           503,
           'GOOGLE_NOT_CONFIGURED',
-          'El inicio de sesión con Google no está disponible',
+          t('El inicio de sesión con Google no está disponible'),
         );
       }
       let payload;
@@ -41,13 +42,13 @@ export function createGoogleVerifier(deps = {}) {
         const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
         payload = ticket.getPayload();
       } catch {
-        throw new AppError(401, 'UNAUTHORIZED', 'No pudimos verificar tu cuenta de Google');
+        throw new AppError(401, 'UNAUTHORIZED', t('No pudimos verificar tu cuenta de Google'));
       }
       if (!payload?.email || payload.email_verified !== true) {
         throw new AppError(
           401,
           'UNAUTHORIZED',
-          'Tu cuenta de Google no tiene el correo verificado',
+          t('Tu cuenta de Google no tiene el correo verificado'),
         );
       }
       return { email: payload.email.trim().toLowerCase(), name: payload.name?.trim() || null };

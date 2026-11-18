@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ROLES, ROLE_OPTIONS, formatShare } from './negocioFormat';
+import { t } from '@/lib/i18n';
 
 /**
  * Editor en línea de la participación de un socio.
@@ -36,14 +37,14 @@ function ShareEditor({ partner, onSave, onClose }) {
   return (
     <div className="mt-3 space-y-2 rounded-xl bg-ink/5 p-3">
       <label htmlFor={`share-${partner.userId}`} className="text-sm font-medium">
-        Participación de {partner.isMe ? 'ti' : partner.name} (%)
+        {t('Participación de')} {partner.isMe ? 'ti' : partner.name} (%)
       </label>
       <Input
         id={`share-${partner.userId}`}
         inputMode="decimal"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Ej. 50"
+        placeholder={t('Ej. 50')}
       />
       {error && (
         <p role="alert" className="text-sm text-negative">
@@ -52,15 +53,15 @@ function ShareEditor({ partner, onSave, onClose }) {
       )}
       <div className="flex flex-wrap gap-2">
         <Button size="sm" disabled={busy || !valid} onClick={() => save(Math.round(number * 100) / 100)}>
-          Guardar
+          {t('Guardar')}
         </Button>
         {partner.share !== null && (
           <Button size="sm" variant="outline" disabled={busy} onClick={() => save(null)}>
-            Quitar
+            {t('Quitar')}
           </Button>
         )}
         <Button size="sm" variant="ghost" disabled={busy} onClick={onClose}>
-          Cancelar
+          {t('Cancelar')}
         </Button>
       </div>
     </div>
@@ -111,7 +112,7 @@ function PartnerRow({ partner, isOwner, online, onUpdate, onRemove }) {
           <div className="flex items-start gap-2">
             <p className="flex min-w-0 flex-1 gap-1 font-medium">
               <span className="truncate">{partner.name}</span>
-              {partner.isMe && <span className="shrink-0 text-ink/60">(tú)</span>}
+              {partner.isMe && <span className="shrink-0 text-ink/60">{t('(tú)')}</span>}
             </p>
             {isOwner && (
               <Button
@@ -119,7 +120,7 @@ function PartnerRow({ partner, isOwner, online, onUpdate, onRemove }) {
                 variant="ghost"
                 className="-my-1.5 -mr-2 size-9 shrink-0"
                 aria-expanded={managing}
-                aria-label={`Gestionar a ${partner.name}`}
+                aria-label={t('Gestionar a {name}', { name: partner.name })}
                 onClick={() => setManaging((v) => !v)}
               >
                 <MoreVertical aria-hidden="true" />
@@ -139,7 +140,7 @@ function PartnerRow({ partner, isOwner, online, onUpdate, onRemove }) {
           {managing && (
             <div className="mt-3 space-y-2 rounded-xl bg-ink/5 p-3">
               <label className="block text-sm font-medium" htmlFor={`role-${partner.userId}`}>
-                Rol
+                {t('Rol')}
               </label>
               <Select
                 id={`role-${partner.userId}`}
@@ -156,23 +157,23 @@ function PartnerRow({ partner, isOwner, online, onUpdate, onRemove }) {
               <div className="flex flex-wrap items-center gap-1">
                 {!editing && (
                   <Button size="sm" variant="ghost" disabled={!online || busy} onClick={() => setEditing(true)}>
-                    <Percent aria-hidden="true" /> Participación
+                    <Percent aria-hidden="true" /> {t('Participación')}
                   </Button>
                 )}
                 {!partner.isMe &&
                   (confirming ? (
                     <span className="flex flex-wrap items-center gap-1">
-                      <span className="px-2 text-sm text-ink/60">¿Sacar del negocio?</span>
+                      <span className="px-2 text-sm text-ink/60">{t('¿Sacar del negocio?')}</span>
                       <Button size="sm" variant="outline" disabled={busy} onClick={() => run(onRemove)}>
-                        Sí, sacar
+                        {t('Sí, sacar')}
                       </Button>
                       <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirming(false)}>
-                        No
+                        {t('No')}
                       </Button>
                     </span>
                   ) : (
                     <Button size="sm" variant="ghost" disabled={!online || busy} onClick={() => setConfirming(true)}>
-                      <UserMinus aria-hidden="true" /> Sacar
+                      <UserMinus aria-hidden="true" /> {t('Sacar')}
                     </Button>
                   ))}
               </div>

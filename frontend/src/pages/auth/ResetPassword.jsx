@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import usePageTitle from '@/hooks/usePageTitle';
 import { resetPasswordSchema } from '@/lib/validation/auth';
 import { resetPassword } from '@/services/authService';
+import { t } from '@/lib/i18n';
 
 /**
  * Pantalla del enlace del correo (`/restablecer?token=…`): pide la contraseña nueva y, al
@@ -18,7 +19,7 @@ import { resetPassword } from '@/services/authService';
  * de la barra de direcciones para que no quede en el historial.
  */
 export default function ResetPassword() {
-  usePageTitle('Nueva contraseña');
+  usePageTitle(t('Nueva contraseña'));
   const location = useLocation();
   const navigate = useNavigate();
   // Se lee una sola vez, antes de limpiar la dirección.
@@ -56,15 +57,15 @@ export default function ResetPassword() {
     return (
       <AuthLayout
         icon={Link2Off}
-        title="Este enlace ya no sirve"
-        subtitle="Los enlaces vencen a los 30 minutos y sirven una sola vez. Pide uno nuevo y usa el último que te llegue."
+        title={t('Este enlace ya no sirve')}
+        subtitle={t('Los enlaces vencen a los 30 minutos y sirven una sola vez. Pide uno nuevo y usa el último que te llegue.')}
       >
         <Button asChild size="lg" className="w-full">
-          <Link to="/recuperar">Pedir un enlace nuevo</Link>
+          <Link to="/recuperar">{t('Pedir un enlace nuevo')}</Link>
         </Button>
         <p className="text-center text-sm">
           <Link to="/login" className="font-medium text-violet-light transition-colors hover:text-white">
-            Volver a iniciar sesión
+            {t('Volver a iniciar sesión')}
           </Link>
         </p>
       </AuthLayout>
@@ -74,19 +75,19 @@ export default function ResetPassword() {
   return (
     <AuthLayout
       icon={KeyRound}
-      title="Crea una nueva contraseña"
-      subtitle="Al guardarla se cerrará tu sesión en los demás dispositivos."
+      title={t('Crea una nueva contraseña')}
+      subtitle={t('Al guardarla se cerrará tu sesión en los demás dispositivos.')}
     >
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
         <div className="space-y-4">
           <div className="space-y-3">
-            <FormField id="password" label="Contraseña nueva" error={errors.password?.message}>
-              <PasswordInput autoComplete="new-password" placeholder="Tu contraseña nueva" autoFocus {...register('password')} />
+            <FormField id="password" label={t('Contraseña nueva')} error={errors.password?.message}>
+              <PasswordInput autoComplete="new-password" placeholder={t('Tu contraseña nueva')} autoFocus {...register('password')} />
             </FormField>
             <PasswordRules password={password} />
           </div>
-          <FormField id="confirmPassword" label="Confirmar contraseña" error={errors.confirmPassword?.message}>
-            <PasswordInput autoComplete="new-password" placeholder="Repite tu contraseña" {...register('confirmPassword')} />
+          <FormField id="confirmPassword" label={t('Confirmar contraseña')} error={errors.confirmPassword?.message}>
+            <PasswordInput autoComplete="new-password" placeholder={t('Repite tu contraseña')} {...register('confirmPassword')} />
           </FormField>
         </div>
 
@@ -98,7 +99,7 @@ export default function ResetPassword() {
 
         <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-          {isSubmitting ? 'Guardando…' : 'Guardar contraseña'}
+          {isSubmitting ? t('Guardando…') : t('Guardar contraseña')}
         </Button>
       </form>
     </AuthLayout>

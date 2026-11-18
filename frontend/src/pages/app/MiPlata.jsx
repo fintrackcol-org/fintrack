@@ -58,6 +58,7 @@ import {
   updateCommitment,
   updateMoneyProfile,
 } from '@/services/moneyProfileService';
+import { t } from '@/lib/i18n';
 
 export const EMPTY_COMMITMENT = {
   id: null,
@@ -115,14 +116,14 @@ function FormError({ message }) {
  * Cómo le entra la plata al usuario: una línea, y al tocar Cambiar (o Configurar, si aún no lo dijo), las opciones.
  * @param {{ profile: import('@/services/moneyProfileService').MoneyProfile, onSave: (changes: object) => Promise<void> }} props
  */
-export function IncomeSection({ profile, onSave, title = 'Cómo recibes la plata' }) {
+export function IncomeSection({ profile, onSave, title = t('Cómo recibes la plata') }) {
   const [income, setIncome] = useState(null); // `null`: no se está editando
   const [error, setError] = useState('');
 
   const save = async (event) => {
     event.preventDefault();
     if (income.incomeType === 'fecha_fija' && income.payDays.length === 0) {
-      setError('Elige al menos un día de pago.');
+      setError(t('Elige al menos un día de pago.'));
       return;
     }
     setError('');
@@ -144,7 +145,7 @@ export function IncomeSection({ profile, onSave, title = 'Cómo recibes la plata
         action={
           !income && (
             <Button variant="ghost" size="sm" onClick={edit}>
-              {profile.incomeType ? 'Cambiar' : 'Configurar'}
+              {profile.incomeType ? t('Cambiar') : t('Configurar')}
             </Button>
           )
         }
@@ -158,9 +159,9 @@ export function IncomeSection({ profile, onSave, title = 'Cómo recibes la plata
           />
           <FormError message={error} />
           <div className="flex gap-2">
-            <Button type="submit">Guardar</Button>
+            <Button type="submit">{t('Guardar')}</Button>
             <Button type="button" variant="ghost" onClick={() => setIncome(null)}>
-              Cancelar
+              {t('Cancelar')}
             </Button>
           </div>
         </form>
@@ -198,7 +199,7 @@ function BalanceSection({ profile, onSave }) {
   const submit = (event) => {
     event.preventDefault();
     if (text === '') {
-      setError('Escribe cuánta plata tienes.');
+      setError(t('Escribe cuánta plata tienes.'));
       return;
     }
     save(text);
@@ -208,11 +209,11 @@ function BalanceSection({ profile, onSave }) {
     <Panel aria-labelledby="mi-plata-saldo">
       <SectionTitle
         id="mi-plata-saldo"
-        title="Tu plata hoy"
+        title={t('Tu plata hoy')}
         action={
           typing === null && (
             <Button variant="ghost" size="sm" onClick={() => setTyping(true)}>
-              Corregir
+              {t('Corregir')}
             </Button>
           )
         }
@@ -222,17 +223,17 @@ function BalanceSection({ profile, onSave }) {
 
       {typing === false && (
         <div className="mt-4 rounded-2xl bg-ink/5 p-4">
-          <p className="text-sm text-ink/60">Según tus movimientos</p>
+          <p className="text-sm text-ink/60">{t('Según tus movimientos')}</p>
           <p className="mt-0.5 text-xl font-semibold tabular-nums">{formatMoney(proposal)}</p>
           <p className="text-sm text-ink/60">
-            Entró {formatMoney(profile.totals.income)} y salió {formatMoney(profile.totals.expense)}
+            {t('Entró')} {formatMoney(profile.totals.income)} {t('y salió')} {formatMoney(profile.totals.expense)}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button size="sm" onClick={() => save(proposal)}>
-              Sí, tengo eso
+              {t('Sí, tengo eso')}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setTyping(true)}>
-              No, tengo otra cantidad
+              {t('No, tengo otra cantidad')}
             </Button>
           </div>
         </div>
@@ -241,15 +242,15 @@ function BalanceSection({ profile, onSave }) {
       {typing && (
         <form onSubmit={submit} className="mt-4 space-y-3">
           <div className="space-y-2">
-            <Label htmlFor="money-balance">Suma banco, Nequi y efectivo</Label>
+            <Label htmlFor="money-balance">{t('Suma banco, Nequi y efectivo')}</Label>
             <p className="text-sm text-ink/60">{NOT_INCOME}</p>
             <MoneyInput id="money-balance" value={text} onChange={setText} placeholder="0" autoFocus />
           </div>
           <div className="flex gap-2">
-            <Button type="submit">Guardar</Button>
+            <Button type="submit">{t('Guardar')}</Button>
             {known && (
               <Button type="button" variant="ghost" onClick={() => setTyping(null)}>
-                Cancelar
+                {t('Cancelar')}
               </Button>
             )}
           </div>
@@ -291,7 +292,7 @@ function CommitmentForm({ initial, onClose, onSaved, onDelete }) {
       <form onSubmit={save} className="space-y-4">
         <div>
           <ChipGroup
-            legend="¿Qué es?"
+            legend={t('¿Qué es?')}
             options={COMMITMENT_KIND_OPTIONS.map(({ value, label }) => ({ value, label }))}
             value={form.kind}
             onChange={(kind) => change({ kind })}
@@ -299,18 +300,18 @@ function CommitmentForm({ initial, onClose, onSaved, onDelete }) {
           <p className="mt-1.5 text-sm text-ink/60">{COMMITMENT_KIND_OPTIONS.find((o) => o.value === form.kind).hint}</p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="commitment-name">Nombre</Label>
+          <Label htmlFor="commitment-name">{t('Nombre')}</Label>
           <Input
             id="commitment-name"
             maxLength={60}
-            placeholder={form.kind === 'subscription' ? 'Netflix' : 'Arriendo'}
+            placeholder={form.kind === 'subscription' ? t('Netflix') : t('Arriendo')}
             value={form.name}
             onChange={(e) => change({ name: e.target.value })}
           />
         </div>
         <div className="grid grid-cols-[minmax(0,1fr)_88px] gap-3">
           <div className="min-w-0 space-y-2">
-            <Label htmlFor="commitment-amount">Monto</Label>
+            <Label htmlFor="commitment-amount">{t('Monto')}</Label>
             <MoneyInput
               id="commitment-amount"
               value={form.amount}
@@ -319,7 +320,7 @@ function CommitmentForm({ initial, onClose, onSaved, onDelete }) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="commitment-day">Día</Label>
+            <Label htmlFor="commitment-day">{t('Día')}</Label>
             <Input
               id="commitment-day"
               inputMode="numeric"
@@ -331,21 +332,21 @@ function CommitmentForm({ initial, onClose, onSaved, onDelete }) {
           </div>
         </div>
         <ChipGroup
-          legend="¿Cada cuánto?"
+          legend={t('¿Cada cuánto?')}
           options={COMMITMENT_FREQUENCY_OPTIONS}
           value={form.frequency}
           onChange={(frequency) => change({ frequency })}
         />
         {form.frequency === 'yearly' && (
           <div className="space-y-2">
-            <Label htmlFor="commitment-month">Mes del cobro</Label>
+            <Label htmlFor="commitment-month">{t('Mes del cobro')}</Label>
             <select
               id="commitment-month"
               value={form.month}
               onChange={(e) => change({ month: e.target.value })}
               className="h-11 w-full rounded-xl border border-ink/15 bg-surface px-3 text-base capitalize"
             >
-              <option value="">Elige el mes</option>
+              <option value="">{t('Elige el mes')}</option>
               {MONTH_NAMES.map((name, i) => (
                 <option key={name} value={String(i + 1)} className="capitalize">
                   {name}
@@ -359,16 +360,16 @@ function CommitmentForm({ initial, onClose, onSaved, onDelete }) {
         <div className="flex gap-2">
           <Button type="submit" disabled={saving}>
             {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-            Guardar pago
+            {t('Guardar pago')}
           </Button>
           <Button type="button" variant="ghost" onClick={onClose}>
-            Cancelar
+            {t('Cancelar')}
           </Button>
         </div>
         {form.id && onDelete && (
           <Button type="button" variant="ghost" className="w-full text-negative" onClick={onDelete}>
             <Trash2 aria-hidden="true" />
-            Eliminar pago
+            {t('Eliminar pago')}
           </Button>
         )}
       </form>
@@ -381,7 +382,7 @@ function CommitmentForm({ initial, onClose, onSaved, onDelete }) {
  */
 export function CommitmentDialog({ form, onClose, onSaved, onDelete }) {
   return (
-    <Sheet open={Boolean(form)} title={form?.id ? 'Editar pago' : 'Nuevo pago'} onClose={onClose}>
+    <Sheet open={Boolean(form)} title={form?.id ? t('Editar pago') : t('Nuevo pago')} onClose={onClose}>
       {form && <CommitmentForm key={form.id ?? 'nuevo'} initial={form} onClose={onClose} onSaved={onSaved} onDelete={onDelete} />}
     </Sheet>
   );
@@ -411,17 +412,17 @@ function PaymentsSection({ commitments, subscriptions, onChanged }) {
     <Panel aria-labelledby="mi-plata-pagos">
       <SectionTitle
         id="mi-plata-pagos"
-        title="Pagos fijos y suscripciones"
+        title={t('Pagos fijos y suscripciones')}
         action={
           <Button variant="soft" size="sm" onClick={() => setForm(EMPTY_COMMITMENT)}>
             <Plus aria-hidden="true" />
-            Agregar pago
+            {t('Agregar pago')}
           </Button>
         }
       />
       {commitments.length === 0 ? (
         <p className="mt-2 text-sm text-ink/60">
-          Agrega lo que pagas cada mes (arriendo, internet) y tus suscripciones (Netflix, Spotify).
+          {t('Agrega lo que pagas cada mes (arriendo, internet) y tus suscripciones (Netflix, Spotify).')}
         </p>
       ) : (
         <ul className="mt-2 divide-y divide-ink/10">
@@ -431,13 +432,13 @@ function PaymentsSection({ commitments, subscriptions, onChanged }) {
                 <p className="truncate font-medium">{c.name}</p>
                 <p className="text-sm text-ink/60">
                   {formatMoney(c.amount)} · {commitmentWhen(c)}
-                  {c.kind === 'subscription' && ' · suscripción'}
+                  {c.kind === 'subscription' && t(' · suscripción')}
                 </p>
               </div>
-              <Button variant="ghost" size="icon" aria-label={`Editar ${c.name}`} onClick={() => edit(c)}>
+              <Button variant="ghost" size="icon" aria-label={t('Editar {name}', { name: c.name })} onClick={() => edit(c)}>
                 <Pencil aria-hidden="true" />
               </Button>
-              <Button variant="ghost" size="icon" aria-label={`Eliminar ${c.name}`} onClick={() => remove(c)}>
+              <Button variant="ghost" size="icon" aria-label={t('Eliminar {name}', { name: c.name })} onClick={() => remove(c)}>
                 <Trash2 aria-hidden="true" />
               </Button>
             </li>
@@ -446,7 +447,7 @@ function PaymentsSection({ commitments, subscriptions, onChanged }) {
       )}
       {subscriptions?.count > 0 && (
         <p className="mt-2 rounded-xl bg-ink/5 px-3 py-2 text-sm">
-          Suscripciones: <b className="tabular-nums">{formatMoney(subscriptions.monthly)}</b> al mes
+          {t('Suscripciones:')} <b className="tabular-nums">{formatMoney(subscriptions.monthly)}</b> {t('al mes')}
           {subscriptions.count > 1 && <span className="text-ink/60"> ({subscriptions.count})</span>}
         </p>
       )}
@@ -465,15 +466,15 @@ function PaymentsSection({ commitments, subscriptions, onChanged }) {
 
 /** Lo que se abre desde Mi plata en el celular (antes estaba en el menú lateral). */
 const MORE_OF_YOUR_MONEY = [
-  { to: '/app/presupuestos', label: 'Presupuestos', hint: 'Topes por categoría', icon: Target },
-  { to: '/app/calendario', label: 'Calendario', hint: 'Pagos fijos del mes', icon: CalendarDays },
-  { to: '/app/cuentas', label: 'Cuentas', hint: 'Lo que te deben y debes', icon: HandCoins },
-  { to: '/app/tarjetas', label: 'Tarjetas', hint: 'Cupo y fechas de pago', icon: CreditCard },
-  { to: '/app/por-confirmar', label: 'Por confirmar', hint: 'Gastos que llegaron solos', icon: Inbox },
-  { to: '/app/insights', label: 'Consejos', hint: 'Tu semana y la IA', icon: Sparkles },
-  { to: '/app/transacciones/exportar', label: 'Exportar', hint: 'Excel o PDF', icon: Download },
-  { to: '/app/renta', label: 'Renta y DIAN', hint: 'Si te toca declarar', icon: Landmark },
-  { to: '/app/liquidez', label: 'Próximos días', hint: 'Lo que entra y sale', icon: TrendingUp },
+  { to: '/app/presupuestos', label: t('Presupuestos'), hint: t('Topes por categoría'), icon: Target },
+  { to: '/app/calendario', label: t('Calendario'), hint: t('Pagos fijos del mes'), icon: CalendarDays },
+  { to: '/app/cuentas', label: t('Cuentas'), hint: t('Lo que te deben y debes'), icon: HandCoins },
+  { to: '/app/tarjetas', label: t('Tarjetas'), hint: t('Cupo y fechas de pago'), icon: CreditCard },
+  { to: '/app/por-confirmar', label: t('Por confirmar'), hint: t('Gastos que llegaron solos'), icon: Inbox },
+  { to: '/app/insights', label: t('Consejos'), hint: t('Tu semana y la IA'), icon: Sparkles },
+  { to: '/app/transacciones/exportar', label: t('Exportar'), hint: t('Excel o PDF'), icon: Download },
+  { to: '/app/renta', label: t('Renta y DIAN'), hint: t('Si te toca declarar'), icon: Landmark },
+  { to: '/app/liquidez', label: t('Próximos días'), hint: t('Lo que entra y sale'), icon: TrendingUp },
 ];
 
 /**
@@ -481,7 +482,7 @@ const MORE_OF_YOUR_MONEY = [
  * aquí salen los números de la ficha del inicio. En el celular, además, el saldo, las acciones y los movimientos.
  */
 export default function MiPlata() {
-  usePageTitle('Mi plata');
+  usePageTitle(t('Mi plata'));
   const online = useOnlineStatus();
   const profile = useAsync(getMoneyProfile, []);
   const data = profile.data;
@@ -517,21 +518,21 @@ export default function MiPlata() {
     <div className="mx-auto max-w-3xl lg:max-w-6xl">
       <div className="max-md:sr-only">
         <PageHeader
-          title="Mi plata"
-          description="Tus movimientos y lo que usamos para calcular cuánto puedes gastar."
+          title={t('Mi plata')}
+          description={t('Tus movimientos y lo que usamos para calcular cuánto puedes gastar.')}
           actions={
             !mobile && (
               <>
                 <Button asChild variant="soft">
                   <Link to="/app/transacciones/exportar">
                     <Download aria-hidden="true" />
-                    Exportar reporte
+                    {t('Exportar reporte')}
                   </Link>
                 </Button>
                 <Button asChild>
                   <Link to="/app/anotar">
                     <Plus aria-hidden="true" />
-                    Anotar
+                    {t('Anotar')}
                   </Link>
                 </Button>
               </>
@@ -549,7 +550,7 @@ export default function MiPlata() {
         </MiPlataMobile>
         <IncomeOverview />
         {/* Rinde v2: los movimientos tienen su propia pestaña; aquí, lo demás de la plata. */}
-        <ShortcutGrid id="mas-de-tu-plata" title="Más de tu plata" items={MORE_OF_YOUR_MONEY} />
+        <ShortcutGrid id="mas-de-tu-plata" title={t('Más de tu plata')} items={MORE_OF_YOUR_MONEY} />
       </div>
       )}
 
@@ -563,7 +564,7 @@ export default function MiPlata() {
               <p role="alert" className="text-sm text-negative">
                 {profile.error}{' '}
                 <button type="button" className="underline" onClick={profile.reload}>
-                  Reintentar
+                  {t('Reintentar')}
                 </button>
               </p>
             )}

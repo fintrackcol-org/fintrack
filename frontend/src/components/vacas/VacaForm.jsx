@@ -10,10 +10,11 @@ import { Input } from '@/components/ui/input';
 import { vacaSchema } from '@/lib/validation/vaca';
 import { isTooMuch, weeklyPlan } from '@/lib/goalPlan';
 import { formatPesos, todayIso } from './vacaFormat';
+import { t } from '@/lib/i18n';
 
 const SPLIT_OPTIONS = [
-  { value: 'igual', label: 'Partes iguales' },
-  { value: 'personalizado', label: 'Cuotas a medida' },
+  { value: 'igual', label: t('Partes iguales') },
+  { value: 'personalizado', label: t('Cuotas a medida') },
 ];
 
 /**
@@ -91,11 +92,11 @@ export default function VacaForm({ initial = null, disabled = false, personal = 
       onSubmit={submit}
       noValidate
       className="space-y-5"
-      aria-label={personal ? (initial ? 'Editar meta' : 'Nueva meta') : initial ? 'Editar vaca' : 'Nueva vaca'}
+      aria-label={personal ? (initial ? t('Editar meta') : t('Nueva meta')) : initial ? t('Editar vaca') : t('Nueva vaca')}
     >
-      <FormField id="vaca-name" label={personal ? 'Ponle nombre *' : 'Nombre'} error={errors.name?.message}>
+      <FormField id="vaca-name" label={personal ? t('Ponle nombre *') : t('Nombre')} error={errors.name?.message}>
         <Input
-          placeholder={personal ? 'Ej. Moto, semestre, viaje' : 'Ej. Paseo de fin de año'}
+          placeholder={personal ? t('Ej. Moto, semestre, viaje') : t('Ej. Paseo de fin de año')}
           maxLength={60}
           disabled={disabled}
           {...register('name')}
@@ -106,7 +107,7 @@ export default function VacaForm({ initial = null, disabled = false, personal = 
         control={control}
         name="goal"
         render={({ field }) => (
-          <FormField id="vaca-goal" label={personal ? '¿Cuánto necesitas? *' : 'Meta (COP)'} error={errors.goal?.message}>
+          <FormField id="vaca-goal" label={personal ? t('¿Cuánto necesitas? *') : t('Meta (COP)')} error={errors.goal?.message}>
             <MoneyInput
               name={field.name}
               value={field.value}
@@ -120,36 +121,36 @@ export default function VacaForm({ initial = null, disabled = false, personal = 
         )}
       />
 
-      <FormField id="vaca-deadline" label={personal ? '¿Para cuándo?' : 'Fecha límite (opcional)'} error={errors.deadline?.message}>
+      <FormField id="vaca-deadline" label={personal ? t('¿Para cuándo?') : t('Fecha límite (opcional)')} error={errors.deadline?.message}>
         <Input type="date" min={todayIso()} disabled={disabled} {...register('deadline')} />
       </FormField>
 
       {plan && (
         <div aria-live="polite" className="space-y-2">
           <p className="rounded-2xl bg-brand-soft p-4">
-            <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-brand">Tu plan</span>
+            <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-brand">{t('Tu plan')}</span>
             <span className="mt-1 block">
-              <b className="text-xl font-extrabold tabular-nums">{formatPesos(plan.perWeek)}</b> por semana
+              <b className="text-xl font-extrabold tabular-nums">{formatPesos(plan.perWeek)}</b> {t('por semana')}
             </span>
             <span className="block text-sm text-ink/60">
-              {plan.weeks === 1 ? 'Durante 1 semana' : `Durante ${plan.weeks} semanas`}, y llegas a tiempo.
+              {plan.weeks === 1 ? t('Durante 1 semana') : t('Durante {weeks} semanas', { weeks: plan.weeks })}{t(', y llegas a tiempo.')}
             </span>
           </p>
           {isTooMuch(plan.perWeek, weeklyIncome) && (
             <p className="flex gap-2.5 rounded-2xl bg-brand-soft/60 p-4 text-sm">
               <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-brand" />
               <span>
-                <b className="font-semibold">Es mucho para tus ingresos.</b> Pasa del 30 % de lo que te entra por semana (
-                {formatPesos(weeklyIncome)}). Prueba con más tiempo.
+                <b className="font-semibold">{t('Es mucho para tus ingresos.')}</b> {t('Pasa del 30 % de lo que te entra por semana (')}
+                {formatPesos(weeklyIncome)}{t('). Prueba con más tiempo.')}
               </span>
             </p>
           )}
         </div>
       )}
 
-      <FormField id="vaca-description" label="¿Para qué es? (opcional)" error={errors.description?.message}>
+      <FormField id="vaca-description" label={t('¿Para qué es? (opcional)')} error={errors.description?.message}>
         <Input
-          placeholder={personal ? 'Ej. La cuota inicial de la moto' : 'Ej. Hotel y transporte'}
+          placeholder={personal ? t('Ej. La cuota inicial de la moto') : t('Ej. Hotel y transporte')}
           maxLength={200}
           disabled={disabled}
           {...register('description')}
@@ -163,7 +164,7 @@ export default function VacaForm({ initial = null, disabled = false, personal = 
             name="split"
             render={({ field }) => (
               <ChipGroup
-                legend="Cómo se reparte"
+                legend={t('Cómo se reparte')}
                 options={SPLIT_OPTIONS}
                 value={field.value}
                 onChange={field.onChange}
@@ -172,8 +173,7 @@ export default function VacaForm({ initial = null, disabled = false, personal = 
             )}
           />
           <p className="-mt-3 text-sm text-ink/60">
-            Con partes iguales, a cada miembro le toca la meta dividida entre todos. Con cuotas a medida, un
-            administrador pone la de cada uno y lo demás se reparte.
+            {t('Con partes iguales, a cada miembro le toca la meta dividida entre todos. Con cuotas a medida, un administrador pone la de cada uno y lo demás se reparte.')}
           </p>
         </>
       )}
@@ -187,11 +187,11 @@ export default function VacaForm({ initial = null, disabled = false, personal = 
       <div className="flex gap-3">
         <Button type="submit" size="lg" className="flex-1" disabled={disabled || isSubmitting}>
           {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-          {isSubmitting ? 'Guardando…' : initial ? 'Guardar cambios' : personal ? 'Crear meta' : 'Crear vaca'}
+          {isSubmitting ? t('Guardando…') : initial ? t('Guardar cambios') : personal ? t('Crear meta') : t('Crear vaca')}
         </Button>
         {onCancel && (
           <Button type="button" variant="outline" size="lg" onClick={onCancel} disabled={isSubmitting}>
-            Cancelar
+            {t('Cancelar')}
           </Button>
         )}
       </div>

@@ -404,10 +404,12 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
     patch:
       tags: [Users]
-      summary: Cambia el nombre visible del usuario
+      summary: Cambia el nombre visible, el país, la moneda principal o el idioma
       description: >
-        El nombre es opcional y solo se usa para saludar en la app. Se recorta y los espacios
-        repetidos quedan en uno. `null` o un texto vacío lo borran.
+        Se envía al menos uno de los campos. El nombre es opcional y solo se usa para saludar en la
+        app; se recorta y los espacios repetidos quedan en uno, y `null` o un texto vacío lo borran.
+        El país es donde está la persona ahora (cambia si viaja). La moneda principal es la de todos
+        sus montos y solo se puede cambiar mientras no tenga movimientos (si no, 409 `CURRENCY_LOCKED`).
       requestBody:
         required: true
         content:
@@ -421,6 +423,11 @@ paths:
               schema: { $ref: "#/components/schemas/User" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "409":
+          description: "`CURRENCY_LOCKED`: ya tiene movimientos, la moneda principal no cambia"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
         "422": { $ref: "#/components/responses/ValidationError" }
     delete:
       tags: [Users]
@@ -786,6 +793,32 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
 
   # ---------------------------------------------------------------- Categories
+  /exchange-rates:
+    get:
+      tags: [Transactions]
+      summary: Tasa de cambio de un día, para anotar en otra moneda al viajar
+      description: >
+        Sale de Frankfurter (api.frankfurter.dev, gratis y sin clave; para el peso colombiano usa la
+        TRM del Banco de la República). Cada par y día se pide una sola vez y queda guardado para
+        todos. Si Frankfurter no responde se devuelve la última guardada con `stale: true`; si no hay
+        ninguna, 503 `RATE_UNAVAILABLE` y la persona la escribe a mano.
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, example: MXN } }
+        - { name: to, in: query, required: true, schema: { type: string, example: COP } }
+        - { name: date, in: query, required: false, schema: { type: string, format: date }, description: Por defecto, hoy (UTC) }
+      responses:
+        "200":
+          description: La tasa
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExchangeRate" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "503":
+          description: "`RATE_UNAVAILABLE`: no hay tasa de ese par"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
   /categories:
     get:
       tags: [Categories]
@@ -3523,11 +3556,17 @@ components:
         termsAccepted:
           type: boolean
           description: Si aceptó la versión vigente de los términos y la privacidad (FT-0017). Viene en `GET /users/me`.
+        country: { type: string, pattern: "^[A-Z]{2}$", description: País donde está ahora (ISO 3166), example: CO }
+        currency: { type: string, pattern: "^[A-Z]{3}$", description: Moneda principal (ISO 4217), la de todos sus montos, example: COP }
+        language: { type: string, enum: [es, en, pt, zh], example: es }
     UpdateProfileRequest:
       type: object
-      required: [name]
+      minProperties: 1
       properties:
         name: { type: string, nullable: true, maxLength: 60, example: Felipe }
+        country: { type: string, pattern: "^[A-Z]{2}$", example: MX }
+        currency: { type: string, pattern: "^[A-Z]{3}$", example: MXN }
+        language: { type: string, enum: [es, en, pt, zh], example: es }
     ReminderSettings:
       type: object
       required: [times, timezone]
@@ -3813,6 +3852,27 @@ components:
           description: Cuotas del gasto con tarjeta; `null` si no usó tarjeta.
         emotion: { $ref: "#/components/schemas/NullableEmotion" }
         kakeibo: { $ref: "#/components/schemas/NullableKakeibo" }
+        original: { $ref: "#/components/schemas/OriginalAmount" }
+    OriginalAmount:
+      type: object
+      nullable: true
+      required: [currency, amount, rate]
+      description: >
+        Anotado en otra moneda (al viajar). `amount` del movimiento ya está en la moneda principal y
+        lo calcula el servidor: `original.amount × original.rate`. `null` si se anotó en la principal.
+      properties:
+        currency: { type: string, pattern: "^[A-Z]{3}$", example: MXN }
+        amount: { type: number, minimum: 0.01, example: 200 }
+        rate: { type: number, exclusiveMinimum: 0, description: Cuánto vale 1 `currency` en la moneda principal, example: 179.15 }
+    ExchangeRate:
+      type: object
+      required: [from, to, date, rate, stale]
+      properties:
+        from: { type: string, example: MXN }
+        to: { type: string, example: COP }
+        date: { type: string, format: date }
+        rate: { type: number, description: Cuánto vale 1 `from` en `to`, example: 179.15 }
+        stale: { type: boolean, description: "`true` si Frankfurter no respondió y es la última tasa guardada (de `date`)" }
     CountTotal:
       type: object
       required: [count, total]
@@ -3856,6 +3916,9 @@ components:
         kakeibo:
           allOf: [{ $ref: "#/components/schemas/NullableKakeibo" }]
           description: Opcional. En un ingreso responde 422 en el campo `kakeibo`.
+        original:
+          allOf: [{ $ref: "#/components/schemas/OriginalAmount" }]
+          description: Opcional. Si viene, el servidor calcula `amount` (lo que mande el cliente no cuenta).
         localId:
           type: string
           minLength: 1
@@ -3888,6 +3951,9 @@ components:
         kakeibo:
           allOf: [{ $ref: "#/components/schemas/NullableKakeibo" }]
           description: "`null` lo quita. Al cambiar `type` a ingreso se quita solo; en un ingreso, 422."
+        original:
+          allOf: [{ $ref: "#/components/schemas/OriginalAmount" }]
+          description: "Recalcula `amount`. Si se envía `amount` sin `original`, queda en `null` (se editó en la moneda principal)."
     TransactionWithAlert:
       type: object
       required: [transaction, alert]

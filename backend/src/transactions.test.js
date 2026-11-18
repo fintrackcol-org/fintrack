@@ -628,3 +628,34 @@ test('PUT: cambiar a ingreso o mandar card null quita tarjeta y cuotas', options
     assert.equal(onlyInst.body.transaction.installments, 12);
   });
 });
+
+test('un gasto en otra moneda guarda lo pagado allá y el monto convertido; editarlo a mano lo quita', options, async () => {
+  await withApi(async ({ api, alice }) => {
+    const res = await api('/transactions', {
+      method: 'POST',
+      token: alice,
+      body: { ...GASTO, amount: 1, category: 'alimentacion', original: { currency: 'MXN', amount: 200, rate: 179.5 } },
+    });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.transaction.amount, 35900);
+    assert.deepEqual(res.body.transaction.original, { currency: 'MXN', amount: 200, rate: 179.5 });
+
+    const id = res.body.transaction.id;
+    const edited = await api(`/transactions/${id}`, { method: 'PUT', token: alice, body: { amount: 36000 } });
+    assert.equal(edited.status, 200);
+    const updated = edited.body.transaction ?? edited.body;
+    assert.equal(updated.amount, 36000);
+    assert.equal(updated.original, null);
+  });
+});
+
+test('GET /exchange-rates: la misma moneda vale 1 y valida los códigos (422)', options, async () => {
+  await withApi(async ({ api, alice }) => {
+    const same = await api('/exchange-rates?from=COP&to=COP&date=2026-11-17', { token: alice });
+    assert.equal(same.status, 200);
+    assert.equal(same.body.rate, 1);
+    const bad = await api('/exchange-rates?from=XXQ&to=COP', { token: alice });
+    assert.equal(bad.status, 422);
+    assert.equal((await api('/exchange-rates?from=MXN&to=COP')).status, 401);
+  });
+});

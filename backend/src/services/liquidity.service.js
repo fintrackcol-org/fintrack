@@ -9,16 +9,13 @@ import { getPlan, isPaymentOf } from './money-plan.service.js';
 import { listSources } from '../repositories/income-sources.repository.js';
 import { expectedIncome } from './income.service.js';
 import { list as listVacas } from './vacas.service.js';
+import { currencyDigits, formatMoney, t } from '../i18n/index.js';
 
 /** Días que se proyectan si no se piden otros. */
 export const DEFAULT_DAYS = 45;
 export const MAX_DAYS = 90;
 
-const money = new Intl.NumberFormat('es-CO', {
-  style: 'currency',
-  currency: 'COP',
-  maximumFractionDigits: 0,
-});
+const money = { format: (n) => formatMoney(n, { digits: currencyDigits() }) };
 
 /**
  * @param {string} from AAAA-MM-DD
@@ -87,31 +84,31 @@ export function createLiquidityService(deps = {}) {
             date: e.date,
             amount: e.amount,
             kind: 'esperado',
-            name: names.get(e.sourceId) ?? 'Ingreso esperado',
+            name: names.get(e.sourceId) ?? t('Ingreso esperado'),
             id: e.sourceId,
             sure: e.sure,
           }));
         if (expected.some((e) => e.date === null)) {
-          assumptions.push('Lo que te entra sin fecha fija (proyectos, ventas sueltas) no lo contamos.');
+          assumptions.push(t('Lo que te entra sin fecha fija (proyectos, ventas sueltas) no lo contamos.'));
         }
       }
     }
 
     if (inflows.length > 0) {
       assumptions.push(
-        'Contamos lo que esperas recibir con el valor de un mes flaco: si te entra más, mejor.',
+        t('Contamos lo que esperas recibir con el valor de un mes flaco: si te entra más, mejor.'),
       );
     } else if (profile?.incomeType === 'fecha_fija' && plan.nextPay) {
       horizonDays = Math.min(horizonDays, Math.max(1, daysBetween(today, plan.nextPay) - 1));
       assumptions.push(
-        `Proyectamos hasta la víspera de tu próximo pago (${plan.nextPay}): no sumamos lo que te van a pagar.`,
+        t('Proyectamos hasta la víspera de tu próximo pago ({nextPay}): no sumamos lo que te van a pagar.', { nextPay: plan.nextPay }),
       );
     } else {
-      assumptions.push('No contamos ingresos futuros: solo la plata que ya tienes.');
+      assumptions.push(t('No contamos ingresos futuros: solo la plata que ya tienes.'));
     }
     if (plan.pace === null) {
       assumptions.push(
-        'Aún no hay 14 días de movimientos: solo restamos tus pagos, no tu gasto de cada día.',
+        t('Aún no hay 14 días de movimientos: solo restamos tus pagos, no tu gasto de cada día.'),
       );
     }
 
@@ -156,7 +153,7 @@ export function createLiquidityService(deps = {}) {
     const receivable = debts.totals.receivable;
     if (receivable > 0) {
       assumptions.push(
-        `No contamos lo que te deben (${money.format(receivable)}): si te pagan, te alcanza más.`,
+        t('No contamos lo que te deben ({receivable}): si te pagan, te alcanza más.', { receivable: money.format(receivable) }),
       );
     }
 

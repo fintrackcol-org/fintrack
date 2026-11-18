@@ -2,8 +2,8 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import '@fontsource-variable/inter-tight';
-import App from './App.jsx';
-import { AuthProvider } from './auth/AuthContext.jsx';
+import { loadMessages } from './lib/i18n';
+import { getRegion } from './lib/region';
 import './index.css';
 
 /*
@@ -47,14 +47,18 @@ async function enableMocking() {
  * La fuente se sirve desde el propio bundle (no Google Fonts) para que
  * el futuro service worker pueda precachearla y funcione sin conexión.
  */
-enableMocking().then(() =>
-  createRoot(document.getElementById('root')).render(
-    <StrictMode>
-      <BrowserRouter>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </BrowserRouter>
-    </StrictMode>,
-  ),
-);
+// El idioma va antes que la app: sus módulos usan t() al cargarse. Si sus traducciones no
+// descargan (sin conexión la primera vez), la app abre en español.
+Promise.all([enableMocking(), loadMessages(getRegion().language).catch(() => {})])
+  .then(() => Promise.all([import('./App.jsx'), import('./auth/AuthContext.jsx')]))
+  .then(([{ default: App }, { AuthProvider }]) =>
+    createRoot(document.getElementById('root')).render(
+      <StrictMode>
+        <BrowserRouter>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </BrowserRouter>
+      </StrictMode>,
+    ),
+  );

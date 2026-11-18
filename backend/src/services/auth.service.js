@@ -25,6 +25,7 @@ import {
 import { googleVerifier } from './google-auth.service.js';
 import { sendPasswordResetEmail, sendVerificationEmail } from './mail.service.js';
 import { generateRefreshToken, hashRefreshToken, signAccessToken } from './token.service.js';
+import { t } from '../i18n/index.js';
 
 /** Costo de bcrypt: cada +1 duplica el tiempo de cifrado (10 ≈ decenas de ms). */
 const BCRYPT_ROUNDS = 10;
@@ -95,7 +96,7 @@ export async function register({ email, password, name = null }, mailer = sendVe
     termsVersion: LEGAL_VERSION,
   });
   if (!user) {
-    throw new AppError(409, 'EMAIL_TAKEN', 'El correo ya está registrado');
+    throw new AppError(409, 'EMAIL_TAKEN', t('El correo ya está registrado'));
   }
   await sendVerificationLink(user, mailer);
   return { email: user.email, verificationRequired: true };
@@ -111,13 +112,13 @@ export async function login({ email, password }) {
   const user = await findUserByEmail(email.trim().toLowerCase());
   const matches = await bcrypt.compare(password, user ? user.passwordHash : DUMMY_HASH);
   if (!user || !matches) {
-    throw new AppError(401, 'UNAUTHORIZED', 'Correo o contraseña incorrectos');
+    throw new AppError(401, 'UNAUTHORIZED', t('Correo o contraseña incorrectos'));
   }
   if (!user.emailVerified) {
     throw new AppError(
       403,
       'EMAIL_NOT_VERIFIED',
-      'Confirma tu correo para entrar. Revisa tu bandeja o pide un enlace nuevo.',
+      t('Confirma tu correo para entrar. Revisa tu bandeja o pide un enlace nuevo.'),
     );
   }
   return {
@@ -173,7 +174,7 @@ export async function loginWithGoogle(credential, verifier = googleVerifier) {
 export async function refresh(refreshToken) {
   const userId = await consumeRefreshToken(hashRefreshToken(refreshToken));
   if (!userId) {
-    throw new AppError(401, 'UNAUTHORIZED', 'Refresh token inválido, vencido o revocado');
+    throw new AppError(401, 'UNAUTHORIZED', t('Refresh token inválido, vencido o revocado'));
   }
   return issueTokens(userId);
 }
@@ -227,7 +228,7 @@ export async function resetPassword({ token, password }) {
     throw new AppError(
       400,
       'INVALID_RESET_TOKEN',
-      'El enlace no es válido o ya venció. Pide uno nuevo.',
+      t('El enlace no es válido o ya venció. Pide uno nuevo.'),
     );
   }
 }
@@ -245,7 +246,7 @@ export async function verifyEmail(token) {
     throw new AppError(
       400,
       'INVALID_VERIFICATION_TOKEN',
-      'El enlace no es válido o ya venció. Pide uno nuevo.',
+      t('El enlace no es válido o ya venció. Pide uno nuevo.'),
     );
   }
   const user = await findUserById(userId);

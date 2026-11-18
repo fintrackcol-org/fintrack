@@ -1,4 +1,5 @@
 import { AppError } from '../errors/app-error.js';
+import { t } from '../i18n/index.js';
 
 export const MIN_TITLE_LENGTH = 5;
 export const MAX_TITLE_LENGTH = 120;
@@ -11,7 +12,7 @@ export const STATUSES = ['revision', 'planeada', 'en_progreso', 'lista', 'descar
  */
 function assertObject(body) {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-    throw new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+    throw new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
   }
 }
 
@@ -23,8 +24,8 @@ function assertObject(body) {
 function parseTitle(value) {
   const title = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
   if (title.length < MIN_TITLE_LENGTH || title.length > MAX_TITLE_LENGTH) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'title', problem: `Debe tener entre ${MIN_TITLE_LENGTH} y ${MAX_TITLE_LENGTH} caracteres` },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'title', problem: t('Debe tener entre {MIN_TITLE_LENGTH} y {MAX_TITLE_LENGTH} caracteres', { MIN_TITLE_LENGTH, MAX_TITLE_LENGTH }) },
     ]);
   }
   return title;
@@ -37,8 +38,8 @@ function parseTitle(value) {
  */
 function parseStatus(value) {
   if (!STATUSES.includes(value)) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'status', problem: `Debe ser uno de: ${STATUSES.join(', ')}` },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'status', problem: t('Debe ser uno de: {join}', { join: STATUSES.join(', ') }) },
     ]);
   }
   return value;
@@ -75,8 +76,8 @@ export function parseAdminIdea(body) {
 export function parseIdeaChanges(body) {
   assertObject(body);
   if (body.title === undefined && body.status === undefined) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'title', problem: 'Envía el título o el estado' },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'title', problem: t('Envía el título o el estado') },
     ]);
   }
   return {

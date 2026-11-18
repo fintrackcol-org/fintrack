@@ -9,6 +9,7 @@ import {
   listAttachments,
   uploadAttachment,
 } from '@/services/attachmentService';
+import { t } from '@/lib/i18n';
 
 /**
  * Tamaño legible: `320 KB`, `1,2 MB`.
@@ -59,7 +60,7 @@ export default function AttachmentsPanel({ transactionId, bare = false }) {
     setMessage('');
     try {
       const { blob, name } = await prepareUpload(file);
-      if (blob.size > state.maxBytes) throw new Error('El archivo pesa más de 5 MB.');
+      if (blob.size > state.maxBytes) throw new Error(t('El archivo pesa más de 5 MB.'));
       const created = await uploadAttachment(transactionId, blob, name);
       setState((s) => ({ ...s, items: [...s.items, created] }));
     } catch (err) {
@@ -85,7 +86,7 @@ export default function AttachmentsPanel({ transactionId, bare = false }) {
   };
 
   const remove = async (attachment) => {
-    if (!window.confirm(`¿Borrar "${attachment.name}"?`)) return;
+    if (!window.confirm(t('¿Borrar "{name}"?', { name: attachment.name }))) return;
     setMessage('');
     try {
       await deleteAttachment(transactionId, attachment.id);
@@ -101,16 +102,16 @@ export default function AttachmentsPanel({ transactionId, bare = false }) {
     <section aria-labelledby="soportes-title" className={bare ? undefined : 'mt-5 border-t border-ink/10 pt-5'}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 id="soportes-title" className="flex items-center gap-2 font-semibold">
-          <Paperclip className="size-4" aria-hidden="true" /> Soportes
+          <Paperclip className="size-4" aria-hidden="true" /> {t('Soportes')}
         </h3>
         {state.status === 'ready' && (
           <span className="text-sm text-ink/60">
-            {state.items.length} de {state.max}
+            {state.items.length} {t('de')} {state.max}
           </span>
         )}
       </div>
 
-      {state.status === 'loading' && <Loader2 className="mx-auto animate-spin text-ink/40" aria-label="Cargando soportes" />}
+      {state.status === 'loading' && <Loader2 className="mx-auto animate-spin text-ink/40" aria-label={t('Cargando soportes')} />}
       {state.status === 'error' && (
         <p role="alert" className="text-sm text-negative">
           {state.error}
@@ -132,9 +133,9 @@ export default function AttachmentsPanel({ transactionId, bare = false }) {
                       className="min-w-0 flex-1 text-left text-sm underline-offset-4 hover:underline"
                     >
                       <span className="block truncate font-medium">{a.name}</span>
-                      <span className="text-xs text-ink/60">{formatSize(a.size)} · Toca para verlo</span>
+                      <span className="text-xs text-ink/60">{formatSize(a.size)} {t('· Toca para verlo')}</span>
                     </button>
-                    <Button type="button" variant="ghost" size="icon" aria-label={`Borrar ${a.name}`} onClick={() => remove(a)}>
+                    <Button type="button" variant="ghost" size="icon" aria-label={t('Borrar {name}', { name: a.name })} onClick={() => remove(a)}>
                       <Trash2 />
                     </Button>
                   </li>
@@ -144,16 +145,16 @@ export default function AttachmentsPanel({ transactionId, bare = false }) {
           )}
 
           {!online ? (
-            <p className="text-sm text-ink/60">Necesitas conexión para adjuntar soportes.</p>
+            <p className="text-sm text-ink/60">{t('Necesitas conexión para adjuntar soportes.')}</p>
           ) : (
             !full && (
               <div className="grid grid-cols-2 gap-2">
                 <Button type="button" variant="outline" disabled={busy} onClick={() => cameraInput.current?.click()}>
                   {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Camera aria-hidden="true" />}
-                  Tomar foto
+                  {t('Tomar foto')}
                 </Button>
                 <Button type="button" variant="outline" disabled={busy} onClick={() => fileInput.current?.click()}>
-                  <FileText aria-hidden="true" /> Subir archivo
+                  <FileText aria-hidden="true" /> {t('Subir archivo')}
                 </Button>
               </div>
             )
@@ -168,7 +169,7 @@ export default function AttachmentsPanel({ transactionId, bare = false }) {
             </p>
           )}
           <p className="mt-3 text-xs text-ink/50">
-            Solo tú puedes ver tus soportes. Se borran si eliminas el movimiento.
+            {t('Solo tú puedes ver tus soportes. Se borran si eliminas el movimiento.')}
           </p>
         </>
       )}

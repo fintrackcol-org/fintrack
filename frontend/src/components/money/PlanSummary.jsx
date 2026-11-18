@@ -9,6 +9,7 @@ import { dayMessage, planHeadline } from '@/lib/moneyPlan';
 import { NOT_INCOME } from '@/lib/moneyProfile';
 import { cn } from '@/lib/utils';
 import { updateMoneyProfile } from '@/services/moneyProfileService';
+import { t } from '@/lib/i18n';
 
 /**
  * Contenido de la franja violeta con Mi plata activa: cuánta plata tiene el usuario y, en una sola
@@ -45,7 +46,7 @@ export default function PlanSummary({ plan, profile, money, onChanged }) {
   const submit = (event) => {
     event.preventDefault();
     if (text === '') {
-      setError('Escribe cuánta plata tienes.');
+      setError(t('Escribe cuánta plata tienes.'));
       return;
     }
     saveBalance(Number(text));
@@ -58,25 +59,25 @@ export default function PlanSummary({ plan, profile, money, onChanged }) {
       {profile && !editing && (
         <button
           type="button"
-          aria-label="Corregir cuánta plata tienes"
+          aria-label={t('Corregir cuánta plata tienes')}
           onClick={() => setEditing(true)}
           className="relative -ml-1 mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-full px-1 text-sm text-white/90 transition-colors hover:text-white focus-visible:outline-white"
         >
           <Pencil className="size-4" aria-hidden="true" />
-          ¿No es tu plata real? Corrígela
+          {t('¿No es tu plata real? Corrígela')}
         </button>
       )}
 
       {editing && (
         <form onSubmit={submit} className="relative mt-3 space-y-2 text-ink">
           <Label htmlFor="plan-balance" className="text-white">
-            Suma banco, Nequi y efectivo
+            {t('Suma banco, Nequi y efectivo')}
           </Label>
           <p className="text-sm text-white/80">{NOT_INCOME}</p>
           <MoneyInput id="plan-balance" value={text} onChange={setText} placeholder="0" showHint={false} autoFocus />
           <div className="flex flex-wrap gap-2">
             <Button type="submit" size="sm" variant="outline-light">
-              Guardar
+              {t('Guardar')}
             </Button>
             {plan.ledger > 0 && plan.ledger !== plan.money && (
               <Button
@@ -86,7 +87,7 @@ export default function PlanSummary({ plan, profile, money, onChanged }) {
                 className="text-white hover:text-white"
                 onClick={() => saveBalance(plan.ledger)}
               >
-                Usar mis movimientos
+                {t('Usar mis movimientos')}
               </Button>
             )}
             <Button
@@ -96,7 +97,7 @@ export default function PlanSummary({ plan, profile, money, onChanged }) {
               className="text-white hover:text-white"
               onClick={() => setEditing(false)}
             >
-              Cancelar
+              {t('Cancelar')}
             </Button>
           </div>
         </form>
@@ -114,17 +115,17 @@ export default function PlanSummary({ plan, profile, money, onChanged }) {
             <span className="block text-xs text-white/70">{note}</span>
           </span>
           <span className="shrink-0 text-right text-xl font-semibold tabular-nums">
-            {warning && <span className="sr-only">Atención: </span>}
+            {warning && <span className="sr-only">{t('Atención:')} </span>}
             {value}
           </span>
           <ChevronRight className="size-4 shrink-0 text-white/60" aria-hidden="true" />
-          <span className="sr-only">Ver Mi plata</span>
+          <span className="sr-only">{t('Ver Mi plata')}</span>
         </Link>
 
         {hasDayLimit && plan.spentToday > 0 && (
           <div
             role="progressbar"
-            aria-label="Gastado hoy"
+            aria-label={t('Gastado hoy')}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(percent)}
@@ -143,19 +144,19 @@ export default function PlanSummary({ plan, profile, money, onChanged }) {
         )}
         {plan.mode === 'goal' && (
           <p className="mt-2 text-sm text-white/80">
-            Hoy llevas {money(plan.todayIncome)}
-            {plan.usualIncome !== null && ` · sueles hacer ${money(plan.usualIncome)}`}
+            {t('Hoy llevas')} {money(plan.todayIncome)}
+            {plan.usualIncome !== null && t(' · sueles hacer {usualIncome}', { usualIncome: money(plan.usualIncome) })}
           </p>
         )}
         {plan.saveAdvice > 0 && (
           <p className="mt-2 flex items-center gap-2 text-sm text-white/90">
             <PiggyBank className="size-4 shrink-0" aria-hidden="true" />
-            Podrías apartar {money(plan.saveAdvice)}
+            {t('Podrías apartar')} {money(plan.saveAdvice)}
           </p>
         )}
         {!plan.hasCommitments && (
           <Link to="/app/mi-plata" className="mt-2 block text-sm text-white/80 underline underline-offset-2">
-            Agrega tus pagos del mes
+            {t('Agrega tus pagos del mes')}
           </Link>
         )}
       </div>

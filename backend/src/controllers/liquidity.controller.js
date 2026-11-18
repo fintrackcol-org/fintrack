@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import { MAX_DAYS, getLiquidity as project } from '../services/liquidity.service.js';
+import { t } from '../i18n/index.js';
 
 /**
  * `GET /api/v1/liquidity?days=45`: plata día por día, cuándo y cuánto faltaría y cuánto puede
@@ -13,8 +14,8 @@ export async function getLiquidity(req, res) {
   if (req.query.days !== undefined) {
     days = Number(req.query.days);
     if (!Number.isInteger(days) || days < 1 || days > MAX_DAYS) {
-      throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-        { field: 'days', problem: `Debe ser un entero entre 1 y ${MAX_DAYS}` },
+      throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+        { field: 'days', problem: t('Debe ser un entero entre 1 y {MAX_DAYS}', { MAX_DAYS }) },
       ]);
     }
   }

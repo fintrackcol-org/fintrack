@@ -10,6 +10,7 @@ import {
   deleteCategory,
   getCategories,
 } from '@/services/transactionService';
+import { t } from '@/lib/i18n';
 
 /** Categorías propias que puede tener cada usuario (igual que en la API). */
 export const MAX_OWN = 20;
@@ -40,11 +41,10 @@ function CategoryRow({ category, onEdit, onDeleted }) {
       <CategoryIcon category={category.key} />
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{category.name}</p>
-        <p className="text-sm text-ink/60">{category.type === 'gasto' ? 'Gasto' : 'Ingreso'}</p>
+        <p className="text-sm text-ink/60">{category.type === 'gasto' ? t('Gasto') : t('Ingreso')}</p>
         {confirming && (
           <p className="mt-1 text-sm text-ink/70">
-            Sus movimientos pasarán a {category.type === 'gasto' ? 'Otros' : 'Otros ingresos'} y sus presupuestos se
-            borrarán.
+            {t('Sus movimientos pasarán a')} {category.type === 'gasto' ? t('Otros') : t('Otros ingresos')} {t('y sus presupuestos se borrarán.')}
           </p>
         )}
         {error && (
@@ -56,25 +56,25 @@ function CategoryRow({ category, onEdit, onDeleted }) {
       <div className="flex items-center gap-1">
         {confirming ? (
           <>
-            <span className="mr-1 text-sm text-ink/60">¿Eliminar?</span>
+            <span className="mr-1 text-sm text-ink/60">{t('¿Eliminar?')}</span>
             <Button size="sm" variant="outline" onClick={remove} disabled={busy}>
               {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
-              Sí, eliminar
+              {t('Sí, eliminar')}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>
-              No
+              {t('No')}
             </Button>
           </>
         ) : (
           <>
-            <Button size="icon" variant="ghost" onClick={() => onEdit(category)} aria-label={`Editar ${category.name}`}>
+            <Button size="icon" variant="ghost" onClick={() => onEdit(category)} aria-label={t('Editar {name}', { name: category.name })}>
               <Pencil aria-hidden="true" />
             </Button>
             <Button
               size="icon"
               variant="ghost"
               onClick={() => setConfirming(true)}
-              aria-label={`Eliminar ${category.name}`}
+              aria-label={t('Eliminar {name}', { name: category.name })}
             >
               <Trash2 aria-hidden="true" />
             </Button>
@@ -114,7 +114,7 @@ export default function CustomCategories() {
     return () => window.removeEventListener(CATEGORIES_CHANGED_EVENT, apply);
   }, []);
 
-  const saved = () => setStatus(dialog?.category ? 'Cambios guardados.' : 'Categoría creada.');
+  const saved = () => setStatus(dialog?.category ? t('Cambios guardados.') : t('Categoría creada.'));
   const deleted = (category, moved) => setStatus(deletedMessage(moved, category.type));
 
   const count = categories?.length ?? 0;
@@ -124,11 +124,11 @@ export default function CustomCategories() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="mis-categorias" className="text-lg font-semibold tracking-tight">
-            Mis categorías
+            {t('Mis categorías')}
           </h2>
           <p className="mt-1 text-sm text-ink/60">
-            Además de las 15 de siempre, puedes crear hasta {MAX_OWN} propias.
-            {categories && ` Tienes ${count} de ${MAX_OWN}.`}
+            {t('Además de las 15 de siempre, puedes crear hasta')} {MAX_OWN} {t('propias.')}
+            {categories && t(' Tienes {count} de {MAX_OWN}.', { count, MAX_OWN })}
           </p>
         </div>
         <Button
@@ -140,7 +140,7 @@ export default function CustomCategories() {
           disabled={!categories || count >= MAX_OWN}
         >
           <Plus aria-hidden="true" />
-          Nueva categoría
+          {t('Nueva categoría')}
         </Button>
       </div>
 
@@ -154,12 +154,11 @@ export default function CustomCategories() {
         </p>
       ) : !categories ? (
         <p className="mt-4 flex items-center gap-2 text-sm text-ink/60">
-          <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Cargando tus categorías…
+          <Loader2 className="size-4 animate-spin" aria-hidden="true" /> {t('Cargando tus categorías…')}
         </p>
       ) : count === 0 ? (
         <p className="mt-4 text-sm text-ink/70">
-          Aún no tienes categorías propias. Créalas aquí o con el botón “Nueva” al registrar un movimiento o un
-          presupuesto.
+          {t('Aún no tienes categorías propias. Créalas aquí o con el botón “Nueva” al registrar un movimiento o un presupuesto.')}
         </p>
       ) : (
         <ul className="mt-2 divide-y divide-ink/10">

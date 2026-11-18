@@ -1,4 +1,5 @@
-/**
+
+import { dateLocale } from '@/lib/region';/**
  * Utilidades de meses en formato AAAA-MM (el formato de los presupuestos).
  * Se calculan con la fecha local del dispositivo, no con UTC, para no saltar de mes de noche.
  */
@@ -25,5 +26,5 @@ export function shiftMonth(month, delta) {
  */
 export function formatMonth(month) {
   const [year, m] = month.split('-').map(Number);
-  return new Date(year, m - 1, 1).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+  return new Date(year, m - 1, 1).toLocaleDateString(dateLocale(), { month: 'long', year: 'numeric' });
 }

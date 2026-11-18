@@ -14,6 +14,7 @@ import {
 } from './negocio-panel.logic.js';
 import * as transactions from './transactions.service.js';
 import { CUSTOM_CATEGORY_RE } from '../validators/negocio-movements.validator.js';
+import { t } from '../i18n/index.js';
 
 // Movimientos de un negocio y su panel del mes (FT-0017), retiros y reparto (FT-0018). Todos los
 // socios ven; los dueños y los editores registran; un lector solo ve. Cada movimiento guarda quién
@@ -22,16 +23,16 @@ import { CUSTOM_CATEGORY_RE } from '../validators/negocio-movements.validator.js
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const notFound = () => new AppError(404, 'NOT_FOUND', 'Negocio no encontrado');
+const notFound = () => new AppError(404, 'NOT_FOUND', t('Negocio no encontrado'));
 const readOnly = () =>
   new AppError(
     403,
     'FORBIDDEN',
-    'Eres lector del negocio: puedes ver, pero no registrar ni borrar',
+    t('Eres lector del negocio: puedes ver, pero no registrar ni borrar'),
   );
 const futureDate = () =>
-  new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-    { field: 'date', problem: 'No puede ser una fecha futura' },
+  new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+    { field: 'date', problem: t('No puede ser una fecha futura') },
   ]);
 
 /**
@@ -157,8 +158,8 @@ export async function record(userId, id, input) {
   if (CUSTOM_CATEGORY_RE.test(input.category)) {
     const custom = await repo.listCustomCategories(business.id);
     if (!custom.some((c) => c.key === input.category)) {
-      throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-        { field: 'category', problem: 'Esa categoría no existe en este negocio' },
+      throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+        { field: 'category', problem: t('Esa categoría no existe en este negocio') },
       ]);
     }
   }
@@ -241,13 +242,13 @@ export async function remove(userId, id, movementId) {
   const business = await requirePartner(userId, id);
   if (business.role === 'lector') throw readOnly();
   const movement = UUID_RE.test(movementId) && (await repo.findMovement(business.id, movementId));
-  if (!movement) throw new AppError(404, 'NOT_FOUND', 'Movimiento no encontrado');
+  if (!movement) throw new AppError(404, 'NOT_FOUND', t('Movimiento no encontrado'));
   if (movement.kind === 'withdrawal') {
     if (movement.authorId !== userId) {
-      throw new AppError(403, 'FORBIDDEN', 'Solo el socio que hizo el retiro puede deshacerlo');
+      throw new AppError(403, 'FORBIDDEN', t('Solo el socio que hizo el retiro puede deshacerlo'));
     }
   } else if (business.role !== 'dueno' && movement.authorId !== userId) {
-    throw new AppError(403, 'FORBIDDEN', 'Solo quien lo registró o un dueño puede borrarlo');
+    throw new AppError(403, 'FORBIDDEN', t('Solo quien lo registró o un dueño puede borrarlo'));
   }
   await repo.deleteMovement(business.id, movementId);
   if (movement.kind === 'withdrawal' && movement.transactionId) {
@@ -275,13 +276,13 @@ export async function addCategory(userId, id, { name }) {
   const business = await requirePartner(userId, id);
   if (business.role === 'lector') throw readOnly();
   const taken = () =>
-    new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [{ field: 'name', problem: 'Ya hay una categoría con ese nombre' }]);
+    new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [{ field: 'name', problem: t('Ya hay una categoría con ese nombre') }]);
   const plain = (s) => s.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
   if (Object.values(BUILT_IN_NAMES).some((n) => plain(n) === plain(name))) throw taken();
   const custom = await repo.listCustomCategories(business.id);
   if (custom.length >= MAX_CUSTOM_CATEGORIES) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'name', problem: `Máximo ${MAX_CUSTOM_CATEGORIES} categorías propias` },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'name', problem: t('Máximo {MAX_CUSTOM_CATEGORIES} categorías propias', { MAX_CUSTOM_CATEGORIES }) },
     ]);
   }
   const key = `c_${randomUUID().replace(/-/g, '').slice(0, 8)}`;
@@ -301,19 +302,19 @@ export async function removeCategory(userId, id, key) {
   const business = await requirePartner(userId, id);
   if (business.role === 'lector') throw readOnly();
   const deleted = CUSTOM_CATEGORY_RE.test(key) && (await repo.deleteCustomCategory(business.id, key));
-  if (!deleted) throw new AppError(404, 'NOT_FOUND', 'Categoría no encontrada');
+  if (!deleted) throw new AppError(404, 'NOT_FOUND', t('Categoría no encontrada'));
 }
 
 /** Nombres de las categorías de siempre, para no repetirlos en las propias. */
 const BUILT_IN_NAMES = {
-  ventas: 'Ventas',
-  insumos: 'Insumos',
-  arriendo: 'Arriendo',
-  nomina: 'Nómina',
-  servicios: 'Servicios',
-  publicidad: 'Publicidad',
-  transporte: 'Transporte',
-  impuestos: 'Impuestos',
-  otros: 'Otros',
-  retiros: 'Retiros',
+  get ventas() { return t('Ventas'); },
+  get insumos() { return t('Insumos'); },
+  get arriendo() { return t('Arriendo'); },
+  get nomina() { return t('Nómina'); },
+  get servicios() { return t('Servicios'); },
+  get publicidad() { return t('Publicidad'); },
+  get transporte() { return t('Transporte'); },
+  get impuestos() { return t('Impuestos'); },
+  get otros() { return t('Otros'); },
+  get retiros() { return t('Retiros'); },
 };

@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { saveTransactionChanges } from '@/offline/saveTransactionChanges';
 import { emotionOf } from './reflection';
 import { EmotionPicker } from './ReflectionPickers';
+import { t } from '@/lib/i18n';
 
 /**
  * "¿Cómo te sentiste?" en la pantalla de gasto guardado (FT-0070). Es opcional: se cierra con un
@@ -46,7 +47,7 @@ export default function FeelingPrompt({ transaction, className }) {
     >
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 id={titleId} className="text-[17px] font-semibold">
-          ¿Cómo te sentiste?
+          {t('¿Cómo te sentiste?')}
         </h2>
         <button
           type="button"
@@ -54,7 +55,7 @@ export default function FeelingPrompt({ transaction, className }) {
           className="-mr-2 inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-[15px] text-white/80 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
         >
           <X className="size-4" aria-hidden="true" />
-          Ahora no
+          {t('Ahora no')}
         </button>
       </div>
       <EmotionPicker
@@ -65,7 +66,7 @@ export default function FeelingPrompt({ transaction, className }) {
         labelledBy={titleId}
       />
       <p role={error ? 'alert' : 'status'} className="mt-3 min-h-5 text-[13px] text-white/85">
-        {error || (chosen ? `Anotado como «${chosen.label}». Lo verás en tu reflexión de la semana.` : '')}
+        {error || (chosen ? t('Anotado como «{label}». Lo verás en tu reflexión de la semana.', { label: chosen.label }) : '')}
       </p>
     </section>
   );

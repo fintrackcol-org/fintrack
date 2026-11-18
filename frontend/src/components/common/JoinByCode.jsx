@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { t } from '@/lib/i18n';
 
 /**
  * Unirse con un código que alguien compartió: lleva a la vista previa de la invitación
@@ -25,13 +26,13 @@ export default function JoinByCode({ basePath, disabled = false }) {
       }}
     >
       <label htmlFor={id} className="text-sm font-medium text-ink/80">
-        Código de invitación
+        {t('Código de invitación')}
       </label>
       <Input
         id={id}
         value={code}
         onChange={(e) => setCode(e.target.value)}
-        placeholder="Ej. K7M2QX"
+        placeholder={t('Ej. K7M2QX')}
         autoCapitalize="characters"
         autoComplete="off"
         maxLength={8}
@@ -39,9 +40,9 @@ export default function JoinByCode({ basePath, disabled = false }) {
         disabled={disabled}
       />
       <Button type="submit" size="lg" className="w-full" disabled={disabled || !valid}>
-        Ver la invitación
+        {t('Ver la invitación')}
       </Button>
-      {disabled && <p className="text-sm text-ink/60">Necesitas conexión para unirte.</p>}
+      {disabled && <p className="text-sm text-ink/60">{t('Necesitas conexión para unirte.')}</p>}
     </form>
   );
 }

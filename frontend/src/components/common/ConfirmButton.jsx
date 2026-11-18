@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { t } from '@/lib/i18n';
 
 /**
  * Botón con confirmación en línea (sin diálogos del navegador).
@@ -44,7 +45,7 @@ export default function ConfirmButton({ label, question, confirmLabel, icon: Ico
           {confirmLabel}
         </Button>
         <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirming(false)}>
-          Cancelar
+          {t('Cancelar')}
         </Button>
       </div>
     </div>

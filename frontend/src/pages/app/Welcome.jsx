@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, Plus, X } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
+import CountrySelect from '@/components/account/CountrySelect';
 import MoneyInput from '@/components/common/MoneyInput';
+import Segmented from '@/components/common/Segmented';
 import IncomeSourcesFields from '@/components/money/IncomeSourcesFields';
 import HowItWorksTour from '@/components/onboarding/HowItWorksTour';
 import { Button } from '@/components/ui/button';
@@ -13,21 +15,102 @@ import { getDisplayName } from '@/lib/displayName';
 import { SUGGESTED_COMMITMENTS, balanceProposal, readCommitmentForm, toProfileData } from '@/lib/moneyProfile';
 import { cn } from '@/lib/utils';
 import { toApiSources } from '@/lib/incomeSources';
+import { LANGUAGES, currencyName, regionForCountry, setRegion, suggestCountry } from '@/lib/region';
 import { finishWelcome, getMoneyProfile, saveIncomeSources } from '@/services/moneyProfileService';
+import { saveCountry } from '@/services/userService';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
+import { currentLanguage, t } from '@/lib/i18n';
 
 const STEPS = 3;
+
+const LANGUAGE_OPTIONS = LANGUAGES.map(({ code, name }) => ({ value: code, label: name }));
+
+/**
+ * Lo primero de todo: en qué país está. Con él se ponen la moneda y el idioma (que se puede cambiar
+ * aquí mismo). Se propone el país del celular; se puede omitir y queda Colombia.
+ * @param {{ onDone: () => void }} props
+ */
+function CountryStep({ onDone }) {
+  const [country, setCountry] = useState(() => suggestCountry());
+  const [language, setLanguage] = useState(() => regionForCountry(country).language);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const { currency } = regionForCountry(country);
+
+  const pick = (code) => {
+    setCountry(code);
+    setLanguage(regionForCountry(code).language);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      setRegion(await saveCountry(country, language));
+      // Otro idioma: se recarga para ver la bienvenida con sus textos, ya sin este paso.
+      if (language !== currentLanguage()) return window.location.replace('/app/bienvenida?paso=recorrido');
+      onDone();
+    } catch (err) {
+      setError(err.message);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6">
+      <div className="mt-6 flex flex-1 flex-col gap-5">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('¿En qué país estás?')}</h1>
+          <p className="mt-2 text-[15px] text-ink/60">{t('Con esto ponemos tu moneda y tu idioma. Si viajas, lo cambias en Cuenta.')}</p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="welcome-country">{t('País')}</Label>
+          <CountrySelect id="welcome-country" value={country} onChange={pick} />
+        </div>
+        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-4 ring-1 ring-ink/10">
+          <p className="flex items-center justify-between gap-3 text-[15px]">
+            <span className="text-ink/60">{t('Tu moneda')}</span>
+            <b className="text-right font-semibold">
+              {currencyName(currency)} ({currency})
+            </b>
+          </p>
+          <div className="space-y-2">
+            <p className="text-[15px] text-ink/60">{t('Idioma')}</p>
+            <Segmented label={t('Idioma')} options={LANGUAGE_OPTIONS} value={language} onChange={setLanguage} />
+          </div>
+        </div>
+      </div>
+
+      <div className="sticky bottom-0 mt-6 flex flex-col gap-2 bg-canvas py-3">
+        {error && (
+          <p role="alert" className="text-sm text-negative">
+            {error}
+          </p>
+        )}
+        <Button onClick={save} disabled={saving}>
+          {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
+          {t('Seguir')}
+        </Button>
+        <Button variant="ghost" disabled={saving} onClick={onDone}>
+          {t('Omitir')}
+        </Button>
+      </div>
+    </main>
+  );
+}
 
 /** Lo que el usuario escribe de un compromiso. `custom` deja cambiar el nombre. */
 const newItem = (name, custom = false) => ({ key: crypto.randomUUID(), name, amount: '', dayOfMonth: '', custom });
 
 /** Las tres preguntas. Va fuera de `AppShell`, sin menú, así que pone el tema por su cuenta. */
 function WelcomeSteps() {
-  usePageTitle('Bienvenida');
+  usePageTitle(t('Bienvenida'));
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { user } = useAuth();
-  // FT-0048: antes de las preguntas, el recorrido "Cómo funciona" (se puede saltar).
+  // Primero el país (moneda e idioma); después el recorrido "Cómo funciona" (FT-0048, se puede saltar).
+  const [params] = useSearchParams();
+  const [placing, setPlacing] = useState(() => params.get('paso') !== 'recorrido');
   const [touring, setTouring] = useState(true);
   const [step, setStep] = useState(1);
   // FT-0060: fuentes de ingreso elegidas (por tipo). Se puede elegir varias o ninguna.
@@ -100,7 +183,9 @@ function WelcomeSteps() {
 
   return (
     <div data-theme={theme} className="min-h-dvh bg-canvas text-ink antialiased">
-      {touring ? (
+      {placing ? (
+        <CountryStep onDone={() => setPlacing(false)} />
+      ) : touring ? (
         <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6">
           <HowItWorksTour name={getDisplayName(user)} onDone={() => setTouring(false)} />
         </main>
@@ -108,29 +193,29 @@ function WelcomeSteps() {
       <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6">
         <div className="flex items-center justify-between">
           <p className="text-sm text-ink/60">
-            Paso {step} de {STEPS}
+            {t('Paso')} {step} {t('de')} {STEPS}
           </p>
           <Button variant="ghost" size="sm" disabled={saving} onClick={() => save({})}>
-            Ahora no
+            {t('Ahora no')}
           </Button>
         </div>
 
         <div className="mt-6 flex flex-1 flex-col gap-5">
           {step === 1 && (
             <>
-              <h1 className="text-2xl font-semibold tracking-tight">¿Cómo te entra la plata?</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">{t('¿Cómo te entra la plata?')}</h1>
               <IncomeSourcesFields forms={sources} onChange={setSources} />
             </>
           )}
 
           {step === 2 && (
             <>
-              <h1 className="text-2xl font-semibold tracking-tight">¿Cuánta plata tienes hoy, más o menos?</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">{t('¿Cuánta plata tienes hoy, más o menos?')}</h1>
               <div className="space-y-2">
-                <Label htmlFor="welcome-balance">Total aproximado</Label>
+                <Label htmlFor="welcome-balance">{t('Total aproximado')}</Label>
                 <MoneyInput id="welcome-balance" value={balance} onChange={setBalance} placeholder="0" autoFocus />
                 <p className="text-sm text-ink/60">
-                  Suma banco, Nequi y efectivo. No tiene que ser exacto y lo puedes corregir cuando quieras.
+                  {t('Suma banco, Nequi y efectivo. No tiene que ser exacto y lo puedes corregir cuando quieras.')}
                 </p>
               </div>
             </>
@@ -138,8 +223,8 @@ function WelcomeSteps() {
 
           {step === 3 && (
             <>
-              <h1 className="text-2xl font-semibold tracking-tight">¿Qué pagas cada mes?</h1>
-              <div className="flex flex-wrap gap-2" role="group" aria-label="Pagos frecuentes">
+              <h1 className="text-2xl font-semibold tracking-tight">{t('¿Qué pagas cada mes?')}</h1>
+              <div className="flex flex-wrap gap-2" role="group" aria-label={t('Pagos frecuentes')}>
                 {SUGGESTED_COMMITMENTS.map((name) => {
                   const selected = items.some((i) => i.name === name);
                   return (
@@ -163,7 +248,7 @@ function WelcomeSteps() {
                   className="inline-flex h-9 items-center gap-1 rounded-full border border-ink/12 px-3.5 text-sm font-medium text-ink/70 hover:border-ink/25"
                 >
                   <Plus className="size-4" aria-hidden="true" />
-                  Otro
+                  {t('Otro')}
                 </button>
               </div>
 
@@ -174,8 +259,8 @@ function WelcomeSteps() {
                       <div className="flex items-center justify-between gap-2">
                         {item.custom ? (
                           <Input
-                            aria-label="Nombre del pago"
-                            placeholder="Nombre del pago"
+                            aria-label={t('Nombre del pago')}
+                            placeholder={t('Nombre del pago')}
                             maxLength={60}
                             value={item.name}
                             onChange={(e) => changeItem(item.key, { name: e.target.value })}
@@ -185,7 +270,7 @@ function WelcomeSteps() {
                         )}
                         <button
                           type="button"
-                          aria-label={`Quitar ${item.name || 'este pago'}`}
+                          aria-label={t('Quitar {v1}', { v1: item.name || 'este pago' })}
                           onClick={() => setItems((current) => current.filter((i) => i.key !== item.key))}
                           className="grid size-10 shrink-0 place-items-center rounded-full text-ink/60 hover:text-ink"
                         >
@@ -194,7 +279,7 @@ function WelcomeSteps() {
                       </div>
                       <div className="mt-2 grid grid-cols-[minmax(0,1fr)_88px] gap-3">
                         <div className="min-w-0 space-y-2">
-                          <Label htmlFor={`amount-${item.key}`}>Monto</Label>
+                          <Label htmlFor={`amount-${item.key}`}>{t('Monto')}</Label>
                           <MoneyInput
                             id={`amount-${item.key}`}
                             value={item.amount}
@@ -203,7 +288,7 @@ function WelcomeSteps() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor={`day-${item.key}`}>Día</Label>
+                          <Label htmlFor={`day-${item.key}`}>{t('Día')}</Label>
                           <Input
                             id={`day-${item.key}`}
                             inputMode="numeric"
@@ -230,20 +315,20 @@ function WelcomeSteps() {
           )}
           {step < STEPS ? (
             <>
-              <Button onClick={next}>Seguir</Button>
+              <Button onClick={next}>{t('Seguir')}</Button>
               <Button variant="ghost" onClick={skipStep}>
-                Omitir
+                {t('Omitir')}
               </Button>
             </>
           ) : (
             <>
               <Button onClick={finish} disabled={saving}>
                 {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-                {saving ? 'Guardando…' : 'Ver mi plata'}
+                {saving ? t('Guardando…') : t('Ver mi plata')}
               </Button>
               {items.length === 0 && (
                 <Button variant="ghost" disabled={saving} onClick={() => save(profile())}>
-                  Lo hago después
+                  {t('Lo hago después')}
                 </Button>
               )}
             </>

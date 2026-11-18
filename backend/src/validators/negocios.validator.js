@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import { parseEmail } from './vacas.validator.js';
+import { t } from '../i18n/index.js';
 
 export { parseCode, parseEmail, parseJoin } from './vacas.validator.js';
 
@@ -16,7 +17,7 @@ export const ROLES = ['dueno', 'editor', 'lector'];
 
 /** @returns {AppError} 400: el cuerpo no es un objeto JSON. */
 function invalidBody() {
-  return new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+  return new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
 }
 
 /**
@@ -26,7 +27,7 @@ function invalidBody() {
  */
 function throwIfInvalid(details) {
   if (details.length > 0) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   }
 }
 
@@ -49,12 +50,12 @@ function isObject(body) {
 function readOptionalText(value, field, max, details) {
   if (value === undefined || value === null) return null;
   if (typeof value !== 'string') {
-    details.push({ field, problem: 'Debe ser texto' });
+    details.push({ field, problem: t('Debe ser texto') });
     return undefined;
   }
   const clean = value.trim();
   if (clean.length > max) {
-    details.push({ field, problem: `Máximo ${max} caracteres` });
+    details.push({ field, problem: t('Máximo {max} caracteres', { max }) });
     return undefined;
   }
   return clean || null;
@@ -70,9 +71,9 @@ function readBusinessFields(body, details) {
   const out = {};
   if ('name' in body) {
     if (typeof body.name !== 'string' || body.name.trim() === '') {
-      details.push({ field: 'name', problem: 'Es obligatorio' });
+      details.push({ field: 'name', problem: t('Es obligatorio') });
     } else if (body.name.trim().length > MAX_NAME_LENGTH) {
-      details.push({ field: 'name', problem: `Máximo ${MAX_NAME_LENGTH} caracteres` });
+      details.push({ field: 'name', problem: t('Máximo {MAX_NAME_LENGTH} caracteres', { MAX_NAME_LENGTH }) });
     } else {
       out.name = body.name.trim();
     }
@@ -89,7 +90,7 @@ function readBusinessFields(body, details) {
   if ('nit' in body) {
     const nit = readOptionalText(body.nit, 'nit', MAX_NIT_LENGTH, details);
     if (nit && !NIT_RE.test(nit)) {
-      details.push({ field: 'nit', problem: 'Solo números, puntos y guiones' });
+      details.push({ field: 'nit', problem: t('Solo números, puntos y guiones') });
     } else if (nit !== undefined) {
       out.nit = nit;
     }
@@ -105,7 +106,7 @@ function readBusinessFields(body, details) {
 export function parseNewBusiness(body) {
   if (!isObject(body)) throw invalidBody();
   const details = [];
-  if (!('name' in body)) details.push({ field: 'name', problem: 'Es obligatorio' });
+  if (!('name' in body)) details.push({ field: 'name', problem: t('Es obligatorio') });
   const fields = readBusinessFields(body, details);
   throwIfInvalid(details);
   return { description: null, nit: null, ...fields };
@@ -122,7 +123,7 @@ export function parseBusinessChanges(body) {
   const fields = readBusinessFields(body, details);
   throwIfInvalid(details);
   if (Object.keys(fields).length === 0) {
-    throwIfInvalid([{ field: 'body', problem: 'Envía al menos un campo para cambiar' }]);
+    throwIfInvalid([{ field: 'body', problem: t('Envía al menos un campo para cambiar') }]);
   }
   return fields;
 }
@@ -134,7 +135,7 @@ export function parseBusinessChanges(body) {
  */
 function readRole(role, details) {
   if (!ROLES.includes(role)) {
-    details.push({ field: 'role', problem: 'Debe ser "dueno", "editor" o "lector"' });
+    details.push({ field: 'role', problem: t('Debe ser "dueno", "editor" o "lector"') });
     return undefined;
   }
   return role;
@@ -176,14 +177,14 @@ export function parsePartnerChanges(body) {
       body.share < 0 ||
       body.share > 100
     ) {
-      details.push({ field: 'share', problem: 'Debe ser un porcentaje entre 0 y 100' });
+      details.push({ field: 'share', problem: t('Debe ser un porcentaje entre 0 y 100') });
     } else {
       out.share = Math.round(body.share * 100) / 100;
     }
   }
   throwIfInvalid(details);
   if (Object.keys(out).length === 0) {
-    throwIfInvalid([{ field: 'body', problem: 'Envía role o share' }]);
+    throwIfInvalid([{ field: 'body', problem: t('Envía role o share') }]);
   }
   return out;
 }

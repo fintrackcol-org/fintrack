@@ -9,6 +9,7 @@ import { COLOR_OPTIONS, ICON_OPTIONS, customStyle } from '@/lib/categoryStyles';
 import { lockScroll } from '@/lib/scrollLock';
 import { cn } from '@/lib/utils';
 import { createCategory, deleteCategory, updateCategory } from '@/services/transactionService';
+import { t } from '@/lib/i18n';
 
 /** Largo máximo del nombre, igual que en la API. */
 export const NAME_MAX = 30;
@@ -18,7 +19,7 @@ export const NAME_MAX = 30;
  * Categoría a la que pasan los movimientos de una propia que se elimina.
  * @param {'gasto'|'ingreso'} type
  */
-const fallbackName = (type) => (type === 'ingreso' ? 'Otros ingresos' : 'Otros');
+const fallbackName = (type) => (type === 'ingreso' ? t('Otros ingresos') : t('Otros'));
 
 /**
  * Mensaje tras eliminar: cuántos movimientos cambiaron de categoría y a cuál.
@@ -27,8 +28,8 @@ const fallbackName = (type) => (type === 'ingreso' ? 'Otros ingresos' : 'Otros')
  * @returns {string}
  */
 export function deletedMessage(moved, type) {
-  if (moved === 0) return 'Categoría eliminada.';
-  return `Categoría eliminada. ${moved} ${moved === 1 ? 'movimiento pasó' : 'movimientos pasaron'} a ${fallbackName(type)}.`;
+  if (moved === 0) return t('Categoría eliminada.');
+  return t('Categoría eliminada. {moved} {v2} a {type}.', { moved, v2: moved === 1 ? t('movimiento pasó') : 'movimientos pasaron', type: fallbackName(type) });
 }
 
 /**
@@ -128,7 +129,7 @@ function Dialog({ type: fixedType, category, onClose, onCreated, onDeleted }) {
     event.stopPropagation();
     const clean = name.trim().replace(/\s+/g, ' ');
     if (!clean) {
-      setError('Escribe un nombre para la categoría.');
+      setError(t('Escribe un nombre para la categoría.'));
       return;
     }
     setSaving(true);
@@ -186,21 +187,21 @@ function Dialog({ type: fixedType, category, onClose, onCreated, onDeleted }) {
         <button
           type="button"
           onClick={onClose}
-          aria-label="Cerrar"
+          aria-label={t('Cerrar')}
           className="absolute right-3 top-3 grid size-9 place-items-center rounded-full text-ink/50 transition-colors hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-violet"
         >
           <X className="size-5" aria-hidden="true" />
         </button>
 
         <h2 id={titleId} className="pr-10 text-lg font-semibold tracking-tight">
-          {editing ? 'Editar categoría' : `Nueva categoría de ${typeLabel}`}
+          {editing ? t('Editar categoría') : t('Nueva categoría de {typeLabel}', { typeLabel })}
         </h2>
 
         {!editing && !fixedType && (
-          <div role="radiogroup" aria-label="Tipo" className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-ink/5 p-1">
+          <div role="radiogroup" aria-label={t('Tipo')} className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-ink/5 p-1">
             {[
-              ['gasto', 'Gasto'],
-              ['ingreso', 'Ingreso'],
+              ['gasto', t('Gasto')],
+              ['ingreso', t('Ingreso')],
             ].map(([value, label]) => (
               <button
                 key={value}
@@ -223,11 +224,11 @@ function Dialog({ type: fixedType, category, onClose, onCreated, onDeleted }) {
           <span aria-hidden="true" className={cn('grid size-11 shrink-0 place-items-center rounded-xl', previewTone)}>
             <PreviewIcon className="size-5" />
           </span>
-          <p className="min-w-0 truncate font-medium">{name.trim() || 'Tu categoría'}</p>
+          <p className="min-w-0 truncate font-medium">{name.trim() || t('Tu categoría')}</p>
         </div>
 
         <label htmlFor={nameId} className="mt-5 block text-sm font-medium text-ink/80">
-          Nombre
+          {t('Nombre')}
         </label>
         <input
           ref={nameRef}
@@ -239,13 +240,13 @@ function Dialog({ type: fixedType, category, onClose, onCreated, onDeleted }) {
           }}
           maxLength={NAME_MAX}
           autoComplete="off"
-          placeholder={type === 'gasto' ? 'Mascotas, Gimnasio, Universidad…' : 'Ventas, Arriendo recibido…'}
+          placeholder={type === 'gasto' ? t('Mascotas, Gimnasio, Universidad…') : t('Ventas, Arriendo recibido…')}
           aria-invalid={Boolean(error) || undefined}
           className="mt-1.5 w-full rounded-xl border border-ink/15 bg-surface px-3.5 py-2.5 text-base text-ink placeholder:text-ink/40 focus:border-brand/60 focus:outline-none focus:ring-2 focus:ring-brand/20"
         />
 
         <fieldset className="mt-5">
-          <legend className="text-sm font-medium text-ink/80">Ícono</legend>
+          <legend className="text-sm font-medium text-ink/80">{t('Ícono')}</legend>
           <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-2">
             {ICON_OPTIONS.map(({ key, icon: Icon, label }) => (
               <label
@@ -275,7 +276,7 @@ function Dialog({ type: fixedType, category, onClose, onCreated, onDeleted }) {
         </fieldset>
 
         <fieldset className="mt-5">
-          <legend className="text-sm font-medium text-ink/80">Color</legend>
+          <legend className="text-sm font-medium text-ink/80">{t('Color')}</legend>
           <div className="mt-2 flex flex-wrap gap-2.5">
             {COLOR_OPTIONS.map(({ key, label, swatch }) => (
               <label
@@ -304,15 +305,15 @@ function Dialog({ type: fixedType, category, onClose, onCreated, onDeleted }) {
 
         {(error || !online) && (
           <p role="alert" className="mt-4 text-sm text-negative">
-            {error || `Necesitas internet para ${editing ? 'cambiar' : 'crear'} una categoría.`}
+            {error || t('Necesitas internet para {v1} una categoría.', { v1: editing ? 'cambiar' : 'crear' })}
           </p>
         )}
 
         {confirmingDelete ? (
-          <div role="group" aria-label="Confirmar eliminación" className="mt-6 rounded-2xl bg-negative/10 p-4">
-            <p className="text-sm font-medium">¿Eliminar “{category.name}”?</p>
+          <div role="group" aria-label={t('Confirmar eliminación')} className="mt-6 rounded-2xl bg-negative/10 p-4">
+            <p className="text-sm font-medium">{t('¿Eliminar “')}{category.name}”?</p>
             <p className="mt-1 text-sm text-ink/70">
-              Sus movimientos pasarán a {fallbackName(type)} y sus presupuestos se borrarán.
+              {t('Sus movimientos pasarán a')} {fallbackName(type)} {t('y sus presupuestos se borrarán.')}
             </p>
             <div className="mt-3 grid grid-cols-2 gap-3">
               {/* Aparece al pulsar "Eliminar categoría", que desaparece: el foco pasa aquí. */}
@@ -323,7 +324,7 @@ function Dialog({ type: fixedType, category, onClose, onCreated, onDeleted }) {
                 disabled={saving}
                 autoFocus
               >
-                No
+                {t('No')}
               </Button>
               <Button
                 type="button"
@@ -333,18 +334,18 @@ function Dialog({ type: fixedType, category, onClose, onCreated, onDeleted }) {
                 className="border-negative/40 text-negative hover:bg-negative/10"
               >
                 {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-                Sí, eliminar
+                {t('Sí, eliminar')}
               </Button>
             </div>
           </div>
         ) : (
           <div className="mt-6 grid grid-cols-2 gap-3">
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
+              {t('Cancelar')}
             </Button>
             <Button type="submit" disabled={saving || !online}>
               {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-              {editing ? 'Guardar' : 'Crear'}
+              {editing ? t('Guardar') : t('Crear')}
             </Button>
           </div>
         )}
@@ -358,10 +359,10 @@ function Dialog({ type: fixedType, category, onClose, onCreated, onDeleted }) {
             className="mx-auto mt-4 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-negative transition-colors hover:bg-negative/10 focus-visible:outline-2 focus-visible:outline-violet"
           >
             <Trash2 className="size-4" aria-hidden="true" />
-            Eliminar categoría
+            {t('Eliminar categoría')}
           </button>
         )}
-        {!editing && <p className="mt-3 text-center text-xs text-ink/55">Puedes tener hasta 20 categorías propias.</p>}
+        {!editing && <p className="mt-3 text-center text-xs text-ink/55">{t('Puedes tener hasta 20 categorías propias.')}</p>}
       </motion.form>
     </div>
   );

@@ -1,16 +1,18 @@
-/**
+
+import { numberLocale } from '@/lib/region';
+import { t } from '@/lib/i18n';/**
  * Textos de los movimientos y el panel del negocio (FT-0017).
  */
 
 /** Tipos de movimiento: nombre, si entra plata y la categoría que se propone. */
 export const MOVEMENT_KINDS = {
-  sale: { label: 'Venta', income: true, category: 'ventas', hint: 'Lo que vendiste' },
-  cost: { label: 'Costo de venta', income: false, category: 'insumos', hint: 'Lo que cuesta hacer lo que vendes' },
-  variable: { label: 'Gasto variable', income: false, category: 'otros', hint: 'Cambia según cuánto vendes' },
-  fixed: { label: 'Gasto fijo', income: false, category: 'arriendo', hint: 'Se paga igual aunque no vendas' },
-  otherIncome: { label: 'Otro ingreso', income: true, category: 'otros', hint: 'Plata que no viene de vender' },
+  sale: { label: t('Venta'), income: true, category: 'ventas', hint: t('Lo que vendiste') },
+  cost: { label: t('Costo de venta'), income: false, category: 'insumos', hint: t('Lo que cuesta hacer lo que vendes') },
+  variable: { label: t('Gasto variable'), income: false, category: 'otros', hint: t('Cambia según cuánto vendes') },
+  fixed: { label: t('Gasto fijo'), income: false, category: 'arriendo', hint: t('Se paga igual aunque no vendas') },
+  otherIncome: { label: t('Otro ingreso'), income: true, category: 'otros', hint: t('Plata que no viene de vender') },
   // Los retiros no se registran con el formulario: van por "Registrar mi retiro" (FT-0018).
-  withdrawal: { label: 'Retiro de socio', income: false, category: 'retiros', hint: 'Plata que un socio sacó para él' },
+  withdrawal: { label: t('Retiro de socio'), income: false, category: 'retiros', hint: t('Plata que un socio sacó para él') },
 };
 
 export const KIND_OPTIONS = Object.entries(MOVEMENT_KINDS)
@@ -19,16 +21,16 @@ export const KIND_OPTIONS = Object.entries(MOVEMENT_KINDS)
 
 /** Categorías del negocio. */
 export const BUSINESS_CATEGORIES = {
-  ventas: 'Ventas',
-  insumos: 'Insumos',
-  arriendo: 'Arriendo',
-  nomina: 'Nómina',
-  servicios: 'Servicios',
-  publicidad: 'Publicidad',
-  transporte: 'Transporte',
-  impuestos: 'Impuestos',
-  otros: 'Otros',
-  retiros: 'Retiros',
+  ventas: t('Ventas'),
+  insumos: t('Insumos'),
+  arriendo: t('Arriendo'),
+  nomina: t('Nómina'),
+  servicios: t('Servicios'),
+  publicidad: t('Publicidad'),
+  transporte: t('Transporte'),
+  impuestos: t('Impuestos'),
+  otros: t('Otros'),
+  retiros: t('Retiros'),
 };
 
 export const CATEGORY_OPTIONS = Object.entries(BUSINESS_CATEGORIES)
@@ -79,9 +81,9 @@ export function shiftMonth(month, delta) {
  */
 export function changeText(change, previousLabel) {
   if (change === null || change === undefined) return null;
-  if (change === 0) return `Igual que ${previousLabel}`;
+  if (change === 0) return t('Igual que {previousLabel}', { previousLabel });
   const sign = change > 0 ? '+' : '−';
-  return `${sign}${Math.abs(change).toLocaleString('es-CO', { maximumFractionDigits: 1 })} % que ${previousLabel}`;
+  return t('{sign}{toLocaleString} % que {previousLabel}', { sign, toLocaleString: Math.abs(change).toLocaleString(numberLocale(), { maximumFractionDigits: 1 }), previousLabel });
 }
 
 /**
@@ -94,7 +96,7 @@ export const categoryLabel = (movement) =>
 
 /** Filtro de tipo del historial: todos o uno (FT-0058). */
 export const KIND_FILTERS = [
-  { value: 'all', label: 'Todos' },
+  { value: 'all', label: t('Todos') },
   ...Object.entries(MOVEMENT_KINDS).map(([value, { label }]) => ({ value, label })),
 ];
 

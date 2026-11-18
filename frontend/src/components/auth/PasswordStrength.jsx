@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { passwordStrength } from '@/lib/validation/auth';
+import { t } from '@/lib/i18n';
 
 const TONE = { 1: 'bg-negative', 2: 'bg-violet-light', 3: 'bg-success' };
 const TEXT = { 0: 'text-white/55', 1: 'text-[#ff8a80]', 2: 'text-violet-light', 3: 'text-success' };
@@ -22,10 +23,10 @@ export default function PasswordStrength({ password = '', id }) {
         {password ? (
           <>
             <b className={cn('font-semibold', TEXT[score])}>{label}.</b>{' '}
-            {tips.length ? `Para mejorarla: ${tips.join(' y ')}.` : 'Lista.'}
+            {tips.length ? t('Para mejorarla: {join}.', { join: tips.join(' y ') }) : t('Lista.')}
           </>
         ) : (
-          'Usa 8 caracteres o más, con letras y números.'
+          t('Usa 8 caracteres o más, con letras y números.')
         )}
       </p>
     </div>

@@ -1,13 +1,14 @@
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /** Gastos del mes por categoría (porcentajes de ejemplo; nombres del catálogo fijo RN-02). */
 export const CATEGORIES = [
-  { name: 'Alimentación', value: 38, color: '#6142ff' },
-  { name: 'Transporte', value: 22, color: '#8b66ff' },
-  { name: 'Vivienda', value: 20, color: '#d8a0df' },
-  { name: 'Entretenimiento', value: 12, color: '#2fd6a3' },
-  { name: 'Otros', value: 8, color: '#4a4a4a' },
+  { name: t('Alimentación'), value: 38, color: '#6142ff' },
+  { name: t('Transporte'), value: 22, color: '#8b66ff' },
+  { name: t('Vivienda'), value: 20, color: '#d8a0df' },
+  { name: t('Entretenimiento'), value: 12, color: '#2fd6a3' },
+  { name: t('Otros'), value: 8, color: '#4a4a4a' },
 ];
 
 /**
@@ -17,7 +18,7 @@ export const CATEGORIES = [
 export default function CategoryDonut({ className }) {
   return (
     <div className={cn('flex items-center gap-4 rounded-2xl bg-[#1b1b1b] p-4', className)}>
-      <div className="relative size-28 shrink-0" role="img" aria-label="Gráfico de dona de gastos por categoría">
+      <div className="relative size-28 shrink-0" role="img" aria-label={t('Gráfico de dona de gastos por categoría')}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -39,8 +40,8 @@ export default function CategoryDonut({ className }) {
         </ResponsiveContainer>
         <div className="absolute inset-0 grid place-items-center text-center">
           <div>
-            <p className="text-[10px] text-white/50">Gastos</p>
-            <p className="text-sm font-semibold text-white">$1,6 M</p>
+            <p className="text-[10px] text-white/50">{t('Gastos')}</p>
+            <p className="text-sm font-semibold text-white">{t('$1,6 M')}</p>
           </div>
         </div>
       </div>

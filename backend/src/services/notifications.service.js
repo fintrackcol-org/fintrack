@@ -1,4 +1,5 @@
 import * as defaultRepo from '../repositories/notifications.repository.js';
+import { t } from '../i18n/index.js';
 
 /** Cuántos avisos devuelve la lista. */
 export const LIST_LIMIT = 30;
@@ -35,7 +36,7 @@ export function createNotificationsService(deps = {}) {
     async record(userId, { title, body, url }) {
       await repo.insertNotification({
         userId,
-        title: String(title || 'Rinde').slice(0, 120),
+        title: String(title || t('Rinde')).slice(0, 120),
         body: String(body ?? '').slice(0, 300),
         url: safeUrl(url),
       });

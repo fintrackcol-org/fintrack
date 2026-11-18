@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import { NETWORKS, TIERS } from '../services/cards.logic.js';
+import { t } from '../i18n/index.js';
 
 /** Lo máximo que cabe en `numeric(12,2)`. */
 const MAX_AMOUNT = 9_999_999_999.99;
@@ -15,7 +16,7 @@ const cents = (n) => Math.round(n * 100) / 100;
  */
 function requireObject(body) {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-    throw new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+    throw new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
   }
 }
 
@@ -24,7 +25,7 @@ function requireObject(body) {
  * @returns {void} Lanza 422 si hay problemas.
  */
 function throwIfInvalid(details) {
-  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
 }
 
 /**
@@ -41,8 +42,8 @@ function readMoney(v, field, details, allowZero = false) {
     details.push({
       field,
       problem: allowZero
-        ? 'Debe ser un número mayor o igual que 0'
-        : 'Debe ser un número mayor que 0',
+        ? t('Debe ser un número mayor o igual que 0')
+        : t('Debe ser un número mayor que 0'),
     });
     return undefined;
   }
@@ -57,7 +58,7 @@ function readMoney(v, field, details, allowZero = false) {
  */
 function readDay(v, field, details) {
   if (!Number.isInteger(v) || v < 1 || v > 31) {
-    details.push({ field, problem: 'Debe ser un día entre 1 y 31' });
+    details.push({ field, problem: t('Debe ser un día entre 1 y 31') });
     return undefined;
   }
   return v;
@@ -75,7 +76,7 @@ function readDate(v, field, details) {
     /^\d{4}-\d{2}-\d{2}$/.test(v) &&
     new Date(`${v}T00:00:00Z`).toISOString().startsWith(v);
   if (!ok) {
-    details.push({ field, problem: 'Debe ser una fecha AAAA-MM-DD' });
+    details.push({ field, problem: t('Debe ser una fecha AAAA-MM-DD') });
     return undefined;
   }
   return v;
@@ -91,15 +92,15 @@ function readCommon(body, details) {
   const out = {};
   if (body.network !== undefined) {
     if (NETWORKS.includes(body.network)) out.network = body.network;
-    else details.push({ field: 'network', problem: `Debe ser: ${NETWORKS.join(', ')}` });
+    else details.push({ field: 'network', problem: t('Debe ser: {join}', { join: NETWORKS.join(', ') }) });
   }
   if (body.tier !== undefined) {
     if (typeof body.tier === 'string') out.tier = body.tier;
-    else details.push({ field: 'tier', problem: 'Nivel no válido' });
+    else details.push({ field: 'tier', problem: t('Nivel no válido') });
   }
   if (body.last4 !== undefined) {
     if (typeof body.last4 === 'string' && /^\d{4}$/.test(body.last4)) out.last4 = body.last4;
-    else details.push({ field: 'last4', problem: 'Deben ser exactamente 4 dígitos' });
+    else details.push({ field: 'last4', problem: t('Deben ser exactamente 4 dígitos') });
   }
   if (body.limit !== undefined) out.limit = readMoney(body.limit, 'limit', details);
   if (body.paymentDay !== undefined)
@@ -117,9 +118,9 @@ function readCommon(body, details) {
       const rawYear = body.expiryYear;
       const year = Number.isInteger(rawYear) && rawYear >= 0 && rawYear <= 99 ? 2000 + rawYear : rawYear;
       if (!Number.isInteger(month) || month < 1 || month > 12) {
-        details.push({ field: 'expiryMonth', problem: 'Debe ser un mes entre 1 y 12' });
+        details.push({ field: 'expiryMonth', problem: t('Debe ser un mes entre 1 y 12') });
       } else if (!Number.isInteger(year) || year < 2000 || year > 2099) {
-        details.push({ field: 'expiryYear', problem: 'Debe ser el año, como 27 o 2027' });
+        details.push({ field: 'expiryYear', problem: t('Debe ser el año, como 27 o 2027') });
       } else {
         out.expiryMonth = month;
         out.expiryYear = year;
@@ -129,7 +130,7 @@ function readCommon(body, details) {
   if (body.name !== undefined) {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (name.length >= 1 && name.length <= 40) out.name = name;
-    else details.push({ field: 'name', problem: 'Debe tener entre 1 y 40 caracteres' });
+    else details.push({ field: 'name', problem: t('Debe tener entre 1 y 40 caracteres') });
   }
   return out;
 }
@@ -145,7 +146,7 @@ export function checkTier(network, tier, details) {
   if (!TIERS[network]?.includes(tier)) {
     details.push({
       field: 'tier',
-      problem: `Para ${network} debe ser: ${TIERS[network]?.join(', ')}`,
+      problem: t('Para {network} debe ser: {v2}', { network, v2: TIERS[network]?.join(', ') }),
     });
   }
 }
@@ -160,13 +161,13 @@ export function parseNewCard(body) {
   const details = [];
   const data = readCommon(body, details);
   for (const f of ['network', 'tier', 'last4', 'limit', 'paymentDay']) {
-    if (body[f] === undefined) details.push({ field: f, problem: 'Es obligatorio' });
+    if (body[f] === undefined) details.push({ field: f, problem: t('Es obligatorio') });
   }
-  if (body.available === undefined) details.push({ field: 'available', problem: 'Es obligatorio' });
+  if (body.available === undefined) details.push({ field: 'available', problem: t('Es obligatorio') });
   else data.available = readMoney(body.available, 'available', details, true);
   if (data.network && data.tier) checkTier(data.network, data.tier, details);
   if (data.available !== undefined && data.limit !== undefined && data.available > data.limit) {
-    details.push({ field: 'available', problem: 'No puede ser mayor que el cupo' });
+    details.push({ field: 'available', problem: t('No puede ser mayor que el cupo') });
   }
   throwIfInvalid(details);
   return data;
@@ -181,7 +182,7 @@ export function parseCardChanges(body) {
   requireObject(body);
   const details = [];
   if (body.available !== undefined) {
-    details.push({ field: 'available', problem: 'No se edita aquí: usa sync-with-bank' });
+    details.push({ field: 'available', problem: t('No se edita aquí: usa sync-with-bank') });
   }
   const data = readCommon(body, details);
   throwIfInvalid(details);

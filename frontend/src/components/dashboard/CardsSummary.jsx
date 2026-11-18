@@ -2,9 +2,10 @@ import { CreditCard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MASK } from '@/components/dashboard/BalanceCard';
 import { formatMoney } from '@/components/transactions/format';
+import { t } from '@/lib/i18n';
 
 /** "hoy", "mañana" o "en N días" (mismas palabras que `paymentText`). */
-const when = (days) => (days === 0 ? 'hoy' : days === 1 ? 'mañana' : `en ${days} días`);
+const when = (days) => (days === 0 ? 'hoy' : days === 1 ? t('mañana') : t('en {days} días', { days }));
 
 /**
  * Una línea bajo el balance con lo que se debe en tarjetas y cuándo toca el próximo pago.
@@ -21,7 +22,7 @@ export default function CardsSummary({ cards, hidden }) {
       ? 'todas pagadas este mes'
       : soonest < 0
         ? 'tienes un pago atrasado'
-        : `próximo pago ${when(soonest)}`;
+        : t('próximo pago {soonest}', { soonest: when(soonest) });
 
   return (
     <Link
@@ -30,8 +31,7 @@ export default function CardsSummary({ cards, hidden }) {
     >
       <CreditCard className="size-4 shrink-0" aria-hidden="true" />
       <span>
-        Debes <span className="font-semibold tabular-nums text-ink">{hidden ? MASK : formatMoney(owed)}</span> en
-        tarjetas · {tail}
+        {t('Debes')} <span className="font-semibold tabular-nums text-ink">{hidden ? MASK : formatMoney(owed)}</span> {t('en tarjetas ·')} {tail}
       </span>
     </Link>
   );

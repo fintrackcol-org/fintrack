@@ -3,12 +3,13 @@
  * Los eventos vienen de `GET /money-profile/calendar` (ver `moneyProfileService`).
  */
 import { monthCells } from '@/lib/calendar';
+import { t } from '@/lib/i18n';
 
 /** Filtros de la pantalla: `mios` son los pagos propios y los días de pago. */
 export const FILTERS = [
-  { id: 'todo', label: 'Todo' },
-  { id: 'mios', label: 'Míos' },
-  { id: 'vacas', label: 'Vacas' },
+  { id: 'todo', label: t('Todo') },
+  { id: 'mios', label: t('Míos') },
+  { id: 'vacas', label: t('Vacas') },
 ];
 
 /**
@@ -30,7 +31,7 @@ export function filterEvents(events, filter) {
  */
 export function shortMoney(amount) {
   if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1).replace('.', ',').replace(',0', '')} M`;
-  if (amount >= 1000) return `${Math.round(amount / 1000)} mil`;
+  if (amount >= 1000) return t('{round} mil', { round: Math.round(amount / 1000) });
   return String(Math.round(amount));
 }
 
@@ -45,9 +46,9 @@ const isInflow = (event) => event.kind === 'ingreso' || event.kind === 'cobro';
  * Sale de lo que le queda al usuario después de los pagos del día.
  */
 export const LEGEND = [
-  { tone: 'ok', label: 'Te alcanza con holgura' },
-  { tone: 'riesgo', label: 'Te queda poco' },
-  { tone: 'negativo', label: 'No alcanza o está atrasado' },
+  { tone: 'ok', label: t('Te alcanza con holgura') },
+  { tone: 'riesgo', label: t('Te queda poco') },
+  { tone: 'negativo', label: t('No alcanza o está atrasado') },
 ];
 
 /**
@@ -118,8 +119,8 @@ export function groupByDate(events) {
 
 /** Texto del estado de un pago. */
 export const STATUS_TEXT = {
-  pagado: 'Pagado',
-  pendiente: 'Por pagar',
-  atrasado: 'Atrasado',
-  sin_registro: 'Sin registro',
+  pagado: t('Pagado'),
+  pendiente: t('Por pagar'),
+  atrasado: t('Atrasado'),
+  sin_registro: t('Sin registro'),
 };

@@ -9,6 +9,7 @@ import { CATEGORY_OPTIONS, KIND_OPTIONS, MOVEMENT_KINDS } from '@/components/neg
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { businessMovementSchema } from '@/lib/validation/businessMovement';
+import { t } from '@/lib/i18n';
 
 /**
  * "Nueva categoría" y "Quitar" de las categorías propias del negocio (FT-0058).
@@ -43,7 +44,7 @@ function CustomCategories({ categories, disabled, onCreate, onDelete }) {
         onClick={() => setOpen(true)}
         disabled={disabled}
       >
-        {categories.length ? 'Editar mis categorías' : '+ Crear una categoría'}
+        {categories.length ? t('Editar mis categorías') : t('+ Crear una categoría')}
       </button>
     );
   }
@@ -51,9 +52,9 @@ function CustomCategories({ categories, disabled, onCreate, onDelete }) {
     <div className="mt-3 space-y-3 rounded-2xl bg-ink/5 p-3">
       <div className="flex gap-2">
         <Input
-          aria-label="Nombre de la categoría"
+          aria-label={t('Nombre de la categoría')}
           maxLength={30}
-          placeholder="Ej.: Empaques"
+          placeholder={t('Ej.: Empaques')}
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
@@ -65,18 +66,18 @@ function CustomCategories({ categories, disabled, onCreate, onDelete }) {
           disabled={disabled || busy}
         />
         <Button type="button" variant="soft" disabled={disabled || busy || !name.trim()} onClick={create}>
-          {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Plus aria-hidden="true" />} Crear
+          {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Plus aria-hidden="true" />} {t('Crear')}
         </Button>
       </div>
       {categories.length > 0 && (
-        <ul className="flex flex-wrap gap-2" aria-label="Mis categorías">
+        <ul className="flex flex-wrap gap-2" aria-label={t('Mis categorías')}>
           {categories.map((c) => (
             <li key={c.key} className="flex items-center gap-1 rounded-full bg-surface py-1 pl-3 pr-1 text-sm">
               <span className="max-w-40 truncate">{c.name}</span>
               <button
                 type="button"
                 className="grid size-6 place-items-center rounded-full text-ink/60 hover:bg-ink/10 hover:text-ink"
-                aria-label={`Quitar la categoría ${c.name}`}
+                aria-label={t('Quitar la categoría {name}', { name: c.name })}
                 disabled={disabled || busy}
                 onClick={() => run(() => onDelete(c.key))}
               >
@@ -86,7 +87,7 @@ function CustomCategories({ categories, disabled, onCreate, onDelete }) {
           ))}
         </ul>
       )}
-      <p className="text-xs text-ink/60">Al quitar una, sus movimientos pasan a «Otros».</p>
+      <p className="text-xs text-ink/60">{t('Al quitar una, sus movimientos pasan a «Otros».')}</p>
       {error && (
         <p role="alert" className="text-sm text-negative">
           {error}
@@ -142,16 +143,16 @@ export default function MovementForm({
   });
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-4" aria-label="Registrar movimiento del negocio">
+    <form onSubmit={submit} noValidate className="space-y-4" aria-label={t('Registrar movimiento del negocio')}>
       <div>
-        <ChipGroup legend="¿Qué fue?" options={KIND_OPTIONS} value={kind} onChange={pickKind} disabled={disabled} scroll />
+        <ChipGroup legend={t('¿Qué fue?')} options={KIND_OPTIONS} value={kind} onChange={pickKind} disabled={disabled} scroll />
         <p className="mt-1.5 text-sm text-ink/60">{MOVEMENT_KINDS[kind].hint}.</p>
       </div>
       <Controller
         control={control}
         name="amount"
         render={({ field }) => (
-          <FormField id="mov-amount" label="Monto (COP)" error={errors.amount?.message}>
+          <FormField id="mov-amount" label={t('Monto (COP)')} error={errors.amount?.message}>
             <MoneyInput
               name={field.name}
               value={field.value}
@@ -164,18 +165,18 @@ export default function MovementForm({
           </FormField>
         )}
       />
-      <FormField id="mov-description" label="Descripción" error={errors.description?.message}>
+      <FormField id="mov-description" label={t('Descripción')} error={errors.description?.message}>
         <Input
           autoComplete="off"
           maxLength={120}
-          placeholder={MOVEMENT_KINDS[kind].income ? 'Ej.: 20 arepas de queso' : 'Ej.: harina y queso'}
+          placeholder={MOVEMENT_KINDS[kind].income ? t('Ej.: 20 arepas de queso') : t('Ej.: harina y queso')}
           disabled={disabled}
           {...register('description')}
         />
       </FormField>
       <div>
         <ChipGroup
-          legend="Categoría"
+          legend={t('Categoría')}
           options={[...CATEGORY_OPTIONS, ...customCategories.map(({ key, name }) => ({ value: key, label: name }))]}
           value={category}
           onChange={setCategory}
@@ -194,10 +195,10 @@ export default function MovementForm({
           />
         )}
       </div>
-      <FormField id="mov-date" label="Fecha" error={errors.date?.message}>
+      <FormField id="mov-date" label={t('Fecha')} error={errors.date?.message}>
         <Input type="date" max={today} disabled={disabled} {...register('date')} />
       </FormField>
-      {disabled && <p className="text-sm text-ink/60">Necesitas conexión</p>}
+      {disabled && <p className="text-sm text-ink/60">{t('Necesitas conexión')}</p>}
       {serverError && (
         <p role="alert" className="text-sm text-negative">
           {serverError}
@@ -205,7 +206,7 @@ export default function MovementForm({
       )}
       <Button type="submit" size="lg" className="w-full" disabled={disabled || isSubmitting}>
         {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {isSubmitting ? 'Guardando…' : `Registrar ${MOVEMENT_KINDS[kind].label.toLowerCase()}`}
+        {isSubmitting ? t('Guardando…') : t('Registrar {toLowerCase}', { toLowerCase: MOVEMENT_KINDS[kind].label.toLowerCase() })}
       </Button>
     </form>
   );

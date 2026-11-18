@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import { isValidDate } from './transactions.validator.js';
+import { t } from '../i18n/index.js';
 
 /** Lo máximo que cabe en `vacas.meta` y `vaca_aportes.monto` (numeric(12,2)). */
 const MAX_AMOUNT = 9_999_999_999.99;
@@ -19,7 +20,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** @returns {AppError} 400: el cuerpo no es un objeto JSON. */
 function invalidBody() {
-  return new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+  return new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
 }
 
 /**
@@ -29,7 +30,7 @@ function invalidBody() {
  */
 function throwIfInvalid(details) {
   if (details.length > 0) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   }
 }
 
@@ -50,16 +51,16 @@ function isObject(body) {
  */
 function readAmount(value, field, details) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-    details.push({ field, problem: 'Debe ser un número mayor que 0' });
+    details.push({ field, problem: t('Debe ser un número mayor que 0') });
     return undefined;
   }
   if (value > MAX_AMOUNT) {
-    details.push({ field, problem: 'Es demasiado grande' });
+    details.push({ field, problem: t('Es demasiado grande') });
     return undefined;
   }
   const rounded = Math.round(value * 100) / 100;
   if (rounded <= 0) {
-    details.push({ field, problem: 'Debe ser al menos 0.01' });
+    details.push({ field, problem: t('Debe ser al menos 0.01') });
     return undefined;
   }
   return rounded;
@@ -76,12 +77,12 @@ function readAmount(value, field, details) {
 function readOptionalText(value, field, max, details) {
   if (value === undefined || value === null) return null;
   if (typeof value !== 'string') {
-    details.push({ field, problem: 'Debe ser texto' });
+    details.push({ field, problem: t('Debe ser texto') });
     return undefined;
   }
   const clean = value.trim();
   if (clean.length > max) {
-    details.push({ field, problem: `Máximo ${max} caracteres` });
+    details.push({ field, problem: t('Máximo {max} caracteres', { max }) });
     return undefined;
   }
   return clean || null;
@@ -97,9 +98,9 @@ function readVacaFields(body, details) {
   const out = {};
   if ('name' in body) {
     if (typeof body.name !== 'string' || body.name.trim() === '') {
-      details.push({ field: 'name', problem: 'Es obligatorio' });
+      details.push({ field: 'name', problem: t('Es obligatorio') });
     } else if (body.name.trim().length > MAX_NAME_LENGTH) {
-      details.push({ field: 'name', problem: `Máximo ${MAX_NAME_LENGTH} caracteres` });
+      details.push({ field: 'name', problem: t('Máximo {MAX_NAME_LENGTH} caracteres', { MAX_NAME_LENGTH }) });
     } else {
       out.name = body.name.trim();
     }
@@ -121,14 +122,14 @@ function readVacaFields(body, details) {
     if (body.deadline === null || body.deadline === '') {
       out.deadline = null;
     } else if (!isValidDate(body.deadline)) {
-      details.push({ field: 'deadline', problem: 'Debe ser una fecha válida AAAA-MM-DD' });
+      details.push({ field: 'deadline', problem: t('Debe ser una fecha válida AAAA-MM-DD') });
     } else {
       out.deadline = body.deadline;
     }
   }
   if ('split' in body) {
     if (!SPLITS.includes(body.split)) {
-      details.push({ field: 'split', problem: 'Debe ser "igual" o "personalizado"' });
+      details.push({ field: 'split', problem: t('Debe ser "igual" o "personalizado"') });
     } else {
       out.split = body.split;
     }
@@ -145,11 +146,11 @@ function readVacaFields(body, details) {
 export function parseNewVaca(body) {
   if (!isObject(body)) throw invalidBody();
   const details = [];
-  if (!('name' in body)) details.push({ field: 'name', problem: 'Es obligatorio' });
-  if (!('goal' in body)) details.push({ field: 'goal', problem: 'Es obligatoria' });
+  if (!('name' in body)) details.push({ field: 'name', problem: t('Es obligatorio') });
+  if (!('goal' in body)) details.push({ field: 'goal', problem: t('Es obligatoria') });
   const fields = readVacaFields(body, details);
   if ('personal' in body && typeof body.personal !== 'boolean') {
-    details.push({ field: 'personal', problem: 'Debe ser true o false' });
+    details.push({ field: 'personal', problem: t('Debe ser true o false') });
   }
   throwIfInvalid(details);
   const personal = body.personal === true;
@@ -167,7 +168,7 @@ export function parseVacaKind(tipo) {
   if (tipo === undefined || tipo === '') return undefined;
   if (tipo === 'personal') return true;
   if (tipo === 'grupo') return false;
-  throwIfInvalid([{ field: 'tipo', problem: 'Debe ser "personal" o "grupo"' }]);
+  throwIfInvalid([{ field: 'tipo', problem: t('Debe ser "personal" o "grupo"') }]);
   return undefined;
 }
 
@@ -182,7 +183,7 @@ export function parseVacaChanges(body) {
   const fields = readVacaFields(body, details);
   throwIfInvalid(details);
   if (Object.keys(fields).length === 0) {
-    throwIfInvalid([{ field: 'body', problem: 'Envía al menos un campo para cambiar' }]);
+    throwIfInvalid([{ field: 'body', problem: t('Envía al menos un campo para cambiar') }]);
   }
   return fields;
 }
@@ -194,7 +195,7 @@ export function parseVacaChanges(body) {
  */
 export function parseCode(code) {
   if (typeof code !== 'string' || !CODE_RE.test(code.trim())) {
-    throwIfInvalid([{ field: 'code', problem: 'El código no es válido' }]);
+    throwIfInvalid([{ field: 'code', problem: t('El código no es válido') }]);
   }
   return code.trim().toUpperCase();
 }
@@ -216,7 +217,7 @@ export function parseJoin(body) {
  */
 export function parseEmail(email) {
   if (typeof email !== 'string' || !EMAIL_RE.test(email.trim()) || email.trim().length > 255) {
-    throwIfInvalid([{ field: 'email', problem: 'Debe ser un correo válido' }]);
+    throwIfInvalid([{ field: 'email', problem: t('Debe ser un correo válido') }]);
   }
   return email.trim().toLowerCase();
 }
@@ -243,7 +244,7 @@ export function parseMemberChanges(body) {
   const out = {};
   if ('role' in body) {
     if (!ROLES.includes(body.role)) {
-      details.push({ field: 'role', problem: 'Debe ser "admin" o "miembro"' });
+      details.push({ field: 'role', problem: t('Debe ser "admin" o "miembro"') });
     } else {
       out.role = body.role;
     }
@@ -252,16 +253,16 @@ export function parseMemberChanges(body) {
     if (body.quota === null) {
       out.quota = null;
     } else if (typeof body.quota !== 'number' || !Number.isFinite(body.quota) || body.quota < 0) {
-      details.push({ field: 'quota', problem: 'Debe ser un número mayor o igual a 0' });
+      details.push({ field: 'quota', problem: t('Debe ser un número mayor o igual a 0') });
     } else if (body.quota > MAX_AMOUNT) {
-      details.push({ field: 'quota', problem: 'Es demasiado grande' });
+      details.push({ field: 'quota', problem: t('Es demasiado grande') });
     } else {
       out.quota = Math.round(body.quota * 100) / 100;
     }
   }
   throwIfInvalid(details);
   if (Object.keys(out).length === 0) {
-    throwIfInvalid([{ field: 'body', problem: 'Envía role o quota' }]);
+    throwIfInvalid([{ field: 'body', problem: t('Envía role o quota') }]);
   }
   return out;
 }
@@ -277,13 +278,13 @@ export function parseContribution(body) {
   const details = [];
   const amount = readAmount(body.amount, 'amount', details);
   if (!isValidDate(body.date)) {
-    details.push({ field: 'date', problem: 'Debe ser una fecha válida AAAA-MM-DD' });
+    details.push({ field: 'date', problem: t('Debe ser una fecha válida AAAA-MM-DD') });
   }
   const note = readOptionalText(body.note, 'note', MAX_NOTE_LENGTH, details);
   let category = null;
   if (body.category !== undefined && body.category !== null) {
     if (typeof body.category !== 'string' || body.category.trim() === '') {
-      details.push({ field: 'category', problem: 'Debe ser la clave de una categoría de gasto' });
+      details.push({ field: 'category', problem: t('Debe ser la clave de una categoría de gasto') });
     } else {
       category = body.category.trim();
     }
@@ -297,7 +298,7 @@ export function parseContribution(body) {
     ) {
       details.push({
         field: 'localId',
-        problem: `Debe ser texto de hasta ${MAX_LOCAL_ID_LENGTH} caracteres`,
+        problem: t('Debe ser texto de hasta {MAX_LOCAL_ID_LENGTH} caracteres', { MAX_LOCAL_ID_LENGTH }),
       });
     } else {
       localId = body.localId;

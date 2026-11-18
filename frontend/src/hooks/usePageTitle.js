@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { t } from '@/lib/i18n';
 
 /**
  * Define el `<title>` del documento mientras la página está montada.
@@ -6,6 +7,6 @@ import { useEffect } from 'react';
  */
 export default function usePageTitle(title) {
   useEffect(() => {
-    document.title = title ? `${title} | Rinde` : 'Rinde';
+    document.title = title ? `${title} | Rinde` : t('Rinde');
   }, [title]);
 }

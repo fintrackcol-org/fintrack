@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import CategoryIcon from '@/components/categories/CategoryIcon';
 import { formatMoney, formatRelativeDay } from '@/components/transactions/format';
 import { cn } from '@/lib/utils';
+import { t as tr } from '@/lib/i18n';
 
 /**
  * Un movimiento en una lista: ícono, descripción, categoría (y el día, si se pasa) y monto con signo.
@@ -10,7 +11,7 @@ import { cn } from '@/lib/utils';
  */
 export default function MovementRow({ transaction: t, names, hidden = false, day, withDay = false, icon = false, fresh = false, syncStatus }) {
   const income = t.type === 'ingreso';
-  const category = t.category ? (names[t.category] ?? t.category) : 'Sin clasificar';
+  const category = t.category ? (names[t.category] ?? t.category) : tr('Sin clasificar');
   const dayText = day ?? (withDay ? formatRelativeDay(t.date) : undefined);
   return (
     <li className={fresh ? 'motion-safe:animate-row-in' : undefined}>
@@ -27,12 +28,12 @@ export default function MovementRow({ transaction: t, names, hidden = false, day
           <span className="block truncate text-sm text-ink/60">{dayText ? `${category} · ${dayText}` : category}</span>
           {syncStatus && (
             <span className={cn('block text-xs font-medium', syncStatus === 'rejected' ? 'text-negative' : 'text-brand')}>
-              {syncStatus === 'rejected' ? 'No se pudo sincronizar' : 'Pendiente de sincronizar'}
+              {syncStatus === 'rejected' ? tr('No se pudo sincronizar') : tr('Pendiente de sincronizar')}
             </span>
           )}
         </span>
         <span className={cn('shrink-0 font-semibold tabular-nums', income ? 'text-positive' : 'text-ink')}>
-          <span className="sr-only">{income ? 'Ingreso de ' : 'Gasto de '}</span>
+          <span className="sr-only">{income ? tr('Ingreso de ') : tr('Gasto de ')}</span>
           {hidden ? '••••' : `${income ? '+' : '−'}${formatMoney(t.amount)}`}
         </span>
       </Link>

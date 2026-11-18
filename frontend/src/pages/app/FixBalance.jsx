@@ -9,12 +9,13 @@ import { NOT_INCOME, toProfileData } from '@/lib/moneyProfile';
 import { cn } from '@/lib/utils';
 import { pressKey } from '@/pages/app/Anotar';
 import { getMoneyPlan, getMoneyProfile, updateMoneyProfile } from '@/services/moneyProfileService';
+import { t } from '@/lib/i18n';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0'];
 
 /** Página privada `/app/mi-plata/corregir`: decir cuánta plata hay de verdad. */
 export default function FixBalance() {
-  usePageTitle('Corregir saldo');
+  usePageTitle(t('Corregir saldo'));
   const navigate = useNavigate();
   const profile = useAsync(getMoneyProfile, []);
   const plan = useAsync(getMoneyPlan, []);
@@ -50,15 +51,15 @@ export default function FixBalance() {
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-5rem)] max-w-md flex-col">
-      <h1 className="text-[26px] font-semibold tracking-tight">¿Cuánta plata tienes?</h1>
-      <p className="mt-1 text-[15px] text-ink/70">Suma banco, Nequi y efectivo. Desde ahí sumamos y restamos lo que anotes.</p>
+      <h1 className="text-[26px] font-semibold tracking-tight">{t('¿Cuánta plata tienes?')}</h1>
+      <p className="mt-1 text-[15px] text-ink/70">{t('Suma banco, Nequi y efectivo. Desde ahí sumamos y restamos lo que anotes.')}</p>
       <p className="mt-1 text-sm text-ink/60">{NOT_INCOME}</p>
       <p aria-live="polite" className={cn('mt-4 text-5xl font-semibold tracking-tight tabular-nums', !Number(shown) && 'text-ink/30')}>
         {formatMoney(Number(shown || 0))}
       </p>
       {ledger > 0 && ledger !== Math.round(data?.money ?? 0) && (
         <Button variant="soft" size="sm" className="mt-3 self-start rounded-full" disabled={saving} onClick={() => save(ledger)}>
-          Usar lo que dicen mis movimientos
+          {t('Usar lo que dicen mis movimientos')}
         </Button>
       )}
       {error && (
@@ -67,7 +68,7 @@ export default function FixBalance() {
         </p>
       )}
 
-      <div role="group" aria-label="Teclado" className="mt-auto grid grid-cols-3 gap-1 pt-6">
+      <div role="group" aria-label={t('Teclado')} className="mt-auto grid grid-cols-3 gap-1 pt-6">
         {KEYS.map((key) => (
           <button
             key={key}
@@ -80,7 +81,7 @@ export default function FixBalance() {
         ))}
         <button
           type="button"
-          aria-label="Borrar"
+          aria-label={t('Borrar')}
           onClick={() => setAmount((a) => pressKey(a ?? shown, 'borrar'))}
           className="grid h-[60px] touch-manipulation place-items-center rounded-xl transition-colors active:bg-ink/10 focus-visible:outline-2 focus-visible:outline-violet"
         >
@@ -89,7 +90,7 @@ export default function FixBalance() {
       </div>
       <Button size="lg" className="mt-3" disabled={!data || saving || shown === ''} onClick={() => save(Number(shown))}>
         {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-        Guardar saldo
+        {t('Guardar saldo')}
       </Button>
     </div>
   );

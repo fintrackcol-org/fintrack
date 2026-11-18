@@ -2,12 +2,14 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
 import { findUserById } from '../repositories/users.repository.js';
+import { asUser } from './users.service.js';
 import * as repo from '../repositories/vacas.repository.js';
 import { completeText } from './ai-client.service.js';
 import { todayIso } from './insights.service.js';
 import { sendVacaInvitationEmail } from './mail.service.js';
 import { pushService } from './push.service.js';
 import * as transactions from './transactions.service.js';
+import { aiRegionRule, currencyDigits, dateLocale, formatMoney, t } from '../i18n/index.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -28,11 +30,7 @@ const DEFAULT_CATEGORY = 'ahorro_inversion';
 const DEFAULT_TIMEZONE = 'America/Bogota';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const money = new Intl.NumberFormat('es-CO', {
-  style: 'currency',
-  currency: 'COP',
-  maximumFractionDigits: 0,
-});
+const money = { format: (n) => formatMoney(n, { digits: currencyDigits() }) };
 
 /**
  * @typedef {'cumplido'|'al_dia'|'atrasado'|'pendiente'} MemberStatus
@@ -53,7 +51,7 @@ const money = new Intl.NumberFormat('es-CO', {
 
 /** @returns {AppError} 404: no existe o el usuario no es miembro (no se revela cuál). */
 function notFound() {
-  return new AppError(404, 'NOT_FOUND', 'Vaca no encontrada');
+  return new AppError(404, 'NOT_FOUND', t('Vaca no encontrada'));
 }
 
 /** @returns {AppError} 403 para acciones de administrador. Solo se usa con miembros. */
@@ -62,12 +60,12 @@ function personalOnly() {
   return new AppError(
     409,
     'PERSONAL_VACA',
-    'Es una meta personal: no se puede compartir ni tiene otros miembros',
+    t('Es una meta personal: no se puede compartir ni tiene otros miembros'),
   );
 }
 
 function adminOnly() {
-  return new AppError(403, 'FORBIDDEN', 'Solo un administrador de la vaca puede hacer esto');
+  return new AppError(403, 'FORBIDDEN', t('Solo un administrador de la vaca puede hacer esto'));
 }
 
 /**
@@ -109,7 +107,7 @@ function addDays(date, days) {
  */
 function longDate(date) {
   const [y, m, d] = date.split('-').map(Number);
-  return new Intl.DateTimeFormat('es-CO', {
+  return new Intl.DateTimeFormat(dateLocale(), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -125,7 +123,7 @@ function longDate(date) {
  * @returns {string}
  */
 export function displayName(name, email) {
-  return name?.trim() || email?.split('@')[0] || 'Ex miembro';
+  return name?.trim() || email?.split('@')[0] || t('Ex miembro');
 }
 
 /**
@@ -272,47 +270,47 @@ export function vacaStatus(total, goal, deadline, today) {
 export function ruleAdvice({ total, status, behindCount, membersCount, projection, personal }) {
   const solo = membersCount === 1;
   if (personal && status === 'completada') {
-    return '¡Meta cumplida! Ya tienes la plata. Si quieres seguir ahorrando, sube la meta o crea una nueva.';
+    return t('¡Meta cumplida! Ya tienes la plata. Si quieres seguir ahorrando, sube la meta o crea una nueva.');
   }
   if (personal && status === 'vencida') {
-    return `Pasó la fecha límite y te faltan ${money.format(projection.remaining)}. Ponle una fecha nueva que puedas cumplir.`;
+    return t('Pasó la fecha límite y te faltan {remaining}. Ponle una fecha nueva que puedas cumplir.', { remaining: money.format(projection.remaining) });
   }
   if (personal && total === 0) {
-    return 'Todavía no has apartado nada. Si guardas algo esta semana, arrancas con buen ritmo.';
+    return t('Todavía no has apartado nada. Si guardas algo esta semana, arrancas con buen ritmo.');
   }
   if (status === 'completada') {
-    return '¡Meta cumplida! Ya pueden usar la plata de la vaca. Si quieren seguir ahorrando, suban la meta o creen una nueva.';
+    return t('¡Meta cumplida! Ya pueden usar la plata de la vaca. Si quieren seguir ahorrando, suban la meta o creen una nueva.');
   }
   if (status === 'vencida') {
-    return `Pasó la fecha límite y faltan ${money.format(projection.remaining)}. Acuerden una fecha nueva y cuánto pondrá cada uno.`;
+    return t('Pasó la fecha límite y faltan {remaining}. Acuerden una fecha nueva y cuánto pondrá cada uno.', { remaining: money.format(projection.remaining) });
   }
   if (total === 0 && membersCount === 1) {
-    return 'Todavía no hay aportes. Si pones tu parte esta semana, arrancas con buen ritmo; invita a más personas para repartir la meta.';
+    return t('Todavía no hay aportes. Si pones tu parte esta semana, arrancas con buen ritmo; invita a más personas para repartir la meta.');
   }
   if (total === 0) {
-    return `Nadie ha aportado todavía. Si cada uno de los ${membersCount} pone su parte esta semana, arrancan con buen ritmo.`;
+    return t('Nadie ha aportado todavía. Si cada uno de los {membersCount} pone su parte esta semana, arrancan con buen ritmo.', { membersCount });
   }
   if (projection.onTrack === false && projection.neededPerWeek !== null) {
     const needed = money.format(projection.neededPerWeek);
     return solo
-      ? `A este ritmo no llegas a tiempo. Necesitas guardar unos ${needed} por semana para cumplir.`
-      : `A este ritmo no llegan a tiempo. Necesitan juntar unos ${needed} por semana entre todos para cumplir.`;
+      ? t('A este ritmo no llegas a tiempo. Necesitas guardar unos {needed} por semana para cumplir.', { needed })
+      : t('A este ritmo no llegan a tiempo. Necesitan juntar unos {needed} por semana entre todos para cumplir.', { needed });
   }
   if (behindCount > 0 && solo) {
-    return 'Vas bien, pero tu cuota va por detrás del plan. Ponerte al día esta semana te ahorra el afán del final.';
+    return t('Vas bien, pero tu cuota va por detrás del plan. Ponerte al día esta semana te ahorra el afán del final.');
   }
   if (behindCount > 0) {
-    return `Van bien, pero ${behindCount === 1 ? 'hay 1 miembro atrasado' : `hay ${behindCount} miembros atrasados`}. Un recordatorio amable ayuda a no quedarse cortos al final.`;
+    return t('Van bien, pero {v1}. Un recordatorio amable ayuda a no quedarse cortos al final.', { v1: behindCount === 1 ? 'hay 1 miembro atrasado' : `hay ${behindCount} miembros atrasados` });
   }
   if (projection.estimatedDate) {
     const date = longDate(projection.estimatedDate);
     return solo
-      ? `Vas al día: a este ritmo completas la meta hacia el ${date}. Sigue así.`
-      : `Van al día: a este ritmo completan la meta hacia el ${date}. Sigan así.`;
+      ? t('Vas al día: a este ritmo completas la meta hacia el {date}. Sigue así.', { date })
+      : t('Van al día: a este ritmo completan la meta hacia el {date}. Sigan así.', { date });
   }
   return solo
-    ? 'Vas bien. Registra cada aporte apenas lo hagas para ver el avance.'
-    : 'Van bien. Registren cada aporte apenas lo hagan para que todos vean el avance.';
+    ? t('Vas bien. Registra cada aporte apenas lo hagas para ver el avance.')
+    : t('Van bien. Registren cada aporte apenas lo hagan para que todos vean el avance.');
 }
 
 /**
@@ -333,19 +331,19 @@ export function advicePrompt({
   personal,
 }) {
   return [
-    `Meta: ${money.format(goal)}. Reunido: ${money.format(total)} (${percentage} %). Estado: ${status}.`,
-    `Miembros: ${membersCount}. Ya cumplieron su cuota: ${doneCount}. Atrasados: ${behindCount}.`,
-    `Ritmo: ${money.format(projection.averagePerDay)} por día.`,
+    t('Meta: {goal}. Reunido: {total} ({percentage} %). Estado: {status}.', { goal: money.format(goal), total: money.format(total), percentage, status }),
+    t('Miembros: {membersCount}. Ya cumplieron su cuota: {doneCount}. Atrasados: {behindCount}.', { membersCount, doneCount, behindCount }),
+    t('Ritmo: {averagePerDay} por día.', { averagePerDay: money.format(projection.averagePerDay) }),
     projection.daysLeft === null
-      ? 'Sin fecha límite.'
-      : `Días para la fecha límite: ${projection.daysLeft}. Hace falta ${projection.neededPerWeek === null ? 'nada más' : `${money.format(projection.neededPerWeek)} por semana`}.`,
+      ? t('Sin fecha límite.')
+      : t('Días para la fecha límite: {daysLeft}. Hace falta {v2}.', { daysLeft: projection.daysLeft, v2: projection.neededPerWeek === null ? 'nada más' : `${money.format(projection.neededPerWeek)} por semana` }),
     projection.estimatedDate
-      ? `Fecha estimada a este ritmo: ${longDate(projection.estimatedDate)}.`
+      ? t('Fecha estimada a este ritmo: {estimatedDate}.', { estimatedDate: longDate(projection.estimatedDate) })
       : '',
     personal
-      ? 'Es una meta de ahorro personal, no una vaca en grupo: háblale en singular (tú) y no sugieras invitar a nadie.'
+      ? t('Es una meta de ahorro personal, no una vaca en grupo: háblale en singular (tú) y no sugieras invitar a nadie.')
       : membersCount === 1
-        ? 'Solo hay un miembro: háblale a esa persona en singular (tú), no al grupo, y sugiérele invitar a más gente.'
+        ? t('Solo hay un miembro: háblale a esa persona en singular (tú), no al grupo, y sugiérele invitar a más gente.')
         : '',
   ]
     .filter(Boolean)
@@ -499,13 +497,12 @@ async function loadDetail(userId, vaca, today) {
 /**
  * Envía un push a varios miembros sin esperar ni fallar: las notificaciones son un extra.
  * @param {string[]} userIds
- * @param {{ title: string, body: string, url: string }} payload
+ * @param {() => { title: string, body: string, url: string }} payloadOf Arma el aviso en el idioma de cada miembro.
  * @returns {void}
  */
-function notify(userIds, payload) {
+function notify(userIds, payloadOf) {
   for (const id of userIds) {
-    pushService
-      .sendToUser(id, payload)
+    asUser(id, () => pushService.sendToUser(id, payloadOf()))
       .catch((err) => console.error('No se pudo enviar el push de la vaca', err));
   }
 }
@@ -538,8 +535,8 @@ export async function list(userId, personal) {
 export async function create(userId, data) {
   const today = await todayFor(userId);
   if (data.deadline && data.deadline < today) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'deadline', problem: 'No puede ser una fecha pasada' },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'deadline', problem: t('No puede ser una fecha pasada') },
     ]);
   }
   // El código es único: si choca con otro (muy raro), se intenta con uno nuevo.
@@ -577,8 +574,8 @@ export async function update(userId, id, changes) {
     changes = Object.fromEntries(Object.entries(changes).filter(([k]) => k !== 'split'));
   const today = await todayFor(userId);
   if (changes.deadline && changes.deadline < today && changes.deadline !== vaca.deadline) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'deadline', problem: 'No puede ser una fecha pasada' },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'deadline', problem: t('No puede ser una fecha pasada') },
     ]);
   }
   await repo.updateVaca(id, changes);
@@ -606,7 +603,7 @@ export async function remove(userId, id) {
 export async function preview(userId, code) {
   const vaca = await repo.findVacaByCode(code);
   if (!vaca || vaca.personal) {
-    throw new AppError(404, 'NOT_FOUND', 'El código de invitación no existe o ya cambió');
+    throw new AppError(404, 'NOT_FOUND', t('El código de invitación no existe o ya cambió'));
   }
   const member = await repo.findVacaForMember(vaca.id, userId);
   return {
@@ -631,12 +628,12 @@ export async function preview(userId, code) {
 export async function join(userId, code) {
   const vaca = await repo.findVacaByCode(code);
   if (!vaca || vaca.personal) {
-    throw new AppError(404, 'NOT_FOUND', 'El código de invitación no existe o ya cambió');
+    throw new AppError(404, 'NOT_FOUND', t('El código de invitación no existe o ya cambió'));
   }
   let joined = false;
   if (!(await repo.findVacaForMember(vaca.id, userId))) {
     if (vaca.membersCount >= MAX_MEMBERS) {
-      throw new AppError(409, 'VACA_FULL', `La vaca ya tiene ${MAX_MEMBERS} miembros`);
+      throw new AppError(409, 'VACA_FULL', t('La vaca ya tiene {MAX_MEMBERS} miembros', { MAX_MEMBERS }));
     }
     joined = await repo.addMember(vaca.id, userId);
     const user = await findUserById(userId);
@@ -645,11 +642,11 @@ export async function join(userId, code) {
       const others = (await repo.listMembers(vaca.id)).filter((m) => m.userId !== userId);
       notify(
         others.map((m) => m.userId),
-        {
+        () => ({
           title: vaca.name,
-          body: `${displayName(user?.name, user?.email)} se unió a la vaca.`,
+          body: t('{displayName} se unió a la vaca.', { displayName: displayName(user?.name, user?.email) }),
           url: `/app/vacas/${vaca.id}`,
-        },
+        }),
       );
     }
   }
@@ -689,13 +686,13 @@ export async function invite(userId, id, email, mailer = sendVacaInvitationEmail
   if (vaca.personal) throw personalOnly();
   const members = await repo.listMembers(id);
   if (members.some((m) => m.email.toLowerCase() === email)) {
-    throw new AppError(409, 'ALREADY_MEMBER', 'Esa persona ya está en la vaca');
+    throw new AppError(409, 'ALREADY_MEMBER', t('Esa persona ya está en la vaca'));
   }
   if ((await repo.countInvitations(id)) >= MAX_INVITATIONS) {
     throw new AppError(
       409,
       'TOO_MANY_INVITATIONS',
-      'Hay demasiadas invitaciones pendientes. Cancela alguna primero.',
+      t('Hay demasiadas invitaciones pendientes. Cancela alguna primero.'),
     );
   }
   const invitation = await repo.upsertInvitation({ vacaId: id, email, invitedBy: userId });
@@ -715,7 +712,7 @@ export async function invite(userId, id, email, mailer = sendVacaInvitationEmail
       throw new AppError(
         503,
         'EMAIL_UNAVAILABLE',
-        'No pudimos enviar el correo. Comparte el enlace mientras tanto.',
+        t('No pudimos enviar el correo. Comparte el enlace mientras tanto.'),
       );
     });
   }
@@ -732,7 +729,7 @@ export async function invite(userId, id, email, mailer = sendVacaInvitationEmail
 export async function cancelInvitation(userId, id, email) {
   await requireAdmin(userId, id);
   if (!(await repo.deleteInvitation(id, email))) {
-    throw new AppError(404, 'NOT_FOUND', 'Invitación no encontrada');
+    throw new AppError(404, 'NOT_FOUND', t('Invitación no encontrada'));
   }
 }
 
@@ -748,19 +745,19 @@ export async function cancelInvitation(userId, id, email) {
 export async function updateMember(userId, id, memberId, changes) {
   const vaca = await requireAdmin(userId, id);
   if (vaca.personal) throw personalOnly();
-  if (!UUID_RE.test(memberId)) throw new AppError(404, 'NOT_FOUND', 'Miembro no encontrado');
+  if (!UUID_RE.test(memberId)) throw new AppError(404, 'NOT_FOUND', t('Miembro no encontrado'));
   const members = await repo.listMembers(id);
   const target = members.find((m) => m.userId === memberId);
-  if (!target) throw new AppError(404, 'NOT_FOUND', 'Miembro no encontrado');
+  if (!target) throw new AppError(404, 'NOT_FOUND', t('Miembro no encontrado'));
 
   if (changes.role === 'miembro' && target.role === 'admin') {
     if (members.filter((m) => m.role === 'admin').length === 1) {
-      throw new AppError(409, 'LAST_ADMIN', 'La vaca necesita al menos un administrador');
+      throw new AppError(409, 'LAST_ADMIN', t('La vaca necesita al menos un administrador'));
     }
   }
   if ('quota' in changes && changes.quota !== null && vaca.split !== 'personalizado') {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'quota', problem: 'Cambia el reparto a personalizado para poner cuotas' },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'quota', problem: t('Cambia el reparto a personalizado para poner cuotas') },
     ]);
   }
   await repo.updateMember(id, memberId, changes);
@@ -781,7 +778,7 @@ export async function removeMember(userId, id, memberId) {
   if (vaca.personal) throw personalOnly();
   if (memberId !== userId && vaca.role !== 'admin') throw adminOnly();
   if (!UUID_RE.test(memberId) || !(await repo.removeMember(id, memberId))) {
-    throw new AppError(404, 'NOT_FOUND', 'Miembro no encontrado');
+    throw new AppError(404, 'NOT_FOUND', t('Miembro no encontrado'));
   }
   if ((await repo.listMembers(id)).length === 0) {
     await repo.deleteVaca(id);
@@ -803,8 +800,8 @@ export async function contribute(userId, id, input) {
   const vaca = await requireMember(userId, id);
   const today = await todayFor(userId);
   if (input.date > today) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'date', problem: 'No puede ser una fecha futura' },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'date', problem: t('No puede ser una fecha futura') },
     ]);
   }
   const localId = input.localId ?? randomUUID();
@@ -846,14 +843,14 @@ export async function contribute(userId, id, input) {
   if (vaca.total < vaca.goal && updated.total >= vaca.goal) {
     notify(
       detail.members.map((m) => m.userId),
-      { title: vaca.name, body: `¡Meta cumplida! Juntaron ${money.format(updated.total)}.`, url },
+      () => ({ title: vaca.name, body: t('¡Meta cumplida! Juntaron {total}.', { total: money.format(updated.total) }), url }),
     );
   } else {
-    notify(others, {
+    notify(others, () => ({
       title: vaca.name,
-      body: `${me?.name ?? 'Alguien'} aportó ${money.format(input.amount)}. Van ${money.format(updated.total)} de ${money.format(vaca.goal)}.`,
+      body: t('{name} aportó {amount}. Van {total} de {goal}.', { name: me?.name ?? t('Alguien'), amount: money.format(input.amount), total: money.format(updated.total), goal: money.format(vaca.goal) }),
       url,
-    });
+    }));
   }
 
   return {
@@ -876,9 +873,9 @@ export async function removeContribution(userId, id, contributionId) {
   const contribution = UUID_RE.test(contributionId)
     ? await repo.findContribution(contributionId, id)
     : null;
-  if (!contribution) throw new AppError(404, 'NOT_FOUND', 'Aporte no encontrado');
+  if (!contribution) throw new AppError(404, 'NOT_FOUND', t('Aporte no encontrado'));
   if (contribution.userId !== userId) {
-    throw new AppError(403, 'FORBIDDEN', 'Solo quien hizo el aporte puede borrarlo');
+    throw new AppError(403, 'FORBIDDEN', t('Solo quien hizo el aporte puede borrarlo'));
   }
   await repo.softDeleteContribution(contributionId);
   if (contribution.transactionId) {
@@ -921,12 +918,12 @@ export async function getAdvice(userId, id, generate = completeText) {
 
   try {
     const text = String(
-      await generate({ system: ADVICE_SYSTEM, prompt: advicePrompt(stats), maxTokens: 400 }),
+      await generate({ system: ADVICE_SYSTEM + aiRegionRule(), prompt: advicePrompt(stats), maxTokens: 400 }),
     )
       .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 400);
-    if (!text) throw new Error('Respuesta vacía');
+    if (!text) throw new Error(t('Respuesta vacía'));
     await repo.saveAdvice(id, text, vaca.total);
     return { advice: text, source: 'ia', generatedAt: new Date() };
   } catch {
@@ -954,19 +951,19 @@ export async function remind(userId, id) {
     throw new AppError(
       429,
       'REMINDER_RECENT',
-      `Ya se envió un recordatorio hace poco. Espera ${REMINDER_HOURS} horas para enviar otro.`,
+      t('Ya se envió un recordatorio hace poco. Espera {REMINDER_HOURS} horas para enviar otro.', { REMINDER_HOURS }),
     );
   }
 
   let delivered = 0;
   for (const member of targets) {
-    const result = await pushService
-      .sendToUser(member.userId, {
-        title: `Tu aporte a "${vaca.name}"`,
-        body: `Te faltan ${money.format(member.remaining)} para completar tu parte. ¡Pon tu granito!`,
+    const result = await asUser(member.userId, () =>
+      pushService.sendToUser(member.userId, {
+        title: t('Tu aporte a "{name}"', { name: vaca.name }),
+        body: t('Te faltan {remaining} para completar tu parte. ¡Pon tu granito!', { remaining: money.format(member.remaining) }),
         url: `/app/vacas/${id}`,
-      })
-      .catch(() => ({ sent: 0 }));
+      }),
+    ).catch(() => ({ sent: 0 }));
     delivered += result.sent;
   }
   return { reminded: targets.length, delivered };
@@ -982,13 +979,13 @@ export async function remind(userId, id) {
  */
 export async function makePersonal(userId, id) {
   const vaca = await requireAdmin(userId, id);
-  if (vaca.personal) throw new AppError(409, 'ALREADY_PERSONAL', 'Ya es una meta personal');
+  if (vaca.personal) throw new AppError(409, 'ALREADY_PERSONAL', t('Ya es una meta personal'));
   const members = await repo.listMembers(vaca.id);
   if (members.length > 1) {
-    throw new AppError(409, 'HAS_MEMBERS', 'Esta vaca tiene más integrantes: no se puede pasar a Metas');
+    throw new AppError(409, 'HAS_MEMBERS', t('Esta vaca tiene más integrantes: no se puede pasar a Metas'));
   }
   if (await repo.hasContributionsFromOthers(vaca.id, userId)) {
-    throw new AppError(409, 'HAS_MEMBERS', 'Otras personas ya aportaron a esta vaca: no se puede pasar a Metas');
+    throw new AppError(409, 'HAS_MEMBERS', t('Otras personas ya aportaron a esta vaca: no se puede pasar a Metas'));
   }
   await repo.makePersonal(vaca.id);
   return loadDetail(userId, await repo.findVacaForMember(vaca.id, userId));

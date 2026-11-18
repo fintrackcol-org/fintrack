@@ -1,9 +1,10 @@
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
+import { t } from '../i18n/index.js';
 
 /** @returns {AppError} 503: el proveedor de IA no está disponible. */
 function aiUnavailable() {
-  return new AppError(503, 'AI_UNAVAILABLE', 'El servicio de IA no está disponible');
+  return new AppError(503, 'AI_UNAVAILABLE', t('El servicio de IA no está disponible'));
 }
 
 /**
@@ -176,10 +177,10 @@ export async function chatWithTools({
       try {
         response = tool
           ? await tool.run(functionCall.args ?? {})
-          : { error: 'Esa herramienta no existe' };
+          : { error: t('Esa herramienta no existe') };
       } catch (err) {
         console.error('Falló la herramienta', functionCall.name, err.message);
-        response = { error: 'El dato no está disponible en este momento' };
+        response = { error: t('El dato no está disponible en este momento') };
       }
       responses.push({
         functionResponse: {
@@ -206,7 +207,7 @@ async function generate(request) {
   const data = await send(url, headers, body);
   try {
     const text = readText(data);
-    if (typeof text !== 'string') throw new Error('sin texto');
+    if (typeof text !== 'string') throw new Error(t('sin texto'));
     return text;
   } catch {
     console.error('Respuesta del proveedor de IA con formato inesperado');

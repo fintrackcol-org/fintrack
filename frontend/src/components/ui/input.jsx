@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /**
  * Campo de texto de 48px. Toma los colores del tema (oscuro fuera de /app; claro u oscuro dentro).
@@ -20,6 +21,6 @@ const Input = forwardRef(({ className, type = 'text', ...props }, ref) => (
     {...props}
   />
 ));
-Input.displayName = 'Input';
+Input.displayName = t('Input');
 
 export { Input };

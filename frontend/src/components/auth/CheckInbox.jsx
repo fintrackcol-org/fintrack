@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, MailCheck } from 'lucide-react';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { Button } from '@/components/ui/button';
+import { t } from '@/lib/i18n';
 
 /** Segundos de espera antes de poder reenviar el enlace. */
 const RESEND_SECONDS = 60;
@@ -18,7 +19,7 @@ const RESEND_SECONDS = 60;
  *   footer?: import('react').ReactNode,
  * }} props
  */
-export default function CheckInbox({ title = 'Revisa tu correo', subtitle, tips, onResend, onChangeEmail, footer }) {
+export default function CheckInbox({ title = t('Revisa tu correo'), subtitle, tips, onResend, onChangeEmail, footer }) {
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [resending, setResending] = useState(false);
   const [notice, setNotice] = useState('');
@@ -36,7 +37,7 @@ export default function CheckInbox({ title = 'Revisa tu correo', subtitle, tips,
     setNotice('');
     try {
       await onResend();
-      setNotice('Te enviamos un enlace nuevo. El anterior ya no sirve.');
+      setNotice(t('Te enviamos un enlace nuevo. El anterior ya no sirve.'));
       setSecondsLeft(RESEND_SECONDS);
     } catch (err) {
       setNotice(err.message);
@@ -65,13 +66,13 @@ export default function CheckInbox({ title = 'Revisa tu correo', subtitle, tips,
           {resending && <Loader2 className="animate-spin" aria-hidden="true" />}
           {counting ? (
             <>
-              Reenviar enlace en{' '}
+              {t('Reenviar enlace en')}{' '}
               <span className="tabular-nums">
                 {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}
               </span>
             </>
           ) : (
-            'Reenviar enlace'
+            t('Reenviar enlace')
           )}
         </Button>
         <button
@@ -79,7 +80,7 @@ export default function CheckInbox({ title = 'Revisa tu correo', subtitle, tips,
           onClick={onChangeEmail}
           className="w-full rounded-xl py-2 text-sm text-white/55 transition-colors hover:text-white"
         >
-          Usar otro correo
+          {t('Usar otro correo')}
         </button>
         {notice && (
           <p className="text-center text-sm text-white/65" role="status">

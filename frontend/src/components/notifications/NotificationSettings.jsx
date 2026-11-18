@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import usePushNotifications from '@/hooks/usePushNotifications';
 import { getDeviceTimezone } from '@/lib/push';
 import { getReminderSettings, saveReminderSettings } from '@/services/pushService';
+import { t } from '@/lib/i18n';
+import { dateLocale } from '@/lib/region';
 
 /** Máximo de recordatorios al día (lo mismo que valida la API). */
 const MAX_REMINDERS = 5;
@@ -23,7 +25,7 @@ const normalize = (times) => [...new Set(times.filter(Boolean))].sort();
 /** `20:00` → `8:00 p. m.` (formato es-CO). */
 function formatTime(time) {
   const [hours, minutes] = time.split(':').map(Number);
-  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
+  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(dateLocale(), { hour: 'numeric', minute: '2-digit' });
 }
 
 /** Tarjeta de ajustes de la zona privada. */
@@ -80,13 +82,13 @@ export default function NotificationSettings() {
       setSaved(settings);
       setTimes(settings.times.length > 0 ? settings.times : [SUGGESTED_TIMES[0]]);
       // `formatTime` ya termina en punto ("p. m."), así que el mensaje no agrega otro.
-      const list = new Intl.ListFormat('es', { style: 'long', type: 'conjunction' }).format(
+      const list = new Intl.ListFormat(dateLocale(), { style: 'long', type: 'conjunction' }).format(
         settings.times.map(formatTime),
       );
       setNotice(
         settings.times.length === 0
-          ? 'Recordatorio desactivado.'
-          : `Listo: te recordaremos todos los días a las ${list}${list.endsWith('.') ? '' : '.'}`,
+          ? t('Recordatorio desactivado.')
+          : t('Listo: te recordaremos todos los días a las {list}{v2}', { list, v2: list.endsWith('.') ? '' : '.' }),
       );
     } catch (err) {
       setError(err.message);
@@ -122,13 +124,13 @@ export default function NotificationSettings() {
   const handleEnable = async () => {
     setNotice('');
     const ok = await push.enable();
-    if (ok) setNotice('Notificaciones activadas en este dispositivo.');
+    if (ok) setNotice(t('Notificaciones activadas en este dispositivo.'));
   };
 
   const handleDisable = async () => {
     setNotice('');
     const ok = await push.disable();
-    if (ok) setNotice('Notificaciones desactivadas en este dispositivo.');
+    if (ok) setNotice(t('Notificaciones desactivadas en este dispositivo.'));
   };
 
   const reminderOn = (saved?.times.length ?? 0) > 0;
@@ -139,38 +141,36 @@ export default function NotificationSettings() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Card title="Notificaciones en este dispositivo">
+      <Card title={t('Notificaciones en este dispositivo')}>
         {!push.supported ? (
           <p className="text-ink/60">
-            Este navegador no permite notificaciones. En iPhone, instala Rinde en la pantalla de inicio y ábrela
-            desde allí.
+            {t('Este navegador no permite notificaciones. En iPhone, instala Rinde en la pantalla de inicio y ábrela desde allí.')}
           </p>
         ) : push.permission === 'denied' ? (
           <p className="text-ink/60">
-            Bloqueaste las notificaciones de Rinde. Para activarlas, permítelas en los ajustes del sitio de tu
-            navegador (el candado junto a la dirección) y recarga la página.
+            {t('Bloqueaste las notificaciones de Rinde. Para activarlas, permítelas en los ajustes del sitio de tu navegador (el candado junto a la dirección) y recarga la página.')}
           </p>
         ) : push.checking ? (
-          <p className="text-ink/60">Comprobando…</p>
+          <p className="text-ink/60">{t('Comprobando…')}</p>
         ) : push.subscribed ? (
           <>
             <p className="flex items-center gap-2 text-ink/60">
               <BellRing className="size-4 text-positive" aria-hidden="true" />
-              Activadas en este dispositivo.
+              {t('Activadas en este dispositivo.')}
             </p>
             <Button variant="outline" onClick={handleDisable} disabled={push.busy} className="self-start">
               {push.busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <BellOff aria-hidden="true" />}
-              Desactivar notificaciones
+              {t('Desactivar notificaciones')}
             </Button>
           </>
         ) : (
           <>
             <p className="text-ink/60">
-              Activa las notificaciones para recibir el recordatorio diario. El navegador te pedirá permiso.
+              {t('Activa las notificaciones para recibir el recordatorio diario. El navegador te pedirá permiso.')}
             </p>
             <Button onClick={handleEnable} disabled={push.busy} className="self-start">
               {push.busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Bell aria-hidden="true" />}
-              Activar notificaciones
+              {t('Activar notificaciones')}
             </Button>
           </>
         )}
@@ -181,18 +181,18 @@ export default function NotificationSettings() {
         )}
       </Card>
 
-      <Card title="Recordatorios diarios">
-        <p className="text-ink/60">Hasta {MAX_REMINDERS} avisos al día para que registres tus gastos.</p>
+      <Card title={t('Recordatorios diarios')}>
+        <p className="text-ink/60">{t('Hasta')} {MAX_REMINDERS} {t('avisos al día para que registres tus gastos.')}</p>
         {loading ? (
-          <p className="text-ink/60">Cargando…</p>
+          <p className="text-ink/60">{t('Cargando…')}</p>
         ) : (
           <>
             <div className="flex flex-col gap-3">
-              <ul className="flex flex-col gap-2" aria-label="Horas del recordatorio">
+              <ul className="flex flex-col gap-2" aria-label={t('Horas del recordatorio')}>
                 {times.map((value, index) => (
                   <li key={index} className="flex max-w-xs items-center gap-2">
                     <Label htmlFor={`reminder-time-${index}`} className="sr-only">
-                      Hora del recordatorio {index + 1}
+                      {t('Hora del recordatorio')} {index + 1}
                     </Label>
                     <Input
                       id={`reminder-time-${index}`}
@@ -206,7 +206,7 @@ export default function NotificationSettings() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        aria-label={`Quitar el recordatorio ${index + 1}`}
+                        aria-label={t('Quitar el recordatorio {v1}', { v1: index + 1 })}
                         onClick={() => removeTime(index)}
                         disabled={saving}
                       >
@@ -219,13 +219,13 @@ export default function NotificationSettings() {
               {times.length < MAX_REMINDERS && (
                 <Button type="button" variant="outline" onClick={addTime} disabled={saving} className="self-start">
                   <Plus aria-hidden="true" />
-                  Agregar otro recordatorio
+                  {t('Agregar otro recordatorio')}
                 </Button>
               )}
               {hasDuplicates && (
-                <p className="text-sm text-ink/60">Hay horas repetidas; se guardará una sola vez.</p>
+                <p className="text-sm text-ink/60">{t('Hay horas repetidas; se guardará una sola vez.')}</p>
               )}
-              <p className="text-sm text-ink/60">Zona horaria: {timezone}</p>
+              <p className="text-sm text-ink/60">{t('Zona horaria:')} {timezone}</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Button
@@ -233,18 +233,17 @@ export default function NotificationSettings() {
                 disabled={saving || hasEmpty || (unchanged && reminderOn)}
               >
                 {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-                {reminderOn ? 'Guardar cambios' : 'Activar recordatorios'}
+                {reminderOn ? t('Guardar cambios') : t('Activar recordatorios')}
               </Button>
               {reminderOn && (
                 <Button variant="outline" onClick={() => saveReminder([])} disabled={saving}>
-                  Desactivar recordatorios
+                  {t('Desactivar recordatorios')}
                 </Button>
               )}
             </div>
             {reminderOn && push.supported && !push.checking && !push.subscribed && (
               <p className="text-sm text-ink/60">
-                Tienes un recordatorio programado, pero este dispositivo no tiene las notificaciones activadas, así
-                que no te llegará.
+                {t('Tienes un recordatorio programado, pero este dispositivo no tiene las notificaciones activadas, así que no te llegará.')}
               </p>
             )}
           </>
@@ -256,10 +255,10 @@ export default function NotificationSettings() {
         )}
       </Card>
 
-      <Card title="Pago de tarjetas">
+      <Card title={t('Pago de tarjetas')}>
         <div className="flex items-center justify-between gap-4">
           <p id="card-reminders-label" className="text-ink/60">
-            Te avisamos 3 días antes del día de pago de cada tarjeta.
+            {t('Te avisamos 3 días antes del día de pago de cada tarjeta.')}
           </p>
           <button
             type="button"

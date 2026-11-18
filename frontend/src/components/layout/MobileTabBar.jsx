@@ -1,6 +1,7 @@
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Flag, House, List, Plus, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /**
  * Las 4 secciones de la app en el celular (Rinde v2). Lo demás vive dentro de ellas: Consejos,
@@ -8,15 +9,15 @@ import { cn } from '@/lib/utils';
  * avatar del inicio. Cuatro pestañas caben con su nombre y se alcanzan con el pulgar.
  */
 export const TABS = [
-  { to: '/app', label: 'Inicio', icon: House, end: true, inside: ['/app/gastos', '/app/ingresos'] },
-  { to: '/app/movimientos', label: 'Movimientos', icon: List, inside: [] },
+  { to: '/app', label: t('Inicio'), icon: House, end: true, inside: ['/app/gastos', '/app/ingresos'] },
+  { to: '/app/movimientos', label: t('Movimientos'), icon: List, inside: [] },
   {
     to: '/app/mi-plata',
-    label: 'Mi plata',
+    label: t('Mi plata'),
     icon: Wallet,
     inside: ['/app/presupuestos', '/app/calendario', '/app/cuentas', '/app/tarjetas', '/app/por-confirmar', '/app/renta'],
   },
-  { to: '/app/metas', label: 'Metas', icon: Flag, inside: ['/app/vacas', '/app/negocios'] },
+  { to: '/app/metas', label: t('Metas'), icon: Flag, inside: ['/app/vacas', '/app/negocios'] },
 ];
 
 /**
@@ -71,11 +72,11 @@ export default function MobileTabBar() {
           className="fixed right-4 z-30 inline-flex h-[52px] items-center gap-2 rounded-full bg-brand pl-4 pr-5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(20,20,20,0.22)] transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet motion-safe:active:scale-[0.97] bottom-[calc(max(env(safe-area-inset-bottom),12px)+80px)] md:hidden"
         >
           <Plus className="size-5" strokeWidth={2.25} aria-hidden="true" />
-          Anotar
+          {t('Anotar')}
         </Link>
       )}
       <nav
-        aria-label="Secciones"
+        aria-label={t('Secciones')}
         className="fixed inset-x-3 z-30 grid h-16 grid-cols-4 gap-1 rounded-[22px] bg-surface p-1.5 shadow-[0_6px_20px_rgba(20,20,20,0.10)] ring-1 ring-ink/10 bottom-[max(env(safe-area-inset-bottom),12px)] md:hidden"
       >
         {TABS.map(({ to, label, icon: Icon, end, inside }) => (

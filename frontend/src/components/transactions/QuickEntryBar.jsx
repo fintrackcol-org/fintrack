@@ -4,9 +4,11 @@ import { ArrowUp, Mic, Zap } from 'lucide-react';
 import VoiceEntry from '@/components/transactions/VoiceEntry';
 import useAsync from '@/hooks/useAsync';
 import { canDictate as browserCanDictate } from '@/hooks/useSpeechRecognition';
+import { isAbroad } from '@/lib/region';
 import { cn } from '@/lib/utils';
 import { getCategories } from '@/services/transactionService';
 import useKeyboardInset from '@/hooks/useKeyboardInset';
+import { t } from '@/lib/i18n';
 
 /**
  * Barra rápida para anotar un movimiento (FT-0013), fija abajo en Inicio y Movimientos. Se
@@ -45,7 +47,8 @@ export default function QuickEntryBar() {
   // "Editar antes de guardar" lleva al formulario completo; "Escribir" vuelve a la barra.
   const edit = (draft) => {
     setEntry(null);
-    if (draft) navigate('/app/transacciones/nuevo', { state: { voiceDraft: draft } });
+    // De viaje se completa en Anotar, que deja elegir la moneda; si no, en el formulario completo.
+    if (draft) navigate(isAbroad() ? '/app/anotar' : '/app/transacciones/nuevo', { state: { voiceDraft: draft } });
     else focusOnClose.current = true;
   };
 
@@ -53,7 +56,7 @@ export default function QuickEntryBar() {
     <>
       <form
         onSubmit={submit}
-        aria-label="Anotar un movimiento"
+        aria-label={t('Anotar un movimiento')}
         style={keyboard > 80 ? { bottom: keyboard + 8 } : undefined}
         className={cn(
           'fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-2xl items-center gap-2 rounded-full',
@@ -66,8 +69,8 @@ export default function QuickEntryBar() {
           ref={inputRef}
           value={text}
           onChange={(event) => setText(event.target.value)}
-          placeholder="Anota: almuerzo 15 mil"
-          aria-label="Anota un gasto o ingreso"
+          placeholder={t('Anota: almuerzo 15 mil')}
+          aria-label={t('Anota un gasto o ingreso')}
           autoComplete="off"
           enterKeyHint="send"
           maxLength={200}
@@ -76,7 +79,7 @@ export default function QuickEntryBar() {
         {hasText || !canDictate ? (
           <button
             type="submit"
-            aria-label="Revisar y guardar"
+            aria-label={t('Revisar y guardar')}
             className="grid size-10 shrink-0 place-items-center rounded-full bg-brand text-white transition-transform duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet motion-safe:active:scale-95"
           >
             <ArrowUp className="size-5" aria-hidden="true" />
@@ -85,7 +88,7 @@ export default function QuickEntryBar() {
           <button
             type="button"
             onClick={() => setEntry({ autoStart: true })}
-            aria-label="Dictar un movimiento"
+            aria-label={t('Dictar un movimiento')}
             className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-soft text-brand transition-[transform,background-color] duration-150 hover:bg-brand/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet motion-safe:active:scale-95"
           >
             <Mic className="size-5" aria-hidden="true" />

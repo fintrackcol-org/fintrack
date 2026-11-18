@@ -1,6 +1,7 @@
 import { Area, AreaChart, ResponsiveContainer, XAxis } from 'recharts';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /** Gasto semanal en alimentación (miles de pesos); las dos últimas semanas son la proyección. */
 const DATA = [
@@ -25,18 +26,17 @@ export default function AiInsightCard({ className }) {
           <Sparkles className="size-5" aria-hidden="true" />
         </span>
         <div>
-          <p className="font-semibold leading-tight">Análisis con IA</p>
-          <p className="text-sm text-muted-foreground">Tu asistente financiero</p>
+          <p className="font-semibold leading-tight">{t('Análisis con IA')}</p>
+          <p className="text-sm text-muted-foreground">{t('Tu asistente financiero')}</p>
         </div>
       </div>
 
       <div className="space-y-4 p-5">
         <p className="rounded-2xl rounded-tl-sm bg-card px-4 py-3 text-sm leading-relaxed">
-          Este mes gastaste <strong className="text-violet">18% más en alimentación</strong> que en agosto. Si reduces
-          los domicilios a 2 por semana, podrías ahorrar <strong>$120.000</strong>.
+          {t('Este mes gastaste')} <strong className="text-violet">{t('18% más en alimentación')}</strong> {t('que en agosto. Si reduces los domicilios a 2 por semana, podrías ahorrar')} <strong>$120.000</strong>.
         </p>
 
-        <div className="h-20" role="img" aria-label="Tendencia del gasto en alimentación con proyección a la baja">
+        <div className="h-20" role="img" aria-label={t('Tendencia del gasto en alimentación con proyección a la baja')}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={DATA} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
               <defs>
@@ -61,10 +61,10 @@ export default function AiInsightCard({ className }) {
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-0.5 w-4 bg-violet" /> Gasto real
+            <span className="h-0.5 w-4 bg-violet" /> {t('Gasto real')}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-0.5 w-4 border-t-2 border-dashed border-success" /> Con la sugerencia
+            <span className="h-0.5 w-4 border-t-2 border-dashed border-success" /> {t('Con la sugerencia')}
           </span>
         </div>
       </div>

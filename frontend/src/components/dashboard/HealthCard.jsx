@@ -8,6 +8,7 @@ import useAsync from '@/hooks/useAsync';
 import { TRANSACTION_SAVED_EVENT } from '@/offline/saveNewTransaction';
 import { cn } from '@/lib/utils';
 import { getAnalytics } from '@/services/analyticsService';
+import { t } from '@/lib/i18n';
 
 const TEXT = { positive: 'text-positive', caution: 'text-caution', negative: 'text-negative' };
 
@@ -42,31 +43,30 @@ export default function HealthCard({ hidden, showAllowance = true }) {
       >
         <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-ink/5 text-xl font-semibold tabular-nums">
           {data.health.score}
-          <span className="sr-only"> de 100</span>
+          <span className="sr-only"> {t('de 100')}</span>
         </span>
         <span className="min-w-0 flex-1">
           <span id="salud-inicio" className="flex items-center gap-1.5 text-sm text-ink/70">
             <HeartPulse className="size-4" aria-hidden="true" />
-            Salud financiera · <span className={cn('font-semibold', TEXT[tone])}>{label}</span>
+            {t('Salud financiera ·')} <span className={cn('font-semibold', TEXT[tone])}>{label}</span>
           </span>
           {showAllowance && (
             <span className="mt-1 block text-sm">
               {perDay > 0 ? (
                 <>
-                  Puedes gastar{' '}
-                  <span className="font-semibold tabular-nums">{hidden ? '$ ••••••' : formatMoney(perDay)}</span> por día
-                  hasta fin de mes
+                  {t('Puedes gastar')}{' '}
+                  <span className="font-semibold tabular-nums">{hidden ? '$ ••••••' : formatMoney(perDay)}</span> {t('por día hasta fin de mes')}
                 </>
               ) : data.projection.income === 0 ? (
-                'Aún no registras ingresos este mes'
+                t('Aún no registras ingresos este mes')
               ) : (
-                'Ya gastaste lo que ingresó este mes'
+                t('Ya gastaste lo que ingresó este mes')
               )}
             </span>
           )}
         </span>
         <ChevronRight className="size-5 shrink-0 text-ink/40" aria-hidden="true" />
-        <span className="sr-only">Ver el detalle en Consejos</span>
+        <span className="sr-only">{t('Ver el detalle en Consejos')}</span>
       </Link>
     </Panel>
   );

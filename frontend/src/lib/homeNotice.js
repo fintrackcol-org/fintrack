@@ -1,11 +1,12 @@
 import { displayLevel } from '@/lib/budgetLevel';
 import { NETWORK_LABELS } from '@/lib/cardStyles';
 import { dayAndMonth } from '@/lib/moneyPlan';
+import { t } from '@/lib/i18n';
 
 /** Días antes del pago en los que la tarjeta pasa por encima de un pago pendiente. */
 const CARD_SOON_DAYS = 3;
 
-const when = (days) => (days === 0 ? 'hoy' : days === 1 ? 'mañana' : `en ${days} días`);
+const when = (days) => (days === 0 ? 'hoy' : days === 1 ? t('mañana') : t('en {days} días', { days }));
 const cardName = (card) => `${NETWORK_LABELS[card.network] ?? card.name} ••${card.last4}`;
 
 /**
@@ -21,29 +22,29 @@ export function pickHomeNotice({ cards = [], budgets = [], pending = [], names, 
   const cardNotice = (title) => ({
     to: `/app/tarjetas/${nextCard.id}`,
     title,
-    detail: `Debes ${money(nextCard.used)}`,
+    detail: t('Debes {used}', { used: money(nextCard.used) }),
   });
   const budgetName = (budget) => names[budget.category] ?? budget.category;
 
-  if (nextCard?.daysToPayment < 0) return cardNotice(`Tu ${cardName(nextCard)} tiene el pago atrasado`);
+  if (nextCard?.daysToPayment < 0) return cardNotice(t('Tu {nextCard} tiene el pago atrasado', { nextCard: cardName(nextCard) }));
 
   const exceeded = budgets.find((budget) => displayLevel(budget.alert) === 'exceeded_100');
   if (exceeded) {
     return {
       to: '/app/presupuestos',
-      title: `Te pasaste en ${budgetName(exceeded)}`,
-      detail: `Llevas ${money(exceeded.consumed)} de ${money(exceeded.amount)}`,
+      title: t('Te pasaste en {exceeded}', { exceeded: budgetName(exceeded) }),
+      detail: t('Llevas {consumed} de {amount}', { consumed: money(exceeded.consumed), amount: money(exceeded.amount) }),
     };
   }
 
   if (nextCard?.daysToPayment <= CARD_SOON_DAYS) {
-    return cardNotice(`Tu ${cardName(nextCard)} se paga ${when(nextCard.daysToPayment)}`);
+    return cardNotice(t('Tu {nextCard} se paga {daysToPayment}', { nextCard: cardName(nextCard), daysToPayment: when(nextCard.daysToPayment) }));
   }
 
   if (pending[0]) {
     return {
       to: '/app/mi-plata',
-      title: `${pending[0].name} vence el ${dayAndMonth(pending[0].date)}`,
+      title: t('{name} vence el {date}', { name: pending[0].name, date: dayAndMonth(pending[0].date) }),
       detail: money(pending[0].amount),
     };
   }
@@ -52,10 +53,10 @@ export function pickHomeNotice({ cards = [], budgets = [], pending = [], names, 
   if (warning) {
     return {
       to: '/app/presupuestos',
-      title: `${budgetName(warning)} ya casi llega al límite`,
-      detail: `Quedan ${money(Math.max(0, warning.amount - warning.consumed))}`,
+      title: t('{warning} ya casi llega al límite', { warning: budgetName(warning) }),
+      detail: t('Quedan {money}', { money: money(Math.max(0, warning.amount - warning.consumed)) }),
     };
   }
 
-  return nextCard ? cardNotice(`Tu ${cardName(nextCard)} se paga ${when(nextCard.daysToPayment)}`) : null;
+  return nextCard ? cardNotice(t('Tu {nextCard} se paga {daysToPayment}', { nextCard: cardName(nextCard), daysToPayment: when(nextCard.daysToPayment) })) : null;
 }

@@ -5,6 +5,7 @@ import * as repo from '../repositories/budgets.repository.js';
 import { claimBudgetAlert } from '../repositories/notifications.repository.js';
 import { notifications } from './notifications.service.js';
 import { pushService } from './push.service.js';
+import { categoryText, dateLocale, t } from '../i18n/index.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -17,7 +18,7 @@ const DEFAULT_TIMEZONE = 'America/Bogota';
 
 /** @returns {AppError} 404 sin revelar si el presupuesto existe pero es de otro (RN-01). */
 function notFound() {
-  return new AppError(404, 'NOT_FOUND', 'Presupuesto no encontrado');
+  return new AppError(404, 'NOT_FOUND', t('Presupuesto no encontrado'));
 }
 
 /**
@@ -97,8 +98,8 @@ export async function list(userId, month) {
 export async function create(userId, { category, month, amount }) {
   const found = await findCategoryByKey(category, userId);
   if (!found || found.type !== 'gasto') {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'category', problem: 'Debe ser una categoría de gasto del catálogo' },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'category', problem: t('Debe ser una categoría de gasto del catálogo') },
     ]);
   }
 
@@ -107,7 +108,7 @@ export async function create(userId, { category, month, amount }) {
     throw new AppError(
       409,
       'BUDGET_EXISTS',
-      'Ya existe un presupuesto para esa categoría en ese mes',
+      t('Ya existe un presupuesto para esa categoría en ese mes'),
     );
   }
 
@@ -170,16 +171,16 @@ export async function getTransactionAlert(userId, { type, category, date }) {
  * @returns {{ title: string, body: string, url: string }}
  */
 export function budgetNotice({ categoryName, month, level, percentage }) {
-  const monthName = new Intl.DateTimeFormat('es-CO', { month: 'long', timeZone: 'UTC' }).format(
+  const monthName = new Intl.DateTimeFormat(dateLocale(), { month: 'long', timeZone: 'UTC' }).format(
     new Date(`${month}-15T12:00:00Z`),
   );
   const used = `${Math.round(percentage)} %`;
   return {
-    title: `Presupuesto de ${categoryName}`,
+    title: t('Presupuesto de {categoryName}', { categoryName }),
     body:
       level === 'exceeded_100'
-        ? `Te pasaste: llevas el ${used} de lo que pusiste para ${monthName}.`
-        : `Ya llevas el ${used} de lo que pusiste para ${monthName}.`,
+        ? t('Te pasaste: llevas el {used} de lo que pusiste para {monthName}.', { used, monthName })
+        : t('Ya llevas el {used} de lo que pusiste para {monthName}.', { used, monthName }),
     url: '/app/presupuestos',
   };
 }
@@ -196,7 +197,7 @@ async function notifyBudget(userId, budget, alert) {
   if (!(await claimBudgetAlert(budget.id, alert.level))) return;
   const category = await findCategoryByKey(budget.category, userId);
   const payload = budgetNotice({
-    categoryName: category?.name ?? 'esta categoría',
+    categoryName: category ? (category.custom ? category.name : categoryText(category.name)) : t('esta categoría'),
     month: budget.month,
     level: alert.level,
     percentage: alert.percentage,

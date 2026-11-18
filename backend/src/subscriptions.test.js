@@ -84,11 +84,11 @@ test('avisos: salen con la anticipación elegida y solo cuando hay cobro', () =>
   );
   assert.equal(
     commitmentReminderPayload({ name: 'Netflix', amount: 38900, kind: 'subscription', daysBefore: 3 }).body,
-    'En 3 días se cobra Netflix: $38.900.',
+    'En 3 días se cobra Netflix: $\u00a038.900.',
   );
   assert.equal(
     commitmentReminderPayload({ name: 'Arriendo', amount: 900000, kind: 'fixed', daysBefore: 0 }).body,
-    'Hoy vence Arriendo: $900.000.',
+    'Hoy vence Arriendo: $\u00a0900.000.',
   );
 });
 

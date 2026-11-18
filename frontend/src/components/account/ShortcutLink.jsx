@@ -8,14 +8,15 @@ import useAsync from '@/hooks/useAsync';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import { formatRelativeDay } from '@/components/transactions/format';
 import { SHORTCUT_URL, createShortcutToken, getShortcutToken, revokeShortcutToken } from '@/services/pendingPaymentService';
+import { t } from '@/lib/i18n';
 
 /** Pasos para crear la automatización en Atajos del iPhone. */
 export const SHORTCUT_STEPS = [
-  'Abre la app Atajos y ve a Automatización → Nueva automatización → Wallet.',
-  'Elige tus tarjetas, marca "Al tocar" y "Ejecutar inmediatamente".',
-  'Agrega la acción "Obtener contenido de URL" con la dirección de abajo y método POST.',
-  'En Encabezados agrega Authorization con el valor "Bearer " seguido de tu código.',
-  'En Cuerpo de la solicitud elige JSON y agrega merchant (el comercio del pago), amount (el importe), card (el nombre de la tarjeta) y date (Fecha actual).',
+  t('Abre la app Atajos y ve a Automatización → Nueva automatización → Wallet.'),
+  t('Elige tus tarjetas, marca "Al tocar" y "Ejecutar inmediatamente".'),
+  t('Agrega la acción "Obtener contenido de URL" con la dirección de abajo y método POST.'),
+  t('En Encabezados agrega Authorization con el valor "Bearer " seguido de tu código.'),
+  t('En Cuerpo de la solicitud elige JSON y agrega merchant (el comercio del pago), amount (el importe), card (el nombre de la tarjeta) y date (Fecha actual).'),
 ];
 
 /** Texto con botón para copiarlo. */
@@ -35,7 +36,7 @@ function CopyField({ label, value }) {
       <p className="text-sm text-ink/60">{label}</p>
       <div className="mt-1 flex items-center gap-2">
         <code className="min-w-0 flex-1 select-all break-all rounded-lg bg-surface px-3 py-2 text-sm">{value}</code>
-        <Button size="icon" variant="outline" onClick={copy} aria-label={`Copiar ${label.toLowerCase()}`}>
+        <Button size="icon" variant="outline" onClick={copy} aria-label={t('Copiar {toLowerCase}', { toLowerCase: label.toLowerCase() })}>
           {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
         </Button>
       </div>
@@ -47,9 +48,9 @@ function CopyField({ label, value }) {
 function SetupStep({ token }) {
   return (
     <div className="space-y-4 rounded-xl bg-brand-soft p-4">
-      <p className="text-sm font-medium text-brand">Copia tu código ahora: no lo volverás a ver.</p>
-      <CopyField label="Tu código" value={token} />
-      <CopyField label="Dirección" value={SHORTCUT_URL} />
+      <p className="text-sm font-medium text-brand">{t('Copia tu código ahora: no lo volverás a ver.')}</p>
+      <CopyField label={t('Tu código')} value={token} />
+      <CopyField label={t('Dirección')} value={SHORTCUT_URL} />
       <ol className="list-decimal space-y-1.5 pl-5 text-sm text-ink/70">
         {SHORTCUT_STEPS.map((step) => (
           <li key={step}>{step}</li>
@@ -106,14 +107,14 @@ export default function ShortcutLink() {
   return (
     <Panel aria-labelledby="shortcut-title">
       <h2 id="shortcut-title" className="text-lg font-semibold tracking-tight">
-        Pagos con Apple Pay
+        {t('Pagos con Apple Pay')}
       </h2>
       <p className="mt-1 text-sm text-ink/60">
-        Con Atajos del iPhone, cada pago con Wallet llega a{' '}
+        {t('Con Atajos del iPhone, cada pago con Wallet llega a')}{' '}
         <Link to="/app/por-confirmar" className="underline">
-          Por confirmar
+          {t('Por confirmar')}
         </Link>
-        . Nada se anota hasta que lo apruebes.
+        {t('. Nada se anota hasta que lo apruebes.')}
       </p>
 
       <div className="mt-5 space-y-3">
@@ -123,24 +124,24 @@ export default function ShortcutLink() {
             <p className="flex items-center gap-2 text-sm">
               <CircleCheck className="size-5 shrink-0 text-positive" aria-hidden="true" />
               {lastUsed
-                ? `Conectado · último pago recibido: ${lastUsed.toLowerCase()}`
-                : 'Código creado · aún no llega ningún pago'}
+                ? t('Conectado · último pago recibido: {toLowerCase}', { toLowerCase: lastUsed.toLowerCase() })
+                : t('Código creado · aún no llega ningún pago')}
             </p>
             <div className="flex flex-wrap gap-2">
               {!created && (
                 <ConfirmButton
-                  label="Crear código nuevo"
-                  question="¿Crear un código nuevo? El de ahora deja de servir y tendrás que cambiarlo en el Atajo."
-                  confirmLabel="Sí, crear otro"
+                  label={t('Crear código nuevo')}
+                  question={t('¿Crear un código nuevo? El de ahora deja de servir y tendrás que cambiarlo en el Atajo.')}
+                  confirmLabel={t('Sí, crear otro')}
                   icon={RefreshCw}
                   disabled={!online}
                   onConfirm={create}
                 />
               )}
               <ConfirmButton
-                label="Desconectar"
-                question="¿Desconectar el iPhone? Dejarán de llegar pagos. Lo que ya anotaste no se borra."
-                confirmLabel="Sí, desconectar"
+                label={t('Desconectar')}
+                question={t('¿Desconectar el iPhone? Dejarán de llegar pagos. Lo que ya anotaste no se borra.')}
+                confirmLabel={t('Sí, desconectar')}
                 icon={Unlink}
                 disabled={!online}
                 onConfirm={revoke}
@@ -150,7 +151,7 @@ export default function ShortcutLink() {
         ) : (
           <Button onClick={create} disabled={creating || !online}>
             {creating ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Smartphone aria-hidden="true" />}
-            Conectar mi iPhone
+            {t('Conectar mi iPhone')}
           </Button>
         )}
         {createError && (

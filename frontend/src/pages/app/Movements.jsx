@@ -7,32 +7,33 @@ import { Button } from '@/components/ui/button';
 import useCategoryNames from '@/hooks/useCategoryNames';
 import useHiddenAmounts from '@/hooks/useHiddenAmounts';
 import usePageTitle from '@/hooks/usePageTitle';
+import { t } from '@/lib/i18n';
 
 /**
  * Página privada `/app/movimientos` (Rinde v2): todos los gastos e ingresos, con el buscador, los
  * filtros y el mes. Es una de las 4 pestañas del celular; antes vivía dentro de Mi plata.
  */
 export default function Movements() {
-  usePageTitle('Movimientos');
+  usePageTitle(t('Movimientos'));
   const { names } = useCategoryNames();
   const [hidden] = useHiddenAmounts();
 
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
-        title="¿En qué se te fue?"
+        title={t('¿En qué se te fue?')}
         actions={
           <>
             <Button asChild variant="soft">
               <Link to="/app/transacciones/exportar">
                 <Download aria-hidden="true" />
-                Exportar
+                {t('Exportar')}
               </Link>
             </Button>
             <Button asChild className="max-md:hidden">
               <Link to="/app/anotar">
                 <Plus aria-hidden="true" />
-                Anotar
+                {t('Anotar')}
               </Link>
             </Button>
           </>

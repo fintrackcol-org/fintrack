@@ -9,29 +9,30 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { formatMoney } from '@/components/transactions/format';
+import { formatMoney, formatMoneyCompact } from '@/components/transactions/format';
+import { t } from '@/lib/i18n';
+import { dateLocale } from '@/lib/region';
 
 /** Montos cortos para el eje Y: `$ 850 mil`, `$ 1,2 M`. */
-const compact = new Intl.NumberFormat('es-CO', { notation: 'compact', maximumFractionDigits: 1 });
-const formatAxis = (value) => (value === 0 ? '0' : `$ ${compact.format(value)}`);
+const formatAxis = (value) => (value === 0 ? '0' : formatMoneyCompact(value));
 
 /** Cuadro al pasar el mouse (o tocar) un día: lo gastado hasta ese día o lo proyectado. */
 function PaceTooltip({ active, payload, month }) {
   if (!active || !payload?.length) return null;
   const point = payload[0].payload;
   const [year, m] = month.split('-').map(Number);
-  const date = new Date(year, m - 1, point.day).toLocaleDateString('es-CO', { day: 'numeric', month: 'long' });
+  const date = new Date(year, m - 1, point.day).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' });
   return (
     <div className="rounded-xl border border-ink/10 bg-surface px-3 py-2 text-sm shadow-lg">
       <p className="mb-1 font-medium">{date}</p>
       {point.real !== undefined && (
         <p className="text-ink/70">
-          Gastado: <span className="tabular-nums text-ink">{formatMoney(point.real)}</span>
+          {t('Gastado:')} <span className="tabular-nums text-ink">{formatMoney(point.real)}</span>
         </p>
       )}
       {point.projection !== undefined && point.real === undefined && (
         <p className="text-ink/70">
-          Proyectado: <span className="tabular-nums text-ink">{formatMoney(point.projection)}</span>
+          {t('Proyectado:')} <span className="tabular-nums text-ink">{formatMoney(point.projection)}</span>
         </p>
       )}
     </div>

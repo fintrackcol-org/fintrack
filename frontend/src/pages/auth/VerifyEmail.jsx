@@ -5,10 +5,11 @@ import AuthLayout from '@/components/auth/AuthLayout';
 import { Button } from '@/components/ui/button';
 import usePageTitle from '@/hooks/usePageTitle';
 import { useAuth } from '@/auth/AuthContext';
+import { t } from '@/lib/i18n';
 
 const backToLogin = (
   <Link to="/login" className="font-medium text-violet-light transition-colors hover:text-white">
-    Volver a iniciar sesión
+    {t('Volver a iniciar sesión')}
   </Link>
 );
 
@@ -18,7 +19,7 @@ const backToLogin = (
  * correos viejos; al leerlo se borra de la barra de direcciones.
  */
 export default function VerifyEmail() {
-  usePageTitle('Confirmar correo');
+  usePageTitle(t('Confirmar correo'));
   const location = useLocation();
   const navigate = useNavigate();
   const { confirmEmail } = useAuth();
@@ -59,11 +60,11 @@ export default function VerifyEmail() {
     return (
       <AuthLayout
         icon={Link2Off}
-        title="Este enlace ya no sirve"
-        subtitle="Los enlaces vencen a las 24 horas y sirven una sola vez. Inicia sesión con tu correo y contraseña y te ofrecemos uno nuevo."
+        title={t('Este enlace ya no sirve')}
+        subtitle={t('Los enlaces vencen a las 24 horas y sirven una sola vez. Inicia sesión con tu correo y contraseña y te ofrecemos uno nuevo.')}
       >
         <Button asChild size="lg" className="w-full">
-          <Link to="/login">Iniciar sesión</Link>
+          <Link to="/login">{t('Iniciar sesión')}</Link>
         </Button>
       </AuthLayout>
     );
@@ -71,17 +72,17 @@ export default function VerifyEmail() {
 
   if (status === 'error') {
     return (
-      <AuthLayout icon={WifiOff} title="No pudimos confirmar tu correo" subtitle={error} footer={backToLogin}>
+      <AuthLayout icon={WifiOff} title={t('No pudimos confirmar tu correo')} subtitle={error} footer={backToLogin}>
         <Button type="button" size="lg" className="w-full" onClick={verify}>
-          Reintentar
+          {t('Reintentar')}
         </Button>
       </AuthLayout>
     );
   }
 
   return (
-    <AuthLayout icon={MailCheck} title="Confirmando tu correo" subtitle="Un momento, ya casi entras.">
-      <p className="flex justify-center" role="status" aria-label="Confirmando tu correo">
+    <AuthLayout icon={MailCheck} title={t('Confirmando tu correo')} subtitle={t('Un momento, ya casi entras.')}>
+      <p className="flex justify-center" role="status" aria-label={t('Confirmando tu correo')}>
         <Loader2 className="size-6 animate-spin text-violet-light" aria-hidden="true" />
       </p>
     </AuthLayout>

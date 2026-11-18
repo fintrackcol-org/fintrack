@@ -5,9 +5,11 @@ import Panel from '@/components/layout/Panel';
 import { formatMoney } from '@/components/transactions/format';
 import { displayLevel, isAtLimit } from '@/lib/budgetLevel';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
+import { numberLocale } from '@/lib/region';
 
 const BAR = { none: 'bg-positive', warning_80: 'bg-caution', exceeded_100: 'bg-negative' };
-const percent = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
+const percent = new Intl.NumberFormat(numberLocale(), { maximumFractionDigits: 0 });
 
 /** Cuántos presupuestos se muestran en el inicio; el resto, en la pantalla de presupuestos. */
 const VISIBLE = 4;
@@ -31,18 +33,18 @@ export function BudgetAlert({ budgets, names, linked = true }) {
   if (exceeded.length > 0) {
     message =
       exceeded.length === 1
-        ? `Te pasaste del presupuesto de ${name(exceeded[0])}.`
-        : `Te pasaste en ${exceeded.length} presupuestos.`;
+        ? t('Te pasaste del presupuesto de {name}.', { name: name(exceeded[0]) })
+        : t('Te pasaste en {length} presupuestos.', { length: exceeded.length });
   } else if (atLimit.length > 0) {
     message =
       atLimit.length === 1
-        ? `Ya usaste todo tu presupuesto de ${name(atLimit[0])}.`
-        : `Ya usaste todo el presupuesto en ${atLimit.length} categorías.`;
+        ? t('Ya usaste todo tu presupuesto de {name}.', { name: name(atLimit[0]) })
+        : t('Ya usaste todo el presupuesto en {length} categorías.', { length: atLimit.length });
   } else {
     message =
       warning.length === 1
-        ? `${name(warning[0])} va en ${percent.format(warning[0].percentage)} % del límite.`
-        : `${warning.length} presupuestos pasaron del 80 %.`;
+        ? t('{name} va en {percentage} % del límite.', { name: name(warning[0]), percentage: percent.format(warning[0].percentage) })
+        : t('{length} presupuestos pasaron del 80 %.', { length: warning.length });
   }
 
   const tone = exceeded.length > 0 ? 'bg-negative/10 text-negative' : 'bg-caution/10 text-caution';
@@ -86,10 +88,10 @@ export default function BudgetOverview({ budgets, names, monthLabel, error, note
     <Panel aria-labelledby="budgets-title">
       <div className="flex items-center justify-between gap-2">
         <h2 id="budgets-title" className="text-lg font-semibold tracking-tight">
-          Presupuestos
+          {t('Presupuestos')}
         </h2>
         <Link to="/app/presupuestos" className="text-sm font-medium text-brand hover:underline">
-          Ver todos
+          {t('Ver todos')}
         </Link>
       </div>
 
@@ -106,13 +108,13 @@ export default function BudgetOverview({ budgets, names, monthLabel, error, note
       ) : budgets.length === 0 ? (
         <div className="mt-4">
           <p className="text-sm text-ink/60">
-            No tienes presupuestos en {monthLabel}. Ponle un límite a una categoría y te avisamos antes de pasarte.
+            {t('No tienes presupuestos en')} {monthLabel}{t('. Ponle un límite a una categoría y te avisamos antes de pasarte.')}
           </p>
           <Link
             to="/app/presupuestos"
             className="mt-4 inline-flex h-10 items-center rounded-xl bg-brand-soft px-4 text-sm font-medium text-brand"
           >
-            Crear presupuesto
+            {t('Crear presupuesto')}
           </Link>
         </div>
       ) : (
@@ -120,7 +122,7 @@ export default function BudgetOverview({ budgets, names, monthLabel, error, note
           {allGood && (
             <p className="mt-2 flex items-center gap-1.5 text-sm text-positive">
               <CircleCheck className="size-4" aria-hidden="true" />
-              Vas bien en todos.
+              {t('Vas bien en todos.')}
             </p>
           )}
           <ul className="mt-4 space-y-4">
@@ -136,7 +138,7 @@ export default function BudgetOverview({ budgets, names, monthLabel, error, note
                     </div>
                     <div
                       role="meter"
-                      aria-label={`Consumo de ${name}`}
+                      aria-label={t('Consumo de {name}', { name })}
                       aria-valuemin={0}
                       aria-valuemax={100}
                       aria-valuenow={Math.min(b.percentage, 100)}
@@ -154,7 +156,7 @@ export default function BudgetOverview({ budgets, names, monthLabel, error, note
             })}
           </ul>
           {sorted.length > VISIBLE && (
-            <p className="mt-4 text-sm text-ink/60">y {sorted.length - VISIBLE} más</p>
+            <p className="mt-4 text-sm text-ink/60">{t('y')} {sorted.length - VISIBLE} {t('más')}</p>
           )}
         </>
       )}

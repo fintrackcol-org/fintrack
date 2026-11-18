@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, ChevronDown, Loader2, Mic, Paperclip, Plus, Sparkles, X } from 'lucide-react';
 import NewCategoryDialog from '@/components/categories/NewCategoryDialog';
 import FeelingPrompt from '@/components/transactions/FeelingPrompt';
@@ -13,7 +13,7 @@ import BigAmountWarning, { isBigAmount } from '@/components/transactions/BigAmou
 import BudgetAlert from '@/components/transactions/BudgetAlert';
 import DateQuickPick from '@/components/transactions/DateQuickPick';
 import VoiceEntry from '@/components/transactions/VoiceEntry';
-import { formatMoney } from '@/components/transactions/format';
+import { formatDate, formatMoney } from '@/components/transactions/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,14 +24,16 @@ import usePageTitle from '@/hooks/usePageTitle';
 import { NETWORK_LABELS } from '@/lib/cardStyles';
 import { attachedText } from '@/lib/attachedText';
 import { cn } from '@/lib/utils';
-import { parseMoneyInput } from '@/lib/money';
+import { currencySymbol, formatIn, getRegion, isAbroad, localCurrency } from '@/lib/region';
 import { parseSpokenTransaction } from '@/lib/voiceEntry';
 import { today, transactionSchema } from '@/lib/validation/transaction';
 import { saveNewTransaction } from '@/offline/saveNewTransaction';
 import { uploadPending } from '@/services/attachmentService';
 import { listBudgets } from '@/services/budgetService';
 import { listCards } from '@/services/cardService';
+import { getExchangeRate } from '@/services/exchangeRateService';
 import { getMoneyPlan } from '@/services/moneyProfileService';
+import { t } from '@/lib/i18n';
 
 /** El monto máximo que acepta el servidor tiene 10 cifras enteras. */
 const MAX_DIGITS = 10;
@@ -91,9 +93,10 @@ export function toTransaction({ type, amount, description, category, date, card,
  * @returns {{ amount: string, description: string, date: string, type: 'gasto'|'ingreso', options: number[] }}
  */
 export function readText(text) {
-  const parsed = parseSpokenTransaction(text);
+  // «almuerzo 15» son 15 mil solo en pesos; en dólares son 15.
+  const parsed = parseSpokenTransaction(text, undefined, { smallMeansThousands: getRegion().currency === 'COP', receivedLabel: t('Pago recibido') });
   return {
-    amount: parsed.amount ? String(Math.round(parsed.amount)) : '',
+    amount: parsed.amount ? String(Math.round(parsed.amount * 100) / 100) : '',
     description: parsed.description ?? '',
     date: parsed.date,
     type: parsed.type,
@@ -122,7 +125,7 @@ export function readDescription(text, amountTyped) {
  * detalles". Guarda con lo mismo que el formulario: sin conexión queda en la cola (FT-0009).
  */
 export default function Anotar() {
-  usePageTitle('Anotar');
+  usePageTitle(t('Anotar'));
   const navigate = useNavigate();
   const [params] = useSearchParams();
   // Desde el detalle de una tarjeta (`?tarjeta=id`) llega con esa tarjeta elegida.
@@ -146,6 +149,16 @@ export default function Anotar() {
   const [voice, setVoice] = useState(false);
   const amountField = useRef(null);
   const descriptionField = useRef(null);
+  const rateField = useRef(null);
+  const symbolRef = useRef(null);
+  const [symbolWidth, setSymbolWidth] = useState(17); // el ancho de "$" a 28 px
+  // Al viajar: en qué moneda se pagó (la de allá, por defecto) y la tasa a la moneda principal.
+  const main = getRegion().currency;
+  const local = localCurrency();
+  const [currency, setCurrency] = useState(local);
+  const [rate, setRate] = useState({ status: 'idle' }); // de Frankfurter, vía el servidor
+  const [manualRate, setManualRate] = useState(''); // la de su banco o casa de cambio
+  const [editingRate, setEditingRate] = useState(false);
   const { categories, names: loadedNames } = useCategoryNames();
   // Las que se crean aquí mismo: quedan elegidas y de primeras, aunque la lista esté recortada.
   const [created, setCreated] = useState([]);
@@ -160,8 +173,33 @@ export default function Anotar() {
 
   const expense = form.type === 'gasto';
   const amount = Number(form.amount || 0);
+  const foreign = currency !== main;
+  const symbol = currencySymbol(currency);
+  const typedRate = Number(manualRate.replace(',', '.'));
+  const effectiveRate = !foreign ? 1 : manualRate ? typedRate : (rate.value ?? 0);
+  // Lo que se guarda va en la moneda principal; en otra moneda queda también lo pagado allá.
+  const converted = foreign ? Math.round(amount * effectiveRate * 100) / 100 : amount;
   const description = readDescription(form.description, manualAmount).description;
-  const missing = !amount ? 'amount' : !description ? 'description' : null;
+  const missing = !amount ? 'amount' : !description ? 'description' : !(effectiveRate > 0) ? 'rate' : null;
+
+  // Se mide el símbolo antes de pintar, para que el monto empiece justo después.
+  useLayoutEffect(() => {
+    if (symbolRef.current) setSymbolWidth(symbolRef.current.offsetWidth);
+  }, [symbol]);
+
+  // La tasa del día del movimiento. Sin conexión, la última que se trajo; si no hay, se escribe a mano.
+  useEffect(() => {
+    if (!foreign) return undefined;
+    let alive = true;
+    setRate({ status: 'loading' });
+    getExchangeRate(currency, main, form.date).then(
+      (found) => alive && setRate({ status: 'ok', value: found.rate, date: found.date, stale: found.stale }),
+      () => alive && setRate({ status: 'error' }),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [foreign, currency, main, form.date]);
 
   /** Al escribir en «¿En qué fue?»: se vuelve a leer todo el texto. El monto de su casilla no se pisa. */
   const write = (text) => {
@@ -178,12 +216,35 @@ export default function Anotar() {
     }));
   };
 
+  /** Lo dictado ya viene separado: el monto va a su casilla y el resto a «¿En qué fue?». */
+  const applyDraft = (draft) => {
+    setTypeTouched(true);
+    setManualAmount((typed) => typed || Boolean(draft.amount));
+    setOptions([]);
+    setForm((f) => ({
+      ...f,
+      type: draft.type,
+      ...(draft.type !== f.type && { category: AI, kakeibo: null, card: draft.type === 'gasto' ? startCard : CASH }),
+      amount: draft.amount ? String(Math.round(draft.amount)) : f.amount,
+      description: draft.description ?? '',
+      date: draft.date ?? f.date,
+    }));
+  };
+
+  // De viaje, lo dictado en la barra rápida llega aquí para elegir la moneda antes de guardar.
+  const { state: navigation } = useLocation();
+  const [draftFromBar] = useState(() => navigation?.voiceDraft ?? null);
+  useEffect(() => {
+    if (draftFromBar) applyDraft(draftFromBar);
+    // Solo al abrir: applyDraft cambia en cada render.
+  }, [draftFromBar]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /** Al escribir en «Monto». Si el monto venía de la descripción, la descripción queda sin él. */
   const typeAmount = (raw) => {
-    const value = parseMoneyInput(raw);
     setOptions([]);
     setManualAmount(true);
-    set({ amount: value ? String(Math.min(Math.round(value), 9_999_999_999)) : '', ...(!manualAmount && { description }) });
+    // `raw` ya viene limpio de MoneyInput ("1234.5", con centavos si la moneda los usa).
+    set({ amount: raw, ...(!manualAmount && { description }) });
   };
 
   const reset = () => {
@@ -196,6 +257,9 @@ export default function Anotar() {
     setDetails(false);
     setAllCategories(false);
     setTypeTouched(false);
+    setCurrency(localCurrency());
+    setManualRate('');
+    setEditingRate(false);
     setTimeout(() => amountField.current?.focus(), 0);
   };
 
@@ -203,10 +267,14 @@ export default function Anotar() {
     // El botón no se apaga: si falta algo, lleva a esa casilla y dice qué escribir.
     if (missing) {
       setTried(true);
-      return (missing === 'amount' ? amountField : descriptionField).current?.focus();
+      if (missing === 'rate') setEditingRate(true);
+      const field = { amount: amountField, description: descriptionField, rate: rateField }[missing];
+      return setTimeout(() => field.current?.focus(), 0);
     }
-    const { values, error: invalid } = toTransaction({ ...form, description, card: cardOk ? form.card : CASH });
-    if (invalid) return setError(invalid);
+    const checked = toTransaction({ ...form, amount: String(converted), description, card: cardOk ? form.card : CASH });
+    if (checked.error) return setError(checked.error);
+    // El servidor vuelve a calcular el monto con lo pagado allá y la tasa.
+    const values = foreign ? { ...checked.values, original: { currency, amount, rate: effectiveRate } } : checked.values;
     setError('');
     // Monto grande: el primer toque pregunta, el segundo guarda. Si cambia el monto, vuelve a preguntar.
     if (isBigAmount(values.amount) && askBig !== values.amount) return setAskBig(values.amount);
@@ -263,31 +331,31 @@ export default function Anotar() {
             <Check className="size-8" strokeWidth={2.5} aria-hidden="true" />
           </span>
           <h1 role="status" className="mt-6 text-[32px] font-semibold tracking-tight motion-safe:animate-done-in">
-            {values.type === 'gasto' ? 'Gasto guardado' : 'Ingreso guardado'}
+            {values.type === 'gasto' ? t('Gasto guardado') : t('Ingreso guardado')}
           </h1>
           <p className="mt-2 text-lg motion-safe:animate-done-in">
             {values.description} · {formatMoney(values.amount)}
           </p>
           <div className="mt-8 divide-y divide-white/30 rounded-2xl bg-white/15 px-4 motion-safe:animate-done-in">
             {offline ? (
-              <p className="py-4 text-[15px]">Guardado sin conexión. Se sincronizará cuando vuelva internet.</p>
+              <p className="py-4 text-[15px]">{t('Guardado sin conexión. Se sincronizará cuando vuelva internet.')}</p>
             ) : (
               <>
                 {money !== null && (
                   <p className="flex min-h-[60px] items-center justify-between gap-4 text-[15px]">
-                    <span>Tu saldo ahora</span>
+                    <span>{t('Tu saldo ahora')}</span>
                     <strong className="text-[17px] font-semibold tabular-nums">{formatMoney(money)}</strong>
                   </p>
                 )}
                 {left !== null ? (
                   <p className="flex min-h-[60px] items-center justify-between gap-4 text-[15px]">
-                    <span>Te quedan en {names[category] ?? category}</span>
+                    <span>{t('Te quedan en')} {names[category] ?? category}</span>
                     <strong className="text-[17px] font-semibold tabular-nums">{formatMoney(left)}</strong>
                   </p>
                 ) : (
                   category && (
                     <p className="flex min-h-[60px] items-center justify-between gap-4 text-[15px]">
-                      <span>{transaction.source === 'ia' ? 'Categoría (sugerida por IA)' : 'Categoría'}</span>
+                      <span>{transaction.source === 'ia' ? t('Categoría (sugerida por IA)') : t('Categoría')}</span>
                       <strong className="font-semibold">{names[category] ?? category}</strong>
                     </p>
                   )
@@ -312,11 +380,11 @@ export default function Anotar() {
         <div className="flex flex-col gap-2">
           <Button asChild size="lg" variant="outline-light" className="bg-white text-brand hover:bg-white/90 hover:text-brand">
             <Link to="/app" replace>
-              Volver al inicio
+              {t('Volver al inicio')}
             </Link>
           </Button>
           <Button size="lg" variant="ghost" className="text-white hover:bg-white/10 hover:text-white" onClick={reset}>
-            Anotar otro
+            {t('Anotar otro')}
           </Button>
         </div>
       </div>
@@ -328,10 +396,10 @@ export default function Anotar() {
   return (
     <div className="mx-auto flex min-h-[70dvh] max-w-md flex-col gap-4 max-md:overflow-x-hidden max-md:motion-safe:animate-screen-up max-md:bg-surface max-md:fixed max-md:inset-0 max-md:z-50 max-md:max-w-none max-md:overflow-y-auto max-md:px-4 max-md:pb-[max(1rem,env(safe-area-inset-bottom))] max-md:pt-[max(1rem,env(safe-area-inset-top))]">
       <div className="flex items-center gap-3">
-        <h1 className="flex-1 text-2xl font-bold tracking-tight">{expense ? 'Anotar un gasto' : 'Anotar un ingreso'}</h1>
+        <h1 className="flex-1 text-2xl font-bold tracking-tight">{expense ? t('Anotar un gasto') : t('Anotar un ingreso')}</h1>
         <button
           type="button"
-          aria-label="Cerrar sin anotar"
+          aria-label={t('Cerrar sin anotar')}
           onClick={() => navigate('/app', { replace: true })}
           className="grid size-11 shrink-0 place-items-center rounded-full bg-surface ring-1 ring-ink/10 focus-visible:outline-2 focus-visible:outline-violet"
         >
@@ -340,10 +408,10 @@ export default function Anotar() {
       </div>
 
       <Segmented
-        label="Tipo de movimiento"
+        label={t('Tipo de movimiento')}
         options={[
-          { value: 'gasto', label: 'Gasto' },
-          { value: 'ingreso', label: 'Ingreso' },
+          { value: 'gasto', label: t('Gasto') },
+          { value: 'ingreso', label: t('Ingreso') },
         ]}
         value={form.type}
         onChange={(type) => {
@@ -354,18 +422,34 @@ export default function Anotar() {
 
       {/* Dos casillas a la vista: nadie tiene que adivinar que el monto y el «en qué» iban juntos. */}
       <div className="space-y-1.5">
-        <Label htmlFor="anotar-monto">
-          Monto <span className="text-negative">*</span>
-        </Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="anotar-monto">
+            {t('Monto')} <span className="text-negative">*</span>
+          </Label>
+          {/* De viaje: se paga en la moneda de allá (por defecto) o en la propia. */}
+          {isAbroad() && (
+            <Segmented
+              label={t('Moneda del gasto')}
+              options={[
+                { value: local, label: local },
+                { value: main, label: main },
+              ]}
+              value={currency}
+              onChange={(next) => (setCurrency(next), setManualRate(''), setEditingRate(false))}
+              className="w-[140px]"
+            />
+          )}
+        </div>
         <div className="relative">
           <span
+            ref={symbolRef}
             aria-hidden="true"
             className={cn(
               'pointer-events-none absolute left-4 top-0 flex h-14 items-center text-[28px] font-extrabold',
               amount ? 'text-ink' : 'text-ink/35',
             )}
           >
-            $
+            {symbol}
           </span>
           <MoneyInput
             ref={amountField}
@@ -378,17 +462,74 @@ export default function Anotar() {
             onKeyDown={(event) => event.key === 'Enter' && (event.preventDefault(), descriptionField.current?.focus())}
             aria-invalid={amountError || undefined}
             aria-describedby={amountError ? 'anotar-monto-error' : undefined}
-            className="h-14 pl-10 text-[28px] font-extrabold tracking-tight tabular-nums"
+            // Los avisos del campo ("¿faltan ceros?") piensan en la moneda propia.
+            showHint={!foreign}
+            // El símbolo cambia de largo ("$", "US$", "MXN"): el texto empieza 8 px después de él.
+            style={{ paddingLeft: 16 + symbolWidth + 8 }}
+            className="h-14 text-[28px] font-extrabold tracking-tight tabular-nums"
           />
         </div>
         {amountError && (
           <p id="anotar-monto-error" className="text-[13px] text-negative">
-            {expense ? 'Escribe cuánto gastaste.' : 'Escribe cuánto te entró.'}
+            {expense ? t('Escribe cuánto gastaste.') : t('Escribe cuánto te entró.')}
           </p>
         )}
+        {/* En otra moneda: cuánto es en la propia y con qué tasa. La tasa se puede corregir. */}
+        {foreign && (
+          <div aria-live="polite" className="flex flex-wrap items-center gap-x-2 text-[13px] text-ink/70">
+            {rate.status === 'loading' && !manualRate ? (
+              <span>{t('Buscando la tasa del día…')}</span>
+            ) : effectiveRate > 0 ? (
+              <span>
+                {amount > 0 && (
+                  <>
+                    ≈ <b className="font-semibold text-ink">{formatMoney(converted)}</b> ·{' '}
+                  </>
+                )}
+                {effectiveRate >= 1
+                  ? `1 ${currency} = ${formatMoney(effectiveRate)}`
+                  : `1 ${main} = ${formatIn(Math.round(100 / effectiveRate) / 100, currency)}`}
+                {rate.stale && !manualRate && t(' (del {date})', { date: formatDate(rate.date) })}
+              </span>
+            ) : (
+              <span>{t('No pudimos traer la tasa. Escríbela abajo.')}</span>
+            )}
+            {!editingRate && effectiveRate > 0 && (
+              <button
+                type="button"
+                onClick={() => (setEditingRate(true), setTimeout(() => rateField.current?.focus(), 0))}
+                className="inline-flex min-h-11 items-center font-semibold text-brand focus-visible:outline-2 focus-visible:outline-violet"
+              >
+                {t('Corregir tasa')}
+              </button>
+            )}
+          </div>
+        )}
+        {foreign && (editingRate || rate.status === 'error') && (
+          <div className="space-y-1.5">
+            <Label htmlFor="anotar-tasa">
+              1 {currency} {t('= ¿cuántos')} {main}?
+            </Label>
+            <Input
+              ref={rateField}
+              id="anotar-tasa"
+              inputMode="decimal"
+              autoComplete="off"
+              value={manualRate}
+              placeholder={rate.value ? String(rate.value).replace('.', ',') : ''}
+              onChange={(event) => setManualRate(event.target.value.replace(/[^\d.,]/g, ''))}
+              aria-invalid={(tried && missing === 'rate') || undefined}
+              aria-describedby="anotar-tasa-ayuda"
+              className="w-40"
+            />
+            <p id="anotar-tasa-ayuda" className={cn('text-[13px]', tried && missing === 'rate' ? 'text-negative' : 'text-ink/60')}>
+              {tried && missing === 'rate' ? t('Escribe la tasa para poder convertir.') : t('La de tu banco o casa de cambio, si la sabes.')}
+            </p>
+          </div>
+        )}
         {options.length > 1 && (
-          <div role="group" aria-label="¿Cuál es el monto?" className="flex flex-wrap items-center gap-2 pt-1 text-[13px]">
-            <span className="text-ink/70">¿Cuál es el monto?</span>
+          <div role="group" aria-label={t('¿Cuál es el monto?')} className="flex flex-wrap items-center gap-2 pt-1 text-[13px]">
+            <span className="text-ink/70">{t('¿Cuál es el monto?')}</span>
             {options.map((value) => (
               <button
                 key={value}
@@ -409,7 +550,7 @@ export default function Anotar() {
 
       <div className="space-y-1.5">
         <Label htmlFor="anotar-descripcion">
-          {expense ? '¿En qué fue?' : '¿De qué fue?'} <span className="text-negative">*</span>
+          {expense ? t('¿En qué fue?') : t('¿De qué fue?')} <span className="text-negative">*</span>
         </Label>
         <div className="relative">
           <Sparkles className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-brand" aria-hidden="true" />
@@ -418,7 +559,7 @@ export default function Anotar() {
             id="anotar-descripcion"
             value={form.description}
             onChange={(event) => write(event.target.value)}
-            placeholder={expense ? 'almuerzo, taxi, arriendo…' : 'salario, venta, freelance…'}
+            placeholder={expense ? t('almuerzo, taxi, arriendo…') : t('salario, venta, freelance…')}
             autoComplete="off"
             enterKeyHint="done"
             onKeyDown={(event) => event.key === 'Enter' && !event.nativeEvent.isComposing && save()}
@@ -428,7 +569,7 @@ export default function Anotar() {
           />
           <button
             type="button"
-            aria-label="Dictarlo"
+            aria-label={t('Dictarlo')}
             onClick={() => setVoice(true)}
             className="absolute right-0.5 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full text-brand hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-violet"
           >
@@ -437,16 +578,16 @@ export default function Anotar() {
         </div>
         <p id="anotar-ayuda" className={cn('text-[13px]', descriptionError ? 'text-negative' : 'text-ink/60')}>
           {descriptionError
-            ? `Escribe ${expense ? 'en qué fue, p. ej. «almuerzo»' : 'de qué fue, p. ej. «salario»'}.`
-            : 'O toca el micrófono y dilo: «almuerzo 15 mil» llena las dos casillas.'}
+            ? t('Escribe {v1}.', { v1: expense ? t('en qué fue, p. ej. «almuerzo»') : t('de qué fue, p. ej. «salario»') })
+            : t('O toca el micrófono y dilo: «almuerzo 15 mil» llena las dos casillas.')}
         </p>
       </div>
 
       {/* Categoría y Kakeibo: la IA elige si no se toca nada. */}
-      <section aria-label="Categoría" className="flex flex-col gap-3 rounded-2xl bg-canvas p-4">
+      <section aria-label={t('Categoría')} className="flex flex-col gap-3 rounded-2xl bg-canvas p-4">
         <div className="flex flex-col gap-1.5">
           <p id="anotar-categoria" className="text-xs font-semibold uppercase tracking-[0.08em] text-ink/60">
-            Categoría
+            {t('Categoría')}
           </p>
           <ul aria-labelledby="anotar-categoria" className="flex flex-wrap gap-1.5">
             <li>
@@ -460,7 +601,7 @@ export default function Anotar() {
                 )}
               >
                 <Sparkles className="size-3.5" aria-hidden="true" />
-                Que la elija la IA
+                {t('Que la elija la IA')}
               </button>
             </li>
             {shown.map((c) => (
@@ -485,7 +626,7 @@ export default function Anotar() {
                   onClick={() => setAllCategories(true)}
                   className="h-11 rounded-lg bg-surface px-3 text-[13px] font-semibold text-brand ring-1 ring-ink/10 focus-visible:outline-2 focus-visible:outline-violet"
                 >
-                  Ver todas
+                  {t('Ver todas')}
                 </button>
               </li>
             )}
@@ -496,7 +637,7 @@ export default function Anotar() {
                 className="flex h-11 items-center gap-1 rounded-lg bg-surface px-3 text-[13px] font-semibold text-brand ring-1 ring-ink/10 focus-visible:outline-2 focus-visible:outline-violet"
               >
                 <Plus className="size-3.5" aria-hidden="true" />
-                Nueva
+                {t('Nueva')}
               </button>
             </li>
           </ul>
@@ -514,7 +655,7 @@ export default function Anotar() {
         {expense && (
           <div className="flex flex-col gap-1.5">
             <p id="anotar-kakeibo" className="text-xs font-semibold uppercase tracking-[0.08em] text-ink/60">
-              ¿Podías evitarlo? <span className="font-normal normal-case tracking-normal">(opcional)</span>
+              {t('¿Podías evitarlo?')} <span className="font-normal normal-case tracking-normal">{t('(opcional)')}</span>
             </p>
             <div role="group" aria-labelledby="anotar-kakeibo" className="grid grid-cols-4 gap-1.5">
               {KAKEIBO.map(({ key, label }) => (
@@ -533,7 +674,7 @@ export default function Anotar() {
               ))}
             </div>
             <p className="text-[12px] text-ink/60" aria-live="polite">
-              {kakeiboHint ?? 'Necesidad, deseo, cultura o imprevisto: te ayuda a ver en qué podrías ahorrar.'}
+              {kakeiboHint ?? t('Necesidad, deseo, cultura o imprevisto: te ayuda a ver en qué podrías ahorrar.')}
             </p>
           </div>
         )}
@@ -549,12 +690,12 @@ export default function Anotar() {
           className="flex min-h-12 w-full items-center justify-between gap-3 px-4 text-left text-[15px] focus-visible:outline-2 focus-visible:outline-violet"
         >
           <span>
-            <b className="font-semibold">Más detalles</b>
+            <b className="font-semibold">{t('Más detalles')}</b>
             <span className="text-ink/60">
               {' '}
-              · {form.date === today() ? 'Hoy' : form.date}
-              {expense && ` · ${form.card === CASH || !cardOk ? 'Efectivo o débito' : 'Tarjeta'}`}
-              {(form.files?.length ?? 0) > 0 && ` · ${form.files.length} soporte${form.files.length === 1 ? '' : 's'}`}
+              · {form.date === today() ? t('Hoy') : form.date}
+              {expense && ` · ${form.card === CASH || !cardOk ? t('Efectivo o débito') : t('Tarjeta')}`}
+              {(form.files?.length ?? 0) > 0 && t(' · {length} soporte{v2}', { length: form.files.length, v2: form.files.length === 1 ? '' : 's' })}
             </span>
           </span>
           <ChevronDown className={cn('size-5 shrink-0 transition-transform', details && 'rotate-180')} aria-hidden="true" />
@@ -564,9 +705,9 @@ export default function Anotar() {
             <DateQuickPick value={form.date} onChange={(date) => set({ date })} />
             {expense && cards.data?.length > 0 && (
               <ChipGroup
-                legend="Pagado con"
+                legend={t('Pagado con')}
                 options={[
-                  { value: CASH, label: 'Efectivo o débito' },
+                  { value: CASH, label: t('Efectivo o débito') },
                   ...cards.data.map((c) => ({ value: c.id, label: `${NETWORK_LABELS[c.network] ?? c.name} ••${c.last4}` })),
                 ]}
                 value={form.card}
@@ -575,7 +716,7 @@ export default function Anotar() {
             )}
             {expense && form.card !== CASH && cardOk && (
               <div className="space-y-1.5">
-                <Label htmlFor="anotar-cuotas">Cuotas</Label>
+                <Label htmlFor="anotar-cuotas">{t('Cuotas')}</Label>
                 <Input
                   id="anotar-cuotas"
                   type="number"
@@ -589,7 +730,7 @@ export default function Anotar() {
                   className="w-28"
                 />
                 <p id="anotar-cuotas-ayuda" className="text-sm text-ink/60">
-                  De 1 a 48. A más de una cuota el banco suele cobrar intereses.
+                  {t('De 1 a 48. A más de una cuota el banco suele cobrar intereses.')}
                 </p>
               </div>
             )}
@@ -603,12 +744,12 @@ export default function Anotar() {
           {error}
         </p>
       )}
-      {askBig === amount && <BigAmountWarning amount={amount} />}
+      {askBig === converted && <BigAmountWarning amount={converted} />}
       <Button size="lg" className="mt-auto" disabled={saving} onClick={save}>
         {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {askBig === amount
-          ? `Sí, guardar ${formatMoney(amount)}`
-          : `${expense ? 'Guardar gasto' : 'Guardar ingreso'}${amount ? ` · ${formatMoney(amount)}` : ''}`}
+        {askBig === converted
+          ? t('Sí, guardar {converted}', { converted: formatMoney(converted) })
+          : `${expense ? t('Guardar gasto') : t('Guardar ingreso')}${converted ? ` · ${formatMoney(converted)}` : ''}`}
       </Button>
 
       <VoiceEntry
@@ -618,19 +759,7 @@ export default function Anotar() {
         onClose={() => setVoice(false)}
         onEdit={(draft) => {
           setVoice(false);
-          if (!draft) return;
-          // Lo dictado ya viene separado: el monto va a su casilla y el resto a «¿En qué fue?».
-          setTypeTouched(true);
-          setManualAmount((typed) => typed || Boolean(draft.amount));
-          setOptions([]);
-          setForm((f) => ({
-            ...f,
-            type: draft.type,
-            ...(draft.type !== f.type && { category: AI, kakeibo: null, card: draft.type === 'gasto' ? startCard : CASH }),
-            amount: draft.amount ? String(Math.round(draft.amount)) : f.amount,
-            description: draft.description ?? '',
-            date: draft.date ?? f.date,
-          }));
+          if (draft) applyDraft(draft);
         }}
         onSaved={(saved) => {
           setVoice(false);

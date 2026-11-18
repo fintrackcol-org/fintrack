@@ -1,4 +1,5 @@
 import { formatMoney } from '@/components/transactions/format';
+import { t } from '@/lib/i18n';
 
 /**
  * @typedef {object} Highlight
@@ -24,7 +25,7 @@ export function buildMonthHighlights({ summary, budgets, names }) {
   const saved = summary.savings.total;
   const left = income - expense - saved;
   if (income === 0 && expense === 0 && saved === 0) return [];
-  const name = (key) => (key ? (names[key] ?? key) : 'Sin clasificar');
+  const name = (key) => (key ? (names[key] ?? key) : t('Sin clasificar'));
   const highlights = [];
 
   const tightest = [...budgets].sort((a, b) => b.percentage - a.percentage)[0];
@@ -34,29 +35,29 @@ export function buildMonthHighlights({ summary, budgets, names }) {
       highlights.push({
         kind: 'budget',
         tone: 'caution',
-        title: `Ya usaste todo tu presupuesto de ${name(tightest.category)}`,
-        detail: `Llevas ${formatMoney(tightest.consumed)} de ${formatMoney(tightest.amount)}`,
+        title: t('Ya usaste todo tu presupuesto de {category}', { category: name(tightest.category) }),
+        detail: t('Llevas {consumed} de {amount}', { consumed: formatMoney(tightest.consumed), amount: formatMoney(tightest.amount) }),
       });
     } else if (tightest.percentage > 100) {
       highlights.push({
         kind: 'budget',
         tone: 'negative',
-        title: `Te pasaste en ${name(tightest.category)}`,
-        detail: `Llevas ${formatMoney(tightest.consumed)} de ${formatMoney(tightest.amount)}`,
+        title: t('Te pasaste en {category}', { category: name(tightest.category) }),
+        detail: t('Llevas {consumed} de {amount}', { consumed: formatMoney(tightest.consumed), amount: formatMoney(tightest.amount) }),
       });
     } else if (tightest.percentage >= 80) {
       highlights.push({
         kind: 'budget',
         tone: 'caution',
         title: `${name(tightest.category)} va al ${percent}`,
-        detail: `Te quedan ${formatMoney(tightest.amount - tightest.consumed)}`,
+        detail: t('Te quedan {formatMoney}', { formatMoney: formatMoney(tightest.amount - tightest.consumed) }),
       });
     } else {
       highlights.push({
         kind: 'budget',
         tone: 'positive',
-        title: 'Tus presupuestos van bien',
-        detail: `El más alto, ${name(tightest.category)}, va al ${percent}`,
+        title: t('Tus presupuestos van bien'),
+        detail: t('El más alto, {category}, va al {percent}', { category: name(tightest.category), percent }),
       });
     }
   }
@@ -66,8 +67,8 @@ export function buildMonthHighlights({ summary, budgets, names }) {
     highlights.push({
       kind: 'top',
       tone: 'neutral',
-      title: `Tu mayor gasto: ${name(top.category)}`,
-      detail: `${formatMoney(top.total)}, el ${Math.round(top.percentage)} % de tus gastos`,
+      title: t('Tu mayor gasto: {category}', { category: name(top.category) }),
+      detail: t('{total}, el {percentage} % de tus gastos', { total: formatMoney(top.total), percentage: Math.round(top.percentage) }),
     });
   }
 
@@ -75,25 +76,25 @@ export function buildMonthHighlights({ summary, budgets, names }) {
     highlights.push({
       kind: 'balance',
       tone: 'neutral',
-      title: `Llevas ${formatMoney(expense)} en gastos`,
-      detail: 'Registra tus ingresos para ver cuánto te queda',
+      title: t('Llevas {expense} en gastos', { expense: formatMoney(expense) }),
+      detail: t('Registra tus ingresos para ver cuánto te queda'),
     });
   } else if (left >= 0) {
     highlights.push({
       kind: 'balance',
       tone: 'positive',
-      title: `Te quedan ${formatMoney(left)}`,
+      title: t('Te quedan {left}', { left: formatMoney(left) }),
       detail:
         saved > 0
-          ? `Entraron ${formatMoney(income)}, gastaste ${formatMoney(expense)} y apartaste ${formatMoney(saved)} para ahorro`
-          : `Entraron ${formatMoney(income)} y gastaste ${formatMoney(expense)}`,
+          ? t('Entraron {income}, gastaste {expense} y apartaste {saved} para ahorro', { income: formatMoney(income), expense: formatMoney(expense), saved: formatMoney(saved) })
+          : t('Entraron {income} y gastaste {expense}', { income: formatMoney(income), expense: formatMoney(expense) }),
     });
   } else {
     highlights.push({
       kind: 'balance',
       tone: 'negative',
-      title: saved > 0 ? 'Entre gastos y ahorro salió más de lo que entró' : 'Gastaste más de lo que entró',
-      detail: `${formatMoney(-left)} por encima de tus ingresos`,
+      title: saved > 0 ? t('Entre gastos y ahorro salió más de lo que entró') : t('Gastaste más de lo que entró'),
+      detail: t('{formatMoney} por encima de tus ingresos', { formatMoney: formatMoney(-left) }),
     });
   }
 

@@ -54,8 +54,8 @@ test('la reflexión suma por emoción y Kakeibo y pregunta según lo que pasó',
   assert.deepEqual(reflection.kakeibo.find((k) => k.key === 'deseo'), { key: 'deseo', count: 2, total: 80000 });
   assert.deepEqual(reflection.withoutKakeibo, { count: 3, total: 20000 });
   assert.deepEqual(reflection.questions, [
-    'Esta semana 2 gastos por $80.000 no te convencieron. ¿Qué tenían en común?',
-    'Gastaste más en deseos ($80.000) que en necesidades ($50.000). ¿Cuáles repetirías?',
+    'Esta semana 2 gastos por $\u00a080.000 no te convencieron. ¿Qué tenían en común?',
+    'Gastaste más en deseos ($\u00a080.000) que en necesidades ($\u00a050.000). ¿Cuáles repetirías?',
     '¿Cuál gasto valió más la pena y por qué?',
   ]);
 
@@ -145,7 +145,7 @@ test('marcar emoción y Kakeibo en los gastos y ver la reflexión de la semana',
       reflection.body.regrets.map((r) => [r.description, r.amount, r.emotion]),
       [['Pizza', 45000, 'me_arrepiento']],
     );
-    assert.match(reflection.body.questions[0], /un gasto de \$45\.000 no te convenció/);
+    assert.match(reflection.body.questions[0], /un gasto de \$\s45\.000 no te convenció/);
     assert.equal((await api('/transactions/reflection?date=2026-13-01', { token })).status, 422);
   });
 });

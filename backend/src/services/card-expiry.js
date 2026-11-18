@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js';
 // Vencimiento del plástico de una tarjeta (FT-0065). Lógica pura, sin base de datos.
 // Se guarda solo el mes y el año (MM/AA): nunca el número completo ni el CVV.
 
@@ -52,8 +53,8 @@ export function dueExpiryNotice(card, today) {
 export function expiryReminderPayload(card, today) {
   const status = expiryStatus(card, today);
   return {
-    title: 'Tu tarjeta está por vencer',
-    body: `Tu ${card.name} ••${card.last4} vence en ${status.monthName} (${status.label}): pide la nueva al banco.`,
+    title: t('Tu tarjeta está por vencer'),
+    body: t('Tu {name} ••{last4} vence en {monthName} ({label}): pide la nueva al banco.', { name: card.name, last4: card.last4, monthName: status.monthName, label: status.label }),
     url: `/app/tarjetas/${card.id}`,
   };
 }

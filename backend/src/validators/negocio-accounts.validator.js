@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import { ACCOUNT_KINDS } from '../services/negocio-accounts.logic.js';
+import { t } from '../i18n/index.js';
 
 /** Lo máximo que cabe en `numeric(12,2)`. */
 const MAX_AMOUNT = 9_999_999_999.99;
@@ -26,7 +27,7 @@ const given = (v) => v !== undefined && v !== null && v !== '';
 function parseAmount(amount, details) {
   const ok = typeof amount === 'number' && Number.isFinite(amount);
   if (!ok || cents(amount) <= 0 || amount > MAX_AMOUNT) {
-    details.push({ field: 'amount', problem: 'Debe ser un número mayor que 0' });
+    details.push({ field: 'amount', problem: t('Debe ser un número mayor que 0') });
   }
   return ok ? cents(amount) : 0;
 }
@@ -37,28 +38,28 @@ function parseAmount(amount, details) {
  * @returns {{ kind: 'receivable'|'payable', party: string, description: string|null, amount: number, dueDate: string|null }}
  */
 export function parseNewAccount(body) {
-  if (!isObject(body)) throw new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+  if (!isObject(body)) throw new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
   const details = [];
   if (!ACCOUNT_KINDS.includes(body.kind)) {
-    details.push({ field: 'kind', problem: `Debe ser: ${ACCOUNT_KINDS.join(', ')}` });
+    details.push({ field: 'kind', problem: t('Debe ser: {join}', { join: ACCOUNT_KINDS.join(', ') }) });
   }
   const party = typeof body.party === 'string' ? body.party.trim() : '';
   if (party.length < 1 || party.length > 80) {
-    details.push({ field: 'party', problem: 'Debe tener entre 1 y 80 caracteres' });
+    details.push({ field: 'party', problem: t('Debe tener entre 1 y 80 caracteres') });
   }
   let description = null;
   if (given(body.description)) {
     const text = typeof body.description === 'string' ? body.description.trim() : '';
     if (text.length >= 1 && text.length <= 120) description = text;
-    else details.push({ field: 'description', problem: 'Máximo 120 caracteres' });
+    else details.push({ field: 'description', problem: t('Máximo 120 caracteres') });
   }
   const amount = parseAmount(body.amount, details);
   let dueDate = null;
   if (given(body.dueDate)) {
     if (isDate(body.dueDate)) dueDate = body.dueDate;
-    else details.push({ field: 'dueDate', problem: 'Debe ser una fecha AAAA-MM-DD' });
+    else details.push({ field: 'dueDate', problem: t('Debe ser una fecha AAAA-MM-DD') });
   }
-  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   return { kind: body.kind, party, description, amount, dueDate };
 }
 
@@ -69,20 +70,20 @@ export function parseNewAccount(body) {
  * @returns {{ amount: number, date: string|null, movementKind: string|null }}
  */
 export function parsePayment(body) {
-  if (!isObject(body)) throw new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+  if (!isObject(body)) throw new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
   const details = [];
   const amount = parseAmount(body.amount, details);
   let date = null;
   if (given(body.date)) {
     if (isDate(body.date)) date = body.date;
-    else details.push({ field: 'date', problem: 'Debe ser una fecha AAAA-MM-DD' });
+    else details.push({ field: 'date', problem: t('Debe ser una fecha AAAA-MM-DD') });
   }
   let movementKind = null;
   if (given(body.movementKind)) {
     if (MOVEMENT_KINDS.includes(body.movementKind)) movementKind = body.movementKind;
-    else details.push({ field: 'movementKind', problem: `Debe ser: ${MOVEMENT_KINDS.join(', ')}` });
+    else details.push({ field: 'movementKind', problem: t('Debe ser: {join}', { join: MOVEMENT_KINDS.join(', ') }) });
   }
-  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   return { amount, date, movementKind };
 }
 
@@ -92,13 +93,13 @@ export function parsePayment(body) {
  * @returns {{ name: string, date: string }}
  */
 export function parseTaxDate(body) {
-  if (!isObject(body)) throw new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+  if (!isObject(body)) throw new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
   const details = [];
   const name = typeof body.name === 'string' ? body.name.trim() : '';
   if (name.length < 1 || name.length > 40) {
-    details.push({ field: 'name', problem: 'Debe tener entre 1 y 40 caracteres' });
+    details.push({ field: 'name', problem: t('Debe tener entre 1 y 40 caracteres') });
   }
-  if (!isDate(body.date)) details.push({ field: 'date', problem: 'Debe ser una fecha AAAA-MM-DD' });
-  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+  if (!isDate(body.date)) details.push({ field: 'date', problem: t('Debe ser una fecha AAAA-MM-DD') });
+  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   return { name, date: body.date };
 }

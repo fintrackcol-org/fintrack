@@ -6,8 +6,10 @@ import useOnlineStatus from '@/hooks/useOnlineStatus';
 import { hasData } from '@/lib/liquidity';
 import { cn } from '@/lib/utils';
 import { getLiquidity } from '@/services/moneyProfileService';
+import { t } from '@/lib/i18n';
+import { dateLocale } from '@/lib/region';
 
-const dayMonth = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+const dayMonth = new Intl.DateTimeFormat(dateLocale(), { day: 'numeric', month: 'long', timeZone: 'UTC' });
 
 /**
  * "20 de noviembre" a partir de AAAA-MM-DD, sin corrimientos por zona horaria.
@@ -36,14 +38,14 @@ export function liquidityMessage(liquidity, money) {
   if (risk === 'falta') {
     // Con $0 al día tampoco llega: decir "gasta máximo $0 y llegas" sería mentirle.
     const reach = safeDailySpend > 0 && pace !== null && safeDailySpend < pace
-      ? `Si gastas máximo ${money(safeDailySpend)} al día, llegas.`
+      ? t('Si gastas máximo {safeDailySpend} al día, llegas.', { safeDailySpend: money(safeDailySpend) })
       : null;
-    return { title: `El ${longDay(firstShortfall.date)} te faltan ${money(firstShortfall.missing)}`, detail: reach };
+    return { title: t('El {date} te faltan {missing}', { date: longDay(firstShortfall.date), missing: money(firstShortfall.missing) }), detail: reach };
   }
   if (risk === 'riesgo') {
-    return { title: `Justo: el ${longDay(lowest.date)} te quedan ${money(lowest.amount)}`, detail: 'Cuida el gasto de estos días.' };
+    return { title: t('Justo: el {date} te quedan {amount}', { date: longDay(lowest.date), amount: money(lowest.amount) }), detail: t('Cuida el gasto de estos días.') };
   }
-  return { title: `Vas bien hasta el ${longDay(until)}`, detail: 'Con lo que tienes y lo que debes pagar, te alcanza.' };
+  return { title: t('Vas bien hasta el {until}', { until: longDay(until) }), detail: t('Con lo que tienes y lo que debes pagar, te alcanza.') };
 }
 
 /**
@@ -72,14 +74,14 @@ export default function LiquidityCard({ hidden = false, className }) {
 
   if (!hasData(liquidity)) {
     return (
-      <section aria-label="Tu plata en los próximos días" className={cn('rounded-2xl bg-ink/5 p-4', className)}>
-        <p className="text-[13px] font-medium text-ink/70">Tu plata en los próximos días</p>
-        <p className="mt-1 font-semibold leading-snug">Agrega tus pagos del mes para ver si te alcanza.</p>
+      <section aria-label={t('Tu plata en los próximos días')} className={cn('rounded-2xl bg-ink/5 p-4', className)}>
+        <p className="text-[13px] font-medium text-ink/70">{t('Tu plata en los próximos días')}</p>
+        <p className="mt-1 font-semibold leading-snug">{t('Agrega tus pagos del mes para ver si te alcanza.')}</p>
         <Link
           to="/app/mi-plata"
           className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand underline-offset-4 hover:underline"
         >
-          Ir a Mi plata <ChevronRight className="size-4" aria-hidden="true" />
+          {t('Ir a Mi plata')} <ChevronRight className="size-4" aria-hidden="true" />
         </Link>
       </section>
     );
@@ -91,8 +93,8 @@ export default function LiquidityCard({ hidden = false, className }) {
   const { title, detail } = liquidityMessage(liquidity, money);
 
   return (
-    <section aria-label="Tu plata en los próximos días" className={cn('rounded-2xl p-4', tone.box, className)}>
-      <p className="text-[13px] font-medium text-ink/70">Tu plata en los próximos días</p>
+    <section aria-label={t('Tu plata en los próximos días')} className={cn('rounded-2xl p-4', tone.box, className)}>
+      <p className="text-[13px] font-medium text-ink/70">{t('Tu plata en los próximos días')}</p>
       <p className={cn('mt-1 flex items-start gap-2 text-lg font-semibold leading-snug', tone.text)}>
         <Icon className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
         <span className="min-w-0">{title}</span>
@@ -102,7 +104,7 @@ export default function LiquidityCard({ hidden = false, className }) {
         to="/app/liquidez"
         className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand underline-offset-4 hover:underline"
       >
-        Ver qué pasa <ChevronRight className="size-4" aria-hidden="true" />
+        {t('Ver qué pasa')} <ChevronRight className="size-4" aria-hidden="true" />
       </Link>
     </section>
   );

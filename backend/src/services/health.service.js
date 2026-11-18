@@ -1,5 +1,6 @@
 import { env } from '../config/env.js';
 import { pingDatabase } from '../repositories/health.repository.js';
+import { t } from '../i18n/index.js';
 
 /**
  * @typedef {object} HealthStatus
@@ -29,7 +30,7 @@ export async function getHealthStatus() {
   return {
     status: database === 'up' ? 'ok' : 'error',
     service: 'fintrack-api',
-    message: 'Hello world desde el backend de Rinde',
+    message: t('Hello world desde el backend de Rinde'),
     env: env.nodeEnv,
     database,
     time: new Date().toISOString(),

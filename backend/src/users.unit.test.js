@@ -10,13 +10,14 @@ import {
  * Comprueba que `fn` lance un AppError de validación con ese código HTTP.
  * @param {() => unknown} fn
  * @param {number} statusCode
+ * @param {string} [field] Campo que se marca en un 422.
  * @returns {void}
  */
-function assertRejects(fn, statusCode) {
+function assertRejects(fn, statusCode, field = 'name') {
   assert.throws(fn, (err) => {
     assert.equal(err.statusCode, statusCode);
     assert.equal(err.code, 'VALIDATION_ERROR');
-    if (statusCode === 422) assert.equal(err.details[0].field, 'name');
+    if (statusCode === 422) assert.equal(err.details[0].field, field);
     return true;
   });
 }
@@ -61,4 +62,19 @@ test('parseDeleteAccount: pide contraseña o Google, uno solo (FT-0017)', () => 
   }
   assert.throws(() => parseDeleteAccount(null), { statusCode: 400 });
   assert.throws(() => parseDeleteAccount({ password: 'x'.repeat(201) }), { statusCode: 422 });
+});
+
+test('parseUpdateProfile acepta país, moneda e idioma sin el nombre', () => {
+  assert.deepEqual(parseUpdateProfile({ country: 'MX', currency: 'MXN', language: 'es' }), {
+    country: 'MX',
+    currency: 'MXN',
+    language: 'es',
+  });
+  assert.deepEqual(parseUpdateProfile({ language: 'zh' }), { language: 'zh' });
+});
+
+test('parseUpdateProfile rechaza país, moneda o idioma que no existen (422)', () => {
+  assertRejects(() => parseUpdateProfile({ country: 'col' }), 422, 'country');
+  assertRejects(() => parseUpdateProfile({ currency: 'XXQ' }), 422, 'currency');
+  assertRejects(() => parseUpdateProfile({ language: 'fr' }), 422, 'language');
 });

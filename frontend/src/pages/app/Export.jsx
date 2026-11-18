@@ -15,40 +15,42 @@ import { cn } from '@/lib/utils';
 import { today } from '@/lib/validation/transaction';
 import { exportTransactions, previewReport } from '@/services/reportService';
 import { monthRange } from '@/services/summaryService';
+import { t } from '@/lib/i18n';
+import { dateLocale } from '@/lib/region';
 
 /** Formatos disponibles: para qué sirve cada uno y qué trae. */
 const FORMATS = [
   {
     value: 'xlsx',
-    label: 'Excel',
+    label: t('Excel'),
     extension: '.xlsx',
     icon: FileSpreadsheet,
-    purpose: 'Analiza y personaliza',
-    features: ['Tablero con gráficos que se actualizan', 'Fórmulas y tablas que puedes editar', 'Hojas por categoría y por día'],
+    purpose: t('Analiza y personaliza'),
+    features: [t('Tablero con gráficos que se actualizan'), t('Fórmulas y tablas que puedes editar'), t('Hojas por categoría y por día')],
   },
   {
     value: 'pdf',
     label: 'PDF',
     extension: '.pdf',
     icon: FileText,
-    purpose: 'Entiende y comparte',
-    features: ['Reporte con gráficos e indicadores', 'Lo que dicen tus números', 'Listo para imprimir o enviar'],
+    purpose: t('Entiende y comparte'),
+    features: [t('Reporte con gráficos e indicadores'), t('Lo que dicen tus números'), t('Listo para imprimir o enviar')],
   },
   {
     value: 'csv',
     label: 'CSV',
     extension: '.csv',
     icon: Sheet,
-    purpose: 'Lleva tus datos',
-    features: ['Una fila por movimiento', 'Se abre en Excel y Google Sheets', 'Para importar en otra herramienta'],
+    purpose: t('Lleva tus datos'),
+    features: [t('Una fila por movimiento'), t('Se abre en Excel y Google Sheets'), t('Para importar en otra herramienta')],
   },
 ];
 
 const PERIOD_OPTIONS = [
-  { value: 'this-month', label: 'Este mes' },
-  { value: 'last-month', label: 'Mes pasado' },
-  { value: 'this-year', label: 'Este año' },
-  { value: 'custom', label: 'Personalizado' },
+  { value: 'this-month', label: t('Este mes') },
+  { value: 'last-month', label: t('Mes pasado') },
+  { value: 'this-year', label: t('Este año') },
+  { value: 'custom', label: t('Personalizado') },
 ];
 
 /**
@@ -70,7 +72,7 @@ function rangeOf(period) {
  */
 function dateText(iso, options = { day: 'numeric', month: 'long', year: 'numeric' }) {
   const [year, month, day] = iso.split('-').map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString('es-CO', options);
+  return new Date(year, month - 1, day).toLocaleDateString(dateLocale(), options);
 }
 
 /**
@@ -115,7 +117,7 @@ function FormatPicker({ value, onChange }) {
   const name = useId();
   return (
     <fieldset>
-      <legend className="sr-only">Formato del archivo</legend>
+      <legend className="sr-only">{t('Formato del archivo')}</legend>
       <div className="grid gap-3 sm:grid-cols-3">
         {FORMATS.map(({ value: option, label, extension, icon: Icon, purpose, features }) => {
           const checked = value === option;
@@ -209,7 +211,7 @@ function PreviewMessage({ icon: Icon, title, children, action }) {
  * vacío (REQ-033).
  */
 export default function Export() {
-  usePageTitle('Exportar movimientos');
+  usePageTitle(t('Exportar movimientos'));
   const online = useOnlineStatus();
   const [format, setFormat] = useState('xlsx');
   const [period, setPeriod] = useState('this-month');
@@ -228,11 +230,11 @@ export default function Export() {
     period !== 'custom'
       ? ''
       : !custom.from || !custom.to
-        ? 'Elige las dos fechas.'
+        ? t('Elige las dos fechas.')
         : custom.from > custom.to
-          ? 'La fecha "Desde" debe ser anterior o igual a "Hasta".'
+          ? t('La fecha "Desde" debe ser anterior o igual a "Hasta".')
           : '';
-  const rangeText = rangeError ? '' : range.from === range.to ? `el ${dateText(range.from)}` : `del ${dateText(range.from)} al ${dateText(range.to)}`;
+  const rangeText = rangeError ? '' : range.from === range.to ? `el ${dateText(range.from)}` : t('del {from} al {to}', { from: dateText(range.from), to: dateText(range.to) });
   const filename = rangeError ? `rinde${selected.extension}` : previewFilename(range, selected.extension);
 
   // La vista previa se vuelve a pedir al cambiar el periodo (no el formato: las cifras son las mismas).
@@ -260,9 +262,9 @@ export default function Export() {
     try {
       const result = await exportTransactions({ format, ...range, detail });
       downloadFile(result.blob, result.filename);
-      setDone(`Descargado ${result.filename}`);
+      setDone(t('Descargado {filename}', { filename: result.filename }));
     } catch (err) {
-      setError(err.code === 'NO_DATA' ? `No tienes movimientos ${rangeText}. Prueba con otro periodo.` : err.message);
+      setError(err.code === 'NO_DATA' ? t('No tienes movimientos {rangeText}. Prueba con otro periodo.', { rangeText }) : err.message);
     } finally {
       setBusy(false);
     }
@@ -274,24 +276,24 @@ export default function Export() {
   return (
     <>
       <header className="mb-6 md:mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Exportar movimientos</h1>
-        <p className="mt-1 text-ink/60">Tus números, más claros que nunca: elige cómo llevártelos y mira el reporte antes de descargarlo.</p>
+        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{t('Exportar movimientos')}</h1>
+        <p className="mt-1 text-ink/60">{t('Tus números, más claros que nunca: elige cómo llevártelos y mira el reporte antes de descargarlo.')}</p>
       </header>
 
       <div className="flex flex-col gap-6">
         <Panel aria-labelledby="step-format">
-          <StepTitle number={1} title="Elige el formato" id="step-format" />
+          <StepTitle number={1} title={t('Elige el formato')} id="step-format" />
           <FormatPicker value={format} onChange={(value) => (setFormat(value), reset())} />
         </Panel>
 
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
           <Panel aria-labelledby="step-period">
-            <StepTitle number={2} title="Elige el periodo" id="step-period" />
-            <ChipGroup legend="Periodo" hideLegend options={PERIOD_OPTIONS} value={period} onChange={(value) => (setPeriod(value), reset())} />
+            <StepTitle number={2} title={t('Elige el periodo')} id="step-period" />
+            <ChipGroup legend={t('Periodo')} hideLegend options={PERIOD_OPTIONS} value={period} onChange={(value) => (setPeriod(value), reset())} />
             {period === 'custom' && (
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <div className="min-w-0 space-y-2">
-                  <Label htmlFor="export-from">Desde</Label>
+                  <Label htmlFor="export-from">{t('Desde')}</Label>
                   <Input
                     id="export-from"
                     type="date"
@@ -302,7 +304,7 @@ export default function Export() {
                   />
                 </div>
                 <div className="min-w-0 space-y-2">
-                  <Label htmlFor="export-to">Hasta</Label>
+                  <Label htmlFor="export-to">{t('Hasta')}</Label>
                   <Input
                     id="export-to"
                     type="date"
@@ -316,15 +318,15 @@ export default function Export() {
             )}
             <p className={cn('mt-4 flex items-start gap-2 text-sm', rangeError ? 'text-negative' : 'text-ink/60')}>
               <CalendarRange className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              {rangeError || <span>Incluye tus movimientos {rangeText}.</span>}
+              {rangeError || <span>{t('Incluye tus movimientos')} {rangeText}.</span>}
             </p>
 
             {format === 'pdf' && (
               <div className="mt-5 flex items-start gap-3 border-t border-ink/10 pt-5">
                 <Checkbox id="export-detail" className="mt-0.5" checked={detail} onCheckedChange={(v) => (setDetail(v === true), reset())} />
                 <div>
-                  <Label htmlFor="export-detail">Incluir el detalle de movimientos</Label>
-                  <p className="mt-1 text-sm text-ink/60">Quítalo para compartir solo el resumen, sin mostrar cada compra.</p>
+                  <Label htmlFor="export-detail">{t('Incluir el detalle de movimientos')}</Label>
+                  <p className="mt-1 text-sm text-ink/60">{t('Quítalo para compartir solo el resumen, sin mostrar cada compra.')}</p>
                 </div>
               </div>
             )}
@@ -337,7 +339,7 @@ export default function Export() {
               </span>
               <div className="min-w-0">
                 <h2 id="preview-title" className="text-sm font-medium text-ink/60">
-                  Vista previa · {selected.label}
+                  {t('Vista previa ·')} {selected.label}
                 </h2>
                 <p className="truncate font-semibold" title={filename}>
                   {filename}
@@ -346,28 +348,28 @@ export default function Export() {
             </div>
 
             {!online ? (
-              <PreviewMessage icon={WifiOff} title="Sin conexión">
-                El reporte se arma en el servidor. Cuando vuelvas a tener conexión verás aquí la vista previa.
+              <PreviewMessage icon={WifiOff} title={t('Sin conexión')}>
+                {t('El reporte se arma en el servidor. Cuando vuelvas a tener conexión verás aquí la vista previa.')}
               </PreviewMessage>
             ) : rangeError ? (
-              <PreviewMessage icon={CalendarRange} title="Falta el periodo">
+              <PreviewMessage icon={CalendarRange} title={t('Falta el periodo')}>
                 {rangeError}
               </PreviewMessage>
             ) : preview.status === 'empty' ? (
-              <PreviewMessage icon={Inbox} title="No hay movimientos en este periodo">
-                No tienes movimientos {rangeText}. Prueba con otro periodo.
+              <PreviewMessage icon={Inbox} title={t('No hay movimientos en este periodo')}>
+                {t('No tienes movimientos')} {rangeText}{t('. Prueba con otro periodo.')}
               </PreviewMessage>
             ) : preview.status === 'error' ? (
               <PreviewMessage
                 icon={RotateCw}
-                title="No pudimos armar la vista previa"
+                title={t('No pudimos armar la vista previa')}
                 action={
                   <Button variant="soft" className="mt-2" onClick={() => setAttempt((n) => n + 1)}>
-                    Reintentar
+                    {t('Reintentar')}
                   </Button>
                 }
               >
-                {preview.message} Igual puedes intentar descargar el archivo.
+                {preview.message} {t('Igual puedes intentar descargar el archivo.')}
               </PreviewMessage>
             ) : (
               <ReportPreview format={format} data={preview.data ?? null} periodTitle={periodTitle(range)} detail={detail} />
@@ -376,7 +378,7 @@ export default function Export() {
             <div className="flex flex-col gap-3 border-t border-ink/10 pt-5 sm:flex-row sm:items-center">
               <Button size="lg" className="w-full sm:w-auto" onClick={handleDownload} disabled={!canDownload}>
                 {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Download aria-hidden="true" />}
-                {busy ? 'Preparando archivo…' : `Descargar ${selected.label}`}
+                {busy ? t('Preparando archivo…') : t('Descargar {label}', { label: selected.label })}
               </Button>
               <p role="status" className="text-sm text-positive">
                 {done && (

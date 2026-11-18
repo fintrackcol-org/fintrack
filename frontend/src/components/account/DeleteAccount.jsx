@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/auth/AuthContext';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import { GOOGLE_CLIENT_ID, loadGoogleIdentity } from '@/lib/google';
+import { t } from '@/lib/i18n';
+import { dateLocale } from '@/lib/region';
 
 /** Lo que se borra y lo que sigue para los demás, en palabras del usuario. */
 const WHAT_HAPPENS = [
-  'Tus movimientos, presupuestos, tarjetas, soportes y Mi plata.',
-  'Tus ajustes, recordatorios y la conexión con WhatsApp.',
-  'Las vacas y negocios donde estás solo.',
+  t('Tus movimientos, presupuestos, tarjetas, soportes y Mi plata.'),
+  t('Tus ajustes, recordatorios y la conexión con WhatsApp.'),
+  t('Las vacas y negocios donde estás solo.'),
 ];
 
 /**
@@ -40,7 +42,7 @@ function GoogleConfirm({ disabled, onCredential }) {
           theme: 'outline',
           size: 'large',
           text: 'continue_with',
-          locale: 'es',
+          locale: dateLocale().slice(0, 2),
           width: Math.min(ref.current.clientWidth || 320, 400),
         });
       })
@@ -50,7 +52,7 @@ function GoogleConfirm({ disabled, onCredential }) {
     };
   }, []);
 
-  if (failed) return <p className="text-sm text-ink/60">No pudimos cargar Google. Revisa tu conexión.</p>;
+  if (failed) return <p className="text-sm text-ink/60">{t('No pudimos cargar Google. Revisa tu conexión.')}</p>;
   return (
     <div
       ref={ref}
@@ -100,8 +102,8 @@ export default function DeleteAccount() {
   return (
     <Panel className="flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h2 className="text-lg font-semibold tracking-tight">Eliminar mi cuenta</h2>
-        <p className="mt-1 text-sm text-ink/60">Borra tu cuenta y todos tus datos. No se puede deshacer.</p>
+        <h2 className="text-lg font-semibold tracking-tight">{t('Eliminar mi cuenta')}</h2>
+        <p className="mt-1 text-sm text-ink/60">{t('Borra tu cuenta y todos tus datos. No se puede deshacer.')}</p>
       </div>
       <Button
         variant="outline"
@@ -109,21 +111,20 @@ export default function DeleteAccount() {
         onClick={() => setOpen(true)}
       >
         <Trash2 aria-hidden="true" />
-        Eliminar mi cuenta
+        {t('Eliminar mi cuenta')}
       </Button>
 
-      <Sheet open={open} title="¿Eliminar tu cuenta?" onClose={close}>
+      <Sheet open={open} title={t('¿Eliminar tu cuenta?')} onClose={close}>
         <div className="space-y-5">
           <div className="space-y-2 text-sm">
-            <p className="font-medium">Se borra para siempre:</p>
+            <p className="font-medium">{t('Se borra para siempre:')}</p>
             <ul className="list-disc space-y-1 pl-5 text-ink/70">
               {WHAT_HAPPENS.map((line) => (
                 <li key={line}>{line}</li>
               ))}
             </ul>
             <p className="text-ink/60">
-              En las vacas y negocios compartidos, tus aportes quedan sin tu nombre para que las cuentas del grupo
-              sigan cuadrando, y otro miembro pasa a administrarlos.
+              {t('En las vacas y negocios compartidos, tus aportes quedan sin tu nombre para que las cuentas del grupo sigan cuadrando, y otro miembro pasa a administrarlos.')}
             </p>
           </div>
 
@@ -135,7 +136,7 @@ export default function DeleteAccount() {
               onChange={(e) => setUnderstood(e.target.checked)}
               className="mt-0.5 size-4 accent-[var(--color-destructive)]"
             />
-            <span>Entiendo que mi cuenta y mis datos se borran y no se pueden recuperar.</span>
+            <span>{t('Entiendo que mi cuenta y mis datos se borran y no se pueden recuperar.')}</span>
           </label>
 
           <form
@@ -146,7 +147,7 @@ export default function DeleteAccount() {
             }}
           >
             <label htmlFor={passwordId} className="block text-sm font-medium">
-              Escribe tu contraseña para confirmar
+              {t('Escribe tu contraseña para confirmar')}
             </label>
             <Input
               id={passwordId}
@@ -163,18 +164,18 @@ export default function DeleteAccount() {
               disabled={!ready || !password}
             >
               {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Trash2 aria-hidden="true" />}
-              {busy ? 'Eliminando…' : 'Eliminar mi cuenta para siempre'}
+              {busy ? t('Eliminando…') : t('Eliminar mi cuenta para siempre')}
             </Button>
           </form>
 
           {GOOGLE_CLIENT_ID && (
             <div className="space-y-2">
-              <p className="text-sm text-ink/60">¿Creaste la cuenta con Google? Confirma con Google:</p>
+              <p className="text-sm text-ink/60">{t('¿Creaste la cuenta con Google? Confirma con Google:')}</p>
               <GoogleConfirm disabled={!ready} onCredential={(googleCredential) => confirm({ googleCredential })} />
             </div>
           )}
 
-          {!online && <p className="text-sm text-ink/60">Necesitas conexión para eliminar la cuenta.</p>}
+          {!online && <p className="text-sm text-ink/60">{t('Necesitas conexión para eliminar la cuenta.')}</p>}
           {error && (
             <p id={`${passwordId}-error`} role="alert" className="text-sm text-destructive">
               {error}

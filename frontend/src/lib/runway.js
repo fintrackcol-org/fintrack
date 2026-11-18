@@ -1,4 +1,5 @@
-/**
+
+import { t } from '@/lib/i18n';/**
  * "Te alcanza N días más" de la tarjeta Mi plata del inicio (Rinde v2), calculado en el dispositivo con
  * lo que ya llega: el saldo y lo gastado en el mes. Es una cuenta sencilla y honesta: a tu ritmo de este
  * mes (gastado ÷ días que van), ¿cuántos días dura la plata que tienes?
@@ -33,8 +34,8 @@ export function runway({ balance, monthExpense, today = new Date() }) {
  */
 export function untilText({ until, lasts }) {
   if (lasts) return 'pasa el fin de mes';
-  return `hasta el ${until.getDate()} ${MONTHS[until.getMonth()]}`;
+  return t('hasta el {getDate} {v2}', { getDate: until.getDate(), v2: MONTHS[until.getMonth()] });
 }
 
 /** "1 día" o "14 días". */
-export const daysLabel = (days) => (days === 1 ? '1 día' : `${days} días`);
+export const daysLabel = (days) => (days === 1 ? t('1 día') : t('{days} días', { days }));

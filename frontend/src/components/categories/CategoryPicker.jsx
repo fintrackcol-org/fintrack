@@ -3,6 +3,7 @@ import { Pencil, Plus, Sparkles } from 'lucide-react';
 import NewCategoryDialog, { deletedMessage } from '@/components/categories/NewCategoryDialog';
 import { getCategoryStyle } from '@/lib/categoryStyles';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /** Valor de la opción "que la IA la sugiera" (la API recibe `category: null`). */
 export const AUTO_CATEGORY = '';
@@ -38,7 +39,7 @@ export default function CategoryPicker({
   const [dialog, setDialog] = useState(null); // { category? } con la ventana abierta
   const [status, setStatus] = useState('');
   const errorId = `${name}-error`;
-  const options = [...(allowAuto ? [{ key: AUTO_CATEGORY, name: 'Sugerir con IA', auto: true }] : []), ...categories];
+  const options = [...(allowAuto ? [{ key: AUTO_CATEGORY, name: t('Sugerir con IA'), auto: true }] : []), ...categories];
 
   return (
     <fieldset disabled={disabled} aria-describedby={error ? errorId : undefined} className="min-w-0">
@@ -90,7 +91,7 @@ export default function CategoryPicker({
                   setStatus('');
                   setDialog({ category: c });
                 }}
-                aria-label={`Editar ${c.name}`}
+                aria-label={t('Editar {name}', { name: c.name })}
                 className="absolute right-0 top-0 grid size-7 place-items-center rounded-lg text-ink/50 transition-colors hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-violet"
               >
                 <Pencil className="size-3.5" aria-hidden="true" />
@@ -114,7 +115,7 @@ export default function CategoryPicker({
             <span aria-hidden="true" className="grid size-9 place-items-center rounded-lg bg-ink/5">
               <Plus className="size-[18px]" />
             </span>
-            Nueva
+            {t('Nueva')}
           </button>
         )}
         {categories.length === 0 &&
@@ -139,7 +140,7 @@ export default function CategoryPicker({
             onClose={() => setDialog(null)}
             onCreated={(category) => {
               // Una nueva queda elegida; al editar se conserva la que estaba elegida.
-              if (dialog?.category) setStatus('Cambios guardados.');
+              if (dialog?.category) setStatus(t('Cambios guardados.'));
               else onChange(category.key);
             }}
             onDeleted={(category, moved) => {

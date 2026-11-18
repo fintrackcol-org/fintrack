@@ -5,6 +5,7 @@ import Sheet from '@/components/common/Sheet';
 import { useNotifications } from '@/components/layout/NotificationsProvider';
 import { timeAgo } from '@/lib/timeAgo';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /** `9+` cuando son muchos: el número exacto no cabe ni aporta. */
 const badgeText = (count) => (count > 9 ? '9+' : String(count));
@@ -33,7 +34,7 @@ export default function NotificationBell({ className, label = false, labelClassN
       <button
         type="button"
         onClick={openInbox}
-        aria-label={unread > 0 ? `Avisos, ${unread} sin leer` : 'Avisos'}
+        aria-label={unread > 0 ? t('Avisos, {unread} sin leer', { unread }) : t('Avisos')}
         className={cn(
           'relative flex items-center gap-3 rounded-xl text-ink/70 transition-colors hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-violet',
           className,
@@ -50,19 +51,19 @@ export default function NotificationBell({ className, label = false, labelClassN
             </span>
           )}
         </span>
-        {label && <span className={cn('text-[15px] font-medium', labelClassName)}>Avisos</span>}
+        {label && <span className={cn('text-[15px] font-medium', labelClassName)}>{t('Avisos')}</span>}
       </button>
 
-      <Sheet open={open} title="Avisos" onClose={close}>
-        {status === 'loading' && <Loader2 className="mx-auto animate-spin text-ink/40" aria-label="Cargando avisos" />}
+      <Sheet open={open} title={t('Avisos')} onClose={close}>
+        {status === 'loading' && <Loader2 className="mx-auto animate-spin text-ink/40" aria-label={t('Cargando avisos')} />}
         {status === 'error' && (
           <p role="alert" className="text-sm text-ink/60">
-            No pudimos cargar tus avisos. Revisa tu conexión.
+            {t('No pudimos cargar tus avisos. Revisa tu conexión.')}
           </p>
         )}
         {status === 'ready' && items.length === 0 && (
           <p className="text-sm text-ink/60">
-            Aún no tienes avisos. Aquí verás lo de tus vacas, negocios, tarjetas y presupuestos.
+            {t('Aún no tienes avisos. Aquí verás lo de tus vacas, negocios, tarjetas y presupuestos.')}
           </p>
         )}
         {status === 'ready' && items.length > 0 && (
@@ -82,12 +83,12 @@ export default function NotificationBell({ className, label = false, labelClassN
                 <li key={n.id}>
                   {n.url ? (
                     <Link to={n.url} onClick={close} className={cn(itemClass, 'transition-colors hover:bg-ink/5')}>
-                      {!n.read && <span className="sr-only">Nuevo: </span>}
+                      {!n.read && <span className="sr-only">{t('Nuevo:')} </span>}
                       {content}
                     </Link>
                   ) : (
                     <div className={itemClass}>
-                      {!n.read && <span className="sr-only">Nuevo: </span>}
+                      {!n.read && <span className="sr-only">{t('Nuevo:')} </span>}
                       {content}
                     </div>
                   )}

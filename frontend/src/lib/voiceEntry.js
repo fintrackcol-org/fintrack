@@ -8,13 +8,13 @@ import { MAX_AMOUNT } from '@/lib/money';
 
 /** Palabras que indican que entró plata; todo lo demás se toma como gasto. */
 const INCOME_WORDS =
-  /(?<!\p{L})(me pagaron|pagaron|recib[ií]|me consignaron|me dieron|me entr[oó]|me entraron|me transfirieron|me depositaron|me giraron|me abonaron|me devolvieron|gan[eé]|cobr[eé]|vend[ií]|salario|sueldo|prima|ingreso)(?!\p{L})/u;
+  /(?<!\p{L})(me pagaron|pagaron|recib[ií]|me consignaron|me dieron|me entr[oó]|me entraron|me transfirieron|me depositaron|me giraron|me abonaron|me devolvieron|gan[eé]|cobr[eé]|vend[ií]|salario|sueldo|prima|ingreso|got paid|paid me|received|earned|salary|paycheck|income|refund|me pagaram|pagaram|recebi|ganhei|sal[aá]rio|renda)(?!\p{L})/u;
 
 /**
  * "Hice 38 mil", "hoy me hice 40.000": así cuenta lo que ganó quien trabaja por días (FT-0038). Solo
  * si el monto va justo después; "hice mercado 80 mil" sigue siendo un gasto.
  */
-const WORK_INCOME = /(?<!\p{L})(?:me\s+)?hice(?=\s+\$?\s?\d)/iu;
+const WORK_INCOME = /(?<!\p{L})(?:(?:me\s+)?hice|i\s+made|made|fiz)(?=\s+\$?\s?\d)/iu;
 
 /** Montos dichos solo con palabras, como se habla en Colombia. */
 const SPOKEN_AMOUNTS = [
@@ -26,13 +26,16 @@ const SPOKEN_AMOUNTS = [
 ];
 
 /** Cuánto vale cada unidad que puede ir después del número. */
-const UNITS = { mil: 1e3, k: 1e3, luca: 1e3, lucas: 1e3, palo: 1e6, palos: 1e6, millon: 1e6, millón: 1e6, millones: 1e6 };
+const UNITS = {
+  mil: 1e3, k: 1e3, luca: 1e3, lucas: 1e3, palo: 1e6, palos: 1e6, millon: 1e6, millón: 1e6, millones: 1e6,
+  thousand: 1e3, million: 1e6, millions: 1e6, milhao: 1e6, milhão: 1e6, milhoes: 1e6, milhões: 1e6,
+};
 
 /**
  * Un número (con puntos o comas) y, opcionalmente, su unidad: "15 mil", "26.900", "1,2 millones".
  * Pegado a letras por delante no es un monto: "iPhone15", "MP3" o "C1" son parte del nombre.
  */
-const NUMBER = /(?<![\p{L}\d.,])\$?\s?(\d+(?:[.,]\d+)*)\s*(mil|k|lucas?|palos?|mill[oó]n|millones)?(?!\p{L})/gu;
+const NUMBER = /(?<![\p{L}\d.,])\$?\s?(\d+(?:[.,]\d+)*)\s*(mil|k|lucas?|palos?|mill[oó]n|millones|thousand|millions?|milh[aã]o|milh[oõ]es)?(?!\p{L})/gu;
 
 /** Cantidades dichas con palabras ("tres almuerzos"); el dictado suele escribirlas así. */
 const QUANTITY_WORDS = ['dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez'];
@@ -59,8 +62,8 @@ const DATE_PATTERNS = [
     },
   },
   { re: /(?<!\p{L})(antier|anteayer|antes de ayer)(?!\p{L})/iu, date: (m, today) => addDays(today, -2) },
-  { re: /(?<!\p{L})ayer(?!\p{L})/iu, date: (m, today) => addDays(today, -1) },
-  { re: /(?<!\p{L})hoy(?!\p{L})/iu, date: (m, today) => today },
+  { re: /(?<!\p{L})(ayer|yesterday|ontem)(?!\p{L})/iu, date: (m, today) => addDays(today, -1) },
+  { re: /(?<!\p{L})(hoy|today|hoje)(?!\p{L})/iu, date: (m, today) => today },
   {
     re: /(?<!\p{L})hace\s+(\d{1,2}|una?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+d[ií]as?(?!\p{L})/iu,
     date: (m, today) => addDays(today, -(DAYS_AGO[m[1].toLowerCase()] ?? Number(m[1]))),
@@ -91,7 +94,7 @@ const EDGE_PUNCTUATION = /^[\s.,;:!?¡¿"“”']+|[\s.,;:!?¡¿"“”']+$/g;
 
 /** Palabras que sobran en la descripción, al principio o al final ("pagué el arriendo", "taxi de"). */
 const FILLER =
-  /(?<!\p{L})(me pagaron|me consignaron|me dieron|me entr[oó]|me entraron|me transfirieron|me depositaron|me giraron|me abonaron|me devolvieron|gan[eé]|cobr[eé]|recib[ií]|gast[eé]|pagu[eé]|compr[eé]|y cada un[oa]|cada un[oa]|me cost[oó]|cost[oó]|me sali[oó]|de|en|por|a|el|la|los|las|pesos?)(?!\p{L})/giu;
+  /(?<!\p{L})(me pagaron|me consignaron|me dieron|me entr[oó]|me entraron|me transfirieron|me depositaron|me giraron|me abonaron|me devolvieron|gan[eé]|cobr[eé]|recib[ií]|gast[eé]|pagu[eé]|compr[eé]|y cada un[oa]|cada un[oa]|me cost[oó]|cost[oó]|me sali[oó]|de|en|por|a|el|la|los|las|pesos?|got paid|paid me|received|earned|me pagaram|recebi|ganhei|i spent|spent|i paid|paid|i bought|bought|for|on|at|the|dollars?|bucks|gastei|paguei|comprei|em|no|na|o|os|as|reais)(?!\p{L})/giu;
 
 const FILLER_AT_START = new RegExp(`^(?:${FILLER.source})\\s*`, 'iu');
 const FILLER_AT_END = new RegExp(`\\s*(?:${FILLER.source})$`, 'iu');
@@ -113,13 +116,17 @@ function trimFiller(text) {
 /**
  * @param {string} text Lo que entendió el reconocimiento de voz.
  * @param {Date} [now] Para las pruebas: "hoy" desde el que se cuentan "ayer", "el lunes"…
+ * @param {{ smallMeansThousands?: boolean, receivedLabel?: string }} [settings] `smallMeansThousands`:
+ *   «almuerzo 15» son 15 mil (en pesos sí; en dólares no). `receivedLabel`: la descripción de un
+ *   ingreso sin descripción, en el idioma de la persona.
  * @returns {{ type: 'gasto'|'ingreso', amount: number|null, options: number[], description: string, date: string, ambiguous: boolean }}
  *   `amount` es el número mayor que se dijo (`null` si no hubo un monto válido). `ambiguous` es
  *   `true` si se dijo más de un número; en ese caso la pantalla pide revisar el monto y, si uno era
  *   una cantidad ("2 almuerzos de 12 mil"), `options` trae el precio y el total: `[12000, 24000]`.
  *   `date` es AAAA-MM-DD: la que se dijo ("ayer", "el 12 de octubre") u hoy si no se dijo ninguna.
  */
-export function parseSpokenTransaction(text, now = new Date()) {
+export function parseSpokenTransaction(text, now = new Date(), settings = {}) {
+  const { smallMeansThousands = true, receivedLabel = 'Pago recibido' } = settings;
   // La fecha se quita primero para que su número ("el 12 de octubre") no se tome como monto.
   const { date, rest } = extractDate(String(text ?? '').trim(), now);
   const said = rest.replace(MILLIONS_AND_THOUSANDS, (_, millions, thousands) =>
@@ -150,7 +157,7 @@ export function parseSpokenTransaction(text, now = new Date()) {
   const biggest = found.reduce((best, item) => (item.value > (best?.value ?? 0) ? item : best), null);
   // El dictado a veces se come el "mil" ("3 almuerzos de 15"). Nadie paga $15 pesos: un número
   // sin unidad, menor que 100 y al final de la frase, es un precio en miles.
-  if (biggest?.plain && biggest.atEnd && biggest.value < 100) biggest.value *= 1000;
+  if (smallMeansThousands && biggest?.plain && biggest.atEnd && biggest.value < 100) biggest.value *= 1000;
   const amount = biggest && biggest.value > 0 && biggest.value <= MAX_AMOUNT ? biggest.value : null;
 
   // "11.000 de tomate y 2 cabezas de ajo", "2 libras de arroz y 3 tomates por 8 mil": las cantidades
@@ -169,7 +176,7 @@ export function parseSpokenTransaction(text, now = new Date()) {
   if (biggest) description = description.replace(new RegExp(escapeRegExp(biggest.text), 'i'), ' ');
   description = trimFiller(description.replace(/\s+/g, ' ').replace(EDGE_PUNCTUATION, '')).slice(0, 200);
   if (description) description = description[0].toUpperCase() + description.slice(1);
-  else if (type === 'ingreso') description = 'Pago recibido';
+  else if (type === 'ingreso') description = receivedLabel;
 
   return { type, amount, options, description, date, ambiguous: amounts.length > 1 };
 }

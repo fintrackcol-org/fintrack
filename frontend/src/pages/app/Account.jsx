@@ -3,10 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
   ChevronRight,
-  Coins,
   Crown,
   Download,
+  Globe,
   GraduationCap,
+  Languages,
   Lightbulb,
   Loader2,
   LogOut,
@@ -16,6 +17,8 @@ import {
   Tags,
   UserPlus,
 } from 'lucide-react';
+import CountrySettings from '@/components/account/CountrySettings';
+import LanguageSettings from '@/components/account/LanguageSettings';
 import CustomCategories from '@/components/account/CustomCategories';
 import DeleteAccount from '@/components/account/DeleteAccount';
 import ProfileCard from '@/components/account/ProfileCard';
@@ -31,19 +34,21 @@ import useAsync from '@/hooks/useAsync';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import usePageTitle from '@/hooks/usePageTitle';
 import { getDisplayName, getInitial } from '@/lib/displayName';
+import { LANGUAGES, countryName, getRegion } from '@/lib/region';
 import Segmented from '@/components/common/Segmented';
 import Sheet from '@/components/common/Sheet';
 import { cn } from '@/lib/utils';
 import { getWhatsappLink } from '@/services/whatsappService';
 import { useTheme } from '@/theme/ThemeProvider';
 import { getShortcutToken } from '@/services/pendingPaymentService';
+import { t } from '@/lib/i18n';
 
 /** Lo que se abre desde Cuenta porque no se usa todos los días. */
 export const LINKS = [
-  { to: '/app/transacciones/exportar', label: 'Exportar reportes', detail: 'Excel, PDF o CSV', icon: Download },
-  { to: '/app/invitar', label: 'Invitar amigos', detail: 'Compárteles la app', icon: UserPlus },
-  { to: '/app/planes', label: 'Planes', detail: 'Beta: aún no se cobra', icon: Crown },
-  { to: '/app/lo-que-viene', label: 'Lo que viene', detail: 'Vota y pide funciones', icon: Lightbulb },
+  { to: '/app/transacciones/exportar', label: t('Exportar reportes'), detail: t('Excel, PDF o CSV'), icon: Download },
+  { to: '/app/invitar', label: t('Invitar amigos'), detail: t('Compárteles la app'), icon: UserPlus },
+  { to: '/app/planes', label: t('Planes'), detail: t('Beta: aún no se cobra'), icon: Crown },
+  { to: '/app/lo-que-viene', label: t('Lo que viene'), detail: t('Vota y pide funciones'), icon: Lightbulb },
 ];
 
 /** Bloque con título de una sección de ajustes. */
@@ -97,9 +102,9 @@ function RowBody({ icon: Icon, label, end, chevron = true }) {
 }
 
 const THEME_OPTIONS = [
-  { value: 'light', label: 'Claro' },
-  { value: 'dark', label: 'Oscuro' },
-  { value: 'system', label: 'Auto' },
+  { value: 'light', label: t('Claro') },
+  { value: 'dark', label: t('Oscuro') },
+  { value: 'system', label: t('Auto') },
 ];
 
 /**
@@ -125,7 +130,7 @@ function MobileAccount({ onSignOut, leaving }) {
   const linked = whatsapp.data?.linked;
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="sr-only">Tu cuenta</h1>
+      <h1 className="sr-only">{t('Tu cuenta')}</h1>
       <button
         type="button"
         onClick={() => setOpen('perfil')}
@@ -135,17 +140,17 @@ function MobileAccount({ onSignOut, leaving }) {
           {getInitial(user)}
         </span>
         <span className="min-w-0">
-          <span className="block truncate text-xl font-semibold tracking-tight">{getDisplayName(user) || 'Tu cuenta'}</span>
+          <span className="block truncate text-xl font-semibold tracking-tight">{getDisplayName(user) || t('Tu cuenta')}</span>
           <span className="block truncate text-sm text-ink/60">{user?.email}</span>
         </span>
-        <span className="ml-auto text-sm font-semibold text-brand">Editar</span>
+        <span className="ml-auto text-sm font-semibold text-brand">{t('Editar')}</span>
       </button>
 
-      <RowGroup label="Tu app">
+      <RowGroup label={t('Tu app')}>
         {row(
           'whatsapp',
           MessageCircle,
-          'Anotar por WhatsApp',
+          t('Anotar por WhatsApp'),
           whatsapp.data && (
             <span
               className={cn(
@@ -154,29 +159,40 @@ function MobileAccount({ onSignOut, leaving }) {
               )}
             >
               {linked && <span aria-hidden="true" className="size-1.5 rounded-full bg-success" />}
-              {linked ? 'Conectado' : 'Conectar'}
+              {linked ? t('Conectado') : t('Conectar')}
             </span>
           ),
         )}
         <div className="flex min-h-[60px] items-center gap-3">
           <Palette className="size-5 shrink-0 text-ink/70" aria-hidden="true" />
-          <span className="flex-1 text-[15px] font-medium">Apariencia</span>
-          <Segmented label="Apariencia" options={THEME_OPTIONS} value={preference} onChange={setPreference} className="w-[188px]" />
+          <span className="flex-1 text-[15px] font-medium">{t('Apariencia')}</span>
+          <Segmented label={t('Apariencia')} options={THEME_OPTIONS} value={preference} onChange={setPreference} className="w-[188px]" />
         </div>
-        {row('alertas', Bell, 'Avisos y recordatorios')}
-        {row('categorias', Tags, 'Mis categorías')}
+        {row('alertas', Bell, t('Avisos y recordatorios'))}
+        {row('categorias', Tags, t('Mis categorías'))}
         <Link to={LINKS[0].to} className={ROW}>
           <RowBody icon={Download} label={LINKS[0].label} />
         </Link>
-        <div className={cn(ROW, 'active:opacity-100')}>
-          <RowBody icon={Coins} label="Moneda" end={<span className="text-sm text-ink/60">Peso colombiano (COP)</span>} chevron={false} />
-        </div>
-        {shortcut.data?.enabled && row('applepay', Smartphone, 'Pagos con Apple Pay')}
+        {row(
+          'pais',
+          Globe,
+          t('País'),
+          <span className="truncate text-sm text-ink/60">
+            {countryName(getRegion().country)} · {getRegion().currency}
+          </span>,
+        )}
+        {row(
+          'idioma',
+          Languages,
+          t('Idioma'),
+          <span className="truncate text-sm text-ink/60">{LANGUAGES.find((l) => l.code === getRegion().language)?.name}</span>,
+        )}
+        {shortcut.data?.enabled && row('applepay', Smartphone, t('Pagos con Apple Pay'))}
       </RowGroup>
 
-      <RowGroup label="Ayuda">
+      <RowGroup label={t('Ayuda')}>
         <button type="button" className={ROW} onClick={() => navigate('/app?tutorial=1')}>
-          <RowBody icon={GraduationCap} label="Ver el tutorial otra vez" />
+          <RowBody icon={GraduationCap} label={t('Ver el tutorial otra vez')} />
         </button>
         {LINKS.slice(1).map(({ to, label, icon }) => (
           <Link key={to} to={to} className={ROW}>
@@ -188,26 +204,32 @@ function MobileAccount({ onSignOut, leaving }) {
       <div className="flex flex-col items-center gap-1">
         <Button variant="dark" size="lg" className="w-full rounded-full ring-1 ring-white/10" onClick={() => setOpen('salir')} disabled={leaving}>
           {leaving ? <Loader2 className="animate-spin" aria-hidden="true" /> : <LogOut aria-hidden="true" />}
-          {leaving ? 'Cerrando sesión…' : 'Cerrar sesión'}
+          {leaving ? t('Cerrando sesión…') : t('Cerrar sesión')}
         </Button>
         <button type="button" className="min-h-11 text-sm font-medium text-negative" onClick={() => setOpen('eliminar')}>
-          Eliminar cuenta
+          {t('Eliminar cuenta')}
         </button>
-        <p className="text-xs text-ink/60">Rinde v2.0 · USCO · INNOVASOFT IX</p>
+        <p className="text-xs text-ink/60">{t('Rinde v2.0 · USCO · INNOVASOFT IX')}</p>
       </div>
 
-      <Sheet open={open === 'perfil'} title="Tu perfil" onClose={close}>
+      <Sheet open={open === 'perfil'} title={t('Tu perfil')} onClose={close}>
         <ProfileCard />
       </Sheet>
-      <Sheet open={open === 'alertas'} title="Avisos y recordatorios" onClose={close}>
+      <Sheet open={open === 'alertas'} title={t('Avisos y recordatorios')} onClose={close}>
         <NotificationSettings />
       </Sheet>
-      <Sheet open={open === 'categorias'} title="Mis categorías" onClose={close}>
+      <Sheet open={open === 'categorias'} title={t('Mis categorías')} onClose={close}>
         <CustomCategories />
+      </Sheet>
+      <Sheet open={open === 'pais'} title={t('Tu país')} onClose={close}>
+        <CountrySettings onSaved={close} />
+      </Sheet>
+      <Sheet open={open === 'idioma'} title={t('Idioma')} onClose={close}>
+        <LanguageSettings />
       </Sheet>
       <Sheet
         open={open === 'whatsapp'}
-        title="Anotar por WhatsApp"
+        title={t('Anotar por WhatsApp')}
         onClose={() => {
           close();
           whatsapp.reload();
@@ -215,23 +237,23 @@ function MobileAccount({ onSignOut, leaving }) {
       >
         <WhatsappLink />
       </Sheet>
-      <Sheet open={open === 'applepay'} title="Pagos con Apple Pay" onClose={close}>
+      <Sheet open={open === 'applepay'} title={t('Pagos con Apple Pay')} onClose={close}>
         <ShortcutLink />
       </Sheet>
-      <Sheet open={open === 'eliminar'} title="Eliminar cuenta" onClose={close}>
+      <Sheet open={open === 'eliminar'} title={t('Eliminar cuenta')} onClose={close}>
         <DeleteAccount />
       </Sheet>
-      <Sheet open={open === 'salir'} title="¿Cerrar sesión?" onClose={close}>
+      <Sheet open={open === 'salir'} title={t('¿Cerrar sesión?')} onClose={close}>
         <p className="text-[15px] text-ink/70">
-          Lo que anotaste sin conexión se queda en este celular y se sube cuando vuelvas a entrar.
+          {t('Lo que anotaste sin conexión se queda en este celular y se sube cuando vuelvas a entrar.')}
         </p>
         <div className="mt-5 flex gap-3">
           <Button variant="outline" size="lg" className="flex-1" onClick={close}>
-            Cancelar
+            {t('Cancelar')}
           </Button>
           <Button variant="dark" size="lg" className="flex-1" onClick={onSignOut} disabled={leaving}>
             {leaving && <Loader2 className="animate-spin" aria-hidden="true" />}
-            Cerrar sesión
+            {t('Cerrar sesión')}
           </Button>
         </div>
       </Sheet>
@@ -245,7 +267,7 @@ function MobileAccount({ onSignOut, leaving }) {
  * cuenta (FT-0017), y repetir el tutorial (FT-0071).
  */
 export default function Account() {
-  usePageTitle('Cuenta');
+  usePageTitle(t('Cuenta'));
   const mobile = useMediaQuery('(width < 48rem)');
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -261,13 +283,19 @@ export default function Account() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title="Cuenta" />
+      <PageHeader title={t('Cuenta')} />
 
       <div className="flex flex-col gap-8">
         <ProfileCard />
-        <Group label="Preferencias">
-          <Section id="apariencia" title="Apariencia" description="Elige cómo se ve Rinde.">
+        <Group label={t('Preferencias')}>
+          <Section id="apariencia" title={t('Apariencia')} description={t('Elige cómo se ve Rinde.')}>
             <ThemeSelector />
+          </Section>
+          <Section id="pais" title={t('País')} description={t('Dónde estás. Si viajas, cámbialo aquí y tus cuentas siguen en tu moneda.')}>
+            <CountrySettings />
+          </Section>
+          <Section id="idioma" title={t('Idioma')} description={t('El idioma de la app. Viajar no lo cambia.')}>
+            <LanguageSettings />
           </Section>
           <CustomCategories />
           <div id="whatsapp">
@@ -276,30 +304,30 @@ export default function Account() {
           <ShortcutLink />
           <Panel className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight">Tutorial</h2>
-              <p className="mt-1 text-sm text-ink/60">Repasa qué hace cada parte del inicio.</p>
+              <h2 className="text-lg font-semibold tracking-tight">{t('Tutorial')}</h2>
+              <p className="mt-1 text-sm text-ink/60">{t('Repasa qué hace cada parte del inicio.')}</p>
             </div>
             <Button variant="outline" asChild>
               <Link to="/app?tutorial=1">
-                <GraduationCap aria-hidden="true" /> Ver el tutorial otra vez
+                <GraduationCap aria-hidden="true" /> {t('Ver el tutorial otra vez')}
               </Link>
             </Button>
           </Panel>
         </Group>
 
-        <Group label="Alertas">
+        <Group label={t('Alertas')}>
           <NotificationSettings />
         </Group>
 
-        <Group label="Sesión">
+        <Group label={t('Sesión')}>
           <Panel className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight">Cerrar sesión</h2>
-              <p className="mt-1 text-sm text-ink/60">Sales de tu cuenta en este dispositivo.</p>
+              <h2 className="text-lg font-semibold tracking-tight">{t('Cerrar sesión')}</h2>
+              <p className="mt-1 text-sm text-ink/60">{t('Sales de tu cuenta en este dispositivo.')}</p>
             </div>
             <Button variant="outline" onClick={handleSignOut} disabled={leaving}>
               {leaving ? <Loader2 className="animate-spin" aria-hidden="true" /> : <LogOut aria-hidden="true" />}
-              {leaving ? 'Cerrando sesión…' : 'Cerrar sesión'}
+              {leaving ? t('Cerrando sesión…') : t('Cerrar sesión')}
             </Button>
           </Panel>
           <DeleteAccount />

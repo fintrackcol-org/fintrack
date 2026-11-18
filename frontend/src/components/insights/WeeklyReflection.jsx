@@ -6,6 +6,8 @@ import { formatMoney } from '@/components/transactions/format';
 import useAsync from '@/hooks/useAsync';
 import { cn } from '@/lib/utils';
 import { getReflection } from '@/services/transactionService';
+import { t } from '@/lib/i18n';
+import { dateLocale } from '@/lib/region';
 
 /** Color de cada grupo en la barra: los de categorías de los gráficos (validados para daltonismo). */
 const GROUP_COLOR = {
@@ -24,11 +26,11 @@ const GROUP_COLOR = {
 export function weekRange(from, to) {
   const day = (iso, withMonth) =>
     new Date(`${iso}T12:00:00`).toLocaleDateString(
-      'es-CO',
+      dateLocale(),
       withMonth ? { day: 'numeric', month: 'long' } : { day: 'numeric' },
     );
   const sameMonth = from.slice(0, 7) === to.slice(0, 7);
-  return `Del ${day(from, !sameMonth)} al ${day(to, true)}`;
+  return t('Del {from} al {to}', { from: day(from, !sameMonth), to: day(to, true) });
 }
 
 /**
@@ -43,7 +45,7 @@ export function kakeiboSegments(data) {
       label: g.label,
       ...(data.kakeibo.find((k) => k.key === g.key) ?? { count: 0, total: 0 }),
     })),
-    { key: 'sin_grupo', label: 'Sin grupo', ...data.withoutKakeibo },
+    { key: 'sin_grupo', label: t('Sin grupo'), ...data.withoutKakeibo },
   ];
   return rows.map((r) => ({
     ...r,
@@ -65,10 +67,10 @@ export default function WeeklyReflection({ className }) {
     <Panel aria-labelledby="reflexion-title" className={cn('flex flex-col gap-5', className)}>
       <div>
         <h2 id="reflexion-title" className="text-lg font-semibold tracking-tight">
-          Tu semana en Kakeibo
+          {t('Tu semana en Kakeibo')}
         </h2>
         <p className="text-[13px] text-ink/60">
-          {data ? weekRange(data.from, data.to) : 'De lunes a domingo'} · cómo gastaste y cómo te sentiste
+          {data ? weekRange(data.from, data.to) : t('De lunes a domingo')} {t('· cómo gastaste y cómo te sentiste')}
         </p>
       </div>
 
@@ -77,17 +79,17 @@ export default function WeeklyReflection({ className }) {
           <p role="alert" className="text-sm text-negative">
             {reflection.error}{' '}
             <button type="button" className="underline" onClick={reflection.reload}>
-              Reintentar
+              {t('Reintentar')}
             </button>
           </p>
         ) : (
           <p className="flex items-center gap-2 text-ink/60" aria-busy="true">
-            <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Cargando tu semana…
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" /> {t('Cargando tu semana…')}
           </p>
         )
       ) : data.expenses.count === 0 ? (
         <p className="text-[15px] text-ink/70">
-          Aún no tienes gastos esta semana. Cuando anotes uno, elige cómo te sentiste y aquí verás tu reflexión.
+          {t('Aún no tienes gastos esta semana. Cuando anotes uno, elige cómo te sentiste y aquí verás tu reflexión.')}
         </p>
       ) : (
         <>
@@ -96,7 +98,7 @@ export default function WeeklyReflection({ className }) {
           {data.regrets.length > 0 && <Regrets regrets={data.regrets} />}
           {data.questions.length > 0 && (
             <div>
-              <h3 className="text-[15px] font-semibold">Para pensar</h3>
+              <h3 className="text-[15px] font-semibold">{t('Para pensar')}</h3>
               <ul className="mt-2 flex flex-col gap-2">
                 {data.questions.map((q) => (
                   <li key={q} className="flex gap-2.5 rounded-xl bg-brand-soft px-3 py-2.5 text-[15px] leading-snug">
@@ -121,7 +123,7 @@ function KakeiboBar({ data }) {
     <div>
       <div
         role="img"
-        aria-label={`Gastos de la semana por grupo: ${visible.map((s) => `${s.label} ${Math.round(s.share)} %`).join(', ')}`}
+        aria-label={t('Gastos de la semana por grupo: {join}', { join: visible.map((s) => `${s.label} ${Math.round(s.share)} %`).join(', ') })}
         className="flex h-3 gap-0.5 overflow-hidden rounded-full"
       >
         {visible.map((s) => (
@@ -156,7 +158,7 @@ function KakeiboBar({ data }) {
 function Feelings({ data }) {
   return (
     <div>
-      <h3 className="text-[15px] font-semibold">Cómo te sentiste</h3>
+      <h3 className="text-[15px] font-semibold">{t('Cómo te sentiste')}</h3>
       <ul className="mt-2 grid grid-cols-4 gap-2">
         {EMOTIONS.map(({ key, label, icon: Icon }) => {
           const count = data.emotions.find((e) => e.key === key)?.count ?? 0;
@@ -176,9 +178,9 @@ function Feelings({ data }) {
         })}
       </ul>
       <p className="mt-2 text-[13px] text-ink/60">
-        {data.withEmotion} de {data.expenses.count} {data.expenses.count === 1 ? 'gasto tiene' : 'gastos tienen'}{' '}
-        emoción.
-        {data.withEmotion < data.expenses.count && ' Puedes ponerla desde el detalle de cada gasto.'}
+        {data.withEmotion} {t('de')} {data.expenses.count} {data.expenses.count === 1 ? 'gasto tiene' : 'gastos tienen'}{' '}
+        {t('emoción.')}
+        {data.withEmotion < data.expenses.count && t(' Puedes ponerla desde el detalle de cada gasto.')}
       </p>
     </div>
   );
@@ -188,7 +190,7 @@ function Feelings({ data }) {
 function Regrets({ regrets }) {
   return (
     <div>
-      <h3 className="text-[15px] font-semibold">Lo que no te convenció</h3>
+      <h3 className="text-[15px] font-semibold">{t('Lo que no te convenció')}</h3>
       <ul className="mt-2 divide-y divide-ink/10 rounded-xl border border-ink/10">
         {regrets.map((r) => {
           const emotion = emotionOf(r.emotion);

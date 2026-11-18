@@ -1,4 +1,5 @@
-/**
+
+import { t } from '@/lib/i18n';/**
  * Comprime una foto antes de subirla como soporte de pago (FT-0044): la foto de una factura del
  * celular pesa 3-5 MB y con 1600 px de lado ya se lee bien (~300 KB). De paso convierte las HEIC
  * del iPhone a JPG, que el backend sí acepta. Los PDF se suben tal cual.
@@ -45,7 +46,7 @@ export async function prepareUpload(file) {
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
   } catch {
-    throw new Error('No pudimos leer la foto. Prueba con otra o súbela como PDF.');
+    throw new Error(t('No pudimos leer la foto. Prueba con otra o súbela como PDF.'));
   }
   const { width, height } = fitSize(bitmap.width, bitmap.height);
   const canvas = document.createElement('canvas');
@@ -54,7 +55,7 @@ export async function prepareUpload(file) {
   canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', QUALITY));
-  if (!blob) throw new Error('No pudimos preparar la foto. Prueba con otra.');
+  if (!blob) throw new Error(t('No pudimos preparar la foto. Prueba con otra.'));
   // Una JPG/PNG/WebP ya pequeña se sube como estaba; una HEIC siempre pasa a JPG.
   const accepted = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
   if (accepted && blob.size >= file.size) return { blob: file, name: file.name };

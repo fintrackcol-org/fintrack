@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { dayAndMonth } from '@/lib/moneyPlan';
 import { todayIso } from '@/lib/period';
 import { saveNewTransaction } from '@/offline/saveNewTransaction';
+import { t } from '@/lib/i18n';
 
 const EASE = [0.32, 0.72, 0, 1];
 
@@ -64,7 +65,7 @@ export default function PendingPayments({ pending, notice = false }) {
                 >
 <button
                       type="button"
-                      aria-label={`Cerrar el aviso de ${payment.name}`}
+                      aria-label={t('Cerrar el aviso de {name}', { name: payment.name })}
                       onClick={close}
                       className="absolute right-0.5 top-0.5 grid size-9 place-items-center text-ink/70 focus-visible:outline-2 focus-visible:outline-violet"
                     >
@@ -72,9 +73,9 @@ export default function PendingPayments({ pending, notice = false }) {
                     </button>
                     <div className="flex items-end gap-3">
                       <p className="min-w-0 flex-1 text-[15px]">
-                        {visible.length > 1 && <span className="block text-xs font-medium text-ink/70">1 de {visible.length}</span>}
+                        {visible.length > 1 && <span className="block text-xs font-medium text-ink/70">{t('1 de')} {visible.length}</span>}
                         <strong className="block font-semibold">
-                          {payment.name} vence el {dayAndMonth(payment.date)}
+                          {payment.name} {t('vence el')} {dayAndMonth(payment.date)}
                         </strong>
                         {formatMoney(payment.amount)}
                       </p>
@@ -85,7 +86,7 @@ export default function PendingPayments({ pending, notice = false }) {
                         className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-surface px-3.5 text-sm font-semibold text-brand disabled:opacity-60"
                       >
                         {paying === key && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-                        Ya lo pagué<span className="sr-only"> {payment.name}</span>
+                        {t('Ya lo pagué')}<span className="sr-only"> {payment.name}</span>
                       </button>
                     </div>
                     {error && (
@@ -113,7 +114,7 @@ export default function PendingPayments({ pending, notice = false }) {
   return (
     <Panel aria-labelledby="pagos-pendientes">
       <h2 id="pagos-pendientes" className="font-semibold tracking-tight">
-        Pagos pendientes
+        {t('Pagos pendientes')}
       </h2>
       <ul className="mt-1 divide-y divide-ink/10">
         {pending.map((payment) => {
@@ -128,7 +129,7 @@ export default function PendingPayments({ pending, notice = false }) {
               </div>
               <Button variant="soft" size="sm" disabled={paying !== null} onClick={() => pay(payment)}>
                 {paying === key && <Loader2 className="animate-spin" aria-hidden="true" />}
-                Ya lo pagué<span className="sr-only"> {payment.name}</span>
+                {t('Ya lo pagué')}<span className="sr-only"> {payment.name}</span>
               </Button>
             </li>
           );

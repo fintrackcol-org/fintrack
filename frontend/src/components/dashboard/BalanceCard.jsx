@@ -4,6 +4,7 @@ import PlanSummary from '@/components/money/PlanSummary';
 import { formatMoney } from '@/components/transactions/format';
 import { TOTAL_ARROW_CLASSES, TOTAL_LINK_CLASSES, totalLinkLabel } from '@/lib/totalLink';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 export const MASK = '$ ••••••';
 
@@ -82,8 +83,8 @@ export default function BalanceCard({ periodLabel, selected, totals, note, plan 
         <div className="relative flex items-start justify-between gap-4">
           <h2 id="balance-title" className="text-sm font-medium text-white/90">
             <Link to="/app/mi-plata" className="-my-2 inline-flex min-h-11 items-center gap-1 focus-visible:outline-2 focus-visible:outline-white">
-              {plan ? 'Cuánta plata tienes' : `Balance de ${periodLabel}`}
-              <span className="sr-only">, ver Mi plata</span>
+              {plan ? t('Cuánta plata tienes') : t('Balance de {periodLabel}', { periodLabel })}
+              <span className="sr-only">{t(', ver Mi plata')}</span>
               <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
             </Link>
           </h2>
@@ -91,7 +92,7 @@ export default function BalanceCard({ periodLabel, selected, totals, note, plan 
             type="button"
             onClick={onToggleHidden}
             aria-pressed={hidden}
-            aria-label={hidden ? 'Mostrar montos' : 'Ocultar montos'}
+            aria-label={hidden ? t('Mostrar montos') : t('Ocultar montos')}
             className="-m-2 grid size-10 place-items-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-white"
           >
             {hidden ? <EyeOff className="size-5" aria-hidden="true" /> : <Eye className="size-5" aria-hidden="true" />}
@@ -103,24 +104,24 @@ export default function BalanceCard({ periodLabel, selected, totals, note, plan 
         ) : (
           <>
             <p className="relative mt-2 text-4xl font-semibold tracking-tight md:text-5xl">
-              {negative && !hidden && <span className="sr-only">Negativo: </span>}
+              {negative && !hidden && <span className="sr-only">{t('Negativo:')} </span>}
               <Amount value={totals?.balance} hidden={hidden} />
             </p>
             <p className="relative mt-2 text-sm text-white/90">
               {totals === undefined
-                ? (note ?? 'Calculando…')
+                ? (note ?? t('Calculando…'))
                 : negative
                   ? saved > 0
-                    ? 'Entre gastos y ahorro, en este periodo salió más de lo que te ha entrado.'
-                    : 'En este periodo has gastado más de lo que te ha entrado.'
+                    ? t('Entre gastos y ahorro, en este periodo salió más de lo que te ha entrado.')
+                    : t('En este periodo has gastado más de lo que te ha entrado.')
                   : saved > 0
-                    ? 'Lo que te ha entrado menos lo que has gastado y lo que apartaste para ahorro.'
-                    : 'Lo que te ha entrado menos lo que has gastado.'}
+                    ? t('Lo que te ha entrado menos lo que has gastado y lo que apartaste para ahorro.')
+                    : t('Lo que te ha entrado menos lo que has gastado.')}
             </p>
             {saved > 0 && (
               <p className="relative mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm">
                 <PiggyBank className="size-4" aria-hidden="true" />
-                Ahorro: <span className="font-semibold tabular-nums">{money(saved)}</span>
+                {t('Ahorro:')} <span className="font-semibold tabular-nums">{money(saved)}</span>
               </p>
             )}
             {/* FT-0057: sin Mi plata solo se ve el balance del periodo; aquí se ofrece poner la plata real. */}
@@ -128,15 +129,15 @@ export default function BalanceCard({ periodLabel, selected, totals, note, plan 
               to="/app/mi-plata"
               className="relative mt-3 block text-sm font-medium text-white underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-white"
             >
-              ¿Ya tenías plata cuando empezaste? Dinos cuánta tienes hoy y te mostramos tu plata real.
+              {t('¿Ya tenías plata cuando empezaste? Dinos cuánta tienes hoy y te mostramos tu plata real.')}
             </Link>
           </>
         )}
       </div>
 
       <div className="relative -mt-9 flex gap-3 px-3 md:gap-4 md:px-5">
-        <Total label="Ingresos" value={totals?.income} hidden={hidden} positive selected={selected} period={periodLabel} />
-        <Total label="Gastos" value={totals?.expense} hidden={hidden} selected={selected} period={periodLabel} />
+        <Total label={t('Ingresos')} value={totals?.income} hidden={hidden} positive selected={selected} period={periodLabel} />
+        <Total label={t('Gastos')} value={totals?.expense} hidden={hidden} selected={selected} period={periodLabel} />
       </div>
     </section>
   );

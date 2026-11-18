@@ -1,5 +1,6 @@
 import { Scale } from 'lucide-react';
 import { formatMoney } from '@/components/transactions/format';
+import { t } from '@/lib/i18n';
 
 /**
  * Corrección de saldo dentro del historial (FT-0062). No es ingreso ni gasto, por eso va en gris:
@@ -20,11 +21,11 @@ export default function AdjustmentRow({ adjustment, hidden = false, onOpen }) {
           <Scale className="size-5" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium">Ajuste de saldo</span>
-          <span className="block truncate text-sm text-ink/60">Ajuste · {diff >= 0 ? 'no es un ingreso' : 'no es un gasto'}</span>
+          <span className="block truncate font-medium">{t('Ajuste de saldo')}</span>
+          <span className="block truncate text-sm text-ink/60">{t('Ajuste ·')} {diff >= 0 ? 'no es un ingreso' : 'no es un gasto'}</span>
         </span>
         <span className="shrink-0 font-semibold tabular-nums text-ink/60">
-          <span className="sr-only">{diff >= 0 ? 'El saldo subió ' : 'El saldo bajó '}</span>
+          <span className="sr-only">{diff >= 0 ? t('El saldo subió ') : t('El saldo bajó ')}</span>
           {hidden ? '••••' : `${diff >= 0 ? '+' : '−'}${formatMoney(Math.abs(diff))}`}
         </span>
       </button>

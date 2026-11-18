@@ -9,6 +9,7 @@
     "start": "node src/server.js",
     "dev": "node --env-file=.env --watch src/server.js",
     "seed:demo": "node scripts/seed-demo.js",
+    "i18n": "node scripts/i18n-check.mjs",
     "test": "node --env-file-if-exists=.env --test",
     "lint": "eslint .",
     "format": "prettier --write .",

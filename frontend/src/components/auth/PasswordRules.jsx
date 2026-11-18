@@ -1,11 +1,12 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /** Requisitos de la contraseña nueva, iguales a los de `newPassword` en `lib/validation/auth.js`. */
 const PASSWORD_RULES = [
-  { label: '8 caracteres o más', test: (v) => v.length >= 8 },
-  { label: 'Una letra', test: (v) => /[A-Za-z]/.test(v) },
-  { label: 'Un número', test: (v) => /\d/.test(v) },
+  { label: t('8 caracteres o más'), test: (v) => v.length >= 8 },
+  { label: t('Una letra'), test: (v) => /[A-Za-z]/.test(v) },
+  { label: t('Un número'), test: (v) => /\d/.test(v) },
 ];
 
 /**
@@ -15,7 +16,7 @@ const PASSWORD_RULES = [
  */
 export default function PasswordRules({ password = '' }) {
   return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs" aria-label="Requisitos de la contraseña">
+    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs" aria-label={t('Requisitos de la contraseña')}>
       {PASSWORD_RULES.map((rule) => {
         const ok = rule.test(password);
         return (
