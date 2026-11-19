@@ -52,6 +52,10 @@ describe('MobileHome (Rinde v5)', () => {
     expect(html).toContain('href="/app/gastos"');
   });
 
+  it('el próximo pago sale una sola vez (no se repite en el aviso de arriba)', () => {
+    expect(render({ plan }).split('PILA').length - 1).toBe(1);
+  });
+
   it('si no alcanza, dice cuánto falta en vez de la cifra libre', () => {
     const html = render({ plan: { ...plan, free: -180700, shortfall: 180700 } });
     expect(html).toContain('Te faltan · estimado');

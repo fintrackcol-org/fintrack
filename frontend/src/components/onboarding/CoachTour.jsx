@@ -33,7 +33,7 @@ export const TOUR_STEPS = [
     tramo: 'corto',
     target: 'graficos',
     title: t('En qué gastas y cómo van tus topes'),
-    text: t('Mira tus categorías más altas y tus presupuestos. Si uno pasa del 90 %, se pone rojo.'),
+    text: t('Toca Gastos para ver en qué se fue cada peso; tus topes están en Planear › Presupuestos. Si uno pasa del 90 %, se pone rojo.'),
   },
   {
     tramo: 'corto',

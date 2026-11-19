@@ -205,7 +205,8 @@ export default function MobileHome({
   const money = (value) => (hidden ? MASK : formatMoney(value));
   const name = getDisplayName(user);
   const pending = plan?.pending ?? [];
-  const notice = pickHomeNotice({ cards, budgets, pending, names, money });
+  // Los pagos que vienen ya están en «Lo próximo»: el aviso no los repite.
+  const notice = pickHomeNotice({ cards, budgets, names, money });
 
   return (
     <div className="flex flex-col gap-4 pt-[max(0.5rem,env(safe-area-inset-top))]">
