@@ -33,7 +33,8 @@ export function chartPoints(days, shortfallDate) {
 
 /** Tipos de pago que se pueden mover o reducir, con el texto de la sugerencia. */
 const MOVABLE = {
-  card: (name) => t('Paga el mínimo de {name} y abona el resto después.', { name }),
+  // D11 (Rinde v5): no se sugiere pagar el mínimo; deja intereses y perjudica a la persona.
+  card: (name) => t('Pagar menos de {name} te cobra intereses: mejor pídele a un cliente que te pague antes.', { name }),
   compromiso: (name) => t('Mira si puedes correr unos días «{name}».', { name }),
   deuda: (name) => t('Habla con {name} para pagarle por partes.', { name }),
 };
