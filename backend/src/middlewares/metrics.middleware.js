@@ -15,7 +15,8 @@ import { env } from '../config/env.js';
  */
 
 export const registry = new client.Registry();
-registry.setDefaultLabels({ service: 'rinde-api', env: env.nodeEnv });
+// El ambiente (producción o QA) lo pone Grafana como `job` al leer cada API.
+registry.setDefaultLabels({ service: 'rinde-api' });
 // Memoria, CPU, retraso del event loop, etc. del proceso de Node.
 client.collectDefaultMetrics({ register: registry });
 
