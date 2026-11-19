@@ -43,6 +43,7 @@ const IdeasAdmin = lazy(() => import('@/pages/app/IdeasAdmin'));
 const WhatsappAdmin = lazy(() => import('@/pages/app/WhatsappAdmin'));
 const Vacas = lazy(() => import('@/pages/app/Vacas'));
 const Metas = lazy(() => import('@/pages/app/Metas'));
+const Planear = lazy(() => import('@/pages/app/Planear'));
 const Cards = lazy(() => import('@/pages/app/Cards'));
 const CardDetail = lazy(() => import('@/pages/app/CardDetail'));
 const Debts = lazy(() => import('@/pages/app/Debts'));
@@ -159,6 +160,7 @@ export default function App() {
                 <Route path="/app/tarjetas/:id" element={<CardDetail />} />
                 <Route path="/app/cuentas" element={<Debts />} />
                 <Route path="/app/por-confirmar" element={<PendingPayments />} />
+                <Route path="/app/planear" element={<Planear />} />
                 <Route path="/app/metas" element={<Metas />} />
                 <Route path="/app/metas/:id" element={<VacaDetail />} />
                 <Route path="/app/vacas" element={<Vacas />} />
