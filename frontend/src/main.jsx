@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import '@fontsource-variable/inter-tight';
 import { loadMessages } from './lib/i18n';
 import { getRegion } from './lib/region';
+import { isOldHost } from './lib/domainMove';
 import './index.css';
 
 /*
@@ -49,16 +50,32 @@ async function enableMocking() {
  */
 // El idioma va antes que la app: sus módulos usan t() al cargarse. Si sus traducciones no
 // descargan (sin conexión la primera vez), la app abre en español.
-Promise.all([enableMocking(), loadMessages(getRegion().language).catch(() => {})])
-  .then(() => Promise.all([import('./App.jsx'), import('./auth/AuthContext.jsx')]))
-  .then(([{ default: App }, { AuthProvider }]) =>
-    createRoot(document.getElementById('root')).render(
-      <StrictMode>
-        <BrowserRouter>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </BrowserRouter>
-      </StrictMode>,
-    ),
-  );
+const ready = Promise.all([enableMocking(), loadMessages(getRegion().language).catch(() => {})]);
+
+// En el dominio viejo (fintrackcol.online) no se abre la app: se envía lo pendiente y se lleva a la
+// persona a rindecol.online (ver lib/domainMove.js).
+if (isOldHost(window.location.hostname)) {
+  ready
+    .then(() => import('./pages/DomainMove.jsx'))
+    .then(({ default: DomainMove }) =>
+      createRoot(document.getElementById('root')).render(
+        <StrictMode>
+          <DomainMove />
+        </StrictMode>,
+      ),
+    );
+} else {
+  ready
+    .then(() => Promise.all([import('./App.jsx'), import('./auth/AuthContext.jsx')]))
+    .then(([{ default: App }, { AuthProvider }]) =>
+      createRoot(document.getElementById('root')).render(
+        <StrictMode>
+          <BrowserRouter>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </BrowserRouter>
+        </StrictMode>,
+      ),
+    );
+}
