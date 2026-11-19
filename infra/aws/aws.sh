@@ -130,9 +130,10 @@ echo Desplegado: \$(git log -1 --format='%h %s')"
     email="smoke-$(date +%s)@pruebas.rinde.test"
     pass="$(openssl rand -hex 12)"
     start=$(date +%s%3N)
-    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$api/api/v1/auth/register" \
+    # Sin `-o /dev/null`: en Git Bash (MSYS_NO_PATHCONV) curl no encuentra /dev/null.
+    code=$(curl -s -w '\n%{http_code}' -X POST "$api/api/v1/auth/register" \
       -H 'Content-Type: application/json' \
-      -d "{\"email\":\"$email\",\"password\":\"$pass\",\"acceptTerms\":true}")
+      -d "{\"email\":\"$email\",\"password\":\"$pass\",\"acceptTerms\":true}" | tail -n1)
     echo "registro: HTTP $code en $(( $(date +%s%3N) - start )) ms"
     [ "$code" = "201" ]
     ;;
@@ -225,8 +226,9 @@ docker compose up -d api"
     from="${2:-$(date -u +%Y-%m-01)}"
     aws ce get-cost-and-usage --time-period "Start=$from,End=$(date -u -d tomorrow +%F)" \
       --granularity MONTHLY --metrics UnblendedCost --group-by Type=DIMENSION,Key=SERVICE \
-      --query 'ResultsByTime[].Groups[?Metrics.UnblendedCost.Amount>`0`].[Keys[0], Metrics.UnblendedCost.Amount]' \
-      --output text
+      --query 'ResultsByTime[].Groups[].[Keys[0], Metrics.UnblendedCost.Amount]' --output text |
+      awk -F'\t' '$2 > 0 { printf "%-45s USD %.2f\n", $1, $2; total += $2 }
+        END { printf "%-45s USD %.2f\n", "TOTAL", total }'
     ;;
   down)
     read -r -p "Esto borra la instancia, la base de datos y el bucket de $STACK. ¿Seguro? (escribe borrar) " ok
