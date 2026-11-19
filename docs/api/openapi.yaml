@@ -31,7 +31,7 @@ info:
 servers:
   - url: http://localhost:3000/api/v1
     description: Desarrollo local
-  - url: https://fintrack-api-2z1p.onrender.com/api/v1
+  - url: https://api.rindecol.online/api/v1
     description: Producción (Render)
 
 tags:
@@ -87,7 +87,7 @@ paths:
     servers:
       - url: http://localhost:3000
         description: Desarrollo local (fuera de /api/v1)
-      - url: https://fintrack-api-2z1p.onrender.com
+      - url: https://api.rindecol.online
         description: Producción (fuera de /api/v1)
     get:
       tags: [Health]

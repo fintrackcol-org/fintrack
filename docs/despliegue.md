@@ -30,9 +30,9 @@ FRONTEND_URL=https://fintrack.vercel.app API_URL=https://fintrack-api.onrender.c
 
 | Servicio | URL |
 |---|---|
-| Frontend (Vercel) | https://fintrack-seven-delta.vercel.app |
-| Backend (Render) | https://fintrack-api-2z1p.onrender.com |
-| Health check | https://fintrack-api-2z1p.onrender.com/health |
+| Frontend (Vercel) | https://www.rindecol.online |
+| Backend (Render) | https://api.rindecol.online |
+| Health check | https://api.rindecol.online/health |
 
 Variables de entorno en producción:
 

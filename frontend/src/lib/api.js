@@ -1,5 +1,5 @@
-/** Backend publicado en Render. */
-const RENDER_API_URL = 'https://fintrack-api-2z1p.onrender.com';
+/** Backend de producción (Render, con el dominio propio). */
+const RENDER_API_URL = 'https://api.rindecol.online';
 
 /**
  * URL base del backend, sin barra final: la de `VITE_API_URL` y, si falta, la de Render en la

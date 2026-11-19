@@ -47,7 +47,8 @@ services:
       # Caddy está delante: la IP real del cliente llega en X-Forwarded-For.
       TRUST_PROXY: 1
 
-  # HTTPS automático (Let's Encrypt) para <ip>.sslip.io, sin comprar dominio.
+  # HTTPS automático (Let's Encrypt) para cada dominio de API_HOSTS (p. ej. api-qa.rindecol.online y
+  # <ip>.sslip.io). Sin API_HOSTS usa API_HOST (solo el sslip.io que crea la plantilla).
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -55,8 +56,11 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    command: caddy reverse-proxy --from ${API_HOST:?falta API_HOST} --to api:3000
+    command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+    environment:
+      API_HOSTS: ${API_HOSTS:-${API_HOST:?falta API_HOST}}
     volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
 
 volumes:
