@@ -10,7 +10,7 @@
  * Uso (desde `frontend/`):
  *   npm run lighthouse
  *   PAGES=/app,/login npm run lighthouse     # solo algunas páginas
- *   APP_URL=https://fintrack-seven-delta.vercel.app API_URL=https://fintrack-api-2z1p.onrender.com npm run lighthouse
+ *   APP_URL=https://www.rindecol.online API_URL=https://api.rindecol.online npm run lighthouse
  *
  * Usa el perfil móvil de Lighthouse (CPU 4x más lenta y red 4G simulada), el más exigente.
  * Crea un usuario de prueba (`lighthouse.*@fintrack.test`) con algunos movimientos para que el

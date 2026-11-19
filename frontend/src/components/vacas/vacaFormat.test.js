@@ -55,10 +55,10 @@ describe('vacaFormat (FT-0014/FT-0015)', () => {
 
 describe('appOrigin (dominio de los enlaces)', () => {
   it('usa VITE_APP_URL sin la barra final', async () => {
-    vi.stubEnv('VITE_APP_URL', 'https://fintrackcol.online/');
+    vi.stubEnv('VITE_APP_URL', 'https://www.rindecol.online/');
     const { appOrigin, inviteLink: link } = await import('./vacaFormat');
-    expect(appOrigin()).toBe('https://fintrackcol.online');
-    expect(link('4NS6NP')).toBe('https://fintrackcol.online/app/vacas/unirse/4NS6NP');
+    expect(appOrigin()).toBe('https://www.rindecol.online');
+    expect(link('4NS6NP')).toBe('https://www.rindecol.online/app/vacas/unirse/4NS6NP');
     vi.unstubAllEnvs();
   });
 });

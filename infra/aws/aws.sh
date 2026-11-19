@@ -7,6 +7,7 @@
 #   ./infra/aws/aws.sh deploy [rama]                    llevar una rama a la instancia (por defecto develop)
 #   ./infra/aws/aws.sh smoke                            probar /health y el registro de punta a punta
 #   ./infra/aws/aws.sh cors <origen1,origen2>           qué frontends pueden llamar a la API de pruebas
+#   ./infra/aws/aws.sh domain <api-qa.dominio>          dominio propio para la API de QA (HTTPS automático)
 #   ./infra/aws/aws.sh config <NOMBRE> <valor>          variable NO secreta para la API de QA (p. ej. GOOGLE_CLIENT_ID)
 #   ./infra/aws/aws.sh secret <NOMBRE>                  variable secreta: la pide sin mostrarla (p. ej. EMAIL_API_KEY)
 #   ./infra/aws/aws.sh vapid                            par de llaves nuevo para las notificaciones push de QA
@@ -144,6 +145,20 @@ sed -i 's#^CORS_ORIGIN=.*#CORS_ORIGIN=$origins#' .env
 docker compose up -d api
 grep ^CORS_ORIGIN= .env"
     ;;
+  domain)
+    # Dominio propio para la API de QA (p. ej. api-qa.rindecol.online). El DNS debe apuntar ya a la IP
+    # de la instancia: Caddy pide el certificado HTTPS al arrancar. El sslip.io sigue como respaldo.
+    host="${2:?Uso: aws.sh domain api-qa.tudominio.com}"
+    [[ "$host" =~ ^[a-z0-9.-]+\.[a-z]{2,}$ ]] || { echo "Dominio inválido" >&2; exit 1; }
+    remote "set -e
+cd /opt/rinde/infra/aws
+sslip=\$(grep ^API_HOST= .env | cut -d= -f2)
+grep -q '^API_HOSTS=' .env && sed -i '/^API_HOSTS=/d' .env
+echo \"API_HOSTS=$host, \$sslip\" >> .env
+docker compose up -d caddy
+grep ^API_HOSTS= .env"
+    echo "Listo. En ~1 min: curl https://$host/health"
+    ;;
   config)
     valid_name "${2:?Uso: aws.sh config <NOMBRE> <valor>}"
     put_param "$2" String "${3?Uso: aws.sh config <NOMBRE> <valor>}"
@@ -223,7 +238,7 @@ docker compose up -d api"
     echo "Borrado. Revisa en Billing que no quede nada cobrando."
     ;;
   *)
-    sed -n '2,25p' "$0"
+    sed -n '2,26p' "$0"
     exit 1
     ;;
 esac
