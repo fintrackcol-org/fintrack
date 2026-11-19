@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addPeriods, progress, schedule } from './services/debt-schedule.js';
+import { addPeriods, progress, remaining, schedule } from './services/debt-schedule.js';
 
 // Cuotas y abonos de las cuentas con personas (FT-0064), sin base de datos.
 
@@ -49,4 +49,15 @@ test('pagada completa no tiene próxima cuota', () => {
 test('a fecha fija, lo pendiente vence en la fecha límite', () => {
   const p = progress({ amount: 60000, dueDate: '2026-11-30' }, 20000);
   assert.deepEqual(p.next, { number: 1, date: '2026-11-30', amount: 40000 });
+});
+
+test('lo que falta va cuota por cuota: la próxima con lo que le falta y las demás completas', () => {
+  const debt = { amount: 750000, installments: 3, frequency: 'monthly', firstDueDate: '2026-11-15' };
+  assert.deepEqual(remaining(debt, 300000), [
+    { number: 2, date: '2026-12-15', amount: 200000 },
+    { number: 3, date: '2027-01-15', amount: 250000 },
+  ]);
+  assert.deepEqual(remaining(debt, 750000), []);
+  assert.deepEqual(remaining({ amount: 60000, dueDate: '2026-11-30' }, 20000), [{ number: 1, date: '2026-11-30', amount: 40000 }]);
+  assert.deepEqual(remaining({ amount: 60000, dueDate: null }, 0), []);
 });

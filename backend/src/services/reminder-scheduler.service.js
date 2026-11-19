@@ -1,4 +1,5 @@
 import { dueExpiryNotice, expiryReminderPayload } from './card-expiry.js';
+import { progress } from './debt-schedule.js';
 import {
   listCardReminderUsers,
   listLiquidityReminderUsers,
@@ -67,10 +68,13 @@ export function whenText(daysBefore) {
 
 /**
  * Aviso de una cuenta personal por vencer (FT-0046), con la anticipación que eligió el usuario (FT-0063).
- * @param {{ kind: 'receivable'|'payable', person: string, amount: number, daysBefore?: number }} debt
+ * Dice lo que falta de la cuota que vence, o lo pendiente a fecha fija; no el total (FT-0064).
+ * @param {{ kind: 'receivable'|'payable', person: string, amount: number, dueDate?: string, daysBefore?: number, paid?: number, installments?: number|null }} debt
  * @returns {{ title: string, body: string, url: string }}
  */
-export function debtReminderPayload({ kind, person, amount, daysBefore = 1 }) {
+export function debtReminderPayload(debt) {
+  const { kind, person, daysBefore = 1 } = debt;
+  const amount = progress(debt, debt.paid ?? 0).next?.amount ?? debt.amount;
   const when = whenText(daysBefore);
   return {
     title: kind === 'receivable' ? t('Te deben') : t('Tienes que pagar'),
