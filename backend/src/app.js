@@ -31,6 +31,7 @@ import {
 import { createAiRateLimit, createAuthRateLimit } from './middlewares/rate-limit.middleware.js';
 import { notFound } from './middlewares/not-found.middleware.js';
 import { securityHeaders } from './middlewares/security-headers.middleware.js';
+import { metricsMiddleware, metricsRouter } from './middlewares/metrics.middleware.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 
 /**
@@ -50,6 +51,9 @@ export function createApp() {
   // No anunciar que el servidor es Express (FT-0042).
   app.disable('x-powered-by');
   app.use(securityHeaders);
+  // Tiempos y códigos de cada petición para Grafana; GET /metrics con METRICS_TOKEN (FT-0074).
+  app.use(metricsMiddleware);
+  app.use(metricsRouter);
 
   // Sin CORS_ORIGIN (desarrollo local) se permite cualquier origen.
   app.use(

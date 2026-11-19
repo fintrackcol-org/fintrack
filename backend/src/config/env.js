@@ -128,6 +128,7 @@ if (nodeEnv === 'production' && !process.env.JWT_SECRET) {
  * @property {string} attachmentsBucket Espacio privado de Supabase para los soportes (`ATTACHMENTS_BUCKET`, por defecto `soportes`).
  * @property {string|undefined} s3Bucket Bucket privado de S3 para los soportes en el entorno de pruebas de AWS (`S3_BUCKET`, FT-0064). Si está, gana sobre Supabase.
  * @property {string} awsRegion Región de AWS del bucket (`AWS_REGION`, por defecto `us-east-1`).
+ * @property {string|undefined} metricsToken Token para leer `GET /metrics` desde Grafana (`METRICS_TOKEN`). Sin él, la ruta no existe.
  * @property {string} uploadsDir Carpeta de los soportes en desarrollo, relativa a `backend/` (`UPLOADS_DIR`, por defecto `uploads`).
  */
 export const env = {
@@ -179,6 +180,7 @@ export const env = {
   s3Bucket: process.env.S3_BUCKET?.trim() || undefined,
   awsRegion: process.env.AWS_REGION?.trim() || 'us-east-1',
   uploadsDir: process.env.UPLOADS_DIR?.trim() || 'uploads',
+  metricsToken: process.env.METRICS_TOKEN?.trim() || undefined,
 };
 
 /**

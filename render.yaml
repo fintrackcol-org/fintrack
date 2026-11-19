@@ -40,5 +40,7 @@ services:
         sync: false # secreto; el mismo texto configurado en el webhook de Meta
       - key: WHATSAPP_BOT_NUMBER
         sync: false # número del bot con indicativo, solo dígitos
+      - key: METRICS_TOKEN
+        sync: false # secreto; Grafana Cloud lo usa para leer GET /metrics (FT-0074)
       - key: WHATSAPP_ALLOWED_EMAILS
         sync: false # correos que pueden conectar el bot, separados por coma
