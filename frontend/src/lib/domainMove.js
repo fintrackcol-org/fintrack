@@ -54,7 +54,10 @@ export async function countUnsent(db) {
  * @param {{ serviceWorker?: ServiceWorkerContainer, caches?: CacheStorage }} [env]
  * @returns {Promise<void>}
  */
-export async function forgetOldDomain({ serviceWorker = navigator.serviceWorker, caches = globalThis.caches } = {}) {
+export async function forgetOldDomain({
+  serviceWorker = globalThis.navigator?.serviceWorker,
+  caches = globalThis.caches,
+} = {}) {
   try {
     const registrations = (await serviceWorker?.getRegistrations()) ?? [];
     for (const registration of registrations) {
