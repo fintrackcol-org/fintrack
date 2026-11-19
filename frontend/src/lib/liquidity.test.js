@@ -48,7 +48,7 @@ describe('motor de liquidez en pantalla (FT-0059)', () => {
     expect(tips).toEqual([
       'Gasta máximo $28000 al día (hoy gastas unos $40000).',
       'Cobra lo que te deben ($200000): te faltaría menos.',
-      'Paga el mínimo de Visa y abona el resto después.',
+      'Pagar menos de Visa te cobra intereses: mejor pídele a un cliente que te pague antes.',
       'Mira si puedes correr unos días «Internet».',
     ]);
   });

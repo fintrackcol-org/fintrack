@@ -20,15 +20,17 @@ describe('backPath', () => {
   });
 
   it('lleva las secciones principales al inicio', () => {
-    for (const path of ['/app/transacciones', '/app/cuenta', '/app/gastos', '/app/metas']) {
+    for (const path of ['/app/transacciones', '/app/cuenta', '/app/gastos', '/app/planear']) {
       expect(backPath(path)).toBe('/app');
     }
   });
 
-  it('lleva lo que vive dentro de una pestaña a esa pestaña (Rinde v2)', () => {
-    for (const path of ['/app/presupuestos', '/app/insights', '/app/tarjetas', '/app/cuentas', '/app/calendario']) {
-      expect(backPath(path)).toBe('/app/mi-plata');
+  it('lleva lo que vive dentro de una pestaña a esa pestaña (Rinde v5)', () => {
+    for (const path of ['/app/presupuestos', '/app/metas', '/app/tarjetas', '/app/cuentas', '/app/calendario', '/app/mi-plata/pagos']) {
+      expect(backPath(path)).toBe('/app/planear');
     }
+    expect(backPath('/app/por-confirmar')).toBe('/app/movimientos');
+    expect(backPath('/app/insights')).toBe('/app/mi-plata');
     expect(backPath('/app/vacas')).toBe('/app/metas');
   });
 
@@ -42,7 +44,7 @@ describe('backPath', () => {
   });
 
   it('lleva lo que se abre desde otra pantalla a esa pantalla', () => {
-    expect(backPath('/app/calendario')).toBe('/app/mi-plata');
+    expect(backPath('/app/calendario')).toBe('/app/planear');
     expect(backPath('/app/renta')).toBe('/app/insights');
     expect(backPath('/app/transacciones/exportar')).toBe('/app/cuenta');
     expect(backPath('/app/lo-que-viene/admin')).toBe('/app/lo-que-viene');
