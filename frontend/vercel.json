@@ -4,7 +4,7 @@
   "outputDirectory": "dist",
   "redirects": [
     {
-      "source": "/(.*)",
+      "source": "/((?!.*\\.[A-Za-z0-9]+$).*)",
       "has": [{ "type": "host", "value": "fintrack-seven-delta.vercel.app" }],
       "destination": "https://www.rindecol.online/$1",
       "permanent": true
@@ -16,13 +16,13 @@
       "permanent": true
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!.*\\.[A-Za-z0-9]+$).*)",
       "has": [{ "type": "host", "value": "fintrackcol.online" }],
       "destination": "https://www.rindecol.online/$1",
       "permanent": true
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!.*\\.[A-Za-z0-9]+$).*)",
       "has": [{ "type": "host", "value": "www.fintrackcol.online" }],
       "destination": "https://www.rindecol.online/$1",
       "permanent": true
