@@ -7,8 +7,7 @@ import {
   Lightbulb,
   Loader2,
   UserPlus,
-  Wallet,
-  Flag,
+  CalendarRange,
   List,
   Plus,
 } from 'lucide-react';
@@ -17,7 +16,7 @@ import NotificationBell from '@/components/layout/NotificationBell';
 import { NotificationsProvider } from '@/components/layout/NotificationsProvider';
 import SyncStatus from '@/components/layout/SyncStatus';
 import QuickEntryBar from '@/components/transactions/QuickEntryBar';
-import MobileTabBar, { TABS, hasAddButton, hasTabBar } from '@/components/layout/MobileTabBar';
+import MobileTabBar, { TABS, hasTabBar } from '@/components/layout/MobileTabBar';
 import SplitIncomeSheet from '@/components/money/SplitIncomeSheet';
 import { useAuth } from '@/auth/AuthContext';
 import useOfflineSync from '@/hooks/useOfflineSync';
@@ -31,35 +30,37 @@ import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { t } from '@/lib/i18n';
 
 /**
- * Menú lateral (Rinde v2): las mismas 4 secciones de la barra del celular, con lo que vive dentro de
- * Mi plata y de Metas como subsecciones. `end` evita que "Inicio" quede activo en las subrutas.
+ * Menú lateral (Rinde v5): las mismas zonas de la barra del celular (Yo es el usuario de abajo), con lo
+ * que vive dentro de cada una como subsecciones. `end` evita que "Inicio" quede activo en las subrutas.
  */
 const NAV = [
-  { to: '/app', label: t('Inicio'), icon: House, end: true },
-  { to: '/app/movimientos', label: t('Movimientos'), icon: List },
   {
-    to: '/app/mi-plata',
-    label: t('Mi plata'),
-    icon: Wallet,
-    tour: 'mi-plata',
+    to: '/app',
+    label: t('Inicio'),
+    icon: House,
+    end: true,
     children: [
-      { to: '/app/presupuestos', label: t('Presupuestos') },
-      { to: '/app/calendario', label: t('Calendario') },
-      { to: '/app/cuentas', label: t('Cuentas') },
-      { to: '/app/tarjetas', label: t('Tarjetas') },
-      { to: '/app/por-confirmar', label: t('Por confirmar') },
+      // `end`: Pagos fijos (/app/mi-plata/pagos) vive en Planear, no aquí.
+      { to: '/app/mi-plata', label: t('Mi plata'), end: true },
       { to: '/app/insights', label: t('Consejos') },
       { to: '/app/renta', label: t('Renta y DIAN') },
     ],
   },
+  { to: '/app/movimientos', label: t('Movimientos'), icon: List, children: [{ to: '/app/por-confirmar', label: t('Por confirmar') }] },
   {
-    to: '/app/metas',
-    label: t('Metas'),
-    icon: Flag,
-    tour: 'metas',
+    to: '/app/planear',
+    label: t('Planear'),
+    icon: CalendarRange,
+    tour: 'planear',
     children: [
+      { to: '/app/mi-plata/pagos', label: t('Pagos fijos') },
+      { to: '/app/calendario', label: t('Calendario') },
+      { to: '/app/presupuestos', label: t('Presupuestos') },
+      { to: '/app/metas', label: t('Metas') },
       { to: '/app/vacas', label: t('Vacas') },
       { to: '/app/negocios', label: t('Negocios') },
+      { to: '/app/cuentas', label: t('Deudas') },
+      { to: '/app/tarjetas', label: t('Tarjetas') },
     ],
   },
 ];
@@ -119,7 +120,7 @@ function Sidebar({ user }) {
       <nav aria-label={t('Principal')} className="mt-6">
         <ul className="flex flex-col gap-1">
           {NAV.map(({ to, label, icon: Icon, end, tour, children = [] }) => {
-            const inside = children.some((c) => pathname.startsWith(c.to));
+            const inside = children.some((c) => (c.end ? pathname === c.to : pathname.startsWith(c.to)));
             return (
               <li key={to}>
                 <NavLink
@@ -138,6 +139,7 @@ function Sidebar({ user }) {
                       <li key={c.to}>
                         <NavLink
                           to={c.to}
+                          end={c.end}
                           className={({ isActive }) =>
                             cn(
                               'flex h-9 items-center rounded-lg pl-11 pr-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-violet',
@@ -277,9 +279,8 @@ function Shell() {
   const { pathname } = useLocation();
   const quickEntry = QUICK_ENTRY_PATHS.includes(pathname);
   const bottomBar = BOTTOM_BAR_PATHS.includes(pathname);
-  // Rinde v2: en el celular, la barra de pestañas flotante (y el botón Anotar encima, donde va).
+  // En el celular, la barra de pestañas flotante con Anotar en el centro.
   const tabBar = hasTabBar(pathname);
-  const addButton = hasAddButton(pathname);
   useSyncProfile();
 
   return (
@@ -320,10 +321,8 @@ function Shell() {
           id="contenido"
           className={cn(
             'flex-1 px-4 pt-2 md:px-8 md:pt-8',
-            // Que la barra flotante (y el botón Anotar) no tapen el final de la pantalla.
-            addButton
-              ? 'max-md:pb-[calc(10rem+env(safe-area-inset-bottom))]'
-              : tabBar || bottomBar
+            // Que la barra flotante no tape el final de la pantalla.
+            tabBar || bottomBar
                 ? 'max-md:pb-[calc(6.5rem+env(safe-area-inset-bottom))]'
                 : 'max-md:pb-[calc(2rem+env(safe-area-inset-bottom))]',
             quickEntry ? 'md:pb-28' : 'md:pb-12',
@@ -355,7 +354,7 @@ function Shell() {
 let firstPage = true;
 
 /** Las 4 pestañas: cambiar entre ellas es ir al lado, no avanzar, y pasa decenas de veces al día. */
-const TAB_ROOTS = new Set(['/app', '/app/movimientos', '/app/mi-plata', '/app/metas']);
+const TAB_ROOTS = new Set(TABS.map(({ to }) => to));
 
 /**
  * Entrada de cada pantalla: llega desde la derecha al avanzar y desde la izquierda al volver. No se
