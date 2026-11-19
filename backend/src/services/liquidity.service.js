@@ -3,6 +3,7 @@ import * as repo from '../repositories/money-profile.repository.js';
 import { daysInMonth } from './analytics.service.js';
 import { list as listCards } from './cards.service.js';
 import { list as listDebts } from './debts.service.js';
+import { remaining } from './debt-schedule.js';
 import { todayIso } from './insights.service.js';
 import { addDays, monthlyOutflows, projectLiquidity } from './liquidity.logic.js';
 import { getPlan, isPaymentOf } from './money-plan.service.js';
@@ -139,15 +140,13 @@ export function createLiquidityService(deps = {}) {
           name: v.name,
           id: v.id,
         })),
+      // Cada cuota que falta en su fecha, no el total de la cuenta (FT-0064).
       ...debts.items
-        .filter((d) => d.kind === 'payable' && !d.settledAt && d.dueDate && d.dueDate < until)
-        .map((d) => ({
-          date: d.dueDate,
-          amount: d.amount,
-          kind: 'deuda',
-          name: d.person,
-          id: d.id,
-        })),
+        .filter((d) => d.kind === 'payable' && !d.settledAt)
+        .flatMap((d) =>
+          remaining(d, d.paid ?? 0).map((c) => ({ date: c.date, amount: c.amount, kind: 'deuda', name: d.person, id: d.id })),
+        )
+        .filter((p) => p.date < until),
     ];
 
     const receivable = debts.totals.receivable;

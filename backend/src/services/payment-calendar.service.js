@@ -5,6 +5,7 @@ import { daysInMonth, shiftMonth } from './analytics.service.js';
 import { todayIso } from './insights.service.js';
 import { dateInMonth, getPlan, isPaymentOf, occursInMonth, pendingCommitments } from './money-plan.service.js';
 import { list as listCards } from './cards.service.js';
+import { remaining } from './debt-schedule.js';
 import { list as listVacas } from './vacas.service.js';
 import { t } from '../i18n/index.js';
 
@@ -73,8 +74,8 @@ export function riskOf(balanceAfter, pace) {
  * @param {Array<{ id: string, name: string, nextPaymentDate: string, amount: number, paidDueDate: string|null, paidAmount: number }>} [data.cards]
  *   Tarjetas con su primer pago sin hacer (`nextPaymentDate`, puede estar atrasado) y el último
  *   ciclo pagado con lo que se pagó en él.
- * @param {Array<{ id: string, kind: 'receivable'|'payable', person: string, amount: number, dueDate: string|null, settledAt: Date|null }>} [data.debts]
- *   Cuentas personales (FT-0069). Solo cuentan las pendientes con fecha.
+ * @param {Array<{ id: string, kind: 'receivable'|'payable', person: string, amount: number, dueDate: string|null, settledAt: Date|null, paid?: number, installments?: number|null }>} [data.debts]
+ *   Cuentas personales (FT-0069). Solo cuentan las pendientes con fecha; con cuotas, cada una (FT-0064).
  * @param {{ ready: boolean, money?: number, pace?: number|null, nextPay?: string }} data.plan Lo de `getPlan`.
  * @returns {{ month: string, today: string, money: number|null, projectedUntil: string|null, events: CalendarEvent[], totals: { pending: number, paid: number } }}
  */
@@ -94,7 +95,12 @@ export function buildPaymentCalendar({
   const fixed = profile?.incomeType === 'fecha_fija';
   const end = projectionEnd({ fixed, nextPay: plan.nextPay, today });
   const isPaid = (name, expenses) => expenses.some((e) => isPaymentOf({ name }, e));
-  const openDebts = debts.filter((d) => d.dueDate && !d.settledAt);
+  // Cada cuota que falta sale en su fecha con lo que le falta; a fecha fija, lo pendiente (FT-0064).
+  const openDebts = debts
+    .filter((d) => !d.settledAt)
+    .flatMap((d) =>
+      remaining(d, d.paid ?? 0).map((c) => ({ ...d, key: `${d.id}:${c.number}`, dueDate: c.date, amount: c.amount })),
+    );
 
   // 1. Lo que falta pagar desde hoy hasta el fin de la proyección, en orden.
   const owed = [
@@ -111,7 +117,7 @@ export function buildPaymentCalendar({
     // Lo que el usuario le debe a alguien, con fecha: sale de su plata ese día.
     ...openDebts
       .filter((d) => d.kind === 'payable' && d.dueDate < end)
-      .map((d) => ({ key: `cuenta:${d.id}`, date: d.dueDate, amount: d.amount })),
+      .map((d) => ({ key: `cuenta:${d.key}`, date: d.dueDate, amount: d.amount })),
   ]
     // Lo atrasado se paga hoy, antes que lo demás.
     .map((p) => ({ ...p, when: p.date < today ? today : p.date }))
@@ -190,7 +196,7 @@ export function buildPaymentCalendar({
       amount: d.amount,
       status: d.dueDate < today ? 'atrasado' : 'pendiente',
       // Lo que le deben no cambia el saldo proyectado.
-      ...(payable ? projected(`cuenta:${d.id}`) : { balanceAfter: null, risk: null }),
+      ...(payable ? projected(`cuenta:${d.key}`) : { balanceAfter: null, risk: null }),
     });
   }
   if (fixed) {

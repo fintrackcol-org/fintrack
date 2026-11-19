@@ -218,3 +218,12 @@ test('el motor entrega por el canal elegido y no pierde el aviso si WhatsApp fal
     ['solo-whatsapp', 'Tienes que pagar: En 7 días vence lo que le debes a Ana: $\u00a012.500.'],
   ]);
 });
+
+test('el aviso de una cuota dice lo que falta de esa cuota, no el total (FT-0064)', () => {
+  // 750.000 en 3 cuotas mensuales, con 300.000 abonados: la cuota 2 vence con 200.000 por pagar.
+  const debt = { kind: 'payable', person: 'Ana', amount: 750000, dueDate: '2026-12-15', daysBefore: 1, paid: 300000, installments: 3, frequency: 'monthly', firstDueDate: '2026-11-15' };
+  assert.equal(debtReminderPayload(debt).body, 'Mañana vence lo que le debes a Ana: $ 200.000.');
+  // A fecha fija, lo pendiente.
+  const fixed = { kind: 'receivable', person: 'Juan', amount: 50000, dueDate: '2026-11-13', daysBefore: 1, paid: 20000 };
+  assert.equal(debtReminderPayload(fixed).body, 'Mañana Juan te debe pagar $ 30.000.');
+});
