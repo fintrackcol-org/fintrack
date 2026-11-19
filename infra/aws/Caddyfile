@@ -1,0 +1,5 @@
+# Proxy HTTPS de la API de QA. Los dominios llegan en API_HOSTS (ver compose.yaml y `aws.sh domain`).
+{$API_HOSTS} {
+	encode gzip
+	reverse_proxy api:3000
+}

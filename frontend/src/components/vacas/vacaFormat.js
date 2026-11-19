@@ -42,7 +42,7 @@ export const VACA_STATUS = {
 
 /**
  * Dominio público de la app para los enlaces que se comparten (`VITE_APP_URL`, p. ej.
- * `https://fintrackcol.online`). Sin la variable, el dominio en el que se abrió la app.
+ * `https://www.rindecol.online`). Sin la variable, el dominio en el que se abrió la app.
  * @returns {string} Sin barra final.
  */
 export function appOrigin() {

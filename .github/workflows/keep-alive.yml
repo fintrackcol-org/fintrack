@@ -24,7 +24,7 @@ jobs:
     steps:
       - name: Llamar a la API
         env:
-          HEALTH_URL: https://fintrack-api-2z1p.onrender.com/health
+          HEALTH_URL: https://api.rindecol.online/health
         run: |
           # Tres intentos: si el servicio estaba dormido, el primero lo despierta.
           for attempt in 1 2 3; do

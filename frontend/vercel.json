@@ -6,7 +6,25 @@
     {
       "source": "/(.*)",
       "has": [{ "type": "host", "value": "fintrack-seven-delta.vercel.app" }],
-      "destination": "https://www.fintrackcol.online/$1",
+      "destination": "https://www.rindecol.online/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "rindecol.online" }],
+      "destination": "https://www.rindecol.online/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "fintrackcol.online" }],
+      "destination": "https://www.rindecol.online/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.fintrackcol.online" }],
+      "destination": "https://www.rindecol.online/$1",
       "permanent": true
     }
   ],

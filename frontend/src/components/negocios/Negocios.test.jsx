@@ -42,7 +42,7 @@ describe('PartnerList (FT-0016)', () => {
 
 describe('negocioFormat', () => {
   it('arma el enlace de invitación y formatea la participación', () => {
-    expect(inviteLink('K7M2QX', 'https://fintrackcol.online')).toBe('https://fintrackcol.online/app/negocios/unirse/K7M2QX');
+    expect(inviteLink('K7M2QX', 'https://www.rindecol.online')).toBe('https://www.rindecol.online/app/negocios/unirse/K7M2QX');
     expect(formatShare(33.33)).toBe('33,33 %');
   });
 });

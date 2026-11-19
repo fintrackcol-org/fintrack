@@ -43,10 +43,29 @@ el repo, la plantilla ni la consola. Los recordatorios están apagados para no m
    `pruebas.<dominio>` asignado a la rama `develop` en Settings > Domains).
 3. `./infra/aws/aws.sh cors https://<esa-url>,http://localhost:5173`
 
+### QA igual a producción: variables y claves
+
+La API de QA lee las mismas variables que producción tiene en Render, guardadas en **AWS Parameter
+Store** bajo `/rinde-pruebas/` (las secretas, cifradas). Nunca pasan por el repo ni por el chat.
+
+```bash
+./infra/aws/aws.sh config GOOGLE_CLIENT_ID 123-abc.apps.googleusercontent.com   # no secretas
+./infra/aws/aws.sh secret EMAIL_API_KEY                                         # secretas: la pide sin mostrarla
+./infra/aws/aws.sh env                                                          # qué hay (solo nombres)
+./infra/aws/aws.sh reload                                                       # aplicar sin redesplegar
+```
+
+| Igual a producción | Distinto a propósito |
+|---|---|
+| Código, Node, parches de la base, Google, correos (Brevo), IA (Gemini y Groq), recordatorios, administradores | Base de datos y `JWT_SECRET` propios; llaves push propias (`aws.sh vapid`); soportes en S3 (no Supabase); sin bot de WhatsApp (un número solo admite un webhook); dominio `sslip.io` |
+
+Google: en Google Cloud > Credentials > el cliente OAuth web, agregar el frontend de QA en
+*Authorized JavaScript origins* y `<ApiUrl>/api/v1/auth/google/redirect` en *Authorized redirect URIs*.
+
 ### Cuentas de prueba
 
-QA no manda correos: el enlace de verificación solo queda en el log. Después de registrarte,
-`./infra/aws/aws.sh verify <correo>`. Para tener datos: `./infra/aws/aws.sh seed` (imprime la clave).
+Con `EMAIL_API_KEY` QA manda los correos como producción. Para saltarte la verificación con una
+cuenta de prueba: `./infra/aws/aws.sh verify <correo>`. Para tener datos: `./infra/aws/aws.sh seed` (imprime la clave).
 
 ## Uso
 

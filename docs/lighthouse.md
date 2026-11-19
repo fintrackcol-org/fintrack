@@ -23,7 +23,7 @@ si alguna categoría queda por debajo de 90.
 
 ```bash
 PAGES=/app,/login npm run lighthouse       # solo algunas páginas
-APP_URL=https://fintrack-seven-delta.vercel.app API_URL=https://fintrack-api-2z1p.onrender.com npm run lighthouse
+APP_URL=https://www.rindecol.online API_URL=https://api.rindecol.online npm run lighthouse
 ```
 
 > **Local vs. producción.** `vite preview` sirve por HTTP/1.1 (máximo 6 conexiones), así que
@@ -57,7 +57,7 @@ producción quedara bajo 90 en móvil (es la página más pesada: 9 secciones an
 
 ### Producción (Vercel, 2026-10-25, tras el merge de la PR #71)
 
-Móvil, mediana de 3 corridas, `https://fintrack-seven-delta.vercel.app`:
+Móvil, mediana de 3 corridas, `https://www.rindecol.online`:
 
 | Página | Rendimiento | Accesibilidad | Buenas prácticas | SEO |
 |---|---|---|---|---|

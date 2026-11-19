@@ -8,7 +8,7 @@ import usePageTitle from '@/hooks/usePageTitle';
 import { t } from '@/lib/i18n';
 
 /** Dirección pública de Rinde: la que recibe el amigo. */
-export const APP_URL = 'https://www.fintrackcol.online';
+export const APP_URL = 'https://www.rindecol.online';
 
 const SHARE_TEXT = t('Estoy organizando mis finanzas con Rinde. Pruébala y armemos una vaca:');
 
