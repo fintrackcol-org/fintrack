@@ -123,6 +123,13 @@ Resources:
               - Effect: Allow
                 Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
                 Resource: !Sub '${AttachmentsBucket.Arn}/*'
+        # Configuración y claves de QA (aws.sh config / secret): solo lee las de este stack.
+        - PolicyName: configuracion
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: ssm:GetParametersByPath
+                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}'
       Tags: [{ Key: Project, Value: !Ref AWS::StackName }]
 
   InstanceProfile:

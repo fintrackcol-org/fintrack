@@ -30,6 +30,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Lo mismo que producción tiene en Render (Google, correos, IA, push...). Se arma en cada
+    # despliegue desde AWS Parameter Store (/<stack>/...): ver `aws.sh config` y `aws.sh secret`.
+    # Lo de `environment` gana sobre este archivo: la base, el JWT y el bucket siguen siendo de QA.
+    env_file:
+      - path: secrets.env
+        required: false
     environment:
       PORT: 3000
       NODE_ENV: production
@@ -40,8 +46,6 @@ services:
       AWS_REGION: ${AWS_REGION}
       # Caddy está delante: la IP real del cliente llega en X-Forwarded-For.
       TRUST_PROXY: 1
-      # En pruebas los recordatorios no deben mandar push ni WhatsApp a nadie.
-      REMINDERS_ENABLED: "false"
 
   # HTTPS automático (Let's Encrypt) para <ip>.sslip.io, sin comprar dominio.
   caddy:
