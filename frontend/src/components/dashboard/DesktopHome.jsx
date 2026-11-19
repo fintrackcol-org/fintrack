@@ -12,6 +12,8 @@ import { formatMoney, formatRelativeDay } from '@/components/transactions/format
 import { displayLevel } from '@/lib/budgetLevel';
 import { getDisplayName } from '@/lib/displayName';
 import { cn } from '@/lib/utils';
+import { t as tr } from '@/lib/i18n';
+import { dateLocale } from '@/lib/region';
 
 const RECENT = 6;
 const BUDGETS = 3;
@@ -54,7 +56,7 @@ function Total({ label, value, to, money, positive = false }) {
       <span className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.08em] text-ink/60">
         {label}
         <span className="inline-flex items-center text-[13px] font-medium normal-case tracking-normal text-ink/60 group-hover:text-brand">
-          ver detalle <ChevronRight className="size-4" aria-hidden="true" />
+          {tr('ver detalle')} <ChevronRight className="size-4" aria-hidden="true" />
         </span>
       </span>
       <span className={cn('text-[28px] font-extrabold tracking-tight tabular-nums', positive && 'text-positive')}>
@@ -72,7 +74,7 @@ function Total({ label, value, to, money, positive = false }) {
 function BudgetsCard({ budgets, names, money }) {
   const top = budgets ? [...budgets].sort((a, b) => b.percentage - a.percentage).slice(0, BUDGETS) : null;
   return (
-    <Card title="Tus presupuestos" to="/app/presupuestos" linkLabel="Ver todos" data-tour="graficos">
+    <Card title={tr('Tus presupuestos')} to="/app/presupuestos" linkLabel={tr('Ver todos')} data-tour="graficos">
       {top === null ? (
         <ul className="space-y-4" aria-busy="true">
           {[0, 1, 2].map((i) => (
@@ -81,9 +83,9 @@ function BudgetsCard({ budgets, names, money }) {
         </ul>
       ) : top.length === 0 ? (
         <p className="py-4 text-sm text-ink/60">
-          Aún no tienes presupuestos.{' '}
+          {tr('Aún no tienes presupuestos.')}{' '}
           <Link to="/app/presupuestos" className="font-semibold text-brand">
-            Crea el primero
+            {tr('Crea el primero')}
           </Link>
         </p>
       ) : (
@@ -97,7 +99,7 @@ function BudgetsCard({ budgets, names, money }) {
                     <b className="truncate font-semibold">{names[b.category] ?? b.category}</b>
                     <span className="shrink-0 tabular-nums">
                       <b className={cn('font-semibold', level === 'exceeded_100' && 'text-negative')}>{money(b.consumed ?? 0)}</b>{' '}
-                      <span className="text-ink/60">de {money(b.amount)}</span>
+                      <span className="text-ink/60">{tr('de')} {money(b.amount)}</span>
                     </span>
                   </span>
                   <span className="relative mt-1.5 block h-1 rounded-full bg-ink/10" aria-hidden="true">
@@ -116,7 +118,7 @@ function BudgetsCard({ budgets, names, money }) {
 /** Los últimos movimientos en tabla: fecha, en qué, categoría, tipo y monto. Cada fila abre el detalle. */
 function RecentTable({ recent, error, names, money }) {
   return (
-    <Card title="Últimos movimientos" to="/app/movimientos" linkLabel="Ver todos" className="min-w-0">
+    <Card title={tr('Últimos movimientos')} to="/app/movimientos" linkLabel={tr('Ver todos')} className="min-w-0">
       {error ? (
         <p className="py-4 text-sm text-negative">{error}</p>
       ) : recent === undefined ? (
@@ -129,11 +131,11 @@ function RecentTable({ recent, error, names, money }) {
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-ink/10 text-xs uppercase tracking-[0.08em] text-ink/60">
-              <th scope="col" className="py-2 pr-3 font-semibold">Fecha</th>
-              <th scope="col" className="py-2 pr-3 font-semibold">En qué</th>
-              <th scope="col" className="py-2 pr-3 font-semibold max-xl:hidden">Categoría</th>
-              <th scope="col" className="py-2 pr-3 font-semibold">Tipo</th>
-              <th scope="col" className="py-2 text-right font-semibold">Monto</th>
+              <th scope="col" className="py-2 pr-3 font-semibold">{tr('Fecha')}</th>
+              <th scope="col" className="py-2 pr-3 font-semibold">{tr('En qué')}</th>
+              <th scope="col" className="py-2 pr-3 font-semibold max-xl:hidden">{tr('Categoría')}</th>
+              <th scope="col" className="py-2 pr-3 font-semibold">{tr('Tipo')}</th>
+              <th scope="col" className="py-2 text-right font-semibold">{tr('Monto')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ink/10">
@@ -152,8 +154,8 @@ function RecentTable({ recent, error, names, money }) {
                       {t.description}
                     </Link>
                   </td>
-                  <td className="py-3 pr-3 max-xl:hidden">{t.category ? (names[t.category] ?? t.category) : 'Sin clasificar'}</td>
-                  <td className="py-3 pr-3 text-ink/60">{income ? 'Ingreso' : (kakeiboOf(t.kakeibo)?.label ?? 'Gasto')}</td>
+                  <td className="py-3 pr-3 max-xl:hidden">{t.category ? (names[t.category] ?? t.category) : tr('Sin clasificar')}</td>
+                  <td className="py-3 pr-3 text-ink/60">{income ? tr('Ingreso') : (kakeiboOf(t.kakeibo)?.label ?? tr('Gasto'))}</td>
                   <td className={cn('py-3 text-right font-semibold tabular-nums', income && 'text-positive')}>
                     {income ? '+ ' : '− '}
                     {money(t.amount)}
@@ -172,7 +174,7 @@ function RecentTable({ recent, error, names, money }) {
 function UpcomingCard({ events, money, today }) {
   const next = events?.filter((e) => e.date >= today && e.status !== 'pagado').slice(0, UPCOMING);
   return (
-    <Card title="Próximos pagos fijos" to="/app/calendario" linkLabel="Calendario">
+    <Card title={tr('Próximos pagos fijos')} to="/app/calendario" linkLabel={tr('Calendario')}>
       {next === undefined ? (
         <div className="space-y-2" aria-busy="true">
           {[0, 1, 2].map((i) => (
@@ -180,7 +182,7 @@ function UpcomingCard({ events, money, today }) {
           ))}
         </div>
       ) : next.length === 0 ? (
-        <p className="py-4 text-sm text-ink/60">No tienes pagos pendientes este mes.</p>
+        <p className="py-4 text-sm text-ink/60">{tr('No tienes pagos pendientes este mes.')}</p>
       ) : (
         <ul className="divide-y divide-ink/10">
           {next.map((e) => {
@@ -188,7 +190,7 @@ function UpcomingCard({ events, money, today }) {
             return (
               <li key={`${e.kind}-${e.id}-${e.date}`} className="flex items-center justify-between gap-3 py-3 text-sm">
                 <span className="min-w-0 text-ink/70">
-                  {shortDay(e.date)} · {incoming ? `Te paga ${e.name}` : e.name}
+                  {shortDay(e.date)} · {incoming ? tr('Te paga {name}', { name: e.name }) : e.name}
                 </span>
                 <span className={cn('shrink-0 font-semibold tabular-nums', incoming && 'text-positive')}>
                   {incoming ? '+ ' : ''}
@@ -204,7 +206,7 @@ function UpcomingCard({ events, money, today }) {
 }
 
 const longDate = (date) =>
-  date.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, (c) => c.toUpperCase());
+  date.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, (c) => c.toUpperCase());
 
 /**
  * Inicio en el computador (Rinde v2, lienzo «Escritorio»): arriba la pregunta del día; la tarjeta de Mi
@@ -237,7 +239,7 @@ export default function DesktopHome({
       <header className="flex items-end justify-between gap-4">
         <div>
           <p className="text-sm text-ink/60">{longDate(new Date())}</p>
-          <h1 className="text-[28px] font-extrabold tracking-tight">{name ? `¿Cuánto te queda, ${name}?` : '¿Cuánto te queda?'}</h1>
+          <h1 className="text-[28px] font-extrabold tracking-tight">{name ? tr('¿Cuánto te queda, {name}?', { name }) : tr('¿Cuánto te queda?')}</h1>
         </div>
         <button
           type="button"
@@ -246,7 +248,7 @@ export default function DesktopHome({
           className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium text-ink/70 ring-1 ring-ink/10 hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-violet"
         >
           {hidden ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
-          {hidden ? 'Mostrar montos' : 'Ocultar montos'}
+          {hidden ? tr('Mostrar montos') : tr('Ocultar montos')}
         </button>
       </header>
 
@@ -256,8 +258,8 @@ export default function DesktopHome({
       <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr_1.15fr] lg:grid-cols-2">
         <MoneyCard balance={balance} monthExpense={totals?.expense} money={money} monthLabel={monthLabel} className="min-h-[180px] justify-between" />
         <div data-tour="totales" className="flex flex-col gap-4">
-          <Total label="Ingresos" to="/app/ingresos" value={totals?.income} money={money} positive />
-          <Total label="Gastos" to="/app/gastos" value={totals?.expense} money={money} />
+          <Total label={tr('Ingresos')} to="/app/ingresos" value={totals?.income} money={money} positive />
+          <Total label={tr('Gastos')} to="/app/gastos" value={totals?.expense} money={money} />
         </div>
         <BudgetsCard budgets={budgets} names={names} money={money} />
       </div>
@@ -272,8 +274,8 @@ export default function DesktopHome({
       )}
 
       <p className="text-[13px] text-ink/60">
-        Anota desde la barra de abajo: escribe «almuerzo 15 mil» y presiona <kbd className="font-semibold">Enter</kbd>.{' '}
-        <kbd className="font-semibold">Esc</kbd> cierra las hojas. Funciona también como app instalada en el computador.
+        {tr('Anota desde la barra de abajo: escribe «almuerzo 15 mil» y presiona')} <kbd className="font-semibold">{tr('Enter')}</kbd>.{' '}
+        <kbd className="font-semibold">{tr('Esc')}</kbd> {tr('cierra las hojas. Funciona también como app instalada en el computador.')}
       </p>
     </div>
   );

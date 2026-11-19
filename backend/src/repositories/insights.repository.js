@@ -39,6 +39,15 @@ export async function saveInsights(userId, month, insights) {
 }
 
 /**
+ * Borra los insights guardados del usuario: cambió de idioma o de moneda y ya no le sirven.
+ * @param {string} userId
+ * @returns {Promise<void>}
+ */
+export async function deleteInsights(userId) {
+  await pool.query('DELETE FROM insights WHERE usuario_id = $1', [userId]);
+}
+
+/**
  * Fecha de la transacción más antigua del usuario (sin contar las borradas).
  * @param {string} userId
  * @returns {Promise<string|null>} AAAA-MM-DD, o `null` si no tiene transacciones.

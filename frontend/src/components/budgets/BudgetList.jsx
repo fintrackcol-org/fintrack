@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { formatMoney } from '@/components/transactions/format';
 import { displayLevel, isAtLimit } from '@/lib/budgetLevel';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
+import { numberLocale } from '@/lib/region';
 
 /** Umbral de advertencia (RN-04): se dibuja como una marca fija sobre cada barra. */
 const WARNING_AT = 80;
 
-const percent = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
+const percent = new Intl.NumberFormat(numberLocale(), { maximumFractionDigits: 2 });
 
 /**
  * @param {number} value
@@ -32,10 +34,10 @@ const LEVEL_STYLES = {
  * @returns {string}
  */
 function statusText({ amount, consumed, alert }) {
-  if (isAtLimit(alert)) return 'Ya usaste todo tu presupuesto';
-  if (alert.level === 'exceeded_100') return `Te pasaste por ${formatMoney(consumed - amount)}`;
-  const left = `Quedan ${formatMoney(amount - consumed)}`;
-  return alert.level === 'warning_80' ? `${left}, cerca del límite` : left;
+  if (isAtLimit(alert)) return t('Ya usaste todo tu presupuesto');
+  if (alert.level === 'exceeded_100') return t('Te pasaste por {formatMoney}', { formatMoney: formatMoney(consumed - amount) });
+  const left = t('Quedan {formatMoney}', { formatMoney: formatMoney(amount - consumed) });
+  return alert.level === 'warning_80' ? t('{left}, cerca del límite', { left }) : left;
 }
 
 /**
@@ -49,11 +51,11 @@ function Meter({ budget, label }) {
   return (
     <div
       role="meter"
-      aria-label={`Consumo de ${label}`}
+      aria-label={t('Consumo de {label}', { label })}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={filled}
-      aria-valuetext={`${formatPercent(budget.percentage)} de ${formatMoney(budget.amount)}`}
+      aria-valuetext={t('{percentage} de {amount}', { percentage: formatPercent(budget.percentage), amount: formatMoney(budget.amount) })}
       className="relative h-2.5 rounded-full bg-ink/10"
     >
       <div
@@ -104,7 +106,7 @@ function Row({ budget, name, disabled, onEdit, onDelete }) {
         </p>
         <p className="tabular-nums text-ink/60">
           <span className="text-lg font-semibold text-ink">{formatMoney(budget.consumed)}</span>{' '}
-          de {formatMoney(budget.amount)}
+          {t('de')} {formatMoney(budget.amount)}
         </p>
       </div>
 
@@ -121,12 +123,12 @@ function Row({ budget, name, disabled, onEdit, onDelete }) {
         <div className="flex items-center gap-1">
           {confirming ? (
             <>
-              <span className="mr-1 text-sm text-ink/60">¿Eliminar?</span>
+              <span className="mr-1 text-sm text-ink/60">{t('¿Eliminar?')}</span>
               <Button size="sm" variant="outline" onClick={remove} disabled={busy}>
-                Sí, eliminar
+                {t('Sí, eliminar')}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>
-                No
+                {t('No')}
               </Button>
             </>
           ) : (
@@ -136,7 +138,7 @@ function Row({ budget, name, disabled, onEdit, onDelete }) {
                 variant="ghost"
                 onClick={() => onEdit(budget)}
                 disabled={disabled}
-                aria-label={`Cambiar el límite de ${name}`}
+                aria-label={t('Cambiar el límite de {name}', { name })}
               >
                 <Pencil aria-hidden="true" />
               </Button>
@@ -145,7 +147,7 @@ function Row({ budget, name, disabled, onEdit, onDelete }) {
                 variant="ghost"
                 onClick={() => setConfirming(true)}
                 disabled={disabled}
-                aria-label={`Eliminar el presupuesto de ${name}`}
+                aria-label={t('Eliminar el presupuesto de {name}', { name })}
               >
                 <Trash2 aria-hidden="true" />
               </Button>
@@ -167,7 +169,7 @@ function CompactRow({ budget, name, disabled, onEdit }) {
         type="button"
         disabled={disabled}
         onClick={() => onEdit(budget)}
-        aria-label={`${name}: ${formatPercent(budget.percentage)}. Ver detalle`}
+        aria-label={t('{name}: {percentage}. Ver detalle', { name, percentage: formatPercent(budget.percentage) })}
         className="block w-full py-4 text-left focus-visible:outline-2 focus-visible:outline-violet disabled:cursor-default"
       >
         <span className="flex justify-between text-base">
@@ -184,8 +186,8 @@ function CompactRow({ budget, name, disabled, onEdit }) {
         </span>
         <span className="mt-2 block text-sm tabular-nums text-ink/70">
           {over
-            ? `Te pasaste por ${formatMoney(budget.consumed - budget.amount)} de ${formatMoney(budget.amount)}`
-            : `Quedan ${formatMoney(Math.max(0, budget.amount - budget.consumed))} de ${formatMoney(budget.amount)}`}
+            ? t('Te pasaste por {formatMoney} de {amount}', { formatMoney: formatMoney(budget.consumed - budget.amount), amount: formatMoney(budget.amount) })
+            : t('Quedan {formatMoney} de {amount}', { formatMoney: formatMoney(Math.max(0, budget.amount - budget.consumed)), amount: formatMoney(budget.amount) })}
         </span>
       </button>
     </li>

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { t } from '@/lib/i18n';
 
 const MAX_AMOUNT = 9_999_999_999.99;
 
@@ -9,16 +10,16 @@ export const businessMovementSchema = (today) =>
     amount: z
       .string()
       .trim()
-      .min(1, 'Ingresa un monto')
+      .min(1, t('Ingresa un monto'))
       .pipe(
         z.coerce
-          .number({ error: 'Ingresa un monto válido' })
-          .positive('El monto debe ser mayor que 0')
-          .max(MAX_AMOUNT, 'El monto es demasiado grande'),
+          .number({ error: t('Ingresa un monto válido') })
+          .positive(t('El monto debe ser mayor que 0'))
+          .max(MAX_AMOUNT, t('El monto es demasiado grande')),
       ),
-    description: z.string().trim().min(1, 'Escribe una descripción').max(120, 'Máximo 120 caracteres'),
+    description: z.string().trim().min(1, t('Escribe una descripción')).max(120, t('Máximo 120 caracteres')),
     date: z
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Elige una fecha')
-      .refine((d) => d <= today, 'No puede ser una fecha futura'),
+      .regex(/^\d{4}-\d{2}-\d{2}$/, t('Elige una fecha'))
+      .refine((d) => d <= today, t('No puede ser una fecha futura')),
   });

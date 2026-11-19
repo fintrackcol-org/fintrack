@@ -11,6 +11,7 @@ import { TRANSACTION_SAVED_EVENT, saveNewTransaction } from '@/offline/saveNewTr
 import { CommitmentDialog, EMPTY_COMMITMENT, IncomeSection, commitmentToForm } from '@/pages/app/MiPlata';
 import { deleteCommitment, getMoneyProfile, getPaymentCalendar, updateMoneyProfile } from '@/services/moneyProfileService';
 import { commitmentWhen, toProfileData } from '@/lib/moneyProfile';
+import { t } from '@/lib/i18n';
 
 /**
  * Lo que falta y lo ya pagado este mes, a partir de los eventos del calendario.
@@ -25,7 +26,7 @@ export function paymentTotals(events) {
 
 /** Página privada `/app/mi-plata/pagos`: cuándo llega la plata y los pagos del mes, por pagar y pagados. */
 export default function MoneyPayments() {
-  usePageTitle('Pagos del mes');
+  usePageTitle(t('Pagos del mes'));
   const profile = useAsync(getMoneyProfile, []);
   const calendar = useAsync(() => getPaymentCalendar(currentMonth()), []);
   const [paying, setPaying] = useState(null);
@@ -65,14 +66,14 @@ export default function MoneyPayments() {
         <p role="alert" className="text-sm text-negative">
           {profile.error}{' '}
           <button type="button" className="underline" onClick={profile.reload}>
-            Reintentar
+            {t('Reintentar')}
           </button>
         </p>
       );
     }
     return (
       <p className="flex items-center gap-2 py-10 text-ink/60" aria-busy="true">
-        <Loader2 className="size-5 animate-spin" aria-hidden="true" /> Cargando…
+        <Loader2 className="size-5 animate-spin" aria-hidden="true" /> {t('Cargando…')}
       </p>
     );
   }
@@ -105,23 +106,23 @@ export default function MoneyPayments() {
           <p className="truncate font-medium">{event.name}</p>
           <p className="text-sm tabular-nums text-ink/70">
             {formatMoney(event.amount)} · {dayAndMonth(event.date)}
-            {event.subscription && ' · suscripción'}
-            {event.status === 'atrasado' && <span className="font-medium text-negative"> · atrasado</span>}
+            {event.subscription && t(' · suscripción')}
+            {event.status === 'atrasado' && <span className="font-medium text-negative"> {t('· atrasado')}</span>}
           </p>
         </div>
         {paid ? (
-          <span className="rounded-full bg-positive/15 px-2.5 py-1 text-[13px] font-semibold text-positive">Pagado</span>
+          <span className="rounded-full bg-positive/15 px-2.5 py-1 text-[13px] font-semibold text-positive">{t('Pagado')}</span>
         ) : (
           <Button variant="soft" size="sm" disabled={paying !== null} onClick={() => pay(event)}>
             {paying === event.id && <Loader2 className="animate-spin" aria-hidden="true" />}
-            Ya lo pagué<span className="sr-only"> {event.name}</span>
+            {t('Ya lo pagué')}<span className="sr-only"> {event.name}</span>
           </Button>
         )}
         {commitment && (
           <Button
             variant="ghost"
             size="icon"
-            aria-label={`Editar ${event.name}`}
+            aria-label={t('Editar {name}', { name: event.name })}
             onClick={() => setForm(commitmentToForm(commitment))}
           >
             <Pencil aria-hidden="true" />
@@ -141,15 +142,15 @@ export default function MoneyPayments() {
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4">
       <div>
-        <h1 className="text-[28px] font-semibold tracking-tight">Pagos del mes</h1>
-        <p className="mt-1 text-[15px] text-ink/70">Lo que pagas cada mes y cuándo te llega la plata</p>
+        <h1 className="text-[28px] font-semibold tracking-tight">{t('Pagos del mes')}</h1>
+        <p className="mt-1 text-[15px] text-ink/70">{t('Lo que pagas cada mes y cuándo te llega la plata')}</p>
       </div>
-      <IncomeSection title="Tu sueldo" profile={data} onSave={saveIncome} />
+      <IncomeSection title={t('Tu sueldo')} profile={data} onSave={saveIncome} />
       {calendar.error && (
         <p role="alert" className="text-sm text-negative">
           {calendar.error}{' '}
           <button type="button" className="underline" onClick={reloadCalendar}>
-            Reintentar
+            {t('Reintentar')}
           </button>
         </p>
       )}
@@ -157,28 +158,28 @@ export default function MoneyPayments() {
         <>
           <div className="grid grid-cols-2 gap-3 rounded-2xl border border-ink/10 bg-surface p-3.5">
             <div>
-              <p className="text-[13px] text-ink/70">Falta por pagar</p>
+              <p className="text-[13px] text-ink/70">{t('Falta por pagar')}</p>
               <p className="text-lg font-semibold tabular-nums">{formatMoney(totals.pending)}</p>
             </div>
             <div>
-              <p className="text-[13px] text-ink/70">Ya pagaste</p>
+              <p className="text-[13px] text-ink/70">{t('Ya pagaste')}</p>
               <p className="text-lg font-semibold tabular-nums text-positive">{formatMoney(totals.paid)}</p>
             </div>
           </div>
           {data.subscriptions?.count > 0 && (
             <p className="text-sm text-ink/80">
-              Suscripciones: <b className="tabular-nums">{formatMoney(data.subscriptions.monthly)}</b> al mes
+              {t('Suscripciones:')} <b className="tabular-nums">{formatMoney(data.subscriptions.monthly)}</b> {t('al mes')}
               {data.subscriptions.count > 1 && <span className="text-ink/60"> ({data.subscriptions.count})</span>}
             </p>
           )}
           {events.length === 0 && (
-            <p className="text-sm text-ink/70">Agrega lo que pagas cada mes (arriendo, internet) y tus suscripciones (Netflix, Spotify).</p>
+            <p className="text-sm text-ink/70">{t('Agrega lo que pagas cada mes (arriendo, internet) y tus suscripciones (Netflix, Spotify).')}</p>
           )}
-          {group('Por pagar', events.filter((e) => e.status !== 'pagado'))}
-          {group('Pagados', events.filter((e) => e.status === 'pagado'))}
+          {group(t('Por pagar'), events.filter((e) => e.status !== 'pagado'))}
+          {group(t('Pagados'), events.filter((e) => e.status === 'pagado'))}
           {otherMonths.length > 0 && (
-            <section aria-label="En otros meses">
-              <h2 className="mb-1.5 text-lg font-semibold tracking-tight">En otros meses</h2>
+            <section aria-label={t('En otros meses')}>
+              <h2 className="mb-1.5 text-lg font-semibold tracking-tight">{t('En otros meses')}</h2>
               <ul className="divide-y divide-ink/10 rounded-2xl border border-ink/10 bg-surface px-3.5">
                 {otherMonths.map((c) => (
                   <li key={c.id} className="flex items-center gap-2 py-2.5">
@@ -186,10 +187,10 @@ export default function MoneyPayments() {
                       <p className="truncate font-medium">{c.name}</p>
                       <p className="text-sm tabular-nums text-ink/70">
                         {formatMoney(c.amount)} · {commitmentWhen(c)}
-                        {c.kind === 'subscription' && ' · suscripción'}
+                        {c.kind === 'subscription' && t(' · suscripción')}
                       </p>
                     </div>
-                    <Button variant="ghost" size="icon" aria-label={`Editar ${c.name}`} onClick={() => setForm(commitmentToForm(c))}>
+                    <Button variant="ghost" size="icon" aria-label={t('Editar {name}', { name: c.name })} onClick={() => setForm(commitmentToForm(c))}>
                       <Pencil aria-hidden="true" />
                     </Button>
                   </li>
@@ -206,7 +207,7 @@ export default function MoneyPayments() {
       )}
       <Button variant="soft" size="lg" onClick={() => setForm(EMPTY_COMMITMENT)}>
         <Plus aria-hidden="true" />
-        Agregar pago
+        {t('Agregar pago')}
       </Button>
       <CommitmentDialog form={form} onClose={() => setForm(null)} onSaved={changed} onDelete={remove} />
     </div>

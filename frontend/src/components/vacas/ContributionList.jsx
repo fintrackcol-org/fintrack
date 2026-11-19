@@ -3,6 +3,7 @@ import { CloudOff, Trash2, TriangleAlert } from 'lucide-react';
 import { formatRelativeDay } from '@/components/transactions/format';
 import { formatPesos } from './vacaFormat';
 import { Button } from '@/components/ui/button';
+import { t } from '@/lib/i18n';
 
 /**
  * Aporte que todavía está en el dispositivo (sin conexión) o que el servidor rechazó.
@@ -22,7 +23,7 @@ function PendingRow({ pending, onDiscard }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="truncate font-medium">Tú</p>
+          <p className="truncate font-medium">{t('Tú')}</p>
           <p className="shrink-0 font-semibold tabular-nums">{formatPesos(amount)}</p>
         </div>
         <p className="truncate text-sm text-ink/60">
@@ -30,11 +31,11 @@ function PendingRow({ pending, onDiscard }) {
           {note && ` · ${note}`}
         </p>
         <p className="text-sm text-caution">
-          {pending.rejected ? `No se pudo registrar: ${pending.rejected}` : 'Pendiente: se envía al volver la conexión'}
+          {pending.rejected ? t('No se pudo registrar: {rejected}', { rejected: pending.rejected }) : t('Pendiente: se envía al volver la conexión')}
         </p>
         {pending.rejected && (
           <Button size="sm" variant="ghost" className="-ml-3" onClick={() => onDiscard(pending.localId)}>
-            Descartar
+            {t('Descartar')}
           </Button>
         )}
       </div>
@@ -76,7 +77,7 @@ function ContributionRow({ contribution, online, onDelete }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="truncate font-medium">{contribution.isMe ? 'Tú' : contribution.name}</p>
+          <p className="truncate font-medium">{contribution.isMe ? t('Tú') : contribution.name}</p>
           <p className="shrink-0 font-semibold tabular-nums text-positive">+{formatPesos(contribution.amount)}</p>
         </div>
         <div className="flex items-center justify-between gap-2">
@@ -91,7 +92,7 @@ function ContributionRow({ contribution, online, onDelete }) {
               className="-my-1 -mr-1.5 size-7 shrink-0 text-ink/50 [&_svg]:size-4"
               disabled={!online}
               onClick={() => setConfirming(true)}
-              aria-label={`Borrar aporte de ${formatPesos(contribution.amount)}`}
+              aria-label={t('Borrar aporte de {amount}', { amount: formatPesos(contribution.amount) })}
             >
               <Trash2 aria-hidden="true" />
             </Button>
@@ -104,12 +105,12 @@ function ContributionRow({ contribution, online, onDelete }) {
         )}
         {confirming && (
           <div className="mt-2 flex flex-wrap items-center gap-1">
-            <span className="mr-1 text-sm text-ink/60">¿Borrar el aporte y su gasto?</span>
+            <span className="mr-1 text-sm text-ink/60">{t('¿Borrar el aporte y su gasto?')}</span>
             <Button size="sm" variant="outline" disabled={busy} onClick={remove}>
-              Sí, borrar
+              {t('Sí, borrar')}
             </Button>
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirming(false)}>
-              No
+              {t('No')}
             </Button>
           </div>
         )}
@@ -134,8 +135,8 @@ export default function ContributionList({ contributions, pending, online, onDel
     return (
       <p className="py-6 text-center text-ink/60">
         {personal
-          ? 'Todavía no hay aportes. Aparta lo que puedas y regístralo aquí.'
-          : 'Todavía no hay aportes. ¡Sé el primero en poner tu parte!'}
+          ? t('Todavía no hay aportes. Aparta lo que puedas y regístralo aquí.')
+          : t('Todavía no hay aportes. ¡Sé el primero en poner tu parte!')}
       </p>
     );
   }

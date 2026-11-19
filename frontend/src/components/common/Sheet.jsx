@@ -5,6 +5,7 @@ import useSheetMotion from '@/lib/sheetMotion';
 import { X } from 'lucide-react';
 import { lockScroll } from '@/lib/scrollLock';
 
+import { t } from '@/lib/i18n';
 
 /** Al soltar la ventana se cierra si bajó esto (px) o iba así de rápido (px/s). */
 const CLOSE_OFFSET = 100;
@@ -123,7 +124,7 @@ function Panel({ title, description, onClose, children }) {
         <button
           type="button"
           onClick={onClose}
-          aria-label="Cerrar"
+          aria-label={t('Cerrar')}
           data-sheet-close="true"
           className="absolute right-3 top-3 grid size-9 place-items-center rounded-full text-ink/50 transition-colors hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-violet"
         >

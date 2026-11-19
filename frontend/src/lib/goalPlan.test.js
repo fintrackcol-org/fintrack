@@ -20,5 +20,6 @@ describe('goalPlan', () => {
     expect(cushion({ fixed, saved: 720000 })).toEqual({ goal: 3600000, days: 18 });
     expect(cushion({ fixed: 0, saved: 10 })).toBeNull();
     expect(isCushionGoal({ name: 'Fondo de Emergencia' })).toBe(true);
+    expect(isCushionGoal({ name: 'Cushion for lean months' })).toBe(true);
   });
 });

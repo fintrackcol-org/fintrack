@@ -6,6 +6,7 @@ import * as income from '../services/income.service.js';
 import { AppError } from '../errors/app-error.js';
 import { isValidDate } from '../validators/transactions.validator.js';
 import { parseCommitment, parseProfile, parseSources, parseSplitQuery, parseWelcome } from '../validators/money-profile.validator.js';
+import { t } from '../i18n/index.js';
 
 /**
  * `GET /api/v1/money-profile`: perfil del usuario con sus compromisos.
@@ -58,8 +59,8 @@ export async function getAdjustments(req, res) {
   const { from, to } = req.query;
   const details = ['from', 'to']
     .filter((field) => req.query[field] !== undefined && !isValidDate(req.query[field]))
-    .map((field) => ({ field, problem: 'Debe ser una fecha AAAA-MM-DD' }));
-  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+    .map((field) => ({ field, problem: t('Debe ser una fecha AAAA-MM-DD') }));
+  if (details.length > 0) throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   res.json({ data: await moneyProfile.listAdjustments(req.userId, { from, to }) });
 }
 

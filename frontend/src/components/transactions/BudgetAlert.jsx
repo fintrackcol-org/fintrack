@@ -1,25 +1,27 @@
 import { OctagonAlert, TriangleAlert } from 'lucide-react';
 import { isAtLimit } from '@/lib/budgetLevel';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
+import { numberLocale } from '@/lib/region';
 
-const percent = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
+const percent = new Intl.NumberFormat(numberLocale(), { maximumFractionDigits: 2 });
 
 /** Textos y colores por nivel (RN-04: aviso al 80 % y al 100 % del presupuesto). */
 const LEVELS = {
   warning_80: {
     Icon: TriangleAlert,
-    title: 'Cerca del límite',
+    title: t('Cerca del límite'),
     style: 'border-caution/40 bg-caution/10 text-caution',
   },
   exceeded_100: {
     Icon: OctagonAlert,
-    title: 'Presupuesto superado',
+    title: t('Presupuesto superado'),
     style: 'border-negative/40 bg-negative/10 text-negative',
   },
 };
 
 /** Gastó exactamente el límite: no se pasó, pero ya no le queda presupuesto. */
-const AT_LIMIT = { ...LEVELS.warning_80, title: 'Ya usaste todo tu presupuesto' };
+const AT_LIMIT = { ...LEVELS.warning_80, title: t('Ya usaste todo tu presupuesto') };
 
 /**
  * Aviso que se muestra tras registrar o editar un gasto cuando la categoría llegó
@@ -40,7 +42,7 @@ export default function BudgetAlert({ alert, categoryName, className }) {
       <p>
         <strong className="font-semibold">{title}.</strong>{' '}
         <span className="text-foreground">
-          Llevas el {percent.format(alert.percentage)} % del presupuesto{of} de este mes.
+          {t('Llevas el')} {percent.format(alert.percentage)} {t('% del presupuesto')}{of} {t('de este mes.')}
         </span>
       </p>
     </div>

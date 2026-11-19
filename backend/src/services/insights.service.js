@@ -8,6 +8,7 @@ import {
 import { SAVINGS_CATEGORY, summarizeTransactions } from '../repositories/transactions.repository.js';
 import { completeText } from './ai-client.service.js';
 import { periodRange } from './transactions.service.js';
+import { aiRegionRule, t } from '../i18n/index.js';
 
 /** Horas que un resultado guardado se considera fresco antes de volver a pedirlo a la IA. */
 export const CACHE_TTL_HOURS = 24;
@@ -224,7 +225,7 @@ export function createInsightsService(deps = {}) {
       throw new AppError(
         422,
         'INSUFFICIENT_HISTORY',
-        'Aún no hay suficiente historial. Registra movimientos durante al menos una semana para recibir consejos.',
+        t('Aún no hay suficiente historial. Registra movimientos durante al menos una semana para recibir consejos.'),
       );
     }
     const { period, key } = comparison;
@@ -249,8 +250,8 @@ export function createInsightsService(deps = {}) {
         422,
         'INSUFFICIENT_HISTORY',
         period === 'week'
-          ? 'No hay gastos en estas dos semanas para generar consejos.'
-          : 'No hay gastos suficientes en los últimos dos meses para generar insights.',
+          ? t('No hay gastos en estas dos semanas para generar consejos.')
+          : t('No hay gastos suficientes en los últimos dos meses para generar insights.'),
       );
     }
 
@@ -264,10 +265,10 @@ export function createInsightsService(deps = {}) {
     });
 
     try {
-      const text = await ask({ system: SYSTEM_PROMPT, prompt, maxTokens: 900 });
+      const text = await ask({ system: SYSTEM_PROMPT + aiRegionRule(), prompt, maxTokens: 900 });
       const insights = parseInsights(text);
       if (!insights)
-        throw new AppError(503, 'AI_UNAVAILABLE', 'El servicio de IA no está disponible');
+        throw new AppError(503, 'AI_UNAVAILABLE', t('El servicio de IA no está disponible'));
       await repo.saveInsights(userId, key, insights);
       return result(insights);
     } catch (err) {

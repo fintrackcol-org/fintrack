@@ -1,15 +1,15 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import Ring from '@/components/charts/Ring';
-import { formatMoney } from '@/components/transactions/format';
+import { formatMoney, formatMoneyCompact } from '@/components/transactions/format';
 import { expenseSlices, formatShare } from '@/lib/expenseSlices';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 const MASK = '$ ••••';
-const compact = new Intl.NumberFormat('es-CO', { notation: 'compact', maximumFractionDigits: 1 });
 
 /** En el centro de la dona cabe poco: de un millón en adelante va abreviado (`$ 1,2 M`). */
-const centerMoney = (value) => (value >= 1_000_000 ? `$ ${compact.format(value).replace(/\s*M.*$/, ' M')}` : formatMoney(value));
+const centerMoney = (value) => (value >= 1_000_000 ? formatMoneyCompact(value) : formatMoney(value));
 
 const sliceColor = (hue) => (hue ? `var(--app-chart-cat-${hue})` : 'var(--app-chart-other)');
 
@@ -35,7 +35,7 @@ export default function ExpenseDonut({ expense, names, hidden, periodLabel, sele
   return (
     <section aria-labelledby="gastos-categoria" className={className}>
       <h2 id="gastos-categoria" className="mb-2 text-lg font-semibold tracking-tight">
-        Gastos por categoría
+        {t('Gastos por categoría')}
       </h2>
       {expense === undefined ? (
         <div className={cn(card, 'flex items-center gap-4')} aria-busy="true">
@@ -43,12 +43,12 @@ export default function ExpenseDonut({ expense, names, hidden, periodLabel, sele
           <div className="h-24 flex-1 animate-pulse rounded-xl bg-ink/5" />
         </div>
       ) : slices.length === 0 ? (
-        <p className={cn(card, 'text-sm text-ink/70')}>Aún no hay gastos en {periodLabel}.</p>
+        <p className={cn(card, 'text-sm text-ink/70')}>{t('Aún no hay gastos en')} {periodLabel}.</p>
       ) : (
         <Link
           to="/app/gastos"
           state={selected ? { selected } : undefined}
-          aria-label={`Gastos de ${periodLabel}: ${hidden ? 'monto oculto' : formatMoney(expense.total)}. ${summary}. Ver el detalle`}
+          aria-label={t('Gastos de {periodLabel}: {v2}. {summary}. Ver el detalle', { periodLabel, v2: hidden ? 'monto oculto' : formatMoney(expense.total), summary })}
           className={cn(card, 'relative flex items-center gap-4 pr-7 transition-colors hover:bg-ink/[0.02] active:bg-ink/5 focus-visible:outline-2 focus-visible:outline-violet', large && 'gap-7 p-5 pr-9')}
         >
           <Ring
@@ -61,7 +61,7 @@ export default function ExpenseDonut({ expense, names, hidden, periodLabel, sele
             }))}
           >
             <span>
-              <span className="block text-xs text-ink/70">Gastos</span>
+              <span className="block text-xs text-ink/70">{t('Gastos')}</span>
               <span className={cn('block font-semibold tabular-nums', large ? 'text-lg' : 'text-[15px]')}>
                 {hidden ? MASK : centerMoney(expense.total)}
               </span>

@@ -9,6 +9,7 @@ import { createAssistantTools } from './assistant-tools.service.js';
 import { list as listBudgets } from './budgets.service.js';
 import { oneMonthBefore, todayIso } from './insights.service.js';
 import { periodRange } from './transactions.service.js';
+import { aiRegionRule, currencyDigits, formatMoney, t as tr } from '../i18n/index.js';
 
 /** Largo máximo de la respuesta que se devuelve al cliente. */
 const MAX_REPLY_CHARS = 1500;
@@ -40,7 +41,7 @@ const RULES = [
  * @returns {string} Monto en pesos, p. ej. "$420.000".
  */
 function money(value) {
-  return `$${Math.round(value).toLocaleString('es-CO')}`;
+  return formatMoney(value, { digits: currencyDigits() });
 }
 
 /**
@@ -51,18 +52,18 @@ function money(value) {
  * @returns {string}
  */
 export function buildContext({ today, current, previous, budgets, names }) {
-  const name = (key) => (key ? (names.get(key) ?? key) : 'Sin clasificar');
+  const name = (key) => (key ? (names.get(key) ?? key) : tr('Sin clasificar'));
   const expenses = current.expenses.length
     ? current.expenses.map((r) => `- ${name(r.category)}: ${money(r.total)}`).join('\n')
     : '- (sin gastos este mes)';
   // El ahorro no es gasto: va aparte, igual que en Inicio.
   const totals = (t) =>
-    `ingresos ${money(t.income)}, gastos ${money(t.expenseTotal)}${t.saved > 0 ? `, ahorro ${money(t.saved)}` : ''}`;
+    tr('ingresos {income}, gastos {expenseTotal}{v3}', { income: money(t.income), expenseTotal: money(t.expenseTotal), v3: t.saved > 0 ? `, ahorro ${money(t.saved)}` : '' });
   const budgetLines = budgets.length
     ? budgets
         .map(
           (b) =>
-            `- ${name(b.category)}: límite ${money(b.amount)}, gastado ${money(b.consumed)} (${b.percentage} %)`,
+            tr('- {category}: límite {amount}, gastado {consumed} ({percentage} %)', { category: name(b.category), amount: money(b.amount), consumed: money(b.consumed), percentage: b.percentage }),
         )
         .join('\n')
     : '- (no tiene presupuestos este mes)';
@@ -147,12 +148,12 @@ export function createAssistantService(deps = {}) {
       names: new Map(categories.map((c) => [c.key, c.name])),
     });
     const { text, toolsUsed } = await ask({
-      system: `${RULES}\n\nDatos del usuario:\n${context}`,
+      system: `${RULES}${aiRegionRule()}\n\nDatos del usuario:\n${context}`,
       messages,
       tools: toolsFor(userId),
     });
     const clean = text.trim().slice(0, MAX_REPLY_CHARS);
-    if (!clean) throw new AppError(503, 'AI_UNAVAILABLE', 'El servicio de IA no está disponible');
+    if (!clean) throw new AppError(503, 'AI_UNAVAILABLE', tr('El servicio de IA no está disponible'));
     return { reply: clean, toolsUsed: [...new Set(toolsUsed)] };
   }
 

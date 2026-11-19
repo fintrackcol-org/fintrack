@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { AppError } from '../errors/app-error.js';
 import * as repo from '../repositories/categories.repository.js';
+import { categoryText, t } from '../i18n/index.js';
 
 /** Categorías propias que puede tener cada usuario. */
 export const MAX_OWN_CATEGORIES = 20;
@@ -10,12 +11,12 @@ const FALLBACK = { gasto: 'otros', ingreso: 'otros_ingresos' };
 
 /** @returns {AppError} 404 sin revelar si la categoría existe pero es de otro (RN-01). */
 function notFound() {
-  return new AppError(404, 'NOT_FOUND', 'Categoría no encontrada');
+  return new AppError(404, 'NOT_FOUND', t('Categoría no encontrada'));
 }
 
 /** @returns {AppError} 409: ya hay una categoría con ese nombre entre las que ve el usuario. */
 function nameExists() {
-  return new AppError(409, 'CATEGORY_EXISTS', 'Ya tienes una categoría con ese nombre');
+  return new AppError(409, 'CATEGORY_EXISTS', t('Ya tienes una categoría con ese nombre'));
 }
 
 /**
@@ -37,7 +38,7 @@ export function newCategoryKey() {
  * @returns {{ key: string, name: string, icon: string|null, color: string|null, custom: boolean }}
  */
 function present(c) {
-  return { key: c.key, name: c.name, icon: c.icon, color: c.color, custom: c.custom };
+  return { key: c.key, name: c.custom ? c.name : categoryText(c.name), icon: c.icon, color: c.color, custom: c.custom };
 }
 
 /**
@@ -64,7 +65,7 @@ export async function create(userId, input) {
     throw new AppError(
       409,
       'CATEGORY_LIMIT',
-      `Puedes tener hasta ${MAX_OWN_CATEGORIES} categorías propias`,
+      t('Puedes tener hasta {MAX_OWN_CATEGORIES} categorías propias', { MAX_OWN_CATEGORIES }),
     );
   }
   if (await repo.nameTaken(userId, input.name)) throw nameExists();

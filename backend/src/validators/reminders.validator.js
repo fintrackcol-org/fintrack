@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js';
 /**
  * Bloque "Avisarme" (FT-0063): el mismo en cuentas, tarjetas, suscripciones y calendario.
  * @typedef {object} ReminderConfig
@@ -24,19 +25,19 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
  */
 export function parseReminder(value, details, field = 'reminder') {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    details.push({ field, problem: 'Debe ser un objeto con daysBefore, time y channel' });
+    details.push({ field, problem: t('Debe ser un objeto con daysBefore, time y channel') });
     return undefined;
   }
   const before = details.length;
   const { daysBefore, time = null, channel = 'push' } = value;
   if (!Array.isArray(daysBefore) || daysBefore.some((d) => !REMINDER_DAYS.includes(d))) {
-    details.push({ field: `${field}.daysBefore`, problem: `Solo se permite: ${REMINDER_DAYS.join(', ')}` });
+    details.push({ field: `${field}.daysBefore`, problem: t('Solo se permite: {join}', { join: REMINDER_DAYS.join(', ') }) });
   }
   if (time !== null && !(typeof time === 'string' && TIME_RE.test(time))) {
-    details.push({ field: `${field}.time`, problem: 'Debe ser una hora HH:MM o null' });
+    details.push({ field: `${field}.time`, problem: t('Debe ser una hora HH:MM o null') });
   }
   if (!REMINDER_CHANNELS.includes(channel)) {
-    details.push({ field: `${field}.channel`, problem: `Debe ser: ${REMINDER_CHANNELS.join(', ')}` });
+    details.push({ field: `${field}.channel`, problem: t('Debe ser: {join}', { join: REMINDER_CHANNELS.join(', ') }) });
   }
   if (details.length > before) return undefined;
   return { daysBefore: [...new Set(daysBefore)].sort((a, b) => a - b), time, channel };

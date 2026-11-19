@@ -1,3 +1,4 @@
+import { currencyDigits, dateLocale, formatMoney, t } from '../i18n/index.js';
 // Cuentas por cobrar y por pagar de un negocio (FT-0058): cálculos puros, sin base de datos.
 
 /** `kind` en la API → `tipo` en la base. */
@@ -46,8 +47,8 @@ export function accountTotals(accounts) {
   return totals;
 }
 
-const cop = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
-const dayMonth = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+const cop = (n) => formatMoney(n, { digits: currencyDigits() });
+const dayMonth = { format: (date) => new Intl.DateTimeFormat(dateLocale(), { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(date) };
 const longDay = (date) => dayMonth.format(new Date(`${date}T12:00:00Z`));
 
 /**
@@ -60,13 +61,13 @@ export function accountAlertPayload({ businessId, businessName, kind, party, rem
   const body =
     stage === 'previo'
       ? receivable
-        ? `Mañana ${party} debe pagarle ${cop(remaining)} a ${businessName}.`
-        : `Mañana vence el pago de ${businessName} a ${party}: ${cop(remaining)}.`
+        ? t('Mañana {party} debe pagarle {remaining} a {businessName}.', { party, remaining: cop(remaining), businessName })
+        : t('Mañana vence el pago de {businessName} a {party}: {remaining}.', { businessName, party, remaining: cop(remaining) })
       : receivable
-        ? `${party} no ha pagado ${cop(remaining)} a ${businessName}: ya venció.`
-        : `Venció el pago de ${businessName} a ${party}: faltan ${cop(remaining)}.`;
+        ? t('{party} no ha pagado {remaining} a {businessName}: ya venció.', { party, remaining: cop(remaining), businessName })
+        : t('Venció el pago de {businessName} a {party}: faltan {remaining}.', { businessName, party, remaining: cop(remaining) });
   return {
-    title: receivable ? 'Por cobrar en tu negocio' : 'Por pagar en tu negocio',
+    title: receivable ? t('Por cobrar en tu negocio') : t('Por pagar en tu negocio'),
     body,
     url: `/app/negocios/${businessId}`,
   };
@@ -80,10 +81,10 @@ export function accountAlertPayload({ businessId, businessName, kind, party, rem
  */
 export function taxDatePayload({ businessId, businessName, name, date }, today) {
   const days = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
-  const when = days <= 0 ? 'hoy' : days === 1 ? 'mañana' : `el ${longDay(date)} (en ${days} días)`;
+  const when = days <= 0 ? 'hoy' : days === 1 ? t('mañana') : t('el {date} (en {days} días)', { date: longDay(date), days });
   return {
-    title: 'Impuestos de tu negocio',
-    body: `${name} de ${businessName}: vence ${when}.`,
+    title: t('Impuestos de tu negocio'),
+    body: t('{name} de {businessName}: vence {when}.', { name, businessName, when }),
     url: `/app/negocios/${businessId}`,
   };
 }

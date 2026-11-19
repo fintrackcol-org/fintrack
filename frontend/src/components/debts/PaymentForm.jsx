@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { debtPaymentSchema } from '@/lib/validation/debt';
+import { t } from '@/lib/i18n';
 
 /**
  * Hoja "Registrar abono" (FT-0064): cuánto y cuándo. Propone la próxima cuota (o lo pendiente) y,
@@ -36,7 +37,7 @@ export default function PaymentForm({ debt, money, disabled = false, onSubmit })
   const submit = handleSubmit(async (values) => {
     setServerError('');
     if (values.amount > debt.pending + 0.004) {
-      setError('amount', { message: `No puede pasar de lo que falta (${money(debt.pending)})` });
+      setError('amount', { message: t('No puede pasar de lo que falta ({pending})', { pending: money(debt.pending) }) });
       return;
     }
     try {
@@ -50,14 +51,14 @@ export default function PaymentForm({ debt, money, disabled = false, onSubmit })
   });
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-4" aria-label="Registrar abono">
+    <form onSubmit={submit} noValidate className="space-y-4" aria-label={t('Registrar abono')}>
       <p className="text-sm text-ink/70">
-        {receivable ? `${debt.person} te debe ` : `Le debes a ${debt.person} `}
+        {receivable ? t('{person} te debe ', { person: debt.person }) : t('Le debes a {person} ', { person: debt.person })}
         <span className="font-semibold tabular-nums text-ink">{money(debt.pending)}</span>
         {debt.nextInstallment && debt.installments && (
           <>
             {' '}
-            · cuota {debt.nextInstallment.number} de {debt.installments}
+            {t('· cuota')} {debt.nextInstallment.number} {t('de')} {debt.installments}
           </>
         )}
         .
@@ -66,7 +67,7 @@ export default function PaymentForm({ debt, money, disabled = false, onSubmit })
         control={control}
         name="amount"
         render={({ field }) => (
-          <FormField id="payment-amount" label={receivable ? '¿Cuánto te pagó?' : '¿Cuánto pagaste?'} error={errors.amount?.message}>
+          <FormField id="payment-amount" label={receivable ? t('¿Cuánto te pagó?') : t('¿Cuánto pagaste?')} error={errors.amount?.message}>
             <MoneyInput
               name={field.name}
               value={field.value}
@@ -86,20 +87,20 @@ export default function PaymentForm({ debt, money, disabled = false, onSubmit })
           onClick={() => setValue('amount', String(debt.pending), { shouldValidate: true })}
           disabled={disabled}
         >
-          Todo lo que falta ({money(debt.pending)})
+          {t('Todo lo que falta (')}{money(debt.pending)})
         </button>
       )}
-      <FormField id="payment-date" label="¿Cuándo?" error={errors.date?.message}>
+      <FormField id="payment-date" label={t('¿Cuándo?')} error={errors.date?.message}>
         <Input type="date" max={todayIso()} disabled={disabled} {...register('date')} />
       </FormField>
       <label className="flex items-start gap-3 rounded-xl bg-ink/5 p-3 text-sm">
         <Checkbox checked={record} onCheckedChange={(v) => setRecord(v === true)} disabled={disabled} className="mt-0.5" />
         <span>
-          <span className="font-medium">{receivable ? 'Anotar el ingreso en Movimientos' : 'Anotar el gasto en Movimientos'}</span>
-          <span className="block text-ink/60">Así tu saldo de hoy queda bien.</span>
+          <span className="font-medium">{receivable ? t('Anotar el ingreso en Movimientos') : t('Anotar el gasto en Movimientos')}</span>
+          <span className="block text-ink/60">{t('Así tu saldo de hoy queda bien.')}</span>
         </span>
       </label>
-      {disabled && <p className="text-sm text-ink/60">Necesitas conexión</p>}
+      {disabled && <p className="text-sm text-ink/60">{t('Necesitas conexión')}</p>}
       {serverError && (
         <p role="alert" className="text-sm text-negative">
           {serverError}
@@ -107,7 +108,7 @@ export default function PaymentForm({ debt, money, disabled = false, onSubmit })
       )}
       <Button type="submit" size="lg" className="w-full" disabled={disabled || isSubmitting}>
         {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {isSubmitting ? 'Guardando…' : 'Registrar abono'}
+        {isSubmitting ? t('Guardando…') : t('Registrar abono')}
       </Button>
     </form>
   );

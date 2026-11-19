@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import PDFDocument from 'pdfkit';
 import { dateText, money, percent, pointLabel } from './report-data.service.js';
+import { categoryText, t as tr } from '../i18n/index.js';
 
 /** @typedef {InstanceType<typeof PDFDocument>} PdfDoc Documento de pdfkit. */
 
@@ -39,17 +40,17 @@ const C = {
 };
 
 const LEVEL = {
-  none: { label: 'Bien', color: C.positive },
-  warning_80: { label: 'Cerca del límite', color: C.caution },
-  at_limit: { label: 'En el límite', color: C.caution },
-  exceeded_100: { label: 'Excedido', color: C.negative },
+  none: { get label() { return tr('Bien'); }, color: C.positive },
+  warning_80: { get label() { return tr('Cerca del límite'); }, color: C.caution },
+  at_limit: { get label() { return tr('En el límite'); }, color: C.caution },
+  exceeded_100: { get label() { return tr('Excedido'); }, color: C.negative },
 };
 
 const FONT = 'Helvetica';
 const BOLD = 'Helvetica-Bold';
 const MAX_CATEGORIES = 6;
 const WARNING_AT = 0.8;
-const GRANULARITY = { day: 'día', week: 'semana', month: 'mes' };
+const GRANULARITY = { get day() { return tr('día'); }, get week() { return tr('semana'); }, get month() { return tr('mes'); } };
 
 /** Logo oficial horizontal a color (va sobre el gris claro de la portada, combinación aprobada). */
 const LOGO = readFileSync(new URL('../assets/rinde-logo.png', import.meta.url));
@@ -186,10 +187,10 @@ function drawCover(doc, report) {
     align: 'right',
   });
 
-  write(doc, 'Tu dinero, en perspectiva', MARGIN, 72, { size: 27, font: BOLD });
+  write(doc, tr('Tu dinero, en perspectiva'), MARGIN, 72, { size: 27, font: BOLD });
   const month = dateText(from, { month: 'long', year: 'numeric' });
   const coverage =
-    from === to ? `El ${longDate(from)}` : `Del ${longDate(from)} al ${longDate(to)}`;
+    from === to ? tr('El {from}', { from: longDate(from) }) : tr('Del {from} al {to}', { from: longDate(from), to: longDate(to) });
   write(doc, wholeMonth ? month.charAt(0).toUpperCase() + month.slice(1) : coverage, MARGIN, 106, {
     size: 13,
     font: BOLD,
@@ -200,7 +201,7 @@ function drawCover(doc, report) {
   const parts = [
     who,
     wholeMonth ? coverage : '',
-    `Generado el ${longDate(report.generatedOn)}`,
+    tr('Generado el {generatedOn}', { generatedOn: longDate(report.generatedOn) }),
   ].filter(Boolean);
   write(doc, parts.join(' · '), MARGIN, 130, { size: 9, color: C.muted, width: CONTENT });
   return 176;
@@ -215,33 +216,33 @@ function drawCover(doc, report) {
  */
 function drawKpis(doc, report, y) {
   const t = report.totals;
-  const days = plural(t.daysElapsed, 'día', 'días');
+  const days = plural(t.daysElapsed, tr('día'), tr('días'));
   const cards = [
     {
-      label: 'Ingresos',
+      label: tr('Ingresos'),
       value: money(t.income),
       sub: plural(t.incomeCount, 'movimiento', 'movimientos'),
       color: C.positive,
       fill: C.positiveSoft,
     },
     {
-      label: 'Gastos',
+      label: tr('Gastos'),
       value: money(t.expense),
       sub: plural(t.expenseCount, 'movimiento', 'movimientos'),
       color: C.brand,
       fill: C.brandSoft,
     },
     {
-      label: 'Balance neto',
+      label: tr('Balance neto'),
       value: money(t.balance),
-      sub: 'Ingresos menos gastos',
+      sub: tr('Ingresos menos gastos'),
       color: t.balance < 0 ? C.negative : C.ink,
       fill: C.canvas,
     },
     {
-      label: 'Movimientos',
+      label: tr('Movimientos'),
       value: String(t.count),
-      sub: `En ${days} · ${money(t.dailyAverageExpense)} al día`,
+      sub: tr('En {days} · {dailyAverageExpense} al día', { days, dailyAverageExpense: money(t.dailyAverageExpense) }),
       color: C.ink,
       fill: C.canvas,
     },
@@ -278,7 +279,7 @@ function drawInsights(doc, report, y) {
   const rows = Math.ceil(insights.length / 2);
   let top = sectionTitle(
     doc,
-    'Lo que dicen tus números',
+    tr('Lo que dicen tus números'),
     MARGIN,
     room(doc, y, 32 + rows * (cardHeight + gap)),
   );
@@ -311,11 +312,11 @@ function drawInsights(doc, report, y) {
  */
 function drawIncomeVsExpense(doc, report, x, y, width) {
   const t = report.totals;
-  let top = sectionTitle(doc, 'Ingresos frente a gastos', x, y);
+  let top = sectionTitle(doc, tr('Ingresos frente a gastos'), x, y);
   const max = Math.max(t.income, t.expense, 1);
   for (const [label, value, color] of [
-    ['Ingresos', t.income, C.positive],
-    ['Gastos', t.expense, C.brand],
+    [tr('Ingresos'), t.income, C.positive],
+    [tr('Gastos'), t.expense, C.brand],
   ]) {
     write(doc, label, x, top, { color: C.muted });
     write(doc, money(value), x, top, { font: BOLD, width, align: 'right' });
@@ -330,7 +331,7 @@ function drawIncomeVsExpense(doc, report, x, y, width) {
     .lineWidth(0.5)
     .strokeColor(C.line)
     .stroke();
-  write(doc, 'Balance neto', x, top + 8, { color: C.muted });
+  write(doc, tr('Balance neto'), x, top + 8, { color: C.muted });
   write(doc, money(t.balance), x, top + 8, {
     font: BOLD,
     color: t.balance < 0 ? C.negative : C.ink,
@@ -352,7 +353,7 @@ function topCategories(report) {
   return [
     ...groups,
     {
-      name: `Otras (${rest.length})`,
+      name: tr('Otras ({length})', { length: rest.length }),
       amount: rest.reduce((s, g) => s + g.amount, 0),
       share: rest.reduce((s, g) => s + g.share, 0),
     },
@@ -370,10 +371,10 @@ function topCategories(report) {
  * @returns {number} y donde termina.
  */
 function drawCategoryBars(doc, report, x, y, width) {
-  let top = sectionTitle(doc, 'Gastos por categoría', x, y);
+  let top = sectionTitle(doc, tr('Gastos por categoría'), x, y);
   const groups = topCategories(report);
   if (groups.length === 0) {
-    write(doc, 'Sin gastos en el periodo.', x, top, { color: C.muted });
+    write(doc, tr('Sin gastos en el periodo.'), x, top, { color: C.muted });
     return top + 16;
   }
   const labelWidth = 96;
@@ -409,17 +410,17 @@ function drawMoneyFlow(doc, report, y) {
   const height = 96;
   const top = sectionTitle(
     doc,
-    'Movimiento del dinero',
+    tr('Movimiento del dinero'),
     MARGIN,
     room(doc, y, 32 + height + 40),
-    `Acumulado por ${GRANULARITY[granularity]}`,
+    tr('Acumulado por {v1}', { v1: GRANULARITY[granularity] }),
   );
 
   // Leyenda con el total de cada línea, a la derecha del título.
   const t = report.totals;
   const legend = [
-    ['Ingresos', t.income, C.positive],
-    ['Gastos', t.expense, C.brand],
+    [tr('Ingresos'), t.income, C.positive],
+    [tr('Gastos'), t.expense, C.brand],
   ];
   let legendX = MARGIN + CONTENT;
   for (const [label, total, color] of legend.reverse()) {
@@ -505,16 +506,16 @@ function drawTopExpenses(doc, report, y) {
   if (top5.length === 0) return y;
   let top = sectionTitle(
     doc,
-    'Gastos destacados',
+    tr('Gastos destacados'),
     MARGIN,
     room(doc, y, 32 + top5.length * 18 + 8),
-    `Los ${top5.length} más grandes`,
+    tr('Los {length} más grandes', { length: top5.length }),
   );
   top5.forEach((e, i) => {
     if (i % 2 === 0) doc.rect(MARGIN, top - 4, CONTENT, 18).fill(C.canvas);
     write(doc, String(i + 1), MARGIN + 8, top, { font: BOLD, color: C.brand });
     write(doc, e.description, MARGIN + 24, top, { width: 226 });
-    write(doc, e.categoryName ?? 'Sin clasificar', MARGIN + 258, top, {
+    write(doc, categoryText(e.categoryName), MARGIN + 258, top, {
       color: C.muted,
       width: 110,
     });
@@ -541,7 +542,7 @@ function drawBudgets(doc, report, y) {
   const month = dateText(report.period.from, { month: 'long' });
   let top = sectionTitle(
     doc,
-    `Presupuestos de ${month}`,
+    tr('Presupuestos de {month}', { month }),
     MARGIN,
     room(doc, y, 32 + report.budgets.length * 20 + 20),
   );
@@ -566,14 +567,14 @@ function drawBudgets(doc, report, y) {
       color: level.color,
       width: 110,
     });
-    write(doc, `${money(b.spent)} de ${money(b.limit)}`, MARGIN + CONTENT - 92, top, {
+    write(doc, tr('{spent} de {limit}', { spent: money(b.spent), limit: money(b.limit) }), MARGIN + CONTENT - 92, top, {
       color: C.muted,
       width: 92,
       align: 'right',
     });
     top += 20;
   }
-  write(doc, 'La línea vertical marca el 80 % del límite.', MARGIN, top, {
+  write(doc, tr('La línea vertical marca el 80 % del límite.'), MARGIN, top, {
     size: 7.5,
     color: C.muted,
   });
@@ -581,11 +582,11 @@ function drawBudgets(doc, report, y) {
 }
 
 const COLUMNS = [
-  { label: 'Fecha', width: 62 },
-  { label: 'Descripción', width: 180 },
-  { label: 'Categoría', width: 104 },
-  { label: 'Ingreso', width: 90, align: 'right' },
-  { label: 'Gasto', width: 90, align: 'right' },
+  { get label() { return tr('Fecha'); }, width: 62 },
+  { get label() { return tr('Descripción'); }, width: 180 },
+  { get label() { return tr('Categoría'); }, width: 104 },
+  { get label() { return tr('Ingreso'); }, width: 90, align: 'right' },
+  { get label() { return tr('Gasto'); }, width: 90, align: 'right' },
 ];
 
 /**
@@ -621,10 +622,10 @@ function drawMovements(doc, report, from) {
   // Empieza en la misma página solo si caben el título, el encabezado y unas cuantas filas.
   let y = sectionTitle(
     doc,
-    'Detalle de movimientos',
+    tr('Detalle de movimientos'),
     MARGIN,
     room(doc, from, 32 + 24 + 16 * 6),
-    `${report.rows.length} en total`,
+    tr('{length} en total', { length: report.rows.length }),
   );
   y = tableHeader(doc, y);
   report.rows.forEach((row, i) => {
@@ -637,7 +638,7 @@ function drawMovements(doc, report, from) {
     const cells = [
       shortDate(row.date),
       row.description,
-      row.categoryName ?? 'Sin clasificar',
+      categoryText(row.categoryName),
       income ? money(row.amount) : '',
       income ? '' : money(row.amount),
     ];
@@ -657,7 +658,7 @@ function drawMovements(doc, report, from) {
   }
   doc.rect(MARGIN, y - 2, CONTENT, 20).fill(C.brandSoft);
   const incomeX = MARGIN + 6 + COLUMNS.slice(0, 3).reduce((s, c) => s + c.width, 0);
-  write(doc, 'Total', MARGIN + 6, y + 4, { font: BOLD });
+  write(doc, tr('Total'), MARGIN + 6, y + 4, { font: BOLD });
   write(doc, money(report.totals.income), incomeX, y + 4, {
     font: BOLD,
     color: C.positive,
@@ -686,8 +687,8 @@ function drawFooters(doc) {
       .lineWidth(0.5)
       .strokeColor(C.line)
       .stroke();
-    write(doc, 'Rinde · Reporte financiero', MARGIN, FOOTER_Y, { size: 8, color: C.muted });
-    write(doc, `Página ${i - start + 1} de ${count}`, MARGIN, FOOTER_Y, {
+    write(doc, tr('Rinde · Reporte financiero'), MARGIN, FOOTER_Y, { size: 8, color: C.muted });
+    write(doc, tr('Página {v1} de {count}', { v1: i - start + 1, count }), MARGIN, FOOTER_Y, {
       size: 8,
       color: C.muted,
       width: CONTENT,
@@ -708,7 +709,7 @@ export function buildPdf(report, { detail = true } = {}) {
     size: 'LETTER',
     margin: 0, // Las posiciones se manejan a mano; sin margen pdfkit no agrega páginas por su cuenta.
     bufferPages: true, // Necesario para escribir "Página X de Y" al final.
-    info: { Title: 'Reporte financiero', Author: 'Rinde', Creator: 'Rinde' },
+    info: { Title: tr('Reporte financiero'), Author: tr('Rinde'), Creator: tr('Rinde') },
   });
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));

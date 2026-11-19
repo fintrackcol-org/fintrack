@@ -14,6 +14,7 @@ import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { cn } from '@/lib/utils';
 import { createVaca, listVacas } from '@/services/vacaService';
+import { t } from '@/lib/i18n';
 
 /**
  * Tarjeta de una vaca en la lista: avance del grupo y lo que le falta al usuario.
@@ -45,21 +46,21 @@ function VacaCard({ vaca }) {
 
         <p className="mt-4 flex flex-wrap items-baseline gap-x-1.5 tabular-nums text-ink/60">
           <span className="text-2xl font-semibold tracking-tight text-ink">{formatPesos(vaca.total)}</span>
-          <span className="text-sm">de {formatPesos(vaca.goal)}</span>
+          <span className="text-sm">{t('de')} {formatPesos(vaca.goal)}</span>
         </p>
         <div className="mt-2">
           <VacaProgress
             value={vaca.percentage}
             barClass={status.bar}
-            label={`Avance de ${vaca.name}`}
+            label={t('Avance de {name}', { name: vaca.name })}
             valueText={`${formatPercent(vaca.percentage)}: ${formatPesos(vaca.total)} de ${formatPesos(vaca.goal)}`}
           />
         </div>
         <div className="mt-3 flex items-center justify-between gap-2 text-sm">
           <p className="min-w-0 text-ink/60">
-            Tu parte:{' '}
+            {t('Tu parte:')}{' '}
             <span className="font-medium tabular-nums text-ink">
-              {formatPesos(vaca.myContributed)} de {formatPesos(vaca.myQuota)}
+              {formatPesos(vaca.myContributed)} {t('de')} {formatPesos(vaca.myQuota)}
             </span>
           </p>
           <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-xs font-medium', mine.chip)}>{mine.label}</span>
@@ -76,12 +77,12 @@ function VacaCard({ vaca }) {
  */
 function WhoChoice({ onChoose }) {
   const options = [
-    { value: 'solo', icon: User, title: 'Solo para mí', hint: 'Una meta propia: la moto, el semestre, un viaje.' },
-    { value: 'grupo', icon: Users, title: 'Con más personas', hint: 'Juntan plata entre varios: el paseo, un regalo.' },
+    { value: 'solo', icon: User, title: t('Solo para mí'), hint: t('Una meta propia: la moto, el semestre, un viaje.') },
+    { value: 'grupo', icon: Users, title: t('Con más personas'), hint: t('Juntan plata entre varios: el paseo, un regalo.') },
   ];
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink/70">¿Es solo para ti o con más personas?</p>
+      <p className="text-sm text-ink/70">{t('¿Es solo para ti o con más personas?')}</p>
       {options.map(({ value, icon: Icon, title, hint }) => (
         <button
           key={value}
@@ -111,7 +112,7 @@ const isGroup = (vaca) => !vaca.personal;
  * última lista guardada en el dispositivo.
  */
 export default function Vacas() {
-  usePageTitle('Vacas');
+  usePageTitle(t('Vacas'));
   const online = useOnlineStatus();
   const navigate = useNavigate();
   const [vacas, setVacas] = useState(null);
@@ -170,51 +171,50 @@ export default function Vacas() {
     <>
       <GroupSwitch />
       <PageHeader
-        title="Vacas"
-        description="Junten plata en grupo para una meta."
+        title={t('Vacas')}
+        description={t('Junten plata en grupo para una meta.')}
         actions={
           <>
             <Button onClick={openNew} disabled={!online}>
-              <Plus aria-hidden="true" /> Nueva vaca
+              <Plus aria-hidden="true" /> {t('Nueva vaca')}
             </Button>
             <Button variant="ghost" onClick={() => setSheet('codigo')} disabled={!online}>
-              <KeyRound aria-hidden="true" /> Tengo un código
+              <KeyRound aria-hidden="true" /> {t('Tengo un código')}
             </Button>
           </>
         }
       />
 
       {fromCache && (
-        <p className="mb-3 text-sm text-ink/60">Sin conexión: es la última lista guardada en este dispositivo.</p>
+        <p className="mb-3 text-sm text-ink/60">{t('Sin conexión: es la última lista guardada en este dispositivo.')}</p>
       )}
       {error && (
         <p role="alert" className="mb-3 text-sm text-negative">
           {error}{' '}
           <button type="button" className="underline" onClick={reload}>
-            Reintentar
+            {t('Reintentar')}
           </button>
         </p>
       )}
 
       {vacas === null && !error ? (
         <p className="flex items-center gap-2 py-10 text-ink/60">
-          <Loader2 className="animate-spin" aria-hidden="true" /> Cargando…
+          <Loader2 className="animate-spin" aria-hidden="true" /> {t('Cargando…')}
         </p>
       ) : vacas?.length === 0 ? (
         <Panel className="mx-auto max-w-xl text-center">
           <PiggyBank className="mx-auto size-10 text-brand" aria-hidden="true" />
-          <p className="mt-3 text-lg font-semibold">Aún no tienes vacas</p>
+          <p className="mt-3 text-lg font-semibold">{t('Aún no tienes vacas')}</p>
           <p className="mx-auto mt-1 max-w-md text-ink/60">
-            Crea una para el paseo, el regalo o el mercado del mes e invita a los demás. Rinde reparte la meta y les
-            dice si van a tiempo.
+            {t('Crea una para el paseo, el regalo o el mercado del mes e invita a los demás. Rinde reparte la meta y les dice si van a tiempo.')}
           </p>
           <Button className="mt-4" onClick={openNew} disabled={!online}>
-            Crear mi primera vaca
+            {t('Crear mi primera vaca')}
           </Button>
         </Panel>
       ) : (
         vacas && (
-          <ul aria-label="Mis vacas" className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+          <ul aria-label={t('Mis vacas')} className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
             {vacas.map((vaca) => (
               <VacaCard key={vaca.id} vaca={vaca} />
             ))}
@@ -224,7 +224,7 @@ export default function Vacas() {
 
       <Sheet
         open={sheet === 'nueva'}
-        title={forWho === 'solo' ? 'Nueva meta' : 'Nueva vaca'}
+        title={forWho === 'solo' ? t('Nueva meta') : t('Nueva vaca')}
         onClose={() => setSheet(null)}
       >
         {forWho === null ? (
@@ -233,7 +233,7 @@ export default function Vacas() {
           <>
             {forWho === 'solo' && (
               <p className="mb-4 rounded-xl bg-brand-soft p-3 text-sm text-ink/80">
-                Como es solo para ti, la guardamos en <b>Metas</b>: sin invitaciones ni reparto.
+                {t('Como es solo para ti, la guardamos en')} <b>{t('Metas')}</b>{t(': sin invitaciones ni reparto.')}
               </p>
             )}
             <VacaForm
@@ -247,8 +247,8 @@ export default function Vacas() {
       </Sheet>
       <Sheet
         open={sheet === 'codigo'}
-        title="Unirme a una vaca"
-        description="Escribe el código que te compartieron."
+        title={t('Unirme a una vaca')}
+        description={t('Escribe el código que te compartieron.')}
         onClose={() => setSheet(null)}
       >
         <JoinByCode basePath="/app/vacas" disabled={!online} />

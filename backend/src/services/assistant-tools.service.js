@@ -5,6 +5,7 @@ import {
 } from '../repositories/transactions.repository.js';
 import { todayIso } from './insights.service.js';
 import { periodRange } from './transactions.service.js';
+import { t } from '../i18n/index.js';
 
 /** Datos abiertos del Estado colombiano (Socrata). */
 const DATOS_GOV = 'https://www.datos.gov.co/resource';
@@ -37,19 +38,19 @@ const EXTERNAL_TIMEOUT_MS = 8000;
  * Cada entrada: hasta cuántos días cubre, su subcuenta y cómo se llama.
  */
 const CDT_TERMS = [
-  { maxDays: 30, subcuenta: '10', label: 'a 30 días' },
-  { maxDays: 44, subcuenta: '20', label: 'entre 31 y 44 días' },
-  { maxDays: 45, subcuenta: '30', label: 'a 45 días' },
-  { maxDays: 60, subcuenta: '50', label: 'a 60 días' },
-  { maxDays: 89, subcuenta: '60', label: 'entre 61 y 89 días' },
-  { maxDays: 90, subcuenta: '70', label: 'a 90 días' },
-  { maxDays: 119, subcuenta: '80', label: 'entre 91 y 119 días' },
-  { maxDays: 120, subcuenta: '90', label: 'a 120 días' },
-  { maxDays: 179, subcuenta: '100', label: 'entre 121 y 179 días' },
-  { maxDays: 180, subcuenta: '110', label: 'a 180 días' },
-  { maxDays: 359, subcuenta: '120', label: 'entre 181 y 359 días' },
-  { maxDays: 360, subcuenta: '130', label: 'a 360 días' },
-  { maxDays: Infinity, subcuenta: '140', label: 'a más de 360 días' },
+  { maxDays: 30, subcuenta: '10', get label() { return t('a 30 días'); } },
+  { maxDays: 44, subcuenta: '20', get label() { return t('entre 31 y 44 días'); } },
+  { maxDays: 45, subcuenta: '30', get label() { return t('a 45 días'); } },
+  { maxDays: 60, subcuenta: '50', get label() { return t('a 60 días'); } },
+  { maxDays: 89, subcuenta: '60', get label() { return t('entre 61 y 89 días'); } },
+  { maxDays: 90, subcuenta: '70', get label() { return t('a 90 días'); } },
+  { maxDays: 119, subcuenta: '80', get label() { return t('entre 91 y 119 días'); } },
+  { maxDays: 120, subcuenta: '90', get label() { return t('a 120 días'); } },
+  { maxDays: 179, subcuenta: '100', get label() { return t('entre 121 y 179 días'); } },
+  { maxDays: 180, subcuenta: '110', get label() { return t('a 180 días'); } },
+  { maxDays: 359, subcuenta: '120', get label() { return t('entre 181 y 359 días'); } },
+  { maxDays: 360, subcuenta: '130', get label() { return t('a 360 días'); } },
+  { maxDays: Infinity, subcuenta: '140', get label() { return t('a más de 360 días'); } },
 ];
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -163,15 +164,15 @@ export function createAssistantTools(userId, deps = {}) {
       parameters: {
         type: 'object',
         properties: {
-          desde: { type: 'string', description: 'Fecha inicial AAAA-MM-DD' },
-          hasta: { type: 'string', description: 'Fecha final AAAA-MM-DD' },
+          desde: { type: 'string', description: t('Fecha inicial AAAA-MM-DD') },
+          hasta: { type: 'string', description: t('Fecha final AAAA-MM-DD') },
         },
         required: ['desde', 'hasta'],
       },
       async run({ desde, hasta }) {
         if (!DATE_RE.test(desde ?? '') || !DATE_RE.test(hasta ?? '') || desde > hasta) {
           return {
-            error: 'Las fechas deben ser AAAA-MM-DD y "desde" no puede ser posterior a "hasta"',
+            error: t('Las fechas deben ser AAAA-MM-DD y "desde" no puede ser posterior a "hasta"'),
           };
         }
         const [{ byCategory }, names] = await Promise.all([
@@ -191,7 +192,7 @@ export function createAssistantTools(userId, deps = {}) {
           ahorro: total('ahorro'),
           por_categoria: byCategory.map((r) => ({
             tipo: kind(r),
-            categoria: r.category ? (names.get(r.category) ?? r.category) : 'Sin clasificar',
+            categoria: r.category ? (names.get(r.category) ?? r.category) : t('Sin clasificar'),
             total: r.total,
           })),
         };
@@ -233,7 +234,7 @@ export function createAssistantTools(userId, deps = {}) {
           sobrante: cents(m.ingresos - m.gastos),
         }));
         if (list.length === 0)
-          return { meses: [], nota: 'No hay movimientos en los últimos 3 meses completos' };
+          return { meses: [], nota: t('No hay movimientos en los últimos 3 meses completos') };
         const average = list.reduce((acc, m) => acc + m.sobrante, 0) / list.length;
         return { meses: list, sobrante_promedio_mensual: Math.round(average) };
       },
@@ -241,15 +242,15 @@ export function createAssistantTools(userId, deps = {}) {
     {
       name: 'dolar_hoy',
       description:
-        'Tasa Representativa del Mercado (TRM) oficial del dólar en Colombia, la más reciente.',
+        t('Tasa Representativa del Mercado (TRM) oficial del dólar en Colombia, la más reciente.'),
       parameters: { type: 'object', properties: {} },
       async run() {
         const [row] = await datosGov(TRM_DATASET, { $order: 'vigenciadesde DESC', $limit: '1' });
-        if (!row) return { error: 'No hay TRM publicada' };
+        if (!row) return { error: t('No hay TRM publicada') };
         return {
           trm: Number(row.valor),
           vigente_desde: row.vigenciadesde.slice(0, 10),
-          fuente: 'Superintendencia Financiera, datos.gov.co',
+          fuente: t('Superintendencia Financiera, datos.gov.co'),
         };
       },
     },
@@ -263,7 +264,7 @@ export function createAssistantTools(userId, deps = {}) {
         properties: {
           plazo_dias: {
             type: 'integer',
-            description: 'Plazo del CDT en días, p. ej. 90, 180 o 360',
+            description: t('Plazo del CDT en días, p. ej. 90, 180 o 360'),
           },
         },
         required: ['plazo_dias'],
@@ -271,25 +272,25 @@ export function createAssistantTools(userId, deps = {}) {
       async run({ plazo_dias: days }) {
         const plazo = Number(days);
         if (!Number.isInteger(plazo) || plazo < 1 || plazo > 3650)
-          return { error: 'El plazo debe estar en días' };
+          return { error: t('El plazo debe estar en días') };
         const term = cdtTerm(plazo);
         const where = `uca='${CDT_UNIT}' AND subcuenta='${term.subcuenta}'`;
         const [{ max_fechacorte: latest } = {}] = await datosGov(RATES_DATASET, {
           $select: 'max(fechacorte)',
           $where: where,
         });
-        if (!latest) return { error: 'No hay tasas publicadas para ese plazo' };
+        if (!latest) return { error: t('No hay tasas publicadas para ese plazo') };
         const rows = await datosGov(RATES_DATASET, {
           $select: 'nombreentidad,tasa,monto',
           $where: `${where} AND fechacorte='${latest}'`,
           $limit: '200',
         });
-        if (rows.length === 0) return { error: 'No hay tasas publicadas para ese plazo' };
+        if (rows.length === 0) return { error: t('No hay tasas publicadas para ese plazo') };
         return {
           plazo: term.label,
           fecha_corte: latest.slice(0, 10),
           ...summarizeCdtRates(rows),
-          fuente: 'Superintendencia Financiera, tasas de captación (datos.gov.co)',
+          fuente: t('Superintendencia Financiera, tasas de captación (datos.gov.co)'),
         };
       },
     },
@@ -301,11 +302,11 @@ export function createAssistantTools(userId, deps = {}) {
       parameters: {
         type: 'object',
         properties: {
-          monto: { type: 'number', description: 'Pesos a invertir' },
-          plazo_dias: { type: 'integer', description: 'Plazo en días' },
+          monto: { type: 'number', description: t('Pesos a invertir') },
+          plazo_dias: { type: 'integer', description: t('Plazo en días') },
           tasa_ea: {
             type: 'number',
-            description: 'Tasa efectiva anual en porcentaje, p. ej. 10.5',
+            description: t('Tasa efectiva anual en porcentaje, p. ej. 10.5'),
           },
         },
         required: ['monto', 'plazo_dias', 'tasa_ea'],
@@ -317,7 +318,7 @@ export function createAssistantTools(userId, deps = {}) {
           values[0] > 1e12 ||
           values[2] > 100
         ) {
-          return { error: 'Monto, plazo y tasa deben ser números positivos' };
+          return { error: t('Monto, plazo y tasa deben ser números positivos') };
         }
         return simulateCdt({ monto: values[0], plazoDias: values[1], tasaEA: values[2] });
       },

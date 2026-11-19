@@ -1,4 +1,5 @@
 import { AppError } from '../errors/app-error.js';
+import { t } from '../i18n/index.js';
 
 /** Mensajes que se envían a la IA: los últimos de la conversación (la memoria del chat). */
 export const MAX_MESSAGES = 10;
@@ -17,30 +18,30 @@ const ROLES = ['user', 'assistant'];
  */
 export function parseChat(body) {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-    throw new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+    throw new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
   }
   const { messages } = body;
   const invalid = (problem) =>
-    new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [{ field: 'messages', problem }]);
+    new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [{ field: 'messages', problem }]);
 
   if (!Array.isArray(messages) || messages.length === 0) {
-    throw invalid('Envía al menos una pregunta');
+    throw invalid(t('Envía al menos una pregunta'));
   }
   if (messages.length > MAX_MESSAGES) {
-    throw invalid(`Envía como máximo los últimos ${MAX_MESSAGES} mensajes`);
+    throw invalid(t('Envía como máximo los últimos {MAX_MESSAGES} mensajes', { MAX_MESSAGES }));
   }
   const clean = messages.map((m) => ({
     role: m?.role,
     text: typeof m?.text === 'string' ? m.text.trim() : '',
   }));
   if (clean.some((m) => !ROLES.includes(m.role) || !m.text)) {
-    throw invalid('Cada mensaje necesita "role" (user o assistant) y un "text" con contenido');
+    throw invalid(t('Cada mensaje necesita "role" (user o assistant) y un "text" con contenido'));
   }
   if (clean.some((m) => m.text.length > MAX_MESSAGE_CHARS)) {
-    throw invalid(`Cada mensaje puede tener hasta ${MAX_MESSAGE_CHARS} caracteres`);
+    throw invalid(t('Cada mensaje puede tener hasta {MAX_MESSAGE_CHARS} caracteres', { MAX_MESSAGE_CHARS }));
   }
   if (clean.at(-1).role !== 'user') {
-    throw invalid('El último mensaje debe ser una pregunta del usuario');
+    throw invalid(t('El último mensaje debe ser una pregunta del usuario'));
   }
   return { messages: clean };
 }

@@ -164,7 +164,7 @@ export async function markSettled({ id, userId, transactionId }, client = pool) 
  * Cuentas pendientes cuyo aviso toca hoy (hora local de su dueño) y aún no salió (FT-0063).
  * Cada cuenta avisa con la anticipación, la hora y el canal que eligió el usuario; sin configuración,
  * un día antes, por notificación y a la primera hora de su recordatorio diario (o 09:00).
- * @returns {Promise<{ id: string, userId: string, timezone: string, time: string, kind: 'receivable'|'payable', person: string, amount: number, dueDate: string, daysBefore: number, channel: 'push'|'whatsapp'|'both' }[]>}
+ * @returns {Promise<{ id: string, userId: string, timezone: string, time: string, kind: 'receivable'|'payable', person: string, amount: number, dueDate: string, daysBefore: number, channel: 'push'|'whatsapp'|'both', installments: number|null, frequency: string|null, firstDueDate: string|null, paid: number }[]>}
  */
 export async function listDebtsDueTomorrow() {
   const { rows } = await pool.query(
@@ -174,7 +174,13 @@ export async function listDebtsDueTomorrow() {
             CASE c.tipo WHEN 'por_cobrar' THEN 'receivable' ELSE 'payable' END AS kind,
             c.persona AS person, c.monto::float8 AS amount,
             to_char(c.fecha_limite, 'YYYY-MM-DD') AS "dueDate", d.dias AS "daysBefore",
-            COALESCE(a.canal, 'push') AS channel
+            COALESCE(a.canal, 'push') AS channel,
+            -- Para avisar lo que falta de la cuota y no el total (FT-0064).
+            c.cuotas::int AS installments,
+            CASE c.frecuencia WHEN 'semanal' THEN 'weekly' WHEN 'quincenal' THEN 'biweekly'
+                              WHEN 'mensual' THEN 'monthly' END AS frequency,
+            to_char(c.primera_cuota, 'YYYY-MM-DD') AS "firstDueDate",
+            (SELECT COALESCE(sum(ab.monto), 0)::float8 FROM abonos_cuenta ab WHERE ab.cuenta_id = c.id) AS paid
      FROM cuentas_personales c
      JOIN usuarios u ON u.id = c.usuario_id
      LEFT JOIN avisos a ON a.origen_tipo = 'cuenta' AND a.origen_id = c.id

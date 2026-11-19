@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight, Wallet } from 'lucide-react';
 import Panel from '@/components/layout/Panel';
+import { t } from '@/lib/i18n';
 
 /**
  * Acceso a Mi plata para quien omitió la bienvenida o no la respondió completa: sin esto, nada en
@@ -15,8 +16,8 @@ export default function MoneySetupLink() {
       >
         <Wallet className="size-5 shrink-0 text-brand" aria-hidden="true" />
         <span className="min-w-0 flex-1 text-sm">
-          <span className="font-medium">¿Cuánta plata tienes hoy?</span>
-          <span className="block text-ink/60">Dínoslo y cómo te entra la plata: así ves tu plata real y cuánto puedes gastar.</span>
+          <span className="font-medium">{t('¿Cuánta plata tienes hoy?')}</span>
+          <span className="block text-ink/60">{t('Dínoslo y cómo te entra la plata: así ves tu plata real y cuánto puedes gastar.')}</span>
         </span>
         <ChevronRight className="size-5 shrink-0 text-ink/40" aria-hidden="true" />
       </Link>

@@ -4,8 +4,9 @@
  */
 import { authFetch } from '@/lib/authFetch';
 import { apiRequest, toApiError } from '@/lib/apiRequest';
+import { t } from '@/lib/i18n';
 
-const CONNECTION_ERROR = 'No pudimos conectar con el servidor. Revisa tu conexión.';
+const CONNECTION_ERROR = t('No pudimos conectar con el servidor. Revisa tu conexión.');
 
 /**
  * @typedef {object} Attachment

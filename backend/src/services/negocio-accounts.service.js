@@ -12,6 +12,7 @@ import {
 } from './negocio-accounts.logic.js';
 import { DEFAULT_CATEGORY, KIND_TO_DB } from './negocio-panel.logic.js';
 import { requirePartner, today } from './negocio-movements.service.js';
+import { t } from '../i18n/index.js';
 
 // Cuentas por cobrar (clientes) y por pagar (proveedores) del negocio, con abonos parciales
 // (FT-0058). Todos los socios las ven; dueños y editores las registran y abonan. Cada abono crea el
@@ -20,10 +21,10 @@ import { requirePartner, today } from './negocio-movements.service.js';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const readOnly = () =>
-  new AppError(403, 'FORBIDDEN', 'Eres lector del negocio: puedes ver, pero no registrar ni borrar');
-const accountNotFound = () => new AppError(404, 'NOT_FOUND', 'Cuenta no encontrada');
+  new AppError(403, 'FORBIDDEN', t('Eres lector del negocio: puedes ver, pero no registrar ni borrar'));
+const accountNotFound = () => new AppError(404, 'NOT_FOUND', t('Cuenta no encontrada'));
 const invalid = (field, problem) =>
-  new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [{ field, problem }]);
+  new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [{ field, problem }]);
 
 /**
  * Agrega saldo y estado a una cuenta de la base.
@@ -83,7 +84,7 @@ export async function remove(userId, id, accountId) {
   const account = UUID_RE.test(accountId) && (await repo.findAccount(business.id, accountId));
   if (!account) throw accountNotFound();
   if (business.role !== 'dueno' && account.authorId !== userId) {
-    throw new AppError(403, 'FORBIDDEN', 'Solo quien la registró o un dueño puede borrarla');
+    throw new AppError(403, 'FORBIDDEN', t('Solo quien la registró o un dueño puede borrarla'));
   }
   await repo.deleteAccount(business.id, accountId);
 }
@@ -106,14 +107,14 @@ export async function pay(userId, id, accountId, input) {
 
   const movementKind = input.movementKind ?? DEFAULT_PAYMENT_MOVEMENT[account.kind];
   if (!PAYMENT_MOVEMENT_KINDS[account.kind].includes(movementKind)) {
-    throw invalid('movementKind', `Debe ser: ${PAYMENT_MOVEMENT_KINDS[account.kind].join(', ')}`);
+    throw invalid('movementKind', t('Debe ser: {join}', { join: PAYMENT_MOVEMENT_KINDS[account.kind].join(', ') }));
   }
   const now = await today(userId);
   const date = input.date ?? now;
-  if (date > now) throw invalid('date', 'No puede ser una fecha futura');
+  if (date > now) throw invalid('date', t('No puede ser una fecha futura'));
 
   const description = (
-    account.kind === 'receivable' ? `Abono de ${account.party}` : `Pago a ${account.party}`
+    account.kind === 'receivable' ? t('Abono de {party}', { party: account.party }) : t('Pago a {party}', { party: account.party })
   ).slice(0, 120);
   const result = await repo.insertPayment({
     businessId: business.id,
@@ -132,8 +133,8 @@ export async function pay(userId, id, accountId, input) {
     throw invalid(
       'amount',
       result.remaining === 0
-        ? 'Esta cuenta ya está pagada'
-        : `No puede ser mayor que el saldo (${result.remaining})`,
+        ? t('Esta cuenta ya está pagada')
+        : t('No puede ser mayor que el saldo ({remaining})', { remaining: result.remaining }),
     );
   }
   return present(await repo.findAccount(business.id, account.id), now);
@@ -154,9 +155,9 @@ export async function removePayment(userId, id, accountId, paymentId) {
     UUID_RE.test(accountId) &&
     UUID_RE.test(paymentId) &&
     (await repo.findPayment(business.id, accountId, paymentId));
-  if (!payment) throw new AppError(404, 'NOT_FOUND', 'Abono no encontrado');
+  if (!payment) throw new AppError(404, 'NOT_FOUND', t('Abono no encontrado'));
   if (business.role !== 'dueno' && payment.authorId !== userId) {
-    throw new AppError(403, 'FORBIDDEN', 'Solo quien lo registró o un dueño puede deshacerlo');
+    throw new AppError(403, 'FORBIDDEN', t('Solo quien lo registró o un dueño puede deshacerlo'));
   }
   await deleteMovement(business.id, payment.movementId);
   return present(await repo.findAccount(business.id, accountId), await today(userId));
@@ -197,5 +198,5 @@ export async function removeTaxDate(userId, id, dateId) {
   const business = await requirePartner(userId, id);
   if (business.role === 'lector') throw readOnly();
   const deleted = UUID_RE.test(dateId) && (await taxDates.deleteTaxDate(business.id, dateId));
-  if (!deleted) throw new AppError(404, 'NOT_FOUND', 'Fecha no encontrada');
+  if (!deleted) throw new AppError(404, 'NOT_FOUND', t('Fecha no encontrada'));
 }

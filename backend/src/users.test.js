@@ -96,3 +96,30 @@ test('PATCH /users/me valida el nombre (422) y exige sesión (401)', options, as
     assert.equal(noToken.status, 401);
   });
 });
+
+test('PATCH /users/me cambia país, moneda e idioma; con movimientos la moneda ya no cambia (409)', options, async () => {
+  await withAccount(async ({ api, token }) => {
+    const before = await api('/users/me', { token });
+    assert.deepEqual(
+      { country: before.body.country, currency: before.body.currency, language: before.body.language },
+      { country: 'CO', currency: 'COP', language: 'es' },
+    );
+
+    const moved = await api('/users/me', { method: 'PATCH', token, body: { country: 'US', currency: 'USD', language: 'en' } });
+    assert.equal(moved.status, 200);
+    assert.equal(moved.body.currency, 'USD');
+
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+    const tx = await api('/transactions', { method: 'POST', token, body: { type: 'gasto', amount: 12, description: 'Café', date: today } });
+    assert.equal(tx.status, 201);
+
+    const locked = await api('/users/me', { method: 'PATCH', token, body: { currency: 'COP' } });
+    assert.equal(locked.status, 409);
+    assert.equal(locked.body.error.code, 'CURRENCY_LOCKED');
+
+    // Quien viaja cambia el país: eso sí se puede, y la moneda sigue igual.
+    const travel = await api('/users/me', { method: 'PATCH', token, body: { country: 'MX' } });
+    assert.equal(travel.status, 200);
+    assert.deepEqual([travel.body.country, travel.body.currency], ['MX', 'USD']);
+  });
+});

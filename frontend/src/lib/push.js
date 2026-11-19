@@ -1,4 +1,5 @@
-/**
+
+import { t } from '@/lib/i18n';/**
  * Utilidades del navegador para Web Push (FT-0011). No hablan con la API: solo con
  * `Notification`, `PushManager` y el service worker.
  */
@@ -40,7 +41,7 @@ export function urlBase64ToUint8Array(base64) {
 export async function getReadyRegistration() {
   const timeout = new Promise((_, reject) => {
     setTimeout(
-      () => reject(new Error('Las notificaciones no están listas todavía. Recarga la página e inténtalo de nuevo.')),
+      () => reject(new Error(t('Las notificaciones no están listas todavía. Recarga la página e inténtalo de nuevo.'))),
       READY_TIMEOUT_MS,
     );
   });
@@ -90,11 +91,11 @@ export function pushErrorMessage(err) {
         'Si usas VPN, antivirus o un bloqueador de anuncios, pausa el bloqueo e inténtalo de nuevo.'
       );
     case 'NotAllowedError':
-      return 'El navegador no permitió las notificaciones. Revisa los permisos del sitio (el candado junto a la dirección).';
+      return t('El navegador no permitió las notificaciones. Revisa los permisos del sitio (el candado junto a la dirección).');
     case 'NotSupportedError':
-      return 'Este navegador no permite notificaciones push.';
+      return t('Este navegador no permite notificaciones push.');
     default:
-      return err?.message || 'No se pudieron activar las notificaciones. Inténtalo de nuevo.';
+      return err?.message || t('No se pudieron activar las notificaciones. Inténtalo de nuevo.');
   }
 }
 
@@ -113,5 +114,5 @@ export async function getCurrentSubscription() {
  * @returns {string}
  */
 export function getDeviceTimezone() {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Bogota';
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || t('America/Bogota');
 }

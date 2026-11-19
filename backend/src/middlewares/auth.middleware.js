@@ -1,5 +1,6 @@
 import { AppError } from '../errors/app-error.js';
 import { verifyAccessToken } from '../services/token.service.js';
+import { t } from '../i18n/index.js';
 
 /**
  * Exige un access token válido en `Authorization: Bearer <token>`.
@@ -13,16 +14,16 @@ import { verifyAccessToken } from '../services/token.service.js';
 export function requireAuth(req, _res, next) {
   const [scheme, token] = (req.get('Authorization') ?? '').split(' ');
   if (scheme !== 'Bearer' || !token) {
-    throw new AppError(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    throw new AppError(401, 'UNAUTHORIZED', t('Token inválido o ausente'));
   }
 
   try {
     req.userId = verifyAccessToken(token).sub;
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
-      throw new AppError(401, 'TOKEN_EXPIRED', 'El token expiró');
+      throw new AppError(401, 'TOKEN_EXPIRED', t('El token expiró'));
     }
-    throw new AppError(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+    throw new AppError(401, 'UNAUTHORIZED', t('Token inválido o ausente'));
   }
 
   next();

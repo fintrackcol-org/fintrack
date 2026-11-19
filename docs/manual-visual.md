@@ -70,6 +70,11 @@ Reglas:
 | **Selector de acceso** | `auth/AuthLayout.jsx` (`mode`) | Franja "Iniciar sesión \| Crear cuenta" arriba del formulario en `/login` y `/registro`. Son enlaces (no botones) de 44 px; la elegida lleva `aria-current` y la pieza clara. Es la versión para páginas públicas de `Segmented`; no usar en `/app` |
 | **Sheet** | `common/Sheet.jsx` | Ventana que sube desde abajo en celular y se centra desde tablet; arrastrable, atrapa el foco, Escape cierra, devuelve el foco al abrir |
 | **ConfirmButton** | `common/ConfirmButton.jsx` | Confirmación en dos pasos para acciones destructivas |
+| **CountrySelect / CountrySettings** | `account/` | País de la persona: `<select>` nativo con los nombres en su idioma (orden alfabético). `CountrySettings` es la fila «País» de Cuenta; el paso del país al empezar va en `onboarding/CountryStep.jsx` |
+| **OnboardingShell** (`StepTitle`, `StepAction`) | `onboarding/OnboardingShell.jsx` | Marco de la bienvenida (sección 13): Atrás, avance y Omitir arriba; una sola acción abajo. No se usa dentro de `AppShell` |
+| **Lista de casillas** | `money/IncomeSourcesFields.jsx` | Varias opciones que se pueden marcar a la vez, con preguntas propias: un solo bloque `rounded-3xl bg-surface` con divisores, ícono en ficha de color (`tone`, tonos de categorías), y a la derecha una casilla **cuadrada** (`role="checkbox"`); la redonda queda para «solo una». Marcada: casilla llena + visto + fondo `brand-soft/50` (nunca solo el color). Sus preguntas se abren debajo y se acercan a la vista |
+| **RindeLine** | `common/RindeLine.jsx` | Línea que rinde (barra con la moneda verde). Es el avance de la bienvenida, de metas y de deudas. Decorativa y sin toques (`pointer-events-none`): quien la usa dice el avance en texto o con `role="progressbar"` |
+| **Rin** | `rin/Rin.jsx` | La mascota. Solo dibuja; emoción y gesto se le pasan. Reglas de uso en la sección 13 |
 | **Gráficos** | `charts/`, `dashboard/` | Ver sección 8 |
 
 Estados obligatorios de todo control: reposo, hover, `:focus-visible` (contorno violeta de 2 px con separación de 2 px), activo, deshabilitado (opacidad 50 %) y, si aplica, error y cargando.
@@ -85,6 +90,8 @@ Tokens en `@theme` (`--animate-*`). Curvas: salida `cubic-bezier(0.22, 1, 0.36, 
 | `row-in` | 900 ms | movimiento recién agregado: se abre y queda resaltado |
 | `bar-in`, `ring-in` | 600–700 ms | entrada de gráficos |
 | `voice-ring`, `voice-wave` | continuo | solo mientras el micrófono escucha |
+| `rise` | 420 ms | bloques de una pantalla de primera vez que llegan en cascada (50 ms entre uno y otro, con `animationDelay` en línea) |
+| `swap-in` | 220 ms | un dato que cambia en su sitio (la moneda al elegir país): llega con un desenfoque leve |
 | `fade-up`, `float` | 600 ms / 6 s | solo páginas públicas |
 
 Reglas: respetar `prefers-reduced-motion` (`motion-safe:`, `MotionConfig reducedMotion="user"`); animar `transform` y `opacity`; nada de movimiento en acciones repetidas de teclado.
@@ -93,6 +100,8 @@ Reglas: respetar `prefers-reduced-motion` (`motion-safe:`, `MotionConfig reduced
 - Cada gráfico responde **una pregunta** (¿en qué gasto?, ¿cuánto me queda?, ¿voy dentro del presupuesto?). Si no la responde, no se pone.
 - Ingresos y gastos usan `chart-income` / `chart-expense`; categorías usan `chart-cat-*`, con nombre y valor visibles.
 - Lo estimado o proyectado se rotula y no se presenta como dato cierto.
+- **Dinero según el país (17-nov-2026):** todo monto pasa por `formatMoney` o `formatMoneyCompact` (`transactions/format.js`) y todo campo de monto por `MoneyInput`. Nunca escribir `$` ni `'es-CO'` a mano: el símbolo, los separadores y los centavos salen de `lib/region.js` (`$ 12.500` en Colombia, `$12,500.50` en Estados Unidos, `R$ 1.234,56` en Brasil). Los números van como en la casa de la moneda principal, aunque la persona viaje o use otro idioma.
+- **De viaje (fase 2):** si el país actual tiene otra moneda, Anotar muestra junto a «Monto» un `Segmented` con las dos monedas (la de allá elegida). Debajo va una línea de 13 px «≈ $ 35.830 · 1 MXN = $ 179,15 · Corregir tasa»; la tasa se corrige en una casilla aparte. Las otras monedas se escriben con `formatIn` (desde Colombia `MXN 200`, con el código, para no confundirlas con el `$` del peso) y el detalle del movimiento muestra la fila «Pagado allá». Los avisos de «¿faltan ceros?» solo valen en pesos colombianos.
 - **Reportes exportados (Excel y PDF) y su vista previa en Exportar (FT-0012):** ingresos en `positive` y gastos en el violeta de marca; las categorías van todas en violeta, distinguidas por nombre y largo de barra, no por un color cada una. El rojo queda solo para alertas (presupuesto excedido, balance negativo). Es una excepción aprobada el 13-nov-2026 para los documentos; dentro de la app los gráficos siguen con `chart-income` / `chart-expense`. El logo va a color sobre `#F5F4F9`. Componente: `export/ReportPreview.jsx`.
 - **Semáforo del calendario (FT-0069):** `positive` te alcanza con holgura, `caution` te queda poco, `negative` no alcanza o está atrasado. Sale de lo que queda después de los pagos del día. Siempre con leyenda visible; el rojo lleva además el signo `!`. Un pago sin saldo calculado va en `ink/60` y lo que entra en `brand`, para no confundirlos con el verde.
 
@@ -105,7 +114,8 @@ Reglas: respetar `prefers-reduced-motion` (`motion-safe:`, `MotionConfig reduced
 | Éxito | `pop` + texto de confirmación |
 | Sin conexión / lento | `layout/SyncStatus.jsx` y la cola `offline/` |
 | Datos extremos | probar con nombres largos, montos de 10 dígitos, cero y miles de ítems (`MAX_AMOUNT` en `lib/money.js`) |
-| Destructivo | `ConfirmButton`, y avisar lo que se pierde |
+| Destructivo | `ConfirmButton`, y avisar lo que se pierde. Para eliminar un movimiento (lista y detalle): botón `outline` rojo, centrado y del ancho de la acción principal, que abre `Sheet` con lo que se borra y «Sí, eliminar» en `negative` |
+| Formulario con datos que faltan | El botón de guardar no se apaga ni se vuelve un aviso: al tocarlo lleva el foco a la casilla vacía, la marca con `aria-invalid` y dice qué escribir. Cada dato que se pide tiene su casilla visible con etiqueta; nada depende de una regla que el usuario no ve (Anotar: «Monto» y «¿En qué fue?», 17-nov-2026) |
 
 ## 10. Responsive y accesibilidad
 - Se diseña de móvil hacia arriba: celular pequeño (≈ 360 px), celular, tablet (`md`), portátil y escritorio (`lg`+). No es el escritorio encogido: en móvil hay inicio propio (`MobileHome`) y ventanas que suben desde abajo.
@@ -122,7 +132,27 @@ Se registra para corregir sin romper la identidad; no es un cambio aprobado.
 4. `--color-card`, `--color-muted`, etc. del `@theme` son del sistema público; en `/app` no se usan: no mezclar.
 5. No existe documentación de componentes de dominio (tarjetas de tarjeta de crédito, metas, vacas): agregar al crecer.
 
-## 12. Cómo se cambia este manual
+## 12. Bienvenida (18-nov-2026)
+`/app/bienvenida`: lo primero que ve una persona. Una sola secuencia, con una sola cuenta de pasos.
+
+| # | Pantalla | Archivo | Qué resuelve |
+|---|---|---|---|
+| 0 | Saludo | `onboarding/WelcomeIntro.jsx` | Marca, Rin que saluda y la promesa. Sin barra de avance. «Empezar» o «Ahora no» (entra a la app sin responder) |
+| 1 | País e idioma | `onboarding/CountryStep.jsx` | El país propone moneda e idioma; el idioma se elige aparte y, si la persona lo toca, el país ya no lo cambia. La ficha violeta muestra cómo se escribirá su plata |
+| 2–6 | Cómo funciona | `onboarding/HowItWorksTour.jsx` | Cinco ejemplos en un escenario `brand-soft` rotulado «Ejemplo» (nada se anota). No avanza solo: botón o deslizar. Se puede repetir |
+| 7–9 | Tres preguntas | `pages/app/Welcome.jsx` | Ingresos (lista de casillas), plata de hoy y pagos del mes. Todas opcionales |
+
+Reglas:
+- **Un solo avance:** la `RindeLine` del marco cuenta las nueve pantallas. No hay «Paso 1 de 3» por tramo. El lector de pantalla oye «Paso 4 de 9».
+- **Los controles no se mueven:** Atrás a la izquierda, Omitir a la derecha (omite esa pantalla, o el recorrido entero, sin borrar lo respondido en las demás) y un único botón principal abajo, de 48 px.
+- **Nada es obligatorio ni se convierte en movimiento:** lo que se responde aquí son datos para planear. La pregunta de plata dice para qué se pide.
+- **No se pierde lo respondido:** se guarda en el dispositivo (`lib/onboardingDraft.js`) hasta terminar; recargar, cambiar de idioma o quedarse sin conexión devuelve a la misma pantalla. Guardar no se envía dos veces.
+- **Ejemplos en la moneda de la persona:** en pesos colombianos se habla en miles («gasolina 40 mil» → `$ 40.000`); en las demás, el número solo («gas 40» → `$40`).
+- **Rin aparece dos veces y no más:** saluda en la pantalla 0 y explica por qué se pregunta por los ingresos. No da puntos ni premios, no interrumpe y no se repite en cada pantalla. Se usa el dibujo oficial (`rin/Rin.jsx`), sin versiones nuevas.
+- **Movimiento:** las pantallas llegan con `page-in` / `page-back`; el saludo, con `rise`. Con movimiento reducido el ejemplo de voz se ve completo de una vez y no hay botón de repetir.
+- Quien vuelve desde el inicio a responder entra con `?paso=preguntas`: solo las tres preguntas, «Paso 1 de 3», y Atrás lo devuelve al inicio.
+
+## 13. Cómo se cambia este manual
 1. Cambio de bajo riesgo (ajuste de espacio, estado, microinteracción): se hace y se documenta aquí.
 2. Cambio que afecte la identidad (paleta, letra, logo, forma de la navegación) o una regla de negocio: se propone a David antes.
 3. Un componente nuevo se agrega a la sección 6 con sus estados; un token nuevo, a `index.css` y a la sección 3.

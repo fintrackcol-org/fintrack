@@ -1,4 +1,6 @@
-/** Cuántas categorías van por nombre en la dona; el resto se junta en "Otras". */
+
+import { numberLocale } from '@/lib/region';
+import { t } from '@/lib/i18n';/** Cuántas categorías van por nombre en la dona; el resto se junta en "Otras". */
 const MAX_NAMED = 4;
 const HUE_COUNT = 8;
 
@@ -50,14 +52,14 @@ export function expenseSlices(byCategory, names) {
   }));
   if (rest.length > 0) {
     const total = rest.reduce((all, r) => all + r.total, 0);
-    let name = 'Otras';
-    if (rest.length === 1) name = rest[0].category ? (names[rest[0].category] ?? rest[0].category) : 'Sin clasificar';
+    let name = t('Otras');
+    if (rest.length === 1) name = rest[0].category ? (names[rest[0].category] ?? rest[0].category) : t('Sin clasificar');
     slices.push({ key: 'otras', name, total, share: (total / sum) * 100, hue: null });
   }
   return slices;
 }
 
-const percent = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
+const percent = new Intl.NumberFormat(numberLocale(), { maximumFractionDigits: 0 });
 
 /** @param {number} share De 0 a 100. @returns {string} `38 %`, o `<1 %` si no alcanza a 1. */
 export const formatShare = (share) => (share > 0 && share < 1 ? '<1 %' : `${percent.format(share)} %`);

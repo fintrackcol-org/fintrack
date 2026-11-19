@@ -7,6 +7,7 @@
  */
 import { authFetch } from '@/lib/authFetch';
 import { getCurrentSubscription, isPushSupported } from '@/lib/push';
+import { t } from '@/lib/i18n';
 
 /**
  * @typedef {object} ReminderSettings
@@ -27,7 +28,7 @@ async function request(path, { method = 'GET', body } = {}) {
   try {
     res = await authFetch(path, { method, body });
   } catch {
-    throw new Error('No pudimos conectar con el servidor. Revisa tu conexión.');
+    throw new Error(t('No pudimos conectar con el servidor. Revisa tu conexión.'));
   }
   if (res.status === 204) return null;
 
@@ -36,8 +37,8 @@ async function request(path, { method = 'GET', body } = {}) {
     const { code, message, details } = data.error ?? {};
     const err = new Error(
       code === 'UNAUTHORIZED' || code === 'TOKEN_EXPIRED'
-        ? 'Tu sesión venció. Inicia sesión de nuevo.'
-        : details?.[0]?.problem || message || 'Algo salió mal. Inténtalo de nuevo.',
+        ? t('Tu sesión venció. Inicia sesión de nuevo.')
+        : details?.[0]?.problem || message || t('Algo salió mal. Inténtalo de nuevo.'),
     );
     err.code = code;
     throw err;

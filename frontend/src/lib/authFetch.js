@@ -12,7 +12,9 @@
  * gastar el viejo: antes, la ventana que perdía la carrera borraba la sesión de todas.
  */
 import { API_V1 } from '@/lib/api';
+import { regionHeaders } from '@/lib/region';
 import { clearSession, getSession, saveSession } from '@/auth/tokenStorage';
+import { t } from '@/lib/i18n';
 
 /** Evento que se emite en `window` cuando la sesión ya no se puede renovar. */
 export const SESSION_EXPIRED_EVENT = 'fintrack:session-expired';
@@ -53,7 +55,7 @@ async function doRefresh(usedRefreshToken) {
       body: JSON.stringify({ refreshToken: session.refreshToken }),
     });
   } catch {
-    throw new Error('No pudimos conectar con el servidor. Revisa tu conexión.');
+    throw new Error(t('No pudimos conectar con el servidor. Revisa tu conexión.'));
   }
   if (res.status === 401 || res.status === 400) {
     // Sin `navigator.locks` (navegadores viejos) otra ventana pudo ganar la carrera: si ya guardó
@@ -64,7 +66,7 @@ async function doRefresh(usedRefreshToken) {
   }
   // Con código: el servidor respondió (5xx), no es falta de conexión (no va a la cola offline).
   if (!res.ok) {
-    throw Object.assign(new Error('No pudimos renovar tu sesión. Inténtalo de nuevo.'), {
+    throw Object.assign(new Error(t('No pudimos renovar tu sesión. Inténtalo de nuevo.')), {
       code: 'REFRESH_FAILED',
     });
   }
@@ -97,6 +99,7 @@ export async function authFetch(path, { method = 'GET', body, headers = {} } = {
     return fetch(`${API_V1}${path}`, {
       method,
       headers: {
+        ...regionHeaders(),
         ...(payload !== undefined && { 'Content-Type': raw ? payload.type : 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
         ...headers,

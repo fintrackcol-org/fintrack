@@ -1,11 +1,12 @@
 import { MonitorSmartphone, Moon, Sun } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/theme/ThemeProvider';
+import { t } from '@/lib/i18n';
 
 const OPTIONS = [
-  { value: 'light', label: 'Claro', icon: Sun },
-  { value: 'dark', label: 'Oscuro', icon: Moon },
-  { value: 'system', label: 'Automático', icon: MonitorSmartphone },
+  { value: 'light', label: t('Claro'), icon: Sun },
+  { value: 'dark', label: t('Oscuro'), icon: Moon },
+  { value: 'system', label: t('Automático'), icon: MonitorSmartphone },
 ];
 
 /**
@@ -17,7 +18,7 @@ export default function ThemeSelector() {
 
   return (
     <fieldset>
-      <legend className="sr-only">Tema de la app</legend>
+      <legend className="sr-only">{t('Tema de la app')}</legend>
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {OPTIONS.map(({ value, label, icon: Icon }) => (
           <label
@@ -45,8 +46,8 @@ export default function ThemeSelector() {
       </div>
       <p className="mt-3 text-sm text-ink/60">
         {preference === 'system'
-          ? 'Sigue el modo claro u oscuro de tu dispositivo.'
-          : 'Se guarda en este dispositivo.'}
+          ? t('Sigue el modo claro u oscuro de tu dispositivo.')
+          : t('Se guarda en este dispositivo.')}
       </p>
     </fieldset>
   );

@@ -685,6 +685,34 @@ export const MIGRATIONS = [
     id: '035_tutorial_visto',
     statements: ['ALTER TABLE perfiles_financieros ADD COLUMN IF NOT EXISTS tutorial_at TIMESTAMPTZ NULL'],
   },
+  {
+    id: '036_pais_moneda_idioma',
+    statements: [
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pais CHAR(2) NOT NULL DEFAULT 'CO'`,
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS moneda CHAR(3) NOT NULL DEFAULT 'COP'`,
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS idioma VARCHAR(5) NOT NULL DEFAULT 'es'`,
+    ],
+  },
+  {
+    id: '037_movimientos_otra_moneda',
+    statements: [
+      'ALTER TABLE transacciones ADD COLUMN IF NOT EXISTS moneda_original CHAR(3) NULL',
+      'ALTER TABLE transacciones ADD COLUMN IF NOT EXISTS monto_original NUMERIC(14,2) NULL',
+      'ALTER TABLE transacciones ADD COLUMN IF NOT EXISTS tasa NUMERIC(20,10) NULL',
+      'ALTER TABLE transacciones DROP CONSTRAINT IF EXISTS transacciones_moneda_original_check',
+      `ALTER TABLE transacciones ADD CONSTRAINT transacciones_moneda_original_check CHECK (
+         (moneda_original IS NULL AND monto_original IS NULL AND tasa IS NULL)
+         OR (moneda_original IS NOT NULL AND monto_original > 0 AND tasa > 0))`,
+      `CREATE TABLE IF NOT EXISTS tasas_cambio (
+         fecha DATE NOT NULL,
+         base CHAR(3) NOT NULL,
+         moneda CHAR(3) NOT NULL,
+         tasa NUMERIC(20,10) NOT NULL CHECK (tasa > 0),
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+         PRIMARY KEY (fecha, base, moneda)
+       )`,
+    ],
+  },
 ];
 
 /**

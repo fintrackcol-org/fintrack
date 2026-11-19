@@ -7,6 +7,7 @@ import useFreshIds from '@/hooks/useFreshIds';
 import { listCached } from '@/offline/sync';
 import { TRANSACTION_SAVED_EVENT } from '@/offline/saveNewTransaction';
 import { listTransactions } from '@/services/transactionService';
+import { t } from '@/lib/i18n';
 
 const PAGE_SIZE = 50;
 
@@ -37,7 +38,7 @@ export default function FilteredMovements({ filters, names, hidden = false, empt
       <p role="alert" className="text-sm text-negative">
         {error}{' '}
         <button type="button" className="underline" onClick={reload}>
-          Reintentar
+          {t('Reintentar')}
         </button>
       </p>
     );
@@ -45,7 +46,7 @@ export default function FilteredMovements({ filters, names, hidden = false, empt
   if (loading && !data) {
     return (
       <p className="flex items-center gap-2 py-4 text-ink/60" aria-busy="true">
-        <Loader2 className="size-5 animate-spin" aria-hidden="true" /> Cargando…
+        <Loader2 className="size-5 animate-spin" aria-hidden="true" /> {t('Cargando…')}
       </p>
     );
   }

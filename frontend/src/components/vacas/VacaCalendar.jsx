@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { shortMoney } from '@/lib/paymentCalendar';
 import { MEMBER_STATUS, deadlineText, formatPesos, todayIso } from './vacaFormat';
 import { contributionsOfMonth, initialMonth, vacaCells } from './vacaCalendarData';
+import { t } from '@/lib/i18n';
 
 /** Lo mismo que el backend devuelve como máximo en `contributions` (CONTRIBUTIONS_LIMIT). */
 const CONTRIBUTIONS_SHOWN = 50;
@@ -24,23 +25,23 @@ export default function VacaCalendar({ vaca }) {
   return (
     <div className="flex flex-col gap-4 pt-3">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="icon" aria-label="Mes anterior" onClick={() => setMonth(shiftMonth(month, -1))}>
+        <Button variant="ghost" size="icon" aria-label={t('Mes anterior')} onClick={() => setMonth(shiftMonth(month, -1))}>
           <ChevronLeft />
         </Button>
         <p className="font-medium" aria-live="polite">
           {monthLabel(month)}
         </p>
-        <Button variant="ghost" size="icon" aria-label="Mes siguiente" onClick={() => setMonth(shiftMonth(month, 1))}>
+        <Button variant="ghost" size="icon" aria-label={t('Mes siguiente')} onClick={() => setMonth(shiftMonth(month, 1))}>
           <ChevronRight />
         </Button>
       </div>
 
       <MonthGrid
-        label={`Aportes de ${monthLabel(month)}`}
+        label={t('Aportes de {month}', { month: monthLabel(month) })}
         className="border-0 bg-transparent p-0 md:p-0"
         cells={vacaCells(month, today, vaca.contributions, vaca.deadline)}
         renderMark={(cell) => {
-          if (cell.isDeadline) return { text: 'Meta', className: 'text-caution', title: 'Fecha límite' };
+          if (cell.isDeadline) return { text: t('Meta'), className: 'text-caution', title: t('Fecha límite') };
           if (cell.contributed > 0) return { text: shortMoney(cell.contributed), className: 'text-positive' };
           return null;
         }}
@@ -53,7 +54,7 @@ export default function VacaCalendar({ vaca }) {
 
       <section aria-labelledby="vaca-cal-falta">
         <h3 id="vaca-cal-falta" className="mb-2 text-sm font-semibold">
-          Cuánto le falta a cada uno
+          {t('Cuánto le falta a cada uno')}
         </h3>
         <ul className="flex flex-col gap-1">
           {vaca.members.map((m) => {
@@ -66,8 +67,8 @@ export default function VacaCalendar({ vaca }) {
                 >
                   {m.name.charAt(0).toUpperCase()}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-sm">{m.isMe ? 'Tú' : m.name}</span>
-                <span className="text-sm tabular-nums">{m.remaining > 0 ? formatPesos(m.remaining) : 'Nada'}</span>
+                <span className="min-w-0 flex-1 truncate text-sm">{m.isMe ? t('Tú') : m.name}</span>
+                <span className="text-sm tabular-nums">{m.remaining > 0 ? formatPesos(m.remaining) : t('Nada')}</span>
                 <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', status.chip)}>{status.label}</span>
               </li>
             );
@@ -77,10 +78,10 @@ export default function VacaCalendar({ vaca }) {
 
       <section aria-labelledby="vaca-cal-aportes">
         <h3 id="vaca-cal-aportes" className="mb-2 text-sm font-semibold">
-          Aportes de {monthLabel(month).toLowerCase()}
+          {t('Aportes de')} {monthLabel(month).toLowerCase()}
         </h3>
         {groups.length === 0 ? (
-          <p className="text-sm text-ink/60">Nadie aportó este mes.</p>
+          <p className="text-sm text-ink/60">{t('Nadie aportó este mes.')}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {groups.map((g) => (
@@ -89,7 +90,7 @@ export default function VacaCalendar({ vaca }) {
                 <ul>
                   {g.items.map((c) => (
                     <li key={c.id} className="flex justify-between gap-3 text-sm">
-                      <span className="truncate">{c.isMe ? 'Tú' : c.name}</span>
+                      <span className="truncate">{c.isMe ? t('Tú') : c.name}</span>
                       <span className="font-medium tabular-nums text-positive">+{formatPesos(c.amount)}</span>
                     </li>
                   ))}
@@ -99,7 +100,7 @@ export default function VacaCalendar({ vaca }) {
           </ul>
         )}
         {vaca.contributions.length >= CONTRIBUTIONS_SHOWN && (
-          <p className="mt-2 text-xs text-ink/60">Se ven los últimos {CONTRIBUTIONS_SHOWN} aportes.</p>
+          <p className="mt-2 text-xs text-ink/60">{t('Se ven los últimos')} {CONTRIBUTIONS_SHOWN} {t('aportes.')}</p>
         )}
       </section>
     </div>

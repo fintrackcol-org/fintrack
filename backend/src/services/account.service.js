@@ -5,6 +5,7 @@ import { findUserById } from '../repositories/users.repository.js';
 import { attachments } from './attachments.service.js';
 import { googleVerifier } from './google-auth.service.js';
 import { sendAccountDeletedEmail } from './mail.service.js';
+import { t } from '../i18n/index.js';
 
 /**
  * 403 y no 401: el token sí es válido, lo que falla es la confirmación. Con 401 la app intentaría
@@ -43,7 +44,7 @@ export function createAccountService(deps = {}) {
   async function confirmOwner(user, { password, googleCredential }) {
     if (password !== undefined) {
       if (!(await bcrypt.compare(password, user.passwordHash))) {
-        throw notConfirmed('La contraseña no es correcta');
+        throw notConfirmed(t('La contraseña no es correcta'));
       }
       return;
     }
@@ -52,10 +53,10 @@ export function createAccountService(deps = {}) {
       google = await verifier.verify(googleCredential);
     } catch (err) {
       if (err instanceof AppError && err.statusCode === 503) throw err; // Google no configurado
-      throw notConfirmed('No pudimos confirmar tu cuenta de Google');
+      throw notConfirmed(t('No pudimos confirmar tu cuenta de Google'));
     }
     if (google.email !== user.email.toLowerCase()) {
-      throw notConfirmed('Esa cuenta de Google no es la de esta cuenta de Rinde');
+      throw notConfirmed(t('Esa cuenta de Google no es la de esta cuenta de Rinde'));
     }
   }
 
@@ -70,11 +71,11 @@ export function createAccountService(deps = {}) {
      */
     async remove(userId, confirmation) {
       const user = await findUserById(userId);
-      if (!user) throw new AppError(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+      if (!user) throw new AppError(401, 'UNAUTHORIZED', t('Token inválido o ausente'));
       await confirmOwner(user, confirmation);
 
       const deleted = await deleteRows(userId);
-      if (!deleted) throw new AppError(401, 'UNAUTHORIZED', 'Token inválido o ausente');
+      if (!deleted) throw new AppError(401, 'UNAUTHORIZED', t('Token inválido o ausente'));
       await removeFiles(deleted.attachmentKeys);
       await sendEmail({ to: deleted.email }).catch((err) => {
         console.error(`No se envió el aviso de cuenta eliminada (${err.message})`);

@@ -19,6 +19,7 @@ import {
   listAccounts,
   payAccount,
 } from '@/services/negocioService';
+import { t } from '@/lib/i18n';
 
 /** Mensaje de error de un envío, con el detalle del campo si lo hay. */
 const errorText = (err) => Object.values(err.fields ?? {})[0] ?? err.message;
@@ -37,8 +38,8 @@ function AccountForm({ kind: initialKind, disabled, onSubmit }) {
   const [error, setError] = useState('');
   const submit = async (event) => {
     event.preventDefault();
-    if (!party.trim()) return setError(kind === 'receivable' ? 'Escribe quién te debe' : 'Escribe a quién le debes');
-    if (!(Number(amount) > 0)) return setError('Ingresa un monto mayor que 0');
+    if (!party.trim()) return setError(kind === 'receivable' ? t('Escribe quién te debe') : t('Escribe a quién le debes'));
+    if (!(Number(amount) > 0)) return setError(t('Ingresa un monto mayor que 0'));
     setBusy(true);
     setError('');
     try {
@@ -56,38 +57,38 @@ function AccountForm({ kind: initialKind, disabled, onSubmit }) {
     return undefined;
   };
   return (
-    <form className="space-y-4" onSubmit={submit} noValidate aria-label="Nueva cuenta">
+    <form className="space-y-4" onSubmit={submit} noValidate aria-label={t('Nueva cuenta')}>
       <ChipGroup
-        legend="¿Qué es?"
+        legend={t('¿Qué es?')}
         options={[
-          { value: 'receivable', label: 'Un cliente me debe' },
-          { value: 'payable', label: 'Le debo a un proveedor' },
+          { value: 'receivable', label: t('Un cliente me debe') },
+          { value: 'payable', label: t('Le debo a un proveedor') },
         ]}
         value={kind}
         onChange={setKind}
         disabled={disabled || busy}
       />
-      <FormField id="acc-party" label={kind === 'receivable' ? 'Cliente' : 'Proveedor'}>
+      <FormField id="acc-party" label={kind === 'receivable' ? t('Cliente') : t('Proveedor')}>
         <Input
           autoComplete="off"
           maxLength={80}
-          placeholder={kind === 'receivable' ? 'Ej.: Tienda La Luz' : 'Ej.: Harinas del Huila'}
+          placeholder={kind === 'receivable' ? t('Ej.: Tienda La Luz') : t('Ej.: Harinas del Huila')}
           value={party}
           onChange={(e) => setParty(e.target.value)}
           disabled={disabled || busy}
         />
       </FormField>
-      <FormField id="acc-amount" label="Monto (COP)">
+      <FormField id="acc-amount" label={t('Monto (COP)')}>
         <MoneyInput value={amount} onChange={setAmount} placeholder="0" disabled={disabled || busy} />
       </FormField>
-      <FormField id="acc-due" label="Vence (opcional)">
+      <FormField id="acc-due" label={t('Vence (opcional)')}>
         <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} disabled={disabled || busy} />
       </FormField>
-      <FormField id="acc-desc" label="Detalle (opcional)">
+      <FormField id="acc-desc" label={t('Detalle (opcional)')}>
         <Input
           autoComplete="off"
           maxLength={120}
-          placeholder="Ej.: factura 123, pedido de 40 arepas"
+          placeholder={t('Ej.: factura 123, pedido de 40 arepas')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           disabled={disabled || busy}
@@ -100,7 +101,7 @@ function AccountForm({ kind: initialKind, disabled, onSubmit }) {
       )}
       <Button type="submit" size="lg" className="w-full" disabled={disabled || busy}>
         {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
-        Guardar
+        {t('Guardar')}
       </Button>
     </form>
   );
@@ -120,9 +121,9 @@ function PaymentForm({ account, today, disabled, onSubmit }) {
   const submit = async (event) => {
     event.preventDefault();
     const value = Number(amount);
-    if (!(value > 0)) return setError('Ingresa un monto mayor que 0');
-    if (value > account.remaining) return setError(`No puede ser mayor que el saldo (${formatMoney(account.remaining)})`);
-    if (!date || date > today) return setError('La fecha no puede ser futura');
+    if (!(value > 0)) return setError(t('Ingresa un monto mayor que 0'));
+    if (value > account.remaining) return setError(t('No puede ser mayor que el saldo ({remaining})', { remaining: formatMoney(account.remaining) }));
+    if (!date || date > today) return setError(t('La fecha no puede ser futura'));
     setBusy(true);
     setError('');
     try {
@@ -135,15 +136,15 @@ function PaymentForm({ account, today, disabled, onSubmit }) {
     return undefined;
   };
   return (
-    <form className="space-y-4" onSubmit={submit} noValidate aria-label="Registrar abono">
-      <FormField id="pay-amount" label="Abono (COP)">
+    <form className="space-y-4" onSubmit={submit} noValidate aria-label={t('Registrar abono')}>
+      <FormField id="pay-amount" label={t('Abono (COP)')}>
         <MoneyInput value={amount} onChange={setAmount} placeholder="0" disabled={disabled || busy} />
       </FormField>
-      <FormField id="pay-date" label="Fecha">
+      <FormField id="pay-date" label={t('Fecha')}>
         <Input type="date" max={today} value={date} onChange={(e) => setDate(e.target.value)} disabled={disabled || busy} />
       </FormField>
       <ChipGroup
-        legend={account.kind === 'receivable' ? 'Entra al negocio como' : 'Sale del negocio como'}
+        legend={account.kind === 'receivable' ? t('Entra al negocio como') : t('Sale del negocio como')}
         options={options}
         value={movementKind}
         onChange={setMovementKind}
@@ -156,7 +157,7 @@ function PaymentForm({ account, today, disabled, onSubmit }) {
       )}
       <Button type="submit" size="lg" className="w-full" disabled={disabled || busy}>
         {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
-        Registrar abono
+        {t('Registrar abono')}
       </Button>
     </form>
   );
@@ -177,7 +178,7 @@ function AccountRow({ account, today, onOpen }) {
           <span className={cn('block break-words font-medium', paid && 'text-ink/50')}>{account.party}</span>
           <span className={cn('block text-sm', overdue ? 'text-negative' : 'text-ink/60')}>
             {dueText(account, today)}
-            {account.paid > 0 && !paid && ` · abonado ${formatMoney(account.paid)}`}
+            {account.paid > 0 && !paid && t(' · abonado {paid}', { paid: formatMoney(account.paid) })}
           </span>
           {account.paid > 0 && !paid && (
             <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-ink/10" aria-hidden="true">
@@ -238,27 +239,27 @@ export default function BusinessAccounts({ businessId, myRole, myId, online, ref
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 id="cuentas-title" className="font-semibold">
-            Cuentas por cobrar y por pagar
+            {t('Cuentas por cobrar y por pagar')}
           </h3>
           {totals && (
             <p className="text-sm text-ink/60">
               {pending > 0
-                ? `${tab === 'receivable' ? 'Te deben' : 'Debes'} ${formatMoney(pending)}`
+                ? `${tab === 'receivable' ? t('Te deben') : t('Debes')} ${formatMoney(pending)}`
                 : tab === 'receivable'
-                  ? 'Nadie te debe.'
-                  : 'No le debes a nadie.'}
-              {overdue > 0 && <span className="text-negative"> · {formatMoney(overdue)} vencido</span>}
+                  ? t('Nadie te debe.')
+                  : t('No le debes a nadie.')}
+              {overdue > 0 && <span className="text-negative"> · {formatMoney(overdue)} {t('vencido')}</span>}
             </p>
           )}
         </div>
         {data?.canRecord && (
           <Button variant="soft" onClick={() => (setNotice(''), setSheet('nueva'))} disabled={!online}>
-            <Plus aria-hidden="true" /> Nueva
+            <Plus aria-hidden="true" /> {t('Nueva')}
           </Button>
         )}
       </div>
 
-      <div role="radiogroup" aria-label="Qué cuentas mostrar" className="mt-4 flex gap-1 rounded-2xl bg-ink/5 p-1">
+      <div role="radiogroup" aria-label={t('Qué cuentas mostrar')} className="mt-4 flex gap-1 rounded-2xl bg-ink/5 p-1">
         {ACCOUNT_TABS.map((t) => (
           <button
             key={t.value}
@@ -283,31 +284,31 @@ export default function BusinessAccounts({ businessId, myRole, myId, online, ref
         <p role="alert" className="mt-3 text-sm text-negative">
           {error}{' '}
           <button type="button" className="underline" onClick={() => setVersion((v) => v + 1)}>
-            Reintentar
+            {t('Reintentar')}
           </button>
         </p>
       )}
       {!data && !error && (
         <p className="flex items-center gap-2 py-4 text-ink/60">
-          <Loader2 className="animate-spin" aria-hidden="true" /> Cargando…
+          <Loader2 className="animate-spin" aria-hidden="true" /> {t('Cargando…')}
         </p>
       )}
       {data && items.length === 0 && (
         <p className="mt-3 text-sm text-ink/60">
           {tab === 'receivable'
-            ? 'Anota aquí lo que te quedan debiendo tus clientes y ve registrando los abonos.'
-            : 'Anota aquí lo que les debes a tus proveedores y ve registrando lo que les pagas.'}
+            ? t('Anota aquí lo que te quedan debiendo tus clientes y ve registrando los abonos.')
+            : t('Anota aquí lo que les debes a tus proveedores y ve registrando lo que les pagas.')}
         </p>
       )}
       {items.length > 0 && (
-        <ul aria-label={tab === 'receivable' ? 'Cuentas por cobrar' : 'Cuentas por pagar'} className="mt-3 space-y-2">
+        <ul aria-label={tab === 'receivable' ? t('Cuentas por cobrar') : t('Cuentas por pagar')} className="mt-3 space-y-2">
           {items.map((a) => (
             <AccountRow key={a.id} account={a} today={today} onOpen={() => (setNotice(''), setSheet(a.id))} />
           ))}
         </ul>
       )}
 
-      <Sheet open={sheet === 'nueva'} title="Nueva cuenta" onClose={() => setSheet(null)}>
+      <Sheet open={sheet === 'nueva'} title={t('Nueva cuenta')} onClose={() => setSheet(null)}>
         {sheet === 'nueva' && (
           <AccountForm
             kind={tab}
@@ -318,7 +319,7 @@ export default function BusinessAccounts({ businessId, myRole, myId, online, ref
               setTab(account.kind);
               setVersion((v) => v + 1);
               setSheet(null);
-              setNotice(`Guardada la cuenta de ${account.party}.`);
+              setNotice(t('Guardada la cuenta de {party}.', { party: account.party }));
             }}
           />
         )}
@@ -329,24 +330,24 @@ export default function BusinessAccounts({ businessId, myRole, myId, online, ref
           <div className="space-y-5">
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-3">
-                <dt className="text-ink/60">{opened.kind === 'receivable' ? 'Te debe' : 'Le debes'}</dt>
+                <dt className="text-ink/60">{opened.kind === 'receivable' ? t('Te debe') : t('Le debes')}</dt>
                 <dd className="font-medium tabular-nums">{formatMoney(opened.amount)}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-ink/60">Falta</dt>
+                <dt className="text-ink/60">{t('Falta')}</dt>
                 <dd className={cn('font-semibold tabular-nums', opened.status === 'vencida' && 'text-negative')}>
                   {formatMoney(opened.remaining)}
                 </dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-ink/60">Estado</dt>
+                <dt className="text-ink/60">{t('Estado')}</dt>
                 <dd className={cn(opened.status === 'vencida' && 'text-negative', opened.status === 'pagada' && 'text-positive')}>
                   {dueText(opened, today)}
                 </dd>
               </div>
               {opened.description && (
                 <div className="flex justify-between gap-3">
-                  <dt className="text-ink/60">Detalle</dt>
+                  <dt className="text-ink/60">{t('Detalle')}</dt>
                   <dd className="break-words text-right">{opened.description}</dd>
                 </div>
               )}
@@ -354,7 +355,7 @@ export default function BusinessAccounts({ businessId, myRole, myId, online, ref
 
             {opened.payments.length > 0 && (
               <div>
-                <h4 className="mb-2 text-sm font-medium text-ink/60">Abonos</h4>
+                <h4 className="mb-2 text-sm font-medium text-ink/60">{t('Abonos')}</h4>
                 <ul className="divide-y divide-ink/10 text-sm">
                   {opened.payments.map((p) => {
                     const mine = p.registeredBy?.id === myId;
@@ -364,7 +365,7 @@ export default function BusinessAccounts({ businessId, myRole, myId, online, ref
                         <span className="min-w-0">
                           <span className="block font-medium tabular-nums">{formatMoney(p.amount)}</span>
                           <span className="block text-xs text-ink/60">
-                            {formatRelativeDay(p.date)} · {mine ? 'tú' : p.registeredBy?.name || 'un socio'}
+                            {formatRelativeDay(p.date)} · {mine ? t('tú') : p.registeredBy?.name || 'un socio'}
                           </span>
                         </span>
                         {canUndo && (
@@ -375,14 +376,14 @@ export default function BusinessAccounts({ businessId, myRole, myId, online, ref
                             onClick={async () => {
                               try {
                                 replace(await deleteAccountPayment(businessId, opened.id, p.id));
-                                setNotice('Abono deshecho: también se quitó del mes del negocio.');
+                                setNotice(t('Abono deshecho: también se quitó del mes del negocio.'));
                               } catch (err) {
                                 setNotice('');
                                 setError(err.message);
                               }
                             }}
                           >
-                            <Undo2 aria-hidden="true" /> Deshacer
+                            <Undo2 aria-hidden="true" /> {t('Deshacer')}
                           </Button>
                         )}
                       </li>
@@ -404,8 +405,8 @@ export default function BusinessAccounts({ businessId, myRole, myId, online, ref
                     replace(account);
                     setNotice(
                       account.status === 'pagada'
-                        ? `¡Listo! La cuenta de ${account.party} quedó pagada.`
-                        : `Abono registrado. Falta ${formatMoney(account.remaining)}.`,
+                        ? t('¡Listo! La cuenta de {party} quedó pagada.', { party: account.party })
+                        : t('Abono registrado. Falta {remaining}.', { remaining: formatMoney(account.remaining) }),
                     );
                   }}
                 />
@@ -416,9 +417,9 @@ export default function BusinessAccounts({ businessId, myRole, myId, online, ref
 
             {canDeleteAccount && (
               <ConfirmButton
-                label="Borrar cuenta"
-                question="¿Borrar esta cuenta y sus abonos? Las ventas o pagos que ya registraste se quedan en el mes."
-                confirmLabel="Sí, borrar"
+                label={t('Borrar cuenta')}
+                question={t('¿Borrar esta cuenta y sus abonos? Las ventas o pagos que ya registraste se quedan en el mes.')}
+                confirmLabel={t('Sí, borrar')}
                 icon={Trash2}
                 disabled={!online}
                 onConfirm={async () => {
@@ -426,7 +427,7 @@ export default function BusinessAccounts({ businessId, myRole, myId, online, ref
                   setData((d) => ({ ...d, items: d.items.filter((a) => a.id !== opened.id) }));
                   setVersion((v) => v + 1);
                   setSheet(null);
-                  setNotice('Cuenta borrada.');
+                  setNotice(t('Cuenta borrada.'));
                 }}
               />
             )}

@@ -1,4 +1,6 @@
 import { formatMoney } from '@/components/transactions/format';
+import { t } from '@/lib/i18n';
+import { dateLocale, numberLocale } from '@/lib/region';
 
 /**
  * Número con a lo sumo un decimal y coma decimal, como se escribe en Colombia (17,5).
@@ -6,15 +8,15 @@ import { formatMoney } from '@/components/transactions/format';
  * @returns {string}
  */
 export function formatNumber(value) {
-  return value.toLocaleString('es-CO', { maximumFractionDigits: 1 });
+  return value.toLocaleString(numberLocale(), { maximumFractionDigits: 1 });
 }
 
 /** Nombre y tono de cada nivel del puntaje de salud financiera. */
 export const LEVELS = {
-  excellent: { label: 'Excelente', tone: 'positive' },
-  good: { label: 'Bien', tone: 'positive' },
-  attention: { label: 'Atención', tone: 'caution' },
-  risk: { label: 'En riesgo', tone: 'negative' },
+  excellent: { label: t('Excelente'), tone: 'positive' },
+  good: { label: t('Bien'), tone: 'positive' },
+  attention: { label: t('Atención'), tone: 'caution' },
+  risk: { label: t('En riesgo'), tone: 'negative' },
 };
 
 /**
@@ -24,22 +26,22 @@ export const LEVELS = {
  * @returns {string}
  */
 export function savingsDetail(rate) {
-  if (rate === null) return 'Aún no hay ingresos este mes';
-  if (rate >= 0) return `Ahorras el ${formatNumber(rate)} % de tus ingresos`;
+  if (rate === null) return t('Aún no hay ingresos este mes');
+  if (rate >= 0) return t('Ahorras el {rate} % de tus ingresos', { rate: formatNumber(rate) });
   // gastos ÷ ingresos = 1 − tasa
   const times = 1 - rate / 100;
-  if (times >= 2) return `Gastas ${formatNumber(times)} veces lo que ingresas`;
-  return `Gastas un ${formatNumber(-rate)} % más de lo que ingresas`;
+  if (times >= 2) return t('Gastas {times} veces lo que ingresas', { times: formatNumber(times) });
+  return t('Gastas un {formatNumber} % más de lo que ingresas', { formatNumber: formatNumber(-rate) });
 }
 
 /** Cómo se calcula cada parte del puntaje (la misma regla del backend, `analytics.service.js`). */
 export const PART_FORMULAS = {
   savings:
-    '(Ingresos − gastos) ÷ ingresos. Ahorrar el 20 % o más da 25 puntos (regla 50/30/20); 0 % o menos, 0. Sin ingresos todavía, 12,5. Lo que apartas en Ahorro/Inversión no cuenta como gasto.',
-  budgets: 'Presupuestos del mes que no pasan del 100 %. Todos da 25 puntos; sin presupuestos, 12,5.',
+    t('(Ingresos − gastos) ÷ ingresos. Ahorrar el 20 % o más da 25 puntos (regla 50/30/20); 0 % o menos, 0. Sin ingresos todavía, 12,5. Lo que apartas en Ahorro/Inversión no cuenta como gasto.'),
+  budgets: t('Presupuestos del mes que no pasan del 100 %. Todos da 25 puntos; sin presupuestos, 12,5.'),
   stability:
-    'Gasto del mes frente al promedio de tus 3 meses anteriores. Igual o menos da 25 puntos; 30 % más, 0. Sin historial, 12,5.',
-  small_expenses: 'Gastos de $ 20.000 o menos, como parte de tu gasto. 5 % o menos da 25 puntos; 20 % o más, 0.',
+    t('Gasto del mes frente al promedio de tus 3 meses anteriores. Igual o menos da 25 puntos; 30 % más, 0. Sin historial, 12,5.'),
+  small_expenses: t('Gastos de $ 20.000 o menos, como parte de tu gasto. 5 % o menos da 25 puntos; 20 % o más, 0.'),
 };
 
 /**
@@ -63,53 +65,53 @@ export function nextAction({ health, projection, smallExpenses, day, daysInMonth
       // Ingresos muy por debajo del gasto: lo más probable es que falte registrarlos.
       if (projection.income < projected * 0.25) {
         return {
-          title: 'Registra tus ingresos del mes',
-          detail: `Llevas ${formatMoney(projection.income)} en ingresos frente a ${formatMoney(projected)} de gasto. Si ya te pagaron, regístralo: el ahorro cuenta con lo que ingresas.`,
+          title: t('Registra tus ingresos del mes'),
+          detail: t('Llevas {income} en ingresos frente a {projected} de gasto. Si ya te pagaron, regístralo: el ahorro cuenta con lo que ingresas.', { income: formatMoney(projection.income), projected: formatMoney(projected) }),
           gain,
           to: '/app/anotar?tipo=ingreso',
-          cta: 'Registrar ingreso',
+          cta: t('Registrar ingreso'),
         };
       }
       if (projection.balance < 0) {
         const perDay = Math.ceil(-projection.balance / (daysInMonth - day + 1));
         return {
-          title: 'Baja el ritmo de gasto',
-          detail: `Al ritmo actual te faltarían ${formatMoney(-projection.balance)}. Gastar ${formatMoney(perDay)} menos por día te deja en cero.`,
+          title: t('Baja el ritmo de gasto'),
+          detail: t('Al ritmo actual te faltarían {formatMoney}. Gastar {perDay} menos por día te deja en cero.', { formatMoney: formatMoney(-projection.balance), perDay: formatMoney(perDay) }),
           gain,
         };
       }
       return {
-        title: 'Aparta un poco más',
-        detail: `Ahorrar el 20 % de tus ingresos (${formatMoney(projection.income * 0.2)}) te da los 25 puntos.`,
+        title: t('Aparta un poco más'),
+        detail: t('Ahorrar el 20 % de tus ingresos ({formatMoney}) te da los 25 puntos.', { formatMoney: formatMoney(projection.income * 0.2) }),
         gain,
       };
     }
     case 'small_expenses':
       return {
-        title: 'Recorta los gastos hormiga',
-        detail: `Si bajas a la mitad tus gastos de ${formatMoney(smallExpenses.threshold)} o menos, ahorras ${formatMoney(Math.round(smallExpenses.total / 2))} este mes.`,
+        title: t('Recorta los gastos hormiga'),
+        detail: t('Si bajas a la mitad tus gastos de {threshold} o menos, ahorras {formatMoney} este mes.', { threshold: formatMoney(smallExpenses.threshold), formatMoney: formatMoney(Math.round(smallExpenses.total / 2)) }),
         gain,
       };
     case 'budgets':
       return weakest.value === null
         ? {
-            title: 'Crea tu primer presupuesto',
-            detail: 'Ponle un límite a tu mayor gasto: Rinde te avisa al llegar al 80 % y al pasarte.',
+            title: t('Crea tu primer presupuesto'),
+            detail: t('Ponle un límite a tu mayor gasto: Rinde te avisa al llegar al 80 % y al pasarte.'),
             gain,
             to: '/app/presupuestos',
-            cta: 'Crear presupuesto',
+            cta: t('Crear presupuesto'),
           }
         : {
-            title: 'Revisa tus presupuestos',
-            detail: 'Algunos ya se pasaron del límite. Ajusta el monto o frena esos gastos lo que queda del mes.',
+            title: t('Revisa tus presupuestos'),
+            detail: t('Algunos ya se pasaron del límite. Ajusta el monto o frena esos gastos lo que queda del mes.'),
             gain,
             to: '/app/presupuestos',
-            cta: 'Ver presupuestos',
+            cta: t('Ver presupuestos'),
           };
     default:
       return {
-        title: 'Vuelve a tu ritmo normal',
-        detail: `Este mes gastas un ${formatNumber(weakest.value)} % más que tu promedio.`,
+        title: t('Vuelve a tu ritmo normal'),
+        detail: t('Este mes gastas un {value} % más que tu promedio.', { value: formatNumber(weakest.value) }),
         gain,
       };
   }
@@ -124,26 +126,26 @@ export function describePart({ key, value }) {
   switch (key) {
     case 'savings':
       return {
-        label: 'Ahorro',
+        label: t('Ahorro'),
         detail: savingsDetail(value),
       };
     case 'budgets':
       return {
-        label: 'Presupuestos',
-        detail: value === null ? 'Crea presupuestos para sumar aquí' : `${value} sin pasarse del límite`,
+        label: t('Presupuestos'),
+        detail: value === null ? t('Crea presupuestos para sumar aquí') : t('{value} sin pasarse del límite', { value }),
       };
     case 'stability':
       return {
-        label: 'Estabilidad',
+        label: t('Estabilidad'),
         detail:
           value === null
-            ? 'Falta historial de meses anteriores'
+            ? t('Falta historial de meses anteriores')
             : value <= 0
-              ? `Gastas ${formatNumber(Math.abs(value))} % menos que tu promedio`
-              : `Gastas ${formatNumber(value)} % más que tu promedio`,
+              ? t('Gastas {formatNumber} % menos que tu promedio', { formatNumber: formatNumber(Math.abs(value)) })
+              : t('Gastas {value} % más que tu promedio', { value: formatNumber(value) }),
       };
     default:
-      return { label: 'Gastos hormiga', detail: `${formatNumber(value)} % de tu gasto` };
+      return { label: t('Gastos hormiga'), detail: t('{value} % de tu gasto', { value: formatNumber(value) }) };
   }
 }
 
@@ -153,12 +155,12 @@ export function describePart({ key, value }) {
  * @returns {string}
  */
 export function projectionMessage({ available, projected, income, balance }) {
-  if (!available) return 'Desde el día 3 del mes te mostramos cuánto gastarás al cierre.';
-  if (income === 0) return `Al ritmo actual cerrarás el mes con ${formatMoney(projected)} en gastos.`;
+  if (!available) return t('Desde el día 3 del mes te mostramos cuánto gastarás al cierre.');
+  if (income === 0) return t('Al ritmo actual cerrarás el mes con {projected} en gastos.', { projected: formatMoney(projected) });
   if (balance >= 0) {
-    return `Al ritmo actual cerrarás el mes con ${formatMoney(projected)} en gastos: con lo que ha entrado, te sobrarían ${formatMoney(balance)}.`;
+    return t('Al ritmo actual cerrarás el mes con {projected} en gastos: con lo que ha entrado, te sobrarían {balance}.', { projected: formatMoney(projected), balance: formatMoney(balance) });
   }
-  return `Al ritmo actual cerrarás el mes con ${formatMoney(projected)} en gastos: con lo que ha entrado, te faltarían ${formatMoney(-balance)}.`;
+  return t('Al ritmo actual cerrarás el mes con {projected} en gastos: con lo que ha entrado, te faltarían {formatMoney}.', { projected: formatMoney(projected), formatMoney: formatMoney(-balance) });
 }
 
 /**
@@ -168,9 +170,9 @@ export function projectionMessage({ available, projected, income, balance }) {
  */
 export function smallExpensesMessage({ threshold, count, total, share, yearly, flagged }) {
   const limit = formatMoney(threshold);
-  if (count === 0) return `Este mes no tienes gastos de ${limit} o menos.`;
-  if (!flagged) return `Solo ${count} ${count === 1 ? 'gasto' : 'gastos'} de ${limit} o menos: vas bien.`;
-  return `${count} gastos de ${limit} o menos suman ${formatMoney(total)} (${formatNumber(share)} % de tu gasto). A este ritmo serían ${formatMoney(yearly)} en un año.`;
+  if (count === 0) return t('Este mes no tienes gastos de {limit} o menos.', { limit });
+  if (!flagged) return t('Solo {count} {v2} de {limit} o menos: vas bien.', { count, v2: count === 1 ? 'gasto' : 'gastos', limit });
+  return t('{count} gastos de {limit} o menos suman {total} ({share} % de tu gasto). A este ritmo serían {yearly} en un año.', { count, limit, total: formatMoney(total), share: formatNumber(share), yearly: formatMoney(yearly) });
 }
 
 /**
@@ -214,12 +216,12 @@ export function dailyAllowance({ projection, day, daysInMonth }) {
 export function scoreChange(score, previousScore, month) {
   if (previousScore === null || previousScore === undefined) return null;
   const [year, m] = month.split('-').map(Number);
-  const previousName = new Date(year, m - 2, 1).toLocaleDateString('es-CO', { month: 'long' });
+  const previousName = new Date(year, m - 2, 1).toLocaleDateString(dateLocale(), { month: 'long' });
   const diff = score - previousScore;
-  if (diff === 0) return { text: `Igual que en ${previousName}`, direction: 'same' };
+  if (diff === 0) return { text: t('Igual que en {previousName}', { previousName }), direction: 'same' };
   const points = Math.abs(diff) === 1 ? 'punto' : 'puntos';
   return {
-    text: `${diff > 0 ? 'Subió' : 'Bajó'} ${Math.abs(diff)} ${points} frente a ${previousName}`,
+    text: t('{v1} {diff} {points} frente a {previousName}', { v1: diff > 0 ? t('Subió') : t('Bajó'), diff: Math.abs(diff), points, previousName }),
     direction: diff > 0 ? 'up' : 'down',
   };
 }

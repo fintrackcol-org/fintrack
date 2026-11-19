@@ -1,8 +1,9 @@
-/** Pagos que más se repiten, para no escribirlos en la bienvenida. */
-export const SUGGESTED_COMMITMENTS = ['Arriendo', 'Internet', 'Celular', 'Transporte', 'Universidad', 'Cuota'];
+
+import { t } from '@/lib/i18n';/** Pagos que más se repiten, para no escribirlos en la bienvenida. */
+export const SUGGESTED_COMMITMENTS = [t('Arriendo'), t('Internet'), t('Celular'), t('Transporte'), t('Universidad'), t('Cuota')];
 
 /** FT-0057: aviso junto a cada formulario de saldo, para que nadie lo "arregle" con un ingreso falso. */
-export const NOT_INCOME = 'No la anotes como ingreso: si no, tus reportes dirán que ese mes te entró esa plata.';
+export const NOT_INCOME = t('No la anotes como ingreso: si no, tus reportes dirán que ese mes te entró esa plata.');
 
 /** Días de pago por mes que acepta la API. */
 export const MAX_PAY_DAYS = 4;
@@ -49,10 +50,10 @@ export function balanceProposal({ income, expense }) {
  * @returns {string}
  */
 export function incomeSummary({ incomeType, payDays }) {
-  if (incomeType === 'sin_fecha') return 'Sin fecha fija';
-  if (incomeType !== 'fecha_fija') return 'Aún no nos has dicho';
+  if (incomeType === 'sin_fecha') return t('Sin fecha fija');
+  if (incomeType !== 'fecha_fija') return t('Aún no nos has dicho');
   const days = payDays.join(', ').replace(/, (\d+)$/, ' y $1');
-  return `Con fecha fija, ${payDays.length === 1 ? 'el día' : 'los días'} ${days}`;
+  return t('Con fecha fija, {v1} {days}', { v1: payDays.length === 1 ? t('el día') : t('los días'), days });
 }
 
 /** Meses para elegir el cobro de un pago anual (FT-0067). */
@@ -63,13 +64,13 @@ export const MONTH_NAMES = [
 
 /** Tipos de compromiso, con un ejemplo para no confundirlos (FT-0067). */
 export const COMMITMENT_KIND_OPTIONS = [
-  { value: 'fixed', label: 'Pago fijo', hint: 'Lo que pagas sí o sí: arriendo, internet, la cuota del carro.' },
-  { value: 'subscription', label: 'Suscripción', hint: 'Un servicio que se cobra solo y puedes cancelar: Netflix, Spotify, iCloud.' },
+  { value: 'fixed', label: t('Pago fijo'), hint: t('Lo que pagas sí o sí: arriendo, internet, la cuota del carro.') },
+  { value: 'subscription', label: t('Suscripción'), hint: t('Un servicio que se cobra solo y puedes cancelar: Netflix, Spotify, iCloud.') },
 ];
 
 export const COMMITMENT_FREQUENCY_OPTIONS = [
-  { value: 'monthly', label: 'Cada mes' },
-  { value: 'yearly', label: 'Una vez al año' },
+  { value: 'monthly', label: t('Cada mes') },
+  { value: 'yearly', label: t('Una vez al año') },
 ];
 
 /**
@@ -81,13 +82,13 @@ export function readCommitmentForm({ name, amount, dayOfMonth, kind = 'fixed', f
   const cleanName = name.trim();
   const cleanAmount = Number(amount);
   const day = Number(dayOfMonth);
-  if (!cleanName) return { error: 'Escribe el nombre del pago.' };
-  if (!(cleanAmount > 0)) return { error: `Escribe cuánto pagas por ${cleanName}.` };
-  if (!Number.isInteger(day) || day < 1 || day > 31) return { error: `Escribe un día entre 1 y 31 para ${cleanName}.` };
+  if (!cleanName) return { error: t('Escribe el nombre del pago.') };
+  if (!(cleanAmount > 0)) return { error: t('Escribe cuánto pagas por {cleanName}.', { cleanName }) };
+  if (!Number.isInteger(day) || day < 1 || day > 31) return { error: t('Escribe un día entre 1 y 31 para {cleanName}.', { cleanName }) };
   const yearly = frequency === 'yearly';
   const monthNumber = Number(month);
   if (yearly && !(Number.isInteger(monthNumber) && monthNumber >= 1 && monthNumber <= 12)) {
-    return { error: `Elige en qué mes se cobra ${cleanName}.` };
+    return { error: t('Elige en qué mes se cobra {cleanName}.', { cleanName }) };
   }
   return {
     data: { name: cleanName, amount: cleanAmount, dayOfMonth: day, kind, frequency, month: yearly ? monthNumber : null },
@@ -100,5 +101,5 @@ export function readCommitmentForm({ name, amount, dayOfMonth, kind = 'fixed', f
  * @returns {string}
  */
 export function commitmentWhen({ dayOfMonth, frequency, month }) {
-  return frequency === 'yearly' ? `cada año, el ${dayOfMonth} de ${MONTH_NAMES[month - 1]}` : `día ${dayOfMonth}`;
+  return frequency === 'yearly' ? t('cada año, el {dayOfMonth} de {v2}', { dayOfMonth, v2: MONTH_NAMES[month - 1] }) : t('día {dayOfMonth}', { dayOfMonth });
 }

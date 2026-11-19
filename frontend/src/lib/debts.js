@@ -1,4 +1,5 @@
-/** Textos de las cuentas por cobrar y por pagar (FT-0046). */
+
+import { t } from '@/lib/i18n';/** Textos de las cuentas por cobrar y por pagar (FT-0046). */
 
 const DAY_MS = 86_400_000;
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
@@ -24,40 +25,40 @@ export function dueText(dueDate, today) {
   const days = daysBetween(today, dueDate);
   if (days < 0) {
     return {
-      text: days === -1 ? 'Venció ayer' : `Venció hace ${-days} días`,
+      text: days === -1 ? t('Venció ayer') : t('Venció hace {v1} días', { v1: -days }),
       late: true,
     };
   }
-  if (days === 0) return { text: 'Vence hoy', late: false };
-  if (days === 1) return { text: 'Vence mañana', late: false };
-  if (days <= 7) return { text: `Vence en ${days} días`, late: false };
+  if (days === 0) return { text: t('Vence hoy'), late: false };
+  if (days === 1) return { text: t('Vence mañana'), late: false };
+  if (days <= 7) return { text: t('Vence en {days} días', { days }), late: false };
   const [y, m, d] = dueDate.split('-').map(Number);
   const year = today.slice(0, 4) === dueDate.slice(0, 4) ? '' : ` ${y}`;
-  return { text: `Vence el ${d} ${MONTHS[m - 1]}${year}`, late: false };
+  return { text: t('Vence el {d} {v2}{year}', { d, v2: MONTHS[m - 1], year }), late: false };
 }
 
 /** Palabras de cada lado: la pestaña, el botón de saldar y el movimiento que se crea. */
 export const DEBT_WORDS = {
   receivable: {
-    tab: 'Me deben',
-    settle: 'Ya me pagó',
-    settleAll: 'Ya me pagó todo',
-    left: 'Te falta recibir',
-    movement: 'Registrar el ingreso en Movimientos',
-    empty: 'Nadie te debe nada. Anota aquí cuando le prestes plata a alguien.',
+    tab: t('Me deben'),
+    settle: t('Ya me pagó'),
+    settleAll: t('Ya me pagó todo'),
+    left: t('Te falta recibir'),
+    movement: t('Registrar el ingreso en Movimientos'),
+    empty: t('Nadie te debe nada. Anota aquí cuando le prestes plata a alguien.'),
   },
   payable: {
-    tab: 'Debo',
-    settle: 'Ya pagué',
-    settleAll: 'Ya pagué todo',
-    left: 'Te falta pagar',
-    movement: 'Registrar el gasto en Movimientos',
-    empty: 'No le debes a nadie. Anota aquí lo que te prestan para no olvidarlo.',
+    tab: t('Debo'),
+    settle: t('Ya pagué'),
+    settleAll: t('Ya pagué todo'),
+    left: t('Te falta pagar'),
+    movement: t('Registrar el gasto en Movimientos'),
+    empty: t('No le debes a nadie. Anota aquí lo que te prestan para no olvidarlo.'),
   },
 };
 
 /** Cada cuánto se paga una cuenta en cuotas. */
-export const FREQUENCY_LABELS = { weekly: 'Cada semana', biweekly: 'Cada quincena', monthly: 'Cada mes' };
+export const FREQUENCY_LABELS = { weekly: t('Cada semana'), biweekly: t('Cada quincena'), monthly: t('Cada mes') };
 
 /**
  * Fecha corta: "12 nov" (o "12 nov 2027" si no es este año).
@@ -76,8 +77,8 @@ export function shortDate(date, today) {
  * @returns {string} "Pagado $50.000 de $200.000 · 1 de 4 cuotas"
  */
 export function progressText(debt, money) {
-  const base = `Pagado ${money(debt.paid ?? 0)} de ${money(debt.amount)}`;
-  return debt.installments ? `${base} · ${debt.paidInstallments ?? 0} de ${debt.installments} cuotas` : base;
+  const base = t('Pagado {money} de {amount}', { money: money(debt.paid ?? 0), amount: money(debt.amount) });
+  return debt.installments ? t('{base} · {v2} de {installments} cuotas', { base, v2: debt.paidInstallments ?? 0, installments: debt.installments }) : base;
 }
 
 /**

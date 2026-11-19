@@ -5,6 +5,7 @@ import { useNotifications } from '@/components/layout/NotificationsProvider';
 import usePageTitle from '@/hooks/usePageTitle';
 import { timeAgo } from '@/lib/timeAgo';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /** Un aviso; si tiene a dónde llevar, toda la fila es un enlace. */
 function Item({ item, fresh }) {
@@ -50,7 +51,7 @@ function Group({ title, items, fresh = false }) {
  * quedan leídos; siguen en "Nuevas" durante esta visita para ver cuáles eran.
  */
 export default function Notifications() {
-  usePageTitle('Notificaciones');
+  usePageTitle(t('Notificaciones'));
   const { items, unread, status, markRead, clearHighlights } = useNotifications();
   const clear = useRef(clearHighlights);
   clear.current = clearHighlights;
@@ -66,28 +67,28 @@ export default function Notifications() {
 
   return (
     <div className="mx-auto max-w-xl">
-      <h1 className="text-[28px] font-semibold tracking-tight">Notificaciones</h1>
+      <h1 className="text-[28px] font-semibold tracking-tight">{t('Notificaciones')}</h1>
       {status === 'loading' && (
         <p className="flex items-center gap-2 py-8 text-ink/60" aria-busy="true">
-          <Loader2 className="size-5 animate-spin" aria-hidden="true" /> Cargando…
+          <Loader2 className="size-5 animate-spin" aria-hidden="true" /> {t('Cargando…')}
         </p>
       )}
       {status === 'error' && (
         <p role="alert" className="mt-4 text-sm text-negative">
-          No pudimos cargar tus avisos. Revisa tu conexión.
+          {t('No pudimos cargar tus avisos. Revisa tu conexión.')}
         </p>
       )}
       {status === 'ready' && items.length === 0 && (
         <div className="mt-6 flex flex-col items-center gap-1.5 rounded-2xl border border-ink/10 bg-surface p-6 text-center">
           <Bell className="size-6 text-ink/60" aria-hidden="true" />
-          <p className="font-medium">No tienes notificaciones</p>
-          <p className="text-sm text-ink/70">Aquí verás tus pagos, tarjetas y presupuestos.</p>
+          <p className="font-medium">{t('No tienes notificaciones')}</p>
+          <p className="text-sm text-ink/70">{t('Aquí verás tus pagos, tarjetas y presupuestos.')}</p>
         </div>
       )}
       {status === 'ready' && (
         <>
-          <Group title="Nuevas" fresh items={items.filter((n) => fresh.current.has(n.id))} />
-          <Group title="Anteriores" items={items.filter((n) => !fresh.current.has(n.id))} />
+          <Group title={t('Nuevas')} fresh items={items.filter((n) => fresh.current.has(n.id))} />
+          <Group title={t('Anteriores')} items={items.filter((n) => !fresh.current.has(n.id))} />
         </>
       )}
     </div>

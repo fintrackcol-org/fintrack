@@ -17,6 +17,7 @@ import { clearCardCache } from './cardCache';
 import { apiRequest } from '@/lib/apiRequest';
 import { plainText } from '@/lib/plainText';
 import { getSession } from '@/auth/tokenStorage';
+import { t } from '@/lib/i18n';
 
 /**
  * Evento en `window`: `detail` es `{ pending, syncing, synced?, rejected?, conflicts?, notices? }`.
@@ -29,15 +30,15 @@ export const SYNC_TAG = 'fintrack-sync';
 
 /** Nombre legible de los campos que puede señalar un 422, para el motivo del rechazo. */
 const FIELD_LABELS = {
-  amount: 'Monto',
-  description: 'Descripción',
+  amount: t('Monto'),
+  description: t('Descripción'),
   type: 'Tipo',
-  date: 'Fecha',
+  date: t('Fecha'),
   category: 'Categoría',
-  card: 'Tarjeta',
-  installments: 'Cuotas',
-  serverId: 'Movimiento',
-  updatedAt: 'Hora del cambio',
+  card: t('Tarjeta'),
+  installments: t('Cuotas'),
+  serverId: t('Movimiento'),
+  updatedAt: t('Hora del cambio'),
 };
 
 /** Máximo de operaciones por lote que acepta el servidor (contrato). */
@@ -100,7 +101,7 @@ async function requestBackgroundSync() {
  */
 export async function queueCreate(values, localId = crypto.randomUUID()) {
   const userId = currentUserId();
-  if (!userId) throw new Error('Tu sesión venció. Inicia sesión de nuevo.');
+  if (!userId) throw new Error(t('Tu sesión venció. Inicia sesión de nuevo.'));
 
   const operation = {
     localId,
@@ -125,7 +126,7 @@ export async function queueCreate(values, localId = crypto.randomUUID()) {
  */
 export async function queueUpdate(current, changes, previewCard = null) {
   const userId = currentUserId();
-  if (!userId) throw new Error('Tu sesión venció. Inicia sesión de nuevo.');
+  if (!userId) throw new Error(t('Tu sesión venció. Inicia sesión de nuevo.'));
 
   // Sin categoría la IA la sugiere al sincronizar; mientras tanto se ve "Sin clasificar".
   const source = 'category' in changes ? (changes.category ? 'manual' : 'sin_clasificar') : current.source;
@@ -171,7 +172,7 @@ export async function queueUpdate(current, changes, previewCard = null) {
  */
 export async function queueDelete(current) {
   const userId = currentUserId();
-  if (!userId) throw new Error('Tu sesión venció. Inicia sesión de nuevo.');
+  if (!userId) throw new Error(t('Tu sesión venció. Inicia sesión de nuevo.'));
 
   const updatedAt = new Date().toISOString();
   const edits = (await listPending()).filter((o) => o.op === 'update' && o.serverId === current.id);
@@ -200,7 +201,7 @@ export async function queueDelete(current) {
 export function syncNow() {
   // `navigator.locks`: con varias pestañas abiertas, envían por turnos y no el mismo lote a la vez.
   running ??= (navigator.locks ? navigator.locks.request('fintrack-sync', doSync) : doSync())
-    .catch((err) => console.error('No se pudo sincronizar', err)) // p. ej. IndexedDB no disponible
+    .catch((err) => console.error(t('No se pudo sincronizar'), err)) // p. ej. IndexedDB no disponible
     .finally(() => {
       running = null;
       announce().catch(() => {});

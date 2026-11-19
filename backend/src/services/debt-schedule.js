@@ -73,3 +73,17 @@ export function progress(debt, paid) {
   }
   return { paid: total, pending, paidInstallments, next };
 }
+
+/**
+ * Lo que falta pagar, cuota por cuota: la próxima con lo que le falta y las siguientes completas.
+ * A fecha fija es una sola, lo pendiente en la fecha límite; sin fecha, nada. Para el calendario,
+ * la liquidez y los avisos, que antes usaban el monto total (FT-0064).
+ * @param {{ amount: number, installments?: number|null, frequency?: string|null, firstDueDate?: string|null, dueDate?: string|null }} debt
+ * @param {number} paid Suma de los abonos.
+ * @returns {{ number: number, date: string, amount: number }[]}
+ */
+export function remaining(debt, paid) {
+  const { next } = progress(debt, paid);
+  if (!next) return [];
+  return debt.installments ? [next, ...schedule(debt).slice(next.number)] : [next];
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pressKey, readText, toTransaction } from '@/pages/app/Anotar';
+import { pressKey, readDescription, readText, toTransaction } from '@/pages/app/Anotar';
 
 describe('teclado de Anotar', () => {
   it('suma dígitos, 000 y borra el último', () => {
@@ -56,6 +56,21 @@ describe('Anotar en una pantalla (Rinde v2)', () => {
 
   it('sin número no inventa un monto', () => {
     expect(readText('almuerzo').amount).toBe('');
+  });
+
+  it('solo un número en «¿En qué fue?» pasa al monto y deja la descripción vacía', () => {
+    expect(readDescription('100000', false)).toMatchObject({ amount: '100000', description: '' });
+  });
+
+  it('con el monto ya escrito en su casilla, el número es parte del nombre', () => {
+    expect(readDescription('iPhone 15', true)).toMatchObject({ amount: '', description: 'iPhone 15', date: null });
+  });
+
+  it('con el monto ya escrito, «ayer» sigue cambiando la fecha', () => {
+    const read = readDescription('ayer taxi', true);
+    expect(read.description).toBe('Taxi');
+    expect(read.date).toBe(readText('ayer').date);
+    expect(read.amount).toBe('');
   });
 
   it('el grupo Kakeibo va solo en los gastos', () => {

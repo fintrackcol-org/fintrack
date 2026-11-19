@@ -1,4 +1,5 @@
 import { AppError } from '../errors/app-error.js';
+import { t } from '../i18n/index.js';
 
 /** AAAA-MM con un mes real: 01 a 12. */
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -12,7 +13,7 @@ const MAX_AMOUNT = 9_999_999_999.99;
 
 /** @returns {AppError} 400: el cuerpo no es un objeto JSON. */
 function invalidBody() {
-  return new AppError(400, 'VALIDATION_ERROR', 'El cuerpo de la petición no es válido');
+  return new AppError(400, 'VALIDATION_ERROR', t('El cuerpo de la petición no es válido'));
 }
 
 /**
@@ -22,7 +23,7 @@ function invalidBody() {
  */
 function throwIfInvalid(details) {
   if (details.length > 0) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', details);
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), details);
   }
 }
 
@@ -41,16 +42,16 @@ function isObject(body) {
  */
 function readAmount(value, details) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-    details.push({ field: 'amount', problem: 'Debe ser un número mayor que 0' });
+    details.push({ field: 'amount', problem: t('Debe ser un número mayor que 0') });
     return undefined;
   }
   if (value > MAX_AMOUNT) {
-    details.push({ field: 'amount', problem: 'Es demasiado grande' });
+    details.push({ field: 'amount', problem: t('Es demasiado grande') });
     return undefined;
   }
   const rounded = Math.round(value * 100) / 100;
   if (rounded <= 0) {
-    details.push({ field: 'amount', problem: 'Debe ser al menos 0.01' });
+    details.push({ field: 'amount', problem: t('Debe ser al menos 0.01') });
     return undefined;
   }
   return rounded;
@@ -67,10 +68,10 @@ export function parseNewBudget(body) {
   const { category, month, amount } = body;
 
   if (typeof category !== 'string' || category.trim() === '') {
-    details.push({ field: 'category', problem: 'Es obligatoria' });
+    details.push({ field: 'category', problem: t('Es obligatoria') });
   }
   if (typeof month !== 'string' || !MONTH_RE.test(month)) {
-    details.push({ field: 'month', problem: 'Debe tener el formato AAAA-MM' });
+    details.push({ field: 'month', problem: t('Debe tener el formato AAAA-MM') });
   }
   const cleanAmount = readAmount(amount, details);
 
@@ -101,7 +102,7 @@ export function parseMonthQuery(query) {
   const { month } = query;
   if (month === undefined) return undefined;
   if (typeof month !== 'string' || !MONTH_RE.test(month)) {
-    throwIfInvalid([{ field: 'month', problem: 'Debe tener el formato AAAA-MM' }]);
+    throwIfInvalid([{ field: 'month', problem: t('Debe tener el formato AAAA-MM') }]);
   }
   return month;
 }

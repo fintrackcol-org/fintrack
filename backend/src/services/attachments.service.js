@@ -5,6 +5,7 @@ import * as defaultRepo from '../repositories/attachments.repository.js';
 import { findTransaction } from '../repositories/transactions.repository.js';
 import { findUserById } from '../repositories/users.repository.js';
 import { selectStorage } from './attachment-storage.service.js';
+import { t } from '../i18n/index.js';
 
 /**
  * Soportes de pago (FT-0044): foto o PDF adjunto a un movimiento. Solo el dueño del movimiento
@@ -74,8 +75,8 @@ export function cleanName(raw, ext) {
  * @param {string} [what] Qué no se encontró.
  * @returns {AppError} 404 sin revelar si el movimiento o el soporte es de otro usuario (RN-01).
  */
-function notFound(what = 'El movimiento') {
-  return new AppError(404, 'NOT_FOUND', `${what} no existe`);
+function notFound(what = t('El movimiento')) {
+  return new AppError(404, 'NOT_FOUND', t('{what} no existe', { what }));
 }
 
 /**
@@ -124,7 +125,7 @@ export function createAttachmentsService(deps = {}) {
       throw new AppError(
         403,
         'FEATURE_DISABLED',
-        'Los soportes de pago todavía no están disponibles',
+        t('Los soportes de pago todavía no están disponibles'),
       );
     }
   }
@@ -184,14 +185,14 @@ export function createAttachmentsService(deps = {}) {
       await ensureEnabled(userId);
       if (!UUID_RE.test(transactionId)) throw notFound();
       if (!Buffer.isBuffer(data) || data.length === 0) {
-        throw new AppError(400, 'VALIDATION_ERROR', 'No llegó ningún archivo');
+        throw new AppError(400, 'VALIDATION_ERROR', t('No llegó ningún archivo'));
       }
       if (data.length > MAX_ATTACHMENT_BYTES) {
-        throw new AppError(413, 'FILE_TOO_LARGE', 'El archivo pesa más de 5 MB');
+        throw new AppError(413, 'FILE_TOO_LARGE', t('El archivo pesa más de 5 MB'));
       }
       const detected = detectType(data);
       if (!detected) {
-        throw new AppError(415, 'UNSUPPORTED_FILE', 'Solo se aceptan fotos (JPG, PNG, WebP) o PDF');
+        throw new AppError(415, 'UNSUPPORTED_FILE', t('Solo se aceptan fotos (JPG, PNG, WebP) o PDF'));
       }
       const key = `${userId}/${randomUUID()}.${detected.ext}`;
       await storage.save(key, data, detected.type);
@@ -211,7 +212,7 @@ export function createAttachmentsService(deps = {}) {
       throw new AppError(
         409,
         'ATTACHMENT_LIMIT',
-        `Un movimiento puede tener hasta ${MAX_ATTACHMENTS} soportes`,
+        t('Un movimiento puede tener hasta {MAX_ATTACHMENTS} soportes', { MAX_ATTACHMENTS }),
       );
     },
 
@@ -228,7 +229,7 @@ export function createAttachmentsService(deps = {}) {
         UUID_RE.test(transactionId) && UUID_RE.test(id)
           ? await repo.findAttachment(id, transactionId, userId)
           : null;
-      if (!found) throw notFound('El soporte');
+      if (!found) throw notFound(t('El soporte'));
       return { data: await storage.read(found.key), type: found.type, name: found.name };
     },
 
@@ -245,7 +246,7 @@ export function createAttachmentsService(deps = {}) {
         UUID_RE.test(transactionId) && UUID_RE.test(id)
           ? await repo.deleteAttachment(id, transactionId, userId)
           : null;
-      if (!key) throw notFound('El soporte');
+      if (!key) throw notFound(t('El soporte'));
       await storage.remove([key]);
     },
 

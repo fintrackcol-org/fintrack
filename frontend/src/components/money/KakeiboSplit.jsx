@@ -2,6 +2,7 @@ import { KAKEIBO } from '@/components/transactions/reflection';
 import { formatMoney } from '@/components/transactions/format';
 import useAsync from '@/hooks/useAsync';
 import { listTransactions } from '@/services/transactionService';
+import { t } from '@/lib/i18n';
 
 /** Colores de cada grupo: los de categorías de los gráficos (validados para daltonismo). */
 const COLOR = {
@@ -48,11 +49,11 @@ export default function KakeiboSplit({ from, to, hidden = false }) {
   return (
     <section aria-labelledby="kakeibo-periodo" className="flex flex-col gap-3 rounded-2xl border border-ink/10 bg-surface p-4">
       <h2 id="kakeibo-periodo" className="text-xs font-semibold uppercase tracking-[0.08em] text-ink/60">
-        ¿Podías evitarlo? · Kakeibo
+        {t('¿Podías evitarlo? · Kakeibo')}
       </h2>
       {grouped === 0 ? (
         <p className="text-sm text-ink/70">
-          Aún no tienes gastos con grupo Kakeibo. Ábrelos y elige si fueron necesidad, deseo, cultura o un imprevisto.
+          {t('Aún no tienes gastos con grupo Kakeibo. Ábrelos y elige si fueron necesidad, deseo, cultura o un imprevisto.')}
         </p>
       ) : (
         <>
@@ -77,9 +78,9 @@ export default function KakeiboSplit({ from, to, hidden = false }) {
           </ul>
           <p className="text-[13px] text-ink/60">
             {wish.total > 0
-              ? `En deseos llevas ${money(wish.total)}. Bajarlos un 10 % te deja ${money(Math.round(wish.total * 0.1))} más.`
-              : 'Este periodo no tienes gastos marcados como deseo.'}
-            {ungrouped > 0 && ` ${ungrouped === 1 ? '1 gasto no tiene' : `${ungrouped} gastos no tienen`} grupo.`}
+              ? t('En deseos llevas {total}. Bajarlos un 10 % te deja {money} más.', { total: money(wish.total), money: money(Math.round(wish.total * 0.1)) })
+              : t('Este periodo no tienes gastos marcados como deseo.')}
+            {ungrouped > 0 && t(' {v1} grupo.', { v1: ungrouped === 1 ? t('1 gasto no tiene') : `${ungrouped} gastos no tienen` })}
           </p>
         </>
       )}

@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import usePageTitle from '@/hooks/usePageTitle';
 import { createCard, listCards } from '@/services/cardService';
 
+import { t } from '@/lib/i18n';
 
 const cardLabel = (card) => `${NETWORK_LABELS[card.network] ?? card.name} ••${card.last4}`;
 
@@ -35,14 +36,14 @@ export function CardsList({ cards, online, hidden, onAdd, compact = false }) {
         <div className="flex justify-center">
           <CreditCardArt network="visa" tier="gold" last4="1234" name="Ejemplo" size="sm" />
         </div>
-        <p className="mt-4 text-lg font-semibold">Aún no tienes tarjetas</p>
+        <p className="mt-4 text-lg font-semibold">{t('Aún no tienes tarjetas')}</p>
         <p className="mx-auto mt-1 max-w-md text-ink/60">
-          Agrega una para ver cuánto cupo te queda y cuándo toca pagar.
+          {t('Agrega una para ver cuánto cupo te queda y cuándo toca pagar.')}
         </p>
         <Button className="mt-4" onClick={onAdd} disabled={!online}>
-          Agregar mi primera tarjeta
+          {t('Agregar mi primera tarjeta')}
         </Button>
-        {!online && <p className="mt-2 text-sm text-ink/60">Necesitas conexión</p>}
+        {!online && <p className="mt-2 text-sm text-ink/60">{t('Necesitas conexión')}</p>}
       </Panel>
     );
   }
@@ -50,7 +51,7 @@ export function CardsList({ cards, online, hidden, onAdd, compact = false }) {
     return (
       <section aria-labelledby="mis-tarjetas">
         <h2 id="mis-tarjetas" className="text-lg font-semibold tracking-tight">
-          Mis tarjetas
+          {t('Mis tarjetas')}
         </h2>
         <ul className="mt-2 flex flex-col gap-2.5">
           {cards.map((card) => {
@@ -71,7 +72,7 @@ export function CardsList({ cards, online, hidden, onAdd, compact = false }) {
                     <span className="block h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
                   </span>
                   <span className="mt-1.5 block text-[13px] tabular-nums text-ink/70">
-                    Disponible {money(card.available)} de {money(card.limit)}
+                    {t('Disponible')} {money(card.available)} {t('de')} {money(card.limit)}
                   </span>
                   <ExpiryBadge card={card} />
                 </Link>
@@ -84,7 +85,7 @@ export function CardsList({ cards, online, hidden, onAdd, compact = false }) {
   }
 
   return (
-    <ul aria-label="Mis tarjetas" className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+    <ul aria-label={t('Mis tarjetas')} className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
       {cards.map((card) => {
         const pct = card.limit > 0 ? Math.min(100, Math.round((card.used / card.limit) * 100)) : 0;
         return (
@@ -96,7 +97,7 @@ export function CardsList({ cards, online, hidden, onAdd, compact = false }) {
               <CreditCardArt network={card.network} tier={card.tier} last4={card.last4} name={card.name} expiry={card.expiry?.label} size="lg" />
               <div
                 role="progressbar"
-                aria-label={`Uso de ${card.name}`}
+                aria-label={t('Uso de {name}', { name: card.name })}
                 aria-valuenow={pct}
                 aria-valuemin={0}
                 aria-valuemax={100}
@@ -105,7 +106,7 @@ export function CardsList({ cards, online, hidden, onAdd, compact = false }) {
                 <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
               </div>
               <p className="mt-2 text-sm tabular-nums text-ink/70">
-                Usado {money(card.used)} de {money(card.limit)} · Disponible {money(card.available)}
+                {t('Usado')} {money(card.used)} {t('de')} {money(card.limit)} {t('· Disponible')} {money(card.available)}
               </p>
               <p className="mt-1 text-sm font-medium">{paymentText(card)}</p>
               <ExpiryBadge card={card} />
@@ -119,7 +120,7 @@ export function CardsList({ cards, online, hidden, onAdd, compact = false }) {
 
 /** Página privada `/app/tarjetas`: tarjetas de crédito del usuario; crear se hace en una hoja. */
 export default function Cards() {
-  usePageTitle('Tarjetas');
+  usePageTitle(t('Tarjetas'));
   const online = useOnlineStatus();
   const mobile = useMediaQuery('(width < 48rem)');
   const [hidden] = useHiddenAmounts();
@@ -151,11 +152,11 @@ export default function Cards() {
     <>
       <div className="max-md:sr-only">
         <PageHeader
-          title="Tarjetas"
-          description="Tu cupo, lo que debes y cuándo pagar."
+          title={t('Tarjetas')}
+          description={t('Tu cupo, lo que debes y cuándo pagar.')}
           actions={
             <Button onClick={() => setSheet(true)} disabled={!online} className="max-md:hidden">
-              <Plus aria-hidden="true" /> Agregar tarjeta
+              <Plus aria-hidden="true" /> {t('Agregar tarjeta')}
             </Button>
           }
         />
@@ -164,7 +165,7 @@ export default function Cards() {
       <div className="mb-5 flex flex-col gap-5 md:hidden">
         {cards?.length > 0 && (
           <div>
-            <p className="text-[15px] text-ink/70">Debes en total</p>
+            <p className="text-[15px] text-ink/70">{t('Debes en total')}</p>
             <p className="mt-1 text-[42px] font-semibold leading-tight tracking-tight tabular-nums">
               {hidden ? MASK : formatMoney(cards.reduce((sum, card) => sum + card.used, 0))}
             </p>
@@ -172,30 +173,30 @@ export default function Cards() {
           </div>
         )}
         <CircleActions
-          label="Acciones de Tarjetas"
+          label={t('Acciones de Tarjetas')}
           actions={[
-            { to: '/app/anotar', label: 'Anotar', icon: Plus, primary: true },
-            ...(online ? [{ onClick: () => setSheet(true), label: 'Agregar tarjeta', icon: CreditCard }] : []),
+            { to: '/app/anotar', label: t('Anotar'), icon: Plus, primary: true },
+            ...(online ? [{ onClick: () => setSheet(true), label: t('Agregar tarjeta'), icon: CreditCard }] : []),
           ]}
         />
       </div>
-      {!online && <p className="mb-3 text-sm text-ink/60">Necesitas conexión para agregar o cambiar tarjetas.</p>}
+      {!online && <p className="mb-3 text-sm text-ink/60">{t('Necesitas conexión para agregar o cambiar tarjetas.')}</p>}
       {error && (
         <p role="alert" className="mb-3 text-sm text-negative">
           {error}{' '}
           <button type="button" className="underline" onClick={reload}>
-            Reintentar
+            {t('Reintentar')}
           </button>
         </p>
       )}
       {cards === null && !error ? (
         <p className="flex items-center gap-2 py-10 text-ink/60">
-          <Loader2 className="animate-spin" aria-hidden="true" /> Cargando…
+          <Loader2 className="animate-spin" aria-hidden="true" /> {t('Cargando…')}
         </p>
       ) : (
         cards && <CardsList compact={mobile} cards={cards} online={online} hidden={hidden} onAdd={() => setSheet(true)} />
       )}
-      <Sheet open={sheet} title="Agregar tarjeta" onClose={() => setSheet(false)}>
+      <Sheet open={sheet} title={t('Agregar tarjeta')} onClose={() => setSheet(false)}>
         <CardForm disabled={!online} onSubmit={handleCreate} onCancel={() => setSheet(false)} />
       </Sheet>
     </>

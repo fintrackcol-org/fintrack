@@ -12,6 +12,7 @@ import { listBudgets } from '@/services/budgetService';
 import { getSummary } from '@/services/summaryService';
 import RindeLine from '@/components/common/RindeLine';
 import NegativeBalanceNote from '@/components/money/NegativeBalanceNote';
+import { t } from '@/lib/i18n';
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -63,12 +64,12 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-2xl font-bold tracking-tight">¿Hasta cuándo te alcanza?</h1>
+      <h1 className="text-2xl font-bold tracking-tight">{t('¿Hasta cuándo te alcanza?')}</h1>
 
       <div className="relative flex flex-col gap-3 overflow-hidden rounded-3xl bg-brand p-5 text-white">
         <span aria-hidden="true" className="absolute -right-16 -top-16 size-40 rounded-full border-[32px] border-white/15" />
         <span className="relative text-xs font-semibold uppercase tracking-[0.08em] text-white/85">
-          Lo que te queda · {MONTH_NAMES[today.getMonth()]}
+          {t('Lo que te queda ·')} {MONTH_NAMES[today.getMonth()]}
         </span>
         <span className="relative text-[40px] font-extrabold leading-[44px] tracking-[-0.02em] tabular-nums">
           {balance === undefined ? '…' : money(balance ?? 0)}
@@ -79,7 +80,7 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
             <RindeLine value={(today.getDate() + Math.min(r.days, lastDay - today.getDate())) / lastDay} />
             <span className="flex items-center justify-between gap-2 text-[13px]">
               <span className="text-white/85">1 {month}</span>
-              <b className="font-semibold">{r.lasts ? 'Alcanza todo el mes' : `Alcanza ${untilText(r)}`}</b>
+              <b className="font-semibold">{r.lasts ? t('Alcanza todo el mes') : t('Alcanza {r}', { r: untilText(r) })}</b>
               <span className="text-white/85">
                 {lastDay} {month}
               </span>
@@ -88,7 +89,7 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
         )}
         {summary.data && (
           <span className="relative text-[13px] text-white/85">
-            {r ? `Gastas en promedio ${money(r.pace)} al día. ` : ''}Ingresos {money(income)} · Gastos {money(expense)}.
+            {r ? t('Gastas en promedio {pace} al día. ', { pace: money(r.pace) }) : ''}{t('Ingresos')} {money(income)} {t('· Gastos')} {money(expense)}.
           </span>
         )}
       </div>
@@ -97,7 +98,7 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
         to="/app/mi-plata/corregir"
         className="-mt-3 inline-flex min-h-11 items-center self-start text-[13px] font-medium text-ink/70 underline underline-offset-2"
       >
-        ¿No es tu plata real? Corrígela
+        {t('¿No es tu plata real? Corrígela')}
       </Link>
 
       {warn && (
@@ -105,10 +106,9 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
           <span aria-hidden="true" className="mt-1.5 size-2.5 shrink-0 rounded-full bg-brand" />
           <span>
             <b className="font-semibold">
-              Ojo con el {warn.dayOfMonth} de {MONTH_NAMES[today.getMonth()]}.
+              {t('Ojo con el')} {warn.dayOfMonth} {t('de')} {MONTH_NAMES[today.getMonth()]}.
             </b>{' '}
-            Vence {warn.name} ({money(warn.amount)}) y a este ritmo no alcanza. Anota los ingresos que esperas o baja algún
-            presupuesto.
+            {t('Vence')} {warn.name} ({money(warn.amount)}{t(') y a este ritmo no alcanza. Anota los ingresos que esperas o baja algún presupuesto.')}
           </span>
         </p>
       )}
@@ -118,16 +118,16 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
       <section aria-labelledby="mp-presupuestos" className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 id="mp-presupuestos" className="text-lg font-semibold tracking-tight">
-            Presupuestos
+            {t('Presupuestos')}
           </h2>
           <Link to="/app/presupuestos" className="inline-flex min-h-11 items-center text-[13px] font-semibold text-brand">
-            Ver y editar
+            {t('Ver y editar')}
           </Link>
         </div>
         <div className="flex flex-col gap-3.5 rounded-2xl bg-surface p-4 ring-1 ring-ink/10">
           {top.length === 0 ? (
             <p className="text-sm text-ink/60">
-              {budgets.data ? 'Aún no tienes presupuestos. Ponle un tope a lo que más gastas.' : 'Cargando…'}
+              {budgets.data ? t('Aún no tienes presupuestos. Ponle un tope a lo que más gastas.') : t('Cargando…')}
             </p>
           ) : (
             top.slice(0, 3).map((b) => {
@@ -140,13 +140,13 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
                     <span className="shrink-0 text-[13px] tabular-nums">
                       <b className={cn('font-semibold', level === 'exceeded_100' && 'text-negative')}>{money(b.consumed)}</b>{' '}
                       <span className="text-ink/60">
-                        de {money(b.amount)} · {Math.round(b.percentage)} %
+                        {t('de')} {money(b.amount)} · {Math.round(b.percentage)} %
                       </span>
                     </span>
                   </span>
                   <span
                     role="meter"
-                    aria-label={`Consumo de ${label}`}
+                    aria-label={t('Consumo de {label}', { label })}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={Math.min(Math.round(b.percentage), 100)}
@@ -160,7 +160,7 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
           )}
           {top.length > 3 && (
             <Link to="/app/presupuestos" className="inline-flex min-h-11 items-center text-[13px] font-medium text-brand">
-              + {top.length - 3} {top.length - 3 === 1 ? 'presupuesto más' : 'presupuestos más'}
+              + {top.length - 3} {top.length - 3 === 1 ? t('presupuesto más') : t('presupuestos más')}
             </Link>
           )}
         </div>
@@ -169,15 +169,15 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
       <section aria-labelledby="mp-pagos" className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 id="mp-pagos" className="text-lg font-semibold tracking-tight">
-            Pagos fijos del mes
+            {t('Pagos fijos del mes')}
           </h2>
           <Link to="/app/calendario" className="inline-flex min-h-11 items-center text-[13px] font-semibold text-brand">
-            Ver calendario
+            {t('Ver calendario')}
           </Link>
         </div>
         {fixed.length === 0 ? (
           <Link to="/app/mi-plata/pagos" className="rounded-2xl bg-surface p-4 text-sm text-ink/70 ring-1 ring-ink/10">
-            Agrega lo que pagas cada mes (arriendo, internet, PILA) y te avisamos antes. <b className="text-brand">Agregar</b>
+            {t('Agrega lo que pagas cada mes (arriendo, internet, PILA) y te avisamos antes.')} <b className="text-brand">{t('Agregar')}</b>
           </Link>
         ) : (
           <ul className="rounded-2xl bg-surface px-4 ring-1 ring-ink/10">
@@ -191,7 +191,7 @@ export default function MiPlataMobile({ money: balance, commitments = [], hidden
             ))}
             <li className="py-1">
               <Link to="/app/mi-plata/pagos" className="inline-flex min-h-11 items-center text-[13px] font-semibold text-brand">
-                Editar pagos fijos
+                {t('Editar pagos fijos')}
               </Link>
             </li>
           </ul>

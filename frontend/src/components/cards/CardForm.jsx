@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { NETWORK_LABELS, TIERS, cardLabel } from '@/lib/cardStyles';
 import { cardEditSchema, cardSchema } from '@/lib/validation/card';
 import CreditCardArt from './CreditCardArt';
+import { t } from '@/lib/i18n';
 
 /** @param {object|null} initial */
 function toDefaults(initial) {
@@ -48,7 +49,7 @@ function parseExpiry(value) {
 function CardGallery({ network, tier, last4, disabled, onPick }) {
   return (
     <fieldset className="min-w-0 space-y-3" disabled={disabled}>
-      <legend className="mb-2 text-sm font-medium text-ink/80">Tipo de tarjeta</legend>
+      <legend className="mb-2 text-sm font-medium text-ink/80">{t('Tipo de tarjeta')}</legend>
       {Object.entries(TIERS).map(([net, tiers]) => (
         <div key={net}>
           <p className="mb-1 text-xs font-medium text-ink/60">{NETWORK_LABELS[net]}</p>
@@ -151,7 +152,7 @@ export default function CardForm({ initial = null, disabled = false, onSubmit, o
   );
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-5" aria-label={initial ? 'Editar tarjeta' : 'Nueva tarjeta'}>
+    <form onSubmit={submit} noValidate className="space-y-5" aria-label={initial ? t('Editar tarjeta') : t('Nueva tarjeta')}>
       <div className="flex justify-center">
         <CreditCardArt network={network} tier={tier} last4={digits} name={name || `${cardLabel(network, tier)} ••${digits}`}
           expiry={/^\d{2}\/\d{2}$/.test(expiry) ? expiry : undefined}
@@ -170,14 +171,14 @@ export default function CardForm({ initial = null, disabled = false, onSubmit, o
       />
       {errors.tier && <p className="text-sm text-negative">{errors.tier.message}</p>}
 
-      <FormField id="card-last4" label="Últimos 4 dígitos" error={errors.last4?.message}>
+      <FormField id="card-last4" label={t('Últimos 4 dígitos')} error={errors.last4?.message}>
         <Input inputMode="numeric" autoComplete="off" maxLength={4} placeholder="1234" disabled={disabled} {...register('last4')} />
       </FormField>
       <Controller
         control={control}
         name="expiry"
         render={({ field }) => (
-          <FormField id="card-expiry" label="Vence (MM/AA, opcional)" error={errors.expiry?.message}>
+          <FormField id="card-expiry" label={t('Vence (MM/AA, opcional)')} error={errors.expiry?.message}>
             <Input
               inputMode="numeric"
               autoComplete="cc-exp"
@@ -193,31 +194,31 @@ export default function CardForm({ initial = null, disabled = false, onSubmit, o
           </FormField>
         )}
       />
-      <p className="-mt-3 text-sm text-ink/60">Te avisamos 2 meses antes para que pidas la nueva.</p>
-      {money('limit', 'card-limit', 'Cupo total')}
+      <p className="-mt-3 text-sm text-ink/60">{t('Te avisamos 2 meses antes para que pidas la nueva.')}</p>
+      {money('limit', 'card-limit', t('Cupo total'))}
       {!initial && (
         <>
-          {money('available', 'card-available', 'Cupo disponible hoy')}
-          <p className="-mt-3 text-sm text-ink/60">Los ves en la app de tu banco</p>
+          {money('available', 'card-available', t('Cupo disponible hoy'))}
+          <p className="-mt-3 text-sm text-ink/60">{t('Los ves en la app de tu banco')}</p>
         </>
       )}
-      <FormField id="card-payment-day" label="Día de pago" error={errors.paymentDay?.message}>
+      <FormField id="card-payment-day" label={t('Día de pago')} error={errors.paymentDay?.message}>
         <Input inputMode="numeric" autoComplete="off" maxLength={2} placeholder="15" disabled={disabled} {...register('paymentDay')} />
       </FormField>
 
       <details open={Boolean(errors.name || errors.cutoffDay) || undefined} className="rounded-xl border border-ink/10 p-3">
-        <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium">Más detalles</summary>
+        <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium">{t('Más detalles')}</summary>
         <div className="mt-3 space-y-5">
-          <FormField id="card-name" label="Nombre (opcional)" error={errors.name?.message}>
+          <FormField id="card-name" label={t('Nombre (opcional)')} error={errors.name?.message}>
             <Input maxLength={40} placeholder={`${cardLabel(network, tier)} ••${digits}`} disabled={disabled} {...register('name')} />
           </FormField>
-          <FormField id="card-cutoff-day" label="Día de corte (opcional)" error={errors.cutoffDay?.message}>
+          <FormField id="card-cutoff-day" label={t('Día de corte (opcional)')} error={errors.cutoffDay?.message}>
             <Input inputMode="numeric" autoComplete="off" maxLength={2} placeholder="1" disabled={disabled} {...register('cutoffDay')} />
           </FormField>
         </div>
       </details>
 
-      {disabled && <p className="text-sm text-ink/60">Necesitas conexión</p>}
+      {disabled && <p className="text-sm text-ink/60">{t('Necesitas conexión')}</p>}
       {serverError && (
         <p role="alert" className="text-sm text-negative">
           {serverError}
@@ -227,11 +228,11 @@ export default function CardForm({ initial = null, disabled = false, onSubmit, o
       <div className="flex gap-3">
         <Button type="submit" size="lg" className="flex-1" disabled={disabled || isSubmitting}>
           {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-          {isSubmitting ? 'Guardando…' : initial ? 'Guardar cambios' : 'Agregar tarjeta'}
+          {isSubmitting ? t('Guardando…') : initial ? t('Guardar cambios') : t('Agregar tarjeta')}
         </Button>
         {onCancel && (
           <Button type="button" variant="outline" size="lg" onClick={onCancel} disabled={isSubmitting}>
-            Cancelar
+            {t('Cancelar')}
           </Button>
         )}
       </div>

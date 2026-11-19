@@ -16,25 +16,26 @@ import usePageTitle from '@/hooks/usePageTitle';
 import { periodLabel, todayIso } from '@/lib/period';
 import { cn } from '@/lib/utils';
 import { getSummary } from '@/services/summaryService';
+import { t } from '@/lib/i18n';
 
 const CONFIG = {
   ingreso: {
-    title: 'Ingresos',
-    question: '¿De dónde entró tu plata?',
+    title: t('Ingresos'),
+    question: t('¿De dónde entró tu plata?'),
     tone: 'text-positive',
     sign: '+ ',
-    listTitle: 'Todos los ingresos',
-    byCategory: 'De dónde entró',
-    empty: 'No hay ingresos en este periodo.',
+    listTitle: t('Todos los ingresos'),
+    byCategory: t('De dónde entró'),
+    empty: t('No hay ingresos en este periodo.'),
   },
   gasto: {
-    title: 'Gastos',
-    question: '¿En qué se fue tu plata?',
+    title: t('Gastos'),
+    question: t('¿En qué se fue tu plata?'),
     tone: '',
     sign: '− ',
-    listTitle: 'Todos los gastos',
-    byCategory: 'Por categoría',
-    empty: 'No hay gastos en este periodo.',
+    listTitle: t('Todos los gastos'),
+    byCategory: t('Por categoría'),
+    empty: t('No hay gastos en este periodo.'),
   },
 };
 
@@ -76,9 +77,9 @@ export default function PeriodDetail({ type }) {
   const chips = (totals?.byCategory ?? []).filter((r) => r.total > 0).map((r) => r.category ?? 'sin_clasificar');
 
   const rows = [
-    income ? ['Gastos', current?.expense.total, 'text-negative'] : ['Ingresos', current?.income.total, 'text-positive'],
-    ...(current?.savings.total > 0 ? [['Ahorro', current.savings.total, '']] : []),
-    ['Balance', current?.balance, ''],
+    income ? [t('Gastos'), current?.expense.total, 'text-negative'] : [t('Ingresos'), current?.income.total, 'text-positive'],
+    ...(current?.savings.total > 0 ? [[t('Ahorro'), current.savings.total, '']] : []),
+    [t('Balance'), current?.balance, ''],
   ];
 
   return (
@@ -94,9 +95,9 @@ export default function PeriodDetail({ type }) {
 
       {summary.error ? (
         <p role="alert" className="text-sm text-negative">
-          {online ? summary.error : 'Sin conexión: se actualiza al volver internet.'}{' '}
+          {online ? summary.error : t('Sin conexión: se actualiza al volver internet.')}{' '}
           <button type="button" className="underline" onClick={summary.reload}>
-            Reintentar
+            {t('Reintentar')}
           </button>
         </p>
       ) : (
@@ -107,7 +108,7 @@ export default function PeriodDetail({ type }) {
             </p>
             {days && total > 0 && (
               <p className="mt-1 text-[13px] text-ink/60">
-                En {days === 1 ? '1 día' : `${days} días`} · promedio {money(Math.round(total / days))} al día
+                {t('En')} {days === 1 ? t('1 día') : t('{days} días', { days })} {t('· promedio')} {money(Math.round(total / days))} {t('al día')}
               </p>
             )}
           </div>
@@ -134,7 +135,7 @@ export default function PeriodDetail({ type }) {
           {listTitle}
         </h2>
         {chips.length > 1 && (
-          <div role="group" aria-label="Filtrar por categoría" className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1">
+          <div role="group" aria-label={t('Filtrar por categoría')} className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1">
             {['', ...chips].map((key) => (
               <button
                 key={key || 'todas'}
@@ -146,7 +147,7 @@ export default function PeriodDetail({ type }) {
                   category === key ? 'bg-brand text-white' : 'bg-brand-soft text-ink',
                 )}
               >
-                {key === '' ? 'Todas' : key === 'sin_clasificar' ? 'Sin clasificar' : (names[key] ?? key)}
+                {key === '' ? t('Todas') : key === 'sin_clasificar' ? t('Sin clasificar') : (names[key] ?? key)}
               </button>
             ))}
           </div>
@@ -165,7 +166,7 @@ export default function PeriodDetail({ type }) {
       </section>
 
       <Button asChild variant="soft" size="lg">
-        <Link to="/app/movimientos">Ver todos los movimientos</Link>
+        <Link to="/app/movimientos">{t('Ver todos los movimientos')}</Link>
       </Button>
     </div>
   );

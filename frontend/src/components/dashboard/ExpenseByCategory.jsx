@@ -1,4 +1,5 @@
 import { formatMoney } from '@/components/transactions/format';
+import { t } from '@/lib/i18n';
 
 /** Cuántas categorías se muestran; el resto se suma en "Otras categorías". */
 const MAX_ROWS = 5;
@@ -13,7 +14,7 @@ const MASK = '$ ••••••';
 function toRows(rows, names) {
   const named = rows.map((r) => ({
     key: r.category ?? 'sin_clasificar',
-    name: r.category ? (names[r.category] ?? r.category) : 'Sin clasificar',
+    name: r.category ? (names[r.category] ?? r.category) : t('Sin clasificar'),
     total: r.total,
     percentage: r.percentage,
   }));
@@ -23,7 +24,7 @@ function toRows(rows, names) {
     ...named.slice(0, MAX_ROWS),
     {
       key: 'otras',
-      name: `Otras ${rest.length} categorías`,
+      name: t('Otras {length} categorías', { length: rest.length }),
       total: Math.round(rest.reduce((a, r) => a + r.total, 0) * 100) / 100,
       percentage: Math.round(rest.reduce((a, r) => a + r.percentage, 0) * 10) / 10,
     },
@@ -48,8 +49,8 @@ export default function ExpenseByCategory({
   names,
   hidden,
   className,
-  title = 'En qué se fue',
-  emptyText = 'No hay gastos en este periodo.',
+  title = t('En qué se fue'),
+  emptyText = t('No hay gastos en este periodo.'),
 }) {
   const rows = expense ? toRows(expense.byCategory, names) : [];
 

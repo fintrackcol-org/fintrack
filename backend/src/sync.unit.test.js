@@ -59,7 +59,8 @@ test('acepta las tres operaciones y convierte las fechas a Date', () => {
   );
   assert.equal(batch.operations[0].transaction.category, null, 'create sin categoría → IA');
   assert.ok(batch.operations[1].updatedAt instanceof Date);
-  assert.deepEqual(batch.operations[1].transaction, { amount: 20 });
+  // Editar el monto a mano lo deja en la moneda principal (sin la conversión de viaje).
+  assert.deepEqual(batch.operations[1].transaction, { amount: 20, original: null });
   assert.equal(batch.operations[2].transaction, undefined, 'delete no lleva transacción');
 });
 

@@ -6,10 +6,12 @@ import { listCategories } from '../repositories/categories.repository.js';
 import * as defaultRepo from '../repositories/pending-payments.repository.js';
 import { insertTransaction } from '../repositories/transactions.repository.js';
 import { findUserById } from '../repositories/users.repository.js';
+import { asUser } from './users.service.js';
 import { resolveCategory } from './categorization.service.js';
 import { todayIso } from './insights.service.js';
 import { pushService } from './push.service.js';
 import { money } from './whatsapp.service.js';
+import { t } from '../i18n/index.js';
 
 // Pagos con Apple Pay que llegan desde Atajos del iPhone (FT-0047). El iPhone no deja que otras
 // apps lean Wallet, pero una automatización de Atajos sí puede mandar el comercio y el monto de
@@ -21,11 +23,11 @@ export const TOKEN_PREFIX = 'ftk_';
 /** Tope de pagos esperando: si alguien roba el token no puede llenar la base. */
 export const MAX_PENDING = 200;
 
-const notFound = () => new AppError(404, 'NOT_FOUND', 'Pago no encontrado');
+const notFound = () => new AppError(404, 'NOT_FOUND', t('Pago no encontrado'));
 const alreadyResolved = () =>
-  new AppError(409, 'ALREADY_RESOLVED', 'Este pago ya se confirmó o se descartó');
+  new AppError(409, 'ALREADY_RESOLVED', t('Este pago ya se confirmó o se descartó'));
 const disabled = () =>
-  new AppError(403, 'FEATURE_DISABLED', 'Los pagos desde el iPhone todavía no están disponibles');
+  new AppError(403, 'FEATURE_DISABLED', t('Los pagos desde el iPhone todavía no están disponibles'));
 
 /**
  * @param {string} text
@@ -52,8 +54,8 @@ export function paymentKey({ merchant, amount, date, minute, externalId }) {
  */
 export function pendingPaymentPayload({ merchant, amount }) {
   return {
-    title: 'Pago por confirmar',
-    body: `${merchant}: ${money(amount)}. Confírmalo para anotarlo en tus movimientos.`,
+    title: t('Pago por confirmar'),
+    body: t('{merchant}: {amount}. Confírmalo para anotarlo en tus movimientos.', { merchant, amount: money(amount) }),
     url: '/app/por-confirmar',
   };
 }
@@ -146,7 +148,7 @@ export function createPendingPaymentsService(deps = {}) {
      */
     async authenticate(token) {
       const owner = token?.startsWith(TOKEN_PREFIX) && (await repo.useToken(sha256(token)));
-      if (!owner) throw new AppError(401, 'UNAUTHORIZED', 'Token del Atajo inválido o revocado');
+      if (!owner) throw new AppError(401, 'UNAUTHORIZED', t('Token del Atajo inválido o revocado'));
       if (!isEnabledFor(owner.email)) throw disabled();
       return owner;
     },
@@ -167,7 +169,7 @@ export function createPendingPaymentsService(deps = {}) {
         throw new AppError(
           429,
           'TOO_MANY_PENDING',
-          `Tienes ${MAX_PENDING} pagos sin revisar. Confirma o descarta algunos primero.`,
+          t('Tienes {MAX_PENDING} pagos sin revisar. Confirma o descarta algunos primero.', { MAX_PENDING }),
         );
       }
       const payment = await repo.insertPayment({
@@ -181,7 +183,8 @@ export function createPendingPaymentsService(deps = {}) {
       // Llegó otra petición igual al mismo tiempo: se devuelve la que ganó.
       if (!payment)
         return { payment: await repo.findPaymentByKey(owner.userId, key), duplicate: true };
-      await Promise.resolve(notify(owner.userId, pendingPaymentPayload(payment))).catch((err) => {
+      // El atajo no manda el idioma: el aviso va en el del dueño del pago.
+      await asUser(owner.userId, () => notify(owner.userId, pendingPaymentPayload(payment))).catch((err) => {
         console.error(`No se avisó el pago por confirmar ${payment.id} (${err.message})`);
       });
       return { payment, duplicate: false };
@@ -209,8 +212,8 @@ export function createPendingPaymentsService(deps = {}) {
       if (input.category) {
         const match = (await listCategories(userId)).find((c) => c.key === input.category);
         if (!match || match.type !== 'gasto') {
-          throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-            { field: 'category', problem: 'No es una categoría de gasto del catálogo' },
+          throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+            { field: 'category', problem: t('No es una categoría de gasto del catálogo') },
           ]);
         }
       }

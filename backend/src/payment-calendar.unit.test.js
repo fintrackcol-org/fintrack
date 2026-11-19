@@ -223,3 +223,23 @@ test('las cuentas personales con fecha salen en el calendario (FT-0069)', () => 
   assert.deepEqual([events.Juan.kind, events.Juan.balanceAfter, events.Juan.risk], ['cobro', null, null]);
   assert.equal(calendar.totals.pending, 10000 + 89000 + 300000);
 });
+
+test('con cuotas y abonos sale cada cuota con lo que le falta, no el total (FT-0064)', () => {
+  const debts = [
+    // 300.000 en 3 cuotas mensuales desde el 8 de noviembre, con 50.000 abonados.
+    { id: 'd1', kind: 'payable', person: 'Ana', amount: 300000, dueDate: '2026-11-08', settledAt: null, paid: 50000, installments: 3, frequency: 'monthly', firstDueDate: '2026-11-08' },
+    // A fecha fija, con un abono: lo que falta.
+    { id: 'd2', kind: 'receivable', person: 'Juan', amount: 200000, dueDate: '2026-11-12', settledAt: null, paid: 150000 },
+  ];
+  const november = buildPaymentCalendar({ ...base, commitments: [], debts });
+  const events = byName(november);
+  assert.deepEqual([events.Ana.date, events.Ana.amount, events.Ana.balanceAfter], ['2026-11-08', 50000, 950000]);
+  assert.deepEqual([events.Juan.kind, events.Juan.amount], ['cobro', 50000]);
+  assert.equal(november.totals.pending, 50000);
+
+  const december = buildPaymentCalendar({ ...base, month: '2026-12', commitments: [], debts });
+  assert.deepEqual(
+    december.events.filter((e) => e.kind === 'cuenta').map((e) => [e.date, e.amount]),
+    [['2026-12-08', 100000]],
+  );
+});

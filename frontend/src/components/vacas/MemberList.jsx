@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import VacaProgress from './VacaProgress';
 import { MEMBER_STATUS, formatPercent, formatPesos } from './vacaFormat';
+import { t } from '@/lib/i18n';
 
 /**
  * Editor en línea de la cuota de un miembro (reparto personalizado).
@@ -35,7 +36,7 @@ function QuotaEditor({ member, onSave, onClose }) {
   return (
     <div className="mt-3 space-y-2 rounded-xl bg-ink/5 p-3">
       <label htmlFor={`quota-${member.userId}`} className="text-sm font-medium">
-        Cuota de {member.isMe ? 'ti' : member.name}
+        {t('Cuota de')} {member.isMe ? 'ti' : member.name}
       </label>
       <MoneyInput
         id={`quota-${member.userId}`}
@@ -51,15 +52,15 @@ function QuotaEditor({ member, onSave, onClose }) {
       )}
       <div className="flex flex-wrap gap-2">
         <Button size="sm" disabled={busy || value === ''} onClick={() => save(Number(value))}>
-          Guardar cuota
+          {t('Guardar cuota')}
         </Button>
         {member.customQuota !== null && (
           <Button size="sm" variant="outline" disabled={busy} onClick={() => save(null)}>
-            Usar la calculada
+            {t('Usar la calculada')}
           </Button>
         )}
         <Button size="sm" variant="ghost" disabled={busy} onClick={onClose}>
-          Cancelar
+          {t('Cancelar')}
         </Button>
       </div>
     </div>
@@ -113,7 +114,7 @@ function MemberRow({ member, isAdmin, customSplit, online, onUpdate, onRemove })
           <div className="flex items-start gap-2">
             <p className="flex min-w-0 flex-1 gap-1 font-medium">
               <span className="truncate">{member.name}</span>
-              {member.isMe && <span className="shrink-0 text-ink/60">(tú)</span>}
+              {member.isMe && <span className="shrink-0 text-ink/60">{t('(tú)')}</span>}
             </p>
             {canManage && (
               <Button
@@ -121,7 +122,7 @@ function MemberRow({ member, isAdmin, customSplit, online, onUpdate, onRemove })
                 variant="ghost"
                 className="-my-1.5 -mr-2 size-9 shrink-0"
                 aria-expanded={managing}
-                aria-label={`Gestionar a ${member.name}`}
+                aria-label={t('Gestionar a {name}', { name: member.name })}
                 onClick={() => setManaging((v) => !v)}
               >
                 <MoreVertical aria-hidden="true" />
@@ -131,23 +132,23 @@ function MemberRow({ member, isAdmin, customSplit, online, onUpdate, onRemove })
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             {member.role === 'admin' && (
               <span className="inline-flex items-center gap-1 rounded-full bg-ink/10 px-2 py-0.5 text-xs font-medium text-ink/70">
-                <Crown className="size-3" aria-hidden="true" /> Admin
+                <Crown className="size-3" aria-hidden="true" /> {t('Admin')}
               </span>
             )}
             <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', status.chip)}>{status.label}</span>
           </div>
           <p className="mt-2 text-sm tabular-nums text-ink/60">
-            <span className="font-semibold text-ink">{formatPesos(member.contributed)}</span> de {formatPesos(member.quota)}
-            {member.customQuota !== null && ' (a medida)'}
-            {member.remaining > 0 && <span className="block">Le faltan {formatPesos(member.remaining)}</span>}
+            <span className="font-semibold text-ink">{formatPesos(member.contributed)}</span> {t('de')} {formatPesos(member.quota)}
+            {member.customQuota !== null && t(' (a medida)')}
+            {member.remaining > 0 && <span className="block">{t('Le faltan')} {formatPesos(member.remaining)}</span>}
           </p>
           <div className="mt-2">
             <VacaProgress
               size="sm"
               value={member.percentage}
               barClass={status.bar}
-              label={`Avance de ${member.name}`}
-              valueText={`${formatPercent(member.percentage)} de su cuota`}
+              label={t('Avance de {name}', { name: member.name })}
+              valueText={t('{percentage} de su cuota', { percentage: formatPercent(member.percentage) })}
             />
           </div>
 
@@ -155,7 +156,7 @@ function MemberRow({ member, isAdmin, customSplit, online, onUpdate, onRemove })
             <div className="mt-3 flex flex-wrap items-center gap-1 rounded-xl bg-ink/5 p-1.5">
               {customSplit && !editing && (
                 <Button size="sm" variant="ghost" disabled={!online || busy} onClick={() => setEditing(true)}>
-                  <Pencil aria-hidden="true" /> Cuota
+                  <Pencil aria-hidden="true" /> {t('Cuota')}
                 </Button>
               )}
               {!member.isMe && (
@@ -165,23 +166,23 @@ function MemberRow({ member, isAdmin, customSplit, online, onUpdate, onRemove })
                   disabled={!online || busy}
                   onClick={() => run(() => onUpdate({ role: member.role === 'admin' ? 'miembro' : 'admin' }))}
                 >
-                  <Crown aria-hidden="true" /> {member.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}
+                  <Crown aria-hidden="true" /> {member.role === 'admin' ? t('Quitar admin') : t('Hacer admin')}
                 </Button>
               )}
               {!member.isMe &&
                 (confirming ? (
                   <span className="flex flex-wrap items-center gap-1">
-                    <span className="px-2 text-sm text-ink/60">¿Sacar de la vaca?</span>
+                    <span className="px-2 text-sm text-ink/60">{t('¿Sacar de la vaca?')}</span>
                     <Button size="sm" variant="outline" disabled={busy} onClick={() => run(onRemove)}>
-                      Sí, sacar
+                      {t('Sí, sacar')}
                     </Button>
                     <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirming(false)}>
-                      No
+                      {t('No')}
                     </Button>
                   </span>
                 ) : (
                   <Button size="sm" variant="ghost" disabled={!online || busy} onClick={() => setConfirming(true)}>
-                    <UserMinus aria-hidden="true" /> Sacar
+                    <UserMinus aria-hidden="true" /> {t('Sacar')}
                   </Button>
                 ))}
             </div>

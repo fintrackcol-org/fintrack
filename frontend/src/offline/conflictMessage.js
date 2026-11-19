@@ -1,4 +1,5 @@
-/**
+
+import { t } from '@/lib/i18n';/**
  * Texto del aviso cuando un cambio hecho sin conexión chocó con uno de otro dispositivo. FT-0009.
  *
  * El servidor resuelve con last-write-wins (RN-07): gana el cambio más reciente. Lo que le importa
@@ -33,21 +34,21 @@ export function conflictMessage({ resolution, op, serverVersion, name }) {
 
   if (resolution === 'client_wins') {
     return op === 'delete'
-      ? { tone: 'info', text: `Eliminaste ${subject}, que otro dispositivo había modificado.` }
-      : { tone: 'info', text: `Tu edición de ${subject} reemplazó un cambio hecho en otro dispositivo.` };
+      ? { tone: 'info', text: t('Eliminaste {subject}, que otro dispositivo había modificado.', { subject }) }
+      : { tone: 'info', text: t('Tu edición de {subject} reemplazó un cambio hecho en otro dispositivo.', { subject }) };
   }
 
   if (op === 'delete') {
     // Sin versión en el servidor no hay nada que conservar: el resultado es el que el usuario quería.
     return removedOnServer
-      ? { tone: 'info', text: `${capitalize(subject)} ya no existía en el servidor; no había nada que eliminar.` }
-      : { tone: 'warning', text: `No se eliminó ${subject}: otro dispositivo lo modificó después.` };
+      ? { tone: 'info', text: t('{subject} ya no existía en el servidor; no había nada que eliminar.', { subject: capitalize(subject) }) }
+      : { tone: 'warning', text: t('No se eliminó {subject}: otro dispositivo lo modificó después.', { subject }) };
   }
 
   return removedOnServer
-    ? { tone: 'warning', text: `${capitalize(subject)} se eliminó en otro dispositivo; tu edición no se aplicó.` }
+    ? { tone: 'warning', text: t('{subject} se eliminó en otro dispositivo; tu edición no se aplicó.', { subject: capitalize(subject) }) }
     : {
         tone: 'warning',
-        text: `Tu edición de ${subject} no se aplicó: otro dispositivo lo cambió después. Quedó la versión más reciente.`,
+        text: t('Tu edición de {subject} no se aplicó: otro dispositivo lo cambió después. Quedó la versión más reciente.', { subject }),
       };
 }

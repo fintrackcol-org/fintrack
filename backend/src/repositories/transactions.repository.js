@@ -17,6 +17,8 @@ import { pool } from '../config/db.js';
  * @property {number|null} installments Cuotas (1–48) si el gasto lleva tarjeta; si no, `null`.
  * @property {string|null} emotion Cómo se sintió con el gasto (FT-0070), o `null`.
  * @property {string|null} kakeibo Grupo Kakeibo del gasto (FT-0070), o `null`.
+ * @property {{ currency: string, amount: number, rate: number }|null} original Si se anotó en otra
+ *   moneda (al viajar): lo pagado allá y la tasa; `amount` del movimiento ya está convertido.
  */
 
 export const COLUMNS = `t.id, t.usuario_id AS "userId", t.monto::float8 AS amount,
@@ -25,7 +27,9 @@ export const COLUMNS = `t.id, t.usuario_id AS "userId", t.monto::float8 AS amoun
   t.updated_at AS "updatedAt", t.deleted_at AS "deletedAt",
   CASE WHEN k.id IS NULL THEN NULL ELSE json_build_object('id', k.id, 'name', k.nombre,
     'last4', k.ultimos4, 'deleted', k.deleted_at IS NOT NULL) END AS card,
-  t.cuotas::int AS installments, t.emocion AS emotion, t.kakeibo`;
+  t.cuotas::int AS installments, t.emocion AS emotion, t.kakeibo,
+  CASE WHEN t.moneda_original IS NULL THEN NULL ELSE json_build_object('currency', t.moneda_original,
+    'amount', t.monto_original::float8, 'rate', t.tasa::float8) END AS original`;
 
 /** Une la transacción con su categoría (la clave) y con su tarjeta, incluso si se borró. */
 export const JOIN = `LEFT JOIN categorias c ON c.id = t.categoria_id
@@ -47,8 +51,9 @@ export async function insertTransaction(data, client = pool) {
   const { rows } = await client.query(
     `WITH ins AS (
        INSERT INTO transacciones
-         (usuario_id, categoria_id, monto, descripcion, tipo, fecha, origen, local_id, tarjeta_id, cuotas, emocion, kakeibo)
-       VALUES ($1, (SELECT id FROM categorias WHERE key = $2), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         (usuario_id, categoria_id, monto, descripcion, tipo, fecha, origen, local_id, tarjeta_id, cuotas, emocion, kakeibo,
+          moneda_original, monto_original, tasa)
+       VALUES ($1, (SELECT id FROM categorias WHERE key = $2), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        ON CONFLICT (usuario_id, local_id) WHERE local_id IS NOT NULL DO NOTHING
        RETURNING *
      )
@@ -66,6 +71,9 @@ export async function insertTransaction(data, client = pool) {
       data.card ? (data.installments ?? 1) : null,
       data.emotion ?? null,
       data.kakeibo ?? null,
+      data.original?.currency ?? null,
+      data.original?.amount ?? null,
+      data.original?.rate ?? null,
     ],
   );
   // `undefined` solo si otra petición ya guardó ese `localId` (se busca con `findByLocalId`).
@@ -150,6 +158,11 @@ export async function updateTransaction(id, userId, changes) {
   if (changes.installments !== undefined) set('cuotas', changes.installments);
   if (changes.emotion !== undefined) set('emocion', changes.emotion);
   if (changes.kakeibo !== undefined) set('kakeibo', changes.kakeibo);
+  if (changes.original !== undefined) {
+    set('moneda_original', changes.original?.currency ?? null);
+    set('monto_original', changes.original?.amount ?? null);
+    set('tasa', changes.original?.rate ?? null);
+  }
   if (changes.category !== undefined) {
     params.push(changes.category);
     sets.push(`categoria_id = (SELECT id FROM categorias WHERE key = $${params.length})`);

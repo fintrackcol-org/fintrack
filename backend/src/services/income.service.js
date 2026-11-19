@@ -22,7 +22,8 @@ import { list as listVacas } from './vacas.service.js';
 
 /** El colchón es una meta personal con este nombre: así reutiliza la barra, los aportes y el saldo. */
 export const CUSHION_NAME = 'Colchón para meses flacos';
-const isCushion = (meta) => /^colch[oó]n/i.test(meta.name);
+// Se reconoce en cualquier idioma: cada quien la crea con el nombre traducido.
+const isCushion = (meta) => /^(colch[oó]n|cushion|reserva para)/i.test(meta.name);
 
 const sum = (values) => values.reduce((acc, v) => acc + v, 0);
 

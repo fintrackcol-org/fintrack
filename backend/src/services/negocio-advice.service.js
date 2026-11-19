@@ -1,10 +1,11 @@
 import { completeText } from './ai-client.service.js';
 import { listMonth } from './negocio-movements.service.js';
+import { aiRegionRule, currencyDigits, currentRegion, formatMoney, t } from '../i18n/index.js';
 
 // Consejo sobre el mes del negocio (FT-0058). Lo da la IA con cifras agregadas del mes (sin
 // nombres de socios, clientes ni descripciones) y, si no está disponible, se arma con reglas.
 
-const money = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+const money = { format: (n) => formatMoney(n, { digits: currencyDigits() }) };
 
 /** Horas que se guarda un consejo mientras las cifras del mes no cambien. */
 export const ADVICE_TTL_HOURS = 12;
@@ -19,32 +20,32 @@ export function ruleBusinessAdvice(panel, { current }) {
   const { sale, netProfit, breakEven, breakEvenReached, fixed, previous, cost } = panel;
   const spent = cost + panel.variable + fixed;
   if (sale === 0 && spent === 0) {
-    return 'Aún no hay movimientos este mes. Registra tus ventas y gastos para ver la utilidad y cuánto necesitas vender.';
+    return t('Aún no hay movimientos este mes. Registra tus ventas y gastos para ver la utilidad y cuánto necesitas vender.');
   }
   if (sale === 0) {
-    return 'Este mes hay gastos pero ninguna venta registrada. Si ya vendiste, anótalo para ver la utilidad real.';
+    return t('Este mes hay gastos pero ninguna venta registrada. Si ya vendiste, anótalo para ver la utilidad real.');
   }
   if (breakEven === null && fixed > 0) {
-    return 'Con estos costos, vender no alcanza a cubrir los gastos fijos: revisa tus precios o lo que te cuesta producir.';
+    return t('Con estos costos, vender no alcanza a cubrir los gastos fijos: revisa tus precios o lo que te cuesta producir.');
   }
   if (netProfit < 0 && breakEven !== null && !breakEvenReached) {
     const missing = money.format(breakEven - sale);
     return current
-      ? `Vas en pérdida: te faltan ${missing} en ventas para llegar al punto de equilibrio este mes.`
-      : `El mes cerró en pérdida: faltaron ${missing} en ventas para cubrir los gastos fijos.`;
+      ? t('Vas en pérdida: te faltan {missing} en ventas para llegar al punto de equilibrio este mes.', { missing })
+      : t('El mes cerró en pérdida: faltaron {missing} en ventas para cubrir los gastos fijos.', { missing });
   }
   if (netProfit < 0) {
-    return 'Este mes los gastos superan lo que entra. Revisa cuáles gastos variables puedes bajar.';
+    return t('Este mes los gastos superan lo que entra. Revisa cuáles gastos variables puedes bajar.');
   }
   if (previous.saleChange !== null && previous.saleChange <= -20) {
-    return `Las ventas bajaron ${Math.abs(previous.saleChange)} % frente al mes anterior. Mira qué cambió y si vale la pena una promoción.`;
+    return t('Las ventas bajaron {saleChange} % frente al mes anterior. Mira qué cambió y si vale la pena una promoción.', { saleChange: Math.abs(previous.saleChange) });
   }
   if (panel.netMargin !== null && panel.netMargin < 10) {
-    return `Ganas poco por cada venta (margen de ${panel.netMargin} %). Revisa precios o costos para que te quede más.`;
+    return t('Ganas poco por cada venta (margen de {netMargin} %). Revisa precios o costos para que te quede más.', { netMargin: panel.netMargin });
   }
   return current
-    ? `Vas bien: llevas ${money.format(netProfit)} de utilidad. Aparta una parte para los meses flojos antes de repartir.`
-    : `Buen mes: quedaron ${money.format(netProfit)} de utilidad. Aparta una parte para los meses flojos antes de repartir.`;
+    ? t('Vas bien: llevas {netProfit} de utilidad. Aparta una parte para los meses flojos antes de repartir.', { netProfit: money.format(netProfit) })
+    : t('Buen mes: quedaron {netProfit} de utilidad. Aparta una parte para los meses flojos antes de repartir.', { netProfit: money.format(netProfit) });
 }
 
 /**
@@ -56,13 +57,13 @@ export function ruleBusinessAdvice(panel, { current }) {
 export function businessAdvicePrompt(panel, { current }) {
   const f = (n) => money.format(n);
   return [
-    `Mes ${current ? 'en curso' : 'cerrado'}.`,
-    `Ventas: ${f(panel.sale)}. Costo de venta: ${f(panel.cost)}. Gastos variables: ${f(panel.variable)}. Gastos fijos: ${f(panel.fixed)}. Otros ingresos: ${f(panel.otherIncome)}.`,
-    `Utilidad neta: ${f(panel.netProfit)}${panel.netMargin === null ? '' : ` (margen ${panel.netMargin} %)`}.`,
+    t('Mes {v1}.', { v1: current ? 'en curso' : 'cerrado' }),
+    t('Ventas: {sale}. Costo de venta: {cost}. Gastos variables: {variable}. Gastos fijos: {fixed}. Otros ingresos: {otherIncome}.', { sale: f(panel.sale), cost: f(panel.cost), variable: f(panel.variable), fixed: f(panel.fixed), otherIncome: f(panel.otherIncome) }),
+    t('Utilidad neta: {netProfit}{v2}.', { netProfit: f(panel.netProfit), v2: panel.netMargin === null ? '' : ` (margen ${panel.netMargin} %)` }),
     panel.breakEven === null
-      ? 'Sin punto de equilibrio calculable.'
-      : `Punto de equilibrio: ${f(panel.breakEven)} en ventas (${panel.breakEvenReached ? 'alcanzado' : 'no alcanzado'}).`,
-    panel.previous.saleChange === null ? '' : `Ventas frente al mes anterior: ${panel.previous.saleChange} %.`,
+      ? t('Sin punto de equilibrio calculable.')
+      : t('Punto de equilibrio: {breakEven} en ventas ({v2}).', { breakEven: f(panel.breakEven), v2: panel.breakEvenReached ? 'alcanzado' : 'no alcanzado' }),
+    panel.previous.saleChange === null ? '' : t('Ventas frente al mes anterior: {saleChange} %.', { saleChange: panel.previous.saleChange }),
   ]
     .filter(Boolean)
     .join('\n');
@@ -100,17 +101,17 @@ export function createBusinessAdvice(deps = {}) {
     if (panel.sale === 0 && panel.cost + panel.variable + panel.fixed === 0) {
       return { advice: ruleBusinessAdvice(panel, { current }), source: 'reglas', month: data.month };
     }
-    const key = `${id}|${data.month}|${panel.sale}|${panel.cost}|${panel.variable}|${panel.fixed}|${panel.otherIncome}`;
+    const key = `${id}|${currentRegion().language}|${currentRegion().currency}|${data.month}|${panel.sale}|${panel.cost}|${panel.variable}|${panel.fixed}|${panel.otherIncome}`;
     const hit = cache.get(key);
     if (hit && now() - hit.at < ADVICE_TTL_HOURS * 3_600_000) {
       return { advice: hit.advice, source: 'ia', month: data.month };
     }
     try {
-      const text = String(await generate({ system: SYSTEM, prompt: businessAdvicePrompt(panel, { current }), maxTokens: 400 }))
+      const text = String(await generate({ system: SYSTEM + aiRegionRule(), prompt: businessAdvicePrompt(panel, { current }), maxTokens: 400 }))
         .replace(/\s+/g, ' ')
         .trim()
         .slice(0, 400);
-      if (!text) throw new Error('Respuesta vacía');
+      if (!text) throw new Error(t('Respuesta vacía'));
       if (cache.size > 500) cache.clear();
       cache.set(key, { advice: text, at: now() });
       return { advice: text, source: 'ia', month: data.month };

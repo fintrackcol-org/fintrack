@@ -1,10 +1,12 @@
 import express from 'express';
+import { regionMiddleware } from './i18n/index.js';
 import cors from 'cors';
 import { env } from './config/env.js';
 import healthRoutes from './routes/health.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import usersRoutes from './routes/users.routes.js';
 import categoriesRoutes from './routes/categories.routes.js';
+import exchangeRatesRoutes from './routes/exchange-rates.routes.js';
 import transactionsRoutes from './routes/transactions.routes.js';
 import budgetsRoutes from './routes/budgets.routes.js';
 import cardsRoutes from './routes/cards.routes.js';
@@ -63,6 +65,8 @@ export function createApp() {
       exposedHeaders: ['Content-Disposition'],
     }),
   );
+  // Idioma, moneda y país de la persona para todo lo que responda esta petición (errores incluidos).
+  app.use(regionMiddleware);
   // Va antes de `express.json()`: la firma de Meta se valida sobre el cuerpo original (FT-0029).
   app.use('/api/v1/whatsapp/webhook', webhookRouter);
   app.use(express.json());
@@ -115,6 +119,7 @@ export function createApp() {
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/users', usersRoutes);
   app.use('/api/v1/categories', categoriesRoutes);
+  app.use('/api/v1/exchange-rates', exchangeRatesRoutes);
   app.use('/api/v1/transactions', transactionsRoutes);
   app.use('/api/v1/budgets', budgetsRoutes);
   app.use('/api/v1/cards', cardsRoutes);

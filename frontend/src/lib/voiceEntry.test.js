@@ -217,3 +217,19 @@ describe('relleno solo en los bordes (Rinde v2)', () => {
     expect(d('2 almuerzos de 12 mil')).toBe('2 almuerzos');
   });
 });
+
+describe('parseSpokenTransaction en inglés y portugués', () => {
+  const usd = (text) => parseSpokenTransaction(text, new Date(2026, 10, 17), { smallMeansThousands: false, receivedLabel: 'Payment received' });
+
+  it('en dólares un número pequeño es el monto, con centavos', () => {
+    expect(usd('coffee 4.50')).toMatchObject({ type: 'gasto', amount: 4.5, description: 'Coffee' });
+    expect(usd('lunch 15')).toMatchObject({ amount: 15, description: 'Lunch' });
+  });
+
+  it('reconoce ingresos, unidades y fechas', () => {
+    expect(usd('got paid 1.2 million yesterday')).toMatchObject({ type: 'ingreso', amount: 1_200_000, description: 'Payment received', date: '2026-11-16' });
+    expect(usd('I spent 20 on the groceries')).toMatchObject({ type: 'gasto', amount: 20, description: 'Groceries' });
+    expect(usd('made 40')).toMatchObject({ type: 'ingreso', amount: 40 });
+    expect(parseSpokenTransaction('recebi 3 mil ontem', new Date(2026, 10, 17))).toMatchObject({ type: 'ingreso', amount: 3000, date: '2026-11-16' });
+  });
+});

@@ -8,6 +8,7 @@ import { useAuth } from '@/auth/AuthContext';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import { getDisplayName, getInitial } from '@/lib/displayName';
 import { MAX_NAME_LENGTH, updateProfile } from '@/services/userService';
+import { t } from '@/lib/i18n';
 
 /**
  * Perfil en Cuenta: avatar, nombre y correo. El nombre se edita en el mismo lugar
@@ -39,7 +40,7 @@ export default function ProfileCard() {
     event.preventDefault();
     const clean = draft.trim().replace(/\s+/g, ' ');
     if (clean.length > MAX_NAME_LENGTH) {
-      setError(`Máximo ${MAX_NAME_LENGTH} caracteres.`);
+      setError(t('Máximo {MAX_NAME_LENGTH} caracteres.', { MAX_NAME_LENGTH }));
       return;
     }
     setSaving(true);
@@ -47,7 +48,7 @@ export default function ProfileCard() {
     try {
       const profile = await updateProfile(clean || null);
       updateUser({ name: profile.name });
-      setNotice(profile.name ? 'Nombre guardado.' : 'Nombre borrado.');
+      setNotice(profile.name ? t('Nombre guardado.') : t('Nombre borrado.'));
       setEditing(false);
     } catch (err) {
       setError(err.fields?.name ?? err.message);
@@ -59,7 +60,7 @@ export default function ProfileCard() {
   return (
     <Panel aria-labelledby="perfil">
       <h2 id="perfil" className="sr-only">
-        Perfil
+        {t('Perfil')}
       </h2>
       <div className="flex items-center gap-4">
         <span
@@ -69,26 +70,26 @@ export default function ProfileCard() {
           {getInitial(user)}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-lg font-semibold">{getDisplayName(user) || 'Tu cuenta'}</p>
+          <p className="truncate text-lg font-semibold">{getDisplayName(user) || t('Tu cuenta')}</p>
           <p className="truncate text-ink/60">{user.email}</p>
         </div>
         {!editing && (
           <Button variant="outline" size="sm" onClick={startEditing} disabled={!online}>
             <Pencil aria-hidden="true" />
-            {user.name ? 'Editar nombre' : 'Agregar nombre'}
+            {user.name ? t('Editar nombre') : t('Agregar nombre')}
           </Button>
         )}
       </div>
 
       {!editing && !user.name && (
         <p className="mt-4 text-sm text-ink/60">
-          Agrega tu nombre para que te saludemos por él. Por ahora usamos el de tu correo.
+          {t('Agrega tu nombre para que te saludemos por él. Por ahora usamos el de tu correo.')}
         </p>
       )}
 
       {editing && (
         <form onSubmit={save} noValidate className="mt-5 space-y-3">
-          <Label htmlFor={inputId}>Tu nombre</Label>
+          <Label htmlFor={inputId}>{t('Tu nombre')}</Label>
           <Input
             ref={inputRef}
             id={inputId}
@@ -96,7 +97,7 @@ export default function ProfileCard() {
             onChange={(e) => setDraft(e.target.value)}
             maxLength={MAX_NAME_LENGTH}
             autoComplete="given-name"
-            placeholder="Felipe"
+            placeholder={t('Felipe')}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? `${inputId}-error` : undefined}
             disabled={saving}
@@ -109,10 +110,10 @@ export default function ProfileCard() {
           <div className="flex flex-wrap gap-3">
             <Button type="submit" disabled={saving || !online}>
               {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-              {saving ? 'Guardando…' : 'Guardar nombre'}
+              {saving ? t('Guardando…') : t('Guardar nombre')}
             </Button>
             <Button type="button" variant="outline" onClick={() => setEditing(false)} disabled={saving}>
-              Cancelar
+              {t('Cancelar')}
             </Button>
           </div>
         </form>

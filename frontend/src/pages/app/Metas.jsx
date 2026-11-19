@@ -20,11 +20,12 @@ import { runway, untilText } from '@/lib/runway';
 import { getMoneyProfile } from '@/services/moneyProfileService';
 import { getSummary } from '@/services/summaryService';
 import { createVaca, listVacas } from '@/services/vacaService';
+import { t } from '@/lib/i18n';
 
 /** Lo que se maneja con otras personas, dentro de la pestaña Metas. */
 const IN_GROUP = [
-  { to: '/app/vacas', label: 'Vacas', hint: 'Ahorrar con amigos', icon: PiggyBank },
-  { to: '/app/negocios', label: 'Negocios', hint: 'Cuentas con socios', icon: Briefcase },
+  { to: '/app/vacas', label: t('Vacas'), hint: t('Ahorrar con amigos'), icon: PiggyBank },
+  { to: '/app/negocios', label: t('Negocios'), hint: t('Cuentas con socios'), icon: Briefcase },
 ];
 
 /** Una meta es una vaca de una sola persona; las vacas en grupo salen en `/app/vacas`. */
@@ -41,13 +42,13 @@ function CushionCard({ fixed, meta, onCreate, online }) {
   if (!c) {
     return (
       <section className="rounded-3xl bg-obsidian p-5 text-white ring-1 ring-white/10">
-        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-success">Tu colchón</p>
-        <h2 className="mt-1 text-lg font-semibold">Fondo de emergencia</h2>
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-success">{t('Tu colchón')}</p>
+        <h2 className="mt-1 text-lg font-semibold">{t('Fondo de emergencia')}</h2>
         <p className="mt-2 text-sm text-white/75">
-          Anota tus pagos fijos en Mi plata y te decimos cuánto necesitas para aguantar 3 meses sin ingresos.
+          {t('Anota tus pagos fijos en Mi plata y te decimos cuánto necesitas para aguantar 3 meses sin ingresos.')}
         </p>
         <Link to="/app/mi-plata/pagos" className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-success">
-          Anotar pagos fijos
+          {t('Anotar pagos fijos')}
         </Link>
       </section>
     );
@@ -57,25 +58,25 @@ function CushionCard({ fixed, meta, onCreate, online }) {
     <>
       <span className="flex items-start justify-between gap-3">
         <span>
-          <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-success">Tu colchón</span>
-          <span className="mt-1 block text-lg font-semibold">{meta?.name ?? 'Fondo de emergencia'}</span>
+          <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-success">{t('Tu colchón')}</span>
+          <span className="mt-1 block text-lg font-semibold">{meta?.name ?? t('Fondo de emergencia')}</span>
         </span>
-        <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold">Meta: 3 meses</span>
+        <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold">{t('Meta: 3 meses')}</span>
       </span>
       <span className="mt-3 flex items-baseline gap-1.5 tabular-nums">
         <b className="text-[28px] font-extrabold tracking-tight">{formatPesos(saved)}</b>
-        <span className="text-sm text-white/70">de {formatPesos(goal)}</span>
+        <span className="text-sm text-white/70">{t('de')} {formatPesos(goal)}</span>
       </span>
       <RindeLine value={goal > 0 ? saved / goal : 0} className="mt-2" />
       <span className="mt-3 block text-sm text-white/80">
         {saved > 0 ? (
           <>
-            Hoy aguantas <b className="font-semibold text-white">{c.days === 1 ? '1 día' : `${c.days} días`}</b> sin ingresos.{' '}
+            {t('Hoy aguantas')} <b className="font-semibold text-white">{c.days === 1 ? t('1 día') : t('{days} días', { days: c.days })}</b> {t('sin ingresos.')}{' '}
           </>
         ) : (
-          'Aún no tienes colchón. '
+          t('Aún no tienes colchón. ')
         )}
-        La meta es 3 meses de tus gastos fijos ({formatPesos(fixed)} al mes).
+        {t('La meta es 3 meses de tus gastos fijos (')}{formatPesos(fixed)} {t('al mes).')}
       </span>
     </>
   );
@@ -90,7 +91,7 @@ function CushionCard({ fixed, meta, onCreate, online }) {
     <section className="rounded-3xl bg-obsidian p-5 text-white ring-1 ring-white/10">
       {body}
       <Button className="mt-4 rounded-full bg-white text-obsidian hover:bg-white/90" onClick={onCreate} disabled={!online}>
-        Crear mi colchón
+        {t('Crear mi colchón')}
       </Button>
     </section>
   );
@@ -98,20 +99,20 @@ function CushionCard({ fixed, meta, onCreate, online }) {
 
 /** "Vas bien" / "Vas lento" / "Cumplida" según la proyección. */
 function paceChip(meta) {
-  if (meta.status === 'completada') return { label: 'Cumplida', className: 'bg-success/15 text-positive', dot: true };
-  if (meta.status === 'vencida') return { label: 'Venció', className: 'bg-negative/10 text-negative' };
-  if (meta.projection.onTrack === true) return { label: 'Vas bien', className: 'bg-success/15 text-positive', dot: true };
-  if (meta.projection.onTrack === false) return { label: 'Vas lento', className: 'bg-brand-soft text-brand' };
+  if (meta.status === 'completada') return { label: t('Cumplida'), className: 'bg-success/15 text-positive', dot: true };
+  if (meta.status === 'vencida') return { label: t('Venció'), className: 'bg-negative/10 text-negative' };
+  if (meta.projection.onTrack === true) return { label: t('Vas bien'), className: 'bg-success/15 text-positive', dot: true };
+  if (meta.projection.onTrack === false) return { label: t('Vas lento'), className: 'bg-brand-soft text-brand' };
   return null;
 }
 
 /** Qué hacer para llegar: el plan por semana, cuándo se completa a este ritmo o cómo empezar. */
 function adviceText(meta) {
   const p = meta.projection;
-  if (meta.status === 'completada') return 'Ya completaste la meta.';
-  if (meta.deadline && p.neededPerWeek > 0) return `Si apartas ${formatPesos(Math.ceil(p.neededPerWeek / 1000) * 1000)} cada semana, llegas a tiempo.`;
-  if (p.estimatedDate) return `A tu ritmo la completas el ${shortDate(p.estimatedDate)}.`;
-  return 'Aparta algo hoy para arrancar.';
+  if (meta.status === 'completada') return t('Ya completaste la meta.');
+  if (meta.deadline && p.neededPerWeek > 0) return t('Si apartas {formatPesos} cada semana, llegas a tiempo.', { formatPesos: formatPesos(Math.ceil(p.neededPerWeek / 1000) * 1000) });
+  if (p.estimatedDate) return t('A tu ritmo la completas el {estimatedDate}.', { estimatedDate: shortDate(p.estimatedDate) });
+  return t('Aparta algo hoy para arrancar.');
 }
 
 /**
@@ -134,7 +135,7 @@ function MetaCard({ meta, onSave }) {
           </h3>
           <p className="mt-0.5 text-sm text-ink/60">
             {meta.deadline
-              ? `Para el ${shortDate(meta.deadline)}${days > 0 ? ` · faltan ${days === 1 ? '1 día' : `${days} días`}` : ''}`
+              ? t('Para el {deadline}{v2}', { deadline: shortDate(meta.deadline), v2: days > 0 ? ` · faltan ${days === 1 ? t('1 día') : `${days} días`}` : '' })
               : deadlineText(meta, { withDate: false })}
           </p>
         </div>
@@ -147,16 +148,16 @@ function MetaCard({ meta, onSave }) {
       </div>
       <p className="mt-4 flex flex-wrap items-baseline gap-x-1.5 tabular-nums">
         <span className="text-[26px] font-extrabold tracking-tight">{formatPesos(meta.total)}</span>
-        <span className="text-sm text-ink/60">de {formatPesos(meta.goal)}</span>
+        <span className="text-sm text-ink/60">{t('de')} {formatPesos(meta.goal)}</span>
       </p>
       <RindeLine tone="surface" value={meta.goal > 0 ? meta.total / meta.goal : 0} className="mt-2" />
       <span className="sr-only">
-        Avance: {formatPercent(meta.percentage)}
+        {t('Avance:')} {formatPercent(meta.percentage)}
       </span>
       <p className="mt-3 text-sm text-ink/70">{adviceText(meta)}</p>
       {meta.status === 'activa' && (
         <Button variant="outline" className="relative z-10 mt-3 rounded-full" onClick={onSave}>
-          Apartar plata
+          {t('Apartar plata')}
         </Button>
       )}
     </li>
@@ -182,7 +183,7 @@ function SaveSheet({ meta, balance, monthExpense, onDone }) {
 
   const save = async (event) => {
     event.preventDefault();
-    if (!(value > 0)) return setError('Escribe cuánto vas a apartar');
+    if (!(value > 0)) return setError(t('Escribe cuánto vas a apartar'));
     setBusy(true);
     setError('');
     try {
@@ -196,8 +197,8 @@ function SaveSheet({ meta, balance, monthExpense, onDone }) {
   };
 
   return (
-    <form onSubmit={save} noValidate className="space-y-4" aria-label={`Apartar para ${meta.name}`}>
-      <FormField id="apartar-monto" label="¿Cuánto apartas hoy?" error={error}>
+    <form onSubmit={save} noValidate className="space-y-4" aria-label={t('Apartar para {name}', { name: meta.name })}>
+      <FormField id="apartar-monto" label={t('¿Cuánto apartas hoy?')} error={error}>
         <MoneyInput name="amount" value={amount} onChange={setAmount} placeholder="0" disabled={busy} />
       </FormField>
       {suggested && (
@@ -206,28 +207,28 @@ function SaveSheet({ meta, balance, monthExpense, onDone }) {
           onClick={() => setAmount(String(Math.min(suggested, meta.projection.remaining)))}
           className="-mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-brand-soft px-3 text-sm font-semibold text-brand"
         >
-          {formatPesos(Math.min(suggested, meta.projection.remaining))} · tu plan
+          {formatPesos(Math.min(suggested, meta.projection.remaining))} {t('· tu plan')}
         </button>
       )}
       <div className="rounded-2xl bg-ink/5 p-4">
         <p className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.08em] text-ink/60">
-          La meta queda en <span className="text-lg font-extrabold tracking-tight text-ink tabular-nums">{pct} %</span>
+          {t('La meta queda en')} <span className="text-lg font-extrabold tracking-tight text-ink tabular-nums">{pct} %</span>
         </p>
         <RindeLine tone="surface" value={pct / 100} className="mt-2" />
         <p className="mt-2 text-sm tabular-nums text-ink/70">
-          <b className="font-semibold text-ink">{formatPesos(after)}</b> de {formatPesos(meta.goal)}
+          <b className="font-semibold text-ink">{formatPesos(after)}</b> {t('de')} {formatPesos(meta.goal)}
         </p>
       </div>
       {then && now && value > 0 && (
         <p className="text-[15px]">
-          <b className="font-semibold">Mi plata te alcanzaría {then.lasts ? 'hasta después de fin de mes' : untilText(then)}</b>{' '}
-          <span className="text-ink/60">(hoy: {now.lasts ? 'pasa el fin de mes' : untilText(now).replace('hasta el ', '')}).</span>{' '}
-          {then.days < now.days ? 'Apartar también es gastar: revisa que te quede para el mes.' : 'Sigues cubierto.'}
+          <b className="font-semibold">{t('Mi plata te alcanzaría')} {then.lasts ? t('hasta después de fin de mes') : untilText(then)}</b>{' '}
+          <span className="text-ink/60">{t('(hoy:')} {now.lasts ? 'pasa el fin de mes' : untilText(now).replace('hasta el ', '')}).</span>{' '}
+          {then.days < now.days ? t('Apartar también es gastar: revisa que te quede para el mes.') : t('Sigues cubierto.')}
         </p>
       )}
       <Button type="submit" size="lg" className="w-full rounded-full" disabled={busy}>
         {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {value > 0 ? `Apartar ${formatPesos(value)}` : 'Apartar'}
+        {value > 0 ? t('Apartar {value}', { value: formatPesos(value) }) : t('Apartar')}
       </Button>
     </form>
   );
@@ -239,7 +240,7 @@ function SaveSheet({ meta, balance, monthExpense, onDone }) {
  * en los movimientos y saca la plata del saldo disponible. Sin conexión muestra la última lista.
  */
 export default function Metas() {
-  usePageTitle('Metas');
+  usePageTitle(t('Metas'));
   const online = useOnlineStatus();
   const navigate = useNavigate();
   const [metas, setMetas] = useState(null);
@@ -292,8 +293,8 @@ export default function Metas() {
     setSaving(null);
     setNotice(
       result.queued
-        ? 'Sin conexión: lo que apartaste quedó en el dispositivo y se envía solo al volver internet.'
-        : `Apartaste ${formatPesos(value)}. También quedó en tus movimientos.`,
+        ? t('Sin conexión: lo que apartaste quedó en el dispositivo y se envía solo al volver internet.')
+        : t('Apartaste {value}. También quedó en tus movimientos.', { value: formatPesos(value) }),
     );
     reload();
   };
@@ -305,10 +306,10 @@ export default function Metas() {
 
   return (
     <>
-      <PageHeader title="¿Para qué estás ahorrando?" description="Cada peso que apartas sale de tu plata disponible." />
+      <PageHeader title={t('¿Para qué estás ahorrando?')} description={t('Cada peso que apartas sale de tu plata disponible.')} />
 
       {fromCache && (
-        <p className="mb-3 text-sm text-ink/60">Sin conexión: es la última lista guardada en este dispositivo.</p>
+        <p className="mb-3 text-sm text-ink/60">{t('Sin conexión: es la última lista guardada en este dispositivo.')}</p>
       )}
       {notice && (
         <p role="status" className="mb-3 rounded-xl bg-success/10 px-4 py-2.5 text-sm">
@@ -319,7 +320,7 @@ export default function Metas() {
         <p role="alert" className="mb-3 text-sm text-negative">
           {error}{' '}
           <button type="button" className="underline" onClick={reload}>
-            Reintentar
+            {t('Reintentar')}
           </button>
         </p>
       )}
@@ -337,19 +338,18 @@ export default function Metas() {
                 fixed={fixed}
                 meta={cushionMeta}
                 online={online}
-                onCreate={() => setCreating({ name: 'Fondo de emergencia', goal: fixed * 3 })}
+                onCreate={() => setCreating({ name: t('Fondo de emergencia'), goal: fixed * 3 })}
               />
             </div>
             {others.length > 0 ? (
-              <ul aria-label="Mis metas" className="contents">
+              <ul aria-label={t('Mis metas')} className="contents">
                 {others.map((meta) => (
                   <MetaCard key={meta.id} meta={meta} onSave={() => setSaving(meta)} />
                 ))}
               </ul>
             ) : (
               <p className="rounded-3xl bg-surface p-5 text-ink/70 ring-1 ring-ink/10">
-                Ponle nombre y fecha a lo que quieres (la moto, el semestre, un viaje) y Rinde te dice cuánto apartar cada
-                semana.
+                {t('Ponle nombre y fecha a lo que quieres (la moto, el semestre, un viaje) y Rinde te dice cuánto apartar cada semana.')}
               </p>
             )}
           </div>
@@ -357,15 +357,15 @@ export default function Metas() {
       )}
 
       <Button size="lg" className="mt-4 w-full rounded-full lg:w-auto" onClick={() => setCreating({})} disabled={!online}>
-        <Plus aria-hidden="true" /> Nueva meta
+        <Plus aria-hidden="true" /> {t('Nueva meta')}
       </Button>
 
       {/* Rinde v2: en el celular, las metas en grupo se abren desde aquí (antes, desde el menú lateral). */}
       <div className="mt-8 md:hidden">
-        <ShortcutGrid id="metas-en-grupo" title="En grupo" items={IN_GROUP} />
+        <ShortcutGrid id="metas-en-grupo" title={t('En grupo')} items={IN_GROUP} />
       </div>
 
-      <Sheet open={Boolean(creating)} title="¿Para qué quieres ahorrar?" onClose={() => setCreating(false)}>
+      <Sheet open={Boolean(creating)} title={t('¿Para qué quieres ahorrar?')} onClose={() => setCreating(false)}>
         <VacaForm
           personal
           prefill={creating || undefined}
@@ -375,7 +375,7 @@ export default function Metas() {
           onCancel={() => setCreating(false)}
         />
       </Sheet>
-      <Sheet open={saving !== null} title={saving ? `Apartar para ${saving.name}` : ''} onClose={() => setSaving(null)}>
+      <Sheet open={saving !== null} title={saving ? t('Apartar para {name}', { name: saving.name }) : ''} onClose={() => setSaving(null)}>
         {saving && (
           <SaveSheet
             key={saving.id}

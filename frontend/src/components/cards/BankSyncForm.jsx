@@ -10,6 +10,7 @@ import { syncPreview } from '@/components/cards/cardFormat';
 import { formatMoney } from '@/components/transactions/format';
 import { MASK } from '@/components/dashboard/BalanceCard';
 import { bankSyncSchema } from '@/lib/validation/card';
+import { t } from '@/lib/i18n';
 
 const FIELDS = ['available', 'statementTotal', 'statementDueDate'];
 
@@ -58,22 +59,21 @@ export default function BankSyncForm({ card, hidden = false, disabled = false, o
   );
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-4" aria-label="Actualizar con el banco">
+    <form onSubmit={submit} noValidate className="space-y-4" aria-label={t('Actualizar con el banco')}>
       <p className="text-sm text-ink/70">
-        Rinde no calcula intereses. Si el banco cobró de más, la diferencia queda como gasto «Cargos del banco» de la
-        tarjeta (intereses, cuota de manejo u otros cargos).
+        {t('Rinde no calcula intereses. Si el banco cobró de más, la diferencia queda como gasto «Cargos del banco» de la tarjeta (intereses, cuota de manejo u otros cargos).')}
       </p>
-      {money('available', 'sync-available', 'Cupo disponible')}
+      {money('available', 'sync-available', t('Cupo disponible'))}
       {preview && (
         <p role="status" className="text-sm font-medium">
           {preview}
         </p>
       )}
-      {money('statementTotal', 'sync-total', 'Total a pagar del extracto (opcional)')}
-      <FormField id="sync-due" label="Fecha límite (opcional)" error={errors.statementDueDate?.message}>
+      {money('statementTotal', 'sync-total', t('Total a pagar del extracto (opcional)'))}
+      <FormField id="sync-due" label={t('Fecha límite (opcional)')} error={errors.statementDueDate?.message}>
         <Input type="date" disabled={disabled} {...register('statementDueDate')} />
       </FormField>
-      {disabled && <p className="text-sm text-ink/60">Necesitas conexión</p>}
+      {disabled && <p className="text-sm text-ink/60">{t('Necesitas conexión')}</p>}
       {serverError && (
         <p role="alert" className="text-sm text-negative">
           {serverError}
@@ -81,7 +81,7 @@ export default function BankSyncForm({ card, hidden = false, disabled = false, o
       )}
       <Button type="submit" size="lg" className="w-full" disabled={disabled || isSubmitting}>
         {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {isSubmitting ? 'Guardando…' : 'Actualizar'}
+        {isSubmitting ? t('Guardando…') : t('Actualizar')}
       </Button>
     </form>
   );

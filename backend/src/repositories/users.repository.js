@@ -9,10 +9,17 @@ import { pool } from '../config/db.js';
  * @property {string} timezone Zona horaria del usuario.
  * @property {boolean} emailVerified Si ya abrió el enlace del correo de verificación (FT-0016).
  * @property {string|null} termsVersion Versión de los términos y la privacidad que aceptó (FT-0017).
+ * @property {string} country País donde está ahora (ISO 3166, `CO`).
+ * @property {string} currency Moneda principal (ISO 4217, `COP`): la de todos sus montos.
+ * @property {string} language Idioma de la app (`es`, `en`, `pt`, `zh`).
  */
 
 const USER_COLUMNS = `id, email, nombre AS name, password_hash AS "passwordHash", timezone,
-  email_verificado_at IS NOT NULL AS "emailVerified", terminos_version AS "termsVersion"`;
+  email_verificado_at IS NOT NULL AS "emailVerified", terminos_version AS "termsVersion",
+  pais AS country, moneda AS currency, idioma AS language`;
+
+/** Campo del perfil → columna de `usuarios`. Solo estos se pueden cambiar con `updateUserProfile`. */
+const PROFILE_COLUMNS = { name: 'nombre', country: 'pais', currency: 'moneda', language: 'idioma' };
 
 /**
  * Crea un usuario. Si el correo ya existe no inserta nada.
@@ -62,17 +69,31 @@ export async function findUserById(id) {
 }
 
 /**
- * Cambia el nombre visible de un usuario.
+ * Cambia el nombre visible, el país, la moneda principal o el idioma de un usuario.
  * @param {string} id
- * @param {string|null} name Nombre ya validado; `null` lo borra.
+ * @param {{ name?: string|null, country?: string, currency?: string, language?: string }} changes
+ *   Datos ya validados; solo se tocan los que vienen.
  * @returns {Promise<UserRecord|null>} El usuario actualizado, o `null` si no existe.
  */
-export async function updateUserName(id, name) {
+export async function updateUserProfile(id, changes) {
+  const fields = Object.keys(PROFILE_COLUMNS).filter((field) => field in changes);
+  const sets = fields.map((field, i) => `${PROFILE_COLUMNS[field]} = $${i + 2}`);
   const { rows } = await pool.query(
-    `UPDATE usuarios SET nombre = $2 WHERE id = $1 RETURNING ${USER_COLUMNS}`,
-    [id, name],
+    `UPDATE usuarios SET ${sets.join(', ')} WHERE id = $1 RETURNING ${USER_COLUMNS}`,
+    [id, ...fields.map((field) => changes[field])],
   );
   return rows[0] ?? null;
+}
+
+/**
+ * Si el usuario ya anotó algún movimiento: con movimientos, la moneda principal no se cambia (sus
+ * montos se leerían en otra moneda).
+ * @param {string} id
+ * @returns {Promise<boolean>}
+ */
+export async function hasTransactions(id) {
+  const { rows } = await pool.query('SELECT EXISTS (SELECT 1 FROM transacciones WHERE usuario_id = $1) AS has', [id]);
+  return rows[0].has;
 }
 
 /**

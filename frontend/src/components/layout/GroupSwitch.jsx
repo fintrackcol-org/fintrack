@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
 import { Briefcase, PiggyBank } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 const OPTIONS = [
-  { to: '/app/vacas', label: 'Vacas', icon: PiggyBank },
-  { to: '/app/negocios', label: 'Negocios', icon: Briefcase },
+  { to: '/app/vacas', label: t('Vacas'), icon: PiggyBank },
+  { to: '/app/negocios', label: t('Negocios'), icon: Briefcase },
 ];
 
 /**
@@ -13,7 +14,7 @@ const OPTIONS = [
  */
 export default function GroupSwitch() {
   return (
-    <nav aria-label="Grupos" className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-ink/5 p-1 md:hidden">
+    <nav aria-label={t('Grupos')} className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-ink/5 p-1 md:hidden">
       {OPTIONS.map(({ to, label, icon: Icon }) => (
         <NavLink
           key={to}

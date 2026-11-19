@@ -7,6 +7,7 @@ import usePageTitle from '@/hooks/usePageTitle';
 import { useAuth } from '@/auth/AuthContext';
 import { getReturnTo } from '@/auth/returnTo';
 import { credentialNonce, takeGoogleNonce } from '@/lib/google';
+import { t } from '@/lib/i18n';
 
 /**
  * Vuelta de "Continuar con Google" en la app instalada (`/entrar/google#credential=…`). El backend
@@ -14,7 +15,7 @@ import { credentialNonce, takeGoogleNonce } from '@/lib/google';
  * compara su `nonce` con el que guardó este dispositivo al empezar; luego se entra como en el login.
  */
 export default function GoogleReturn() {
-  usePageTitle('Entrar con Google');
+  usePageTitle(t('Entrar con Google'));
   const location = useLocation();
   const navigate = useNavigate();
   const { signInWithGoogle } = useAuth();
@@ -33,24 +34,24 @@ export default function GoogleReturn() {
     started.current = true;
     const expected = takeGoogleNonce();
     if (!credential) {
-      setError('Google no nos devolvió tu cuenta. Inténtalo de nuevo.');
+      setError(t('Google no nos devolvió tu cuenta. Inténtalo de nuevo.'));
       return;
     }
     if (!expected || credentialNonce(credential) !== expected) {
-      setError('Este inicio con Google no se empezó en este dispositivo. Vuelve a tocar «Continuar con Google».');
+      setError(t('Este inicio con Google no se empezó en este dispositivo. Vuelve a tocar «Continuar con Google».'));
       return;
     }
     signInWithGoogle(credential)
       .then(() => navigate(getReturnTo(), { replace: true }))
-      .catch((err) => setError(err.message || 'No pudimos iniciar sesión con Google. Inténtalo de nuevo.'));
+      .catch((err) => setError(err.message || t('No pudimos iniciar sesión con Google. Inténtalo de nuevo.')));
   }, [credential, navigate, signInWithGoogle]);
 
   if (error) {
     return (
-      <AuthLayout icon={ShieldAlert} title="No pudimos entrar con Google" subtitle={error}>
+      <AuthLayout icon={ShieldAlert} title={t('No pudimos entrar con Google')} subtitle={error}>
         <Button asChild size="lg" className="w-full">
           <Link to="/login" replace>
-            Volver a iniciar sesión
+            {t('Volver a iniciar sesión')}
           </Link>
         </Button>
       </AuthLayout>
@@ -58,8 +59,8 @@ export default function GoogleReturn() {
   }
 
   return (
-    <AuthLayout icon={LogIn} title="Entrando con Google" subtitle="Un momento, ya casi entras.">
-      <p className="flex justify-center" role="status" aria-label="Entrando con Google">
+    <AuthLayout icon={LogIn} title={t('Entrando con Google')} subtitle={t('Un momento, ya casi entras.')}>
+      <p className="flex justify-center" role="status" aria-label={t('Entrando con Google')}>
         <Loader2 className="size-6 animate-spin text-violet-light" aria-hidden="true" />
       </p>
     </AuthLayout>

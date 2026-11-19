@@ -2,22 +2,23 @@ import { Link } from 'react-router-dom';
 import { CreditCard, Flag, HandCoins, Minus, Plus, Sparkles, Target, Users } from 'lucide-react';
 import CircleActions from '@/components/common/CircleActions';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 const ACTIONS = [
-  { to: '/app/anotar?tipo=gasto', label: 'Gasto', icon: Minus, tone: 'bg-negative/12 text-negative' },
-  { to: '/app/anotar?tipo=ingreso', label: 'Ingreso', icon: Plus, tone: 'bg-positive/12 text-positive' },
-  { to: '/app/presupuestos', label: 'Presupuesto', icon: Target, tone: 'bg-brand-soft text-brand' },
+  { to: '/app/anotar?tipo=gasto', label: t('Gasto'), icon: Minus, tone: 'bg-negative/12 text-negative' },
+  { to: '/app/anotar?tipo=ingreso', label: t('Ingreso'), icon: Plus, tone: 'bg-positive/12 text-positive' },
+  { to: '/app/presupuestos', label: t('Presupuesto'), icon: Target, tone: 'bg-brand-soft text-brand' },
 ];
 
 /** Círculos del celular: desde aquí se llega a cada sección, ya que no hay menú. Los movimientos, con "Ver todos". */
 export const CIRCLES = [
-  { to: '/app/anotar', label: 'Anotar', icon: Plus, primary: true },
-  { to: '/app/presupuestos', label: 'Presupuestos', icon: Target },
-  { to: '/app/metas', label: 'Metas', icon: Flag },
-  { to: '/app/insights', label: 'Consejos', icon: Sparkles },
-  { to: '/app/tarjetas', label: 'Tarjetas', icon: CreditCard },
-  { to: '/app/cuentas', label: 'Cuentas', icon: HandCoins },
-  { to: '/app/vacas', label: 'En grupo', icon: Users },
+  { to: '/app/anotar', label: t('Anotar'), icon: Plus, primary: true },
+  { to: '/app/presupuestos', label: t('Presupuestos'), icon: Target },
+  { to: '/app/metas', label: t('Metas'), icon: Flag },
+  { to: '/app/insights', label: t('Consejos'), icon: Sparkles },
+  { to: '/app/tarjetas', label: t('Tarjetas'), icon: CreditCard },
+  { to: '/app/cuentas', label: t('Cuentas'), icon: HandCoins },
+  { to: '/app/vacas', label: t('En grupo'), icon: Users },
 ];
 
 /**
@@ -27,9 +28,9 @@ export const CIRCLES = [
 export default function QuickActions() {
   return (
     <>
-      <CircleActions label="Accesos" actions={CIRCLES} className="md:hidden" />
+      <CircleActions label={t('Accesos')} actions={CIRCLES} className="md:hidden" />
 
-      <nav aria-label="Accesos rápidos" className="hidden md:block">
+      <nav aria-label={t('Accesos rápidos')} className="hidden md:block">
         <ul className="grid grid-cols-3 gap-3">
           {ACTIONS.map(({ to, label, icon: Icon, tone }) => (
             <li key={to}>
@@ -41,7 +42,7 @@ export default function QuickActions() {
                   <Icon className="size-[18px]" strokeWidth={2.25} />
                 </span>
                 <span>
-                  <span className="sr-only">Registrar </span>
+                  <span className="sr-only">{t('Registrar')} </span>
                   {label}
                 </span>
               </Link>

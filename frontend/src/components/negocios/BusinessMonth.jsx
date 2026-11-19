@@ -30,6 +30,8 @@ import {
   listMovements,
   withdraw,
 } from '@/services/negocioService';
+import { t } from '@/lib/i18n';
+import { dateLocale, numberLocale } from '@/lib/region';
 
 /**
  * Hoja "Exportar el mes": Excel o PDF para el contador (FT-0018).
@@ -44,7 +46,7 @@ function ExportOptions({ onExport, disabled, month }) {
   const [to, setTo] = useState(month);
   const run = async (format) => {
     if (several && (!from || !to || from > to)) {
-      setError('El mes inicial no puede ser después del final.');
+      setError(t('El mes inicial no puede ser después del final.'));
       return;
     }
     setBusy(format);
@@ -60,11 +62,11 @@ function ExportOptions({ onExport, disabled, month }) {
   return (
     <div className="space-y-3">
       <ChipGroup
-        legend="Qué exportar"
+        legend={t('Qué exportar')}
         hideLegend
         options={[
-          { value: 'uno', label: 'Este mes' },
-          { value: 'varios', label: 'Varios meses' },
+          { value: 'uno', label: t('Este mes') },
+          { value: 'varios', label: t('Varios meses') },
         ]}
         value={several ? 'varios' : 'uno'}
         onChange={(v) => setSeveral(v === 'varios')}
@@ -73,20 +75,20 @@ function ExportOptions({ onExport, disabled, month }) {
       {several ? (
         <div className="grid grid-cols-2 gap-3">
           <label className="text-sm">
-            <span className="mb-1 block text-ink/60">Desde</span>
+            <span className="mb-1 block text-ink/60">{t('Desde')}</span>
             <Input type="month" value={from} max={to} onChange={(e) => setFrom(e.target.value)} disabled={disabled || busy} />
           </label>
           <label className="text-sm">
-            <span className="mb-1 block text-ink/60">Hasta</span>
+            <span className="mb-1 block text-ink/60">{t('Hasta')}</span>
             <Input type="month" value={to} min={from} onChange={(e) => setTo(e.target.value)} disabled={disabled || busy} />
           </label>
           <p className="col-span-2 text-sm text-ink/60">
-            Hasta 12 meses: el resumen mes a mes con el total y, en el Excel, todos los movimientos.
+            {t('Hasta 12 meses: el resumen mes a mes con el total y, en el Excel, todos los movimientos.')}
           </p>
         </div>
       ) : (
         <p className="text-sm text-ink/60">
-          Estado de resultados, punto de equilibrio, reparto entre socios y todos los movimientos con quién los registró.
+          {t('Estado de resultados, punto de equilibrio, reparto entre socios y todos los movimientos con quién los registró.')}
         </p>
       )}
       <Button
@@ -97,11 +99,11 @@ function ExportOptions({ onExport, disabled, month }) {
         disabled={disabled || busy}
       >
         {busy === 'xlsx' ? <Loader2 className="animate-spin" aria-hidden="true" /> : <FileSpreadsheet aria-hidden="true" />}
-        Excel (.xlsx)
+        {t('Excel (.xlsx)')}
       </Button>
       <Button variant="outline" size="lg" className="w-full justify-start" onClick={() => run('pdf')} disabled={disabled || busy}>
         {busy === 'pdf' ? <Loader2 className="animate-spin" aria-hidden="true" /> : <FileText aria-hidden="true" />}
-        PDF
+        {t('PDF')}
       </Button>
       {error && (
         <p role="alert" className="text-sm text-negative">
@@ -117,7 +119,7 @@ const NO_FILTER = { kind: 'all', partner: 'all' };
 /** `@/offline/businessQueue` (con Dexie) se carga aparte, como en las vacas. */
 const loadQueue = () => import('@/offline/businessQueue');
 
-const percent = (n) => `${n.toLocaleString('es-CO', { maximumFractionDigits: 1 })} %`;
+const percent = (n) => `${n.toLocaleString(numberLocale(), { maximumFractionDigits: 1 })} %`;
 
 /** Una cifra del resumen. */
 function Stat({ label, value, tone, note }) {
@@ -153,8 +155,8 @@ function BreakEven({ panel }) {
     return (
       <p className="text-sm text-ink/60">
         {panel.fixed === 0
-          ? 'Registra tus gastos fijos (arriendo, nómina…) para saber cuánto necesitas vender para no perder.'
-          : 'Con lo registrado, vender no alcanza a cubrir el costo de lo que vendes: revisa precios o costos.'}
+          ? t('Registra tus gastos fijos (arriendo, nómina…) para saber cuánto necesitas vender para no perder.')
+          : t('Con lo registrado, vender no alcanza a cubrir el costo de lo que vendes: revisa precios o costos.')}
       </p>
     );
   }
@@ -162,12 +164,12 @@ function BreakEven({ panel }) {
   return (
     <div className="space-y-2">
       <p>
-        Para no perder este mes necesitas vender{' '}
+        {t('Para no perder este mes necesitas vender')}{' '}
         <span className="font-semibold tabular-nums">{formatMoney(panel.breakEven)}</span>.
       </p>
       <div
         role="progressbar"
-        aria-label="Avance hacia el punto de equilibrio"
+        aria-label={t('Avance hacia el punto de equilibrio')}
         aria-valuenow={progress}
         aria-valuemin={0}
         aria-valuemax={100}
@@ -180,8 +182,8 @@ function BreakEven({ panel }) {
       </div>
       <p className="text-sm text-ink/60">
         {panel.breakEvenReached
-          ? `Ya lo pasaste: llevas ${formatMoney(panel.sale)} en ventas.`
-          : `Llevas ${formatMoney(panel.sale)} (${progress} %). Cada peso que vendes deja ${percent(panel.contributionMargin)} para los fijos.`}
+          ? t('Ya lo pasaste: llevas {sale} en ventas.', { sale: formatMoney(panel.sale) })
+          : t('Llevas {sale} ({progress} %). Cada peso que vendes deja {contributionMargin} para los fijos.', { sale: formatMoney(panel.sale), progress, contributionMargin: percent(panel.contributionMargin) })}
       </p>
     </div>
   );
@@ -201,7 +203,7 @@ function CashFlow({ weeks }) {
           </span>
           <span className={cn('tabular-nums font-medium', w.net < 0 ? 'text-negative' : w.net > 0 && 'text-positive')}>
             <span className="sr-only">
-              Entró {formatMoney(w.in)}, salió {formatMoney(w.out)}, quedó{' '}
+              {t('Entró')} {formatMoney(w.in)}{t(', salió')} {formatMoney(w.out)}{t(', quedó')}{' '}
             </span>
             {formatMoney(w.net)}
           </span>
@@ -319,11 +321,11 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
     const result = await queue.saveBusinessMovement(businessId, values);
     setSheet(null);
     if (result.queued) {
-      setNotice(`Sin conexión: «${values.description}» se envía solo cuando vuelva internet.`);
+      setNotice(t('Sin conexión: «{description}» se envía solo cuando vuelva internet.', { description: values.description }));
       return;
     }
     const { movement } = result;
-    setNotice(`Registrado: ${movement.description}.`);
+    setNotice(t('Registrado: {description}.', { description: movement.description }));
     if (movement.date.slice(0, 7) !== month) setMonth(movement.date.slice(0, 7));
     else reload();
   };
@@ -331,14 +333,14 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
     const wasWithdrawal = sheet.kind === 'withdrawal';
     await deleteMovement(businessId, sheet.id);
     setSheet(null);
-    setNotice(wasWithdrawal ? 'Retiro deshecho: también se quitó de tus movimientos.' : 'Movimiento borrado.');
+    setNotice(wasWithdrawal ? t('Retiro deshecho: también se quitó de tus movimientos.') : t('Movimiento borrado.'));
     reload();
     onChanged?.();
   };
   const handleWithdraw = async (values) => {
     const { movement } = await withdraw(businessId, values);
     setSheet(null);
-    setNotice(`Retiro registrado. Ya está como ingreso en tus movimientos.`);
+    setNotice(t('Retiro registrado. Ya está como ingreso en tus movimientos.'));
     if (movement.date.slice(0, 7) !== month) setMonth(movement.date.slice(0, 7));
     else reload();
   };
@@ -365,7 +367,7 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
     <section aria-labelledby="finanzas-title" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Mes anterior">
+          <Button variant="ghost" size="icon" onClick={() => setMonth(shiftMonth(month, -1))} aria-label={t('Mes anterior')}>
             <ChevronLeft aria-hidden="true" />
           </Button>
           <h2 id="finanzas-title" className="min-w-32 text-center text-lg font-semibold capitalize tracking-tight">
@@ -376,7 +378,7 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
             size="icon"
             onClick={() => setMonth(shiftMonth(month, 1))}
             disabled={month >= currentMonth}
-            aria-label="Mes siguiente"
+            aria-label={t('Mes siguiente')}
           >
             <ChevronRight aria-hidden="true" />
           </Button>
@@ -384,12 +386,12 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
         <div className="flex gap-2">
           {data && (
             <Button variant="outline" onClick={() => setSheet('exportar')} disabled={!online}>
-              <Download aria-hidden="true" /> Exportar
+              <Download aria-hidden="true" /> {t('Exportar')}
             </Button>
           )}
           {data?.canRecord && (
             <Button onClick={() => (setNotice(''), setSheet('nuevo'))}>
-              <Plus aria-hidden="true" /> Registrar
+              <Plus aria-hidden="true" /> {t('Registrar')}
             </Button>
           )}
         </div>
@@ -399,12 +401,12 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
         {notice}
       </p>
       {fromCache && (
-        <p className="text-sm text-ink/60">Sin conexión: ves lo último que se cargó en este dispositivo.</p>
+        <p className="text-sm text-ink/60">{t('Sin conexión: ves lo último que se cargó en este dispositivo.')}</p>
       )}
       {pending.length > 0 && (
         <Panel aria-labelledby="pendientes-title" className="p-4 md:p-4">
           <h3 id="pendientes-title" className="text-sm font-semibold">
-            Por enviar ({pending.length})
+            {t('Por enviar (')}{pending.length})
           </h3>
           <ul className="mt-2 divide-y divide-ink/10 text-sm">
             {pending.map((p) => (
@@ -412,7 +414,7 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{p.movement.description}</span>
                   <span className={cn('block text-xs', p.rejected ? 'text-negative' : 'text-ink/60')}>
-                    {p.rejected ? `No se pudo guardar: ${p.rejected}` : 'Se envía solo cuando vuelva internet'}
+                    {p.rejected ? t('No se pudo guardar: {rejected}', { rejected: p.rejected }) : t('Se envía solo cuando vuelva internet')}
                   </span>
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
@@ -423,7 +425,7 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
                       size="sm"
                       onClick={() => loadQueue().then((q) => q.discardPendingMovement(p.localId))}
                     >
-                      Descartar
+                      {t('Descartar')}
                     </Button>
                   )}
                 </span>
@@ -436,25 +438,25 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
         <p role="alert" className="text-sm text-negative">
           {error}{' '}
           <button type="button" className="underline" onClick={reload}>
-            Reintentar
+            {t('Reintentar')}
           </button>
         </p>
       )}
       {!data && !error && (
         <p className="flex items-center gap-2 py-6 text-ink/60">
-          <Loader2 className="animate-spin" aria-hidden="true" /> Cargando…
+          <Loader2 className="animate-spin" aria-hidden="true" /> {t('Cargando…')}
         </p>
       )}
 
       {data && (
         <>
           <dl className="grid grid-cols-2 gap-3">
-            <Stat label="Ventas" value={formatMoney(panel.sale)} note={changeText(panel.previous.saleChange, prevLabel)} />
+            <Stat label={t('Ventas')} value={formatMoney(panel.sale)} note={changeText(panel.previous.saleChange, prevLabel)} />
             <Stat
-              label="Utilidad"
+              label={t('Utilidad')}
               value={formatMoney(panel.netProfit)}
               tone={panel.netProfit > 0 ? 'text-positive' : panel.netProfit < 0 ? 'text-negative' : 'text-ink/50'}
-              note={panel.netMargin === null ? null : `Margen ${percent(panel.netMargin)}`}
+              note={panel.netMargin === null ? null : t('Margen {netMargin}', { netMargin: percent(panel.netMargin) })}
             />
           </dl>
 
@@ -462,28 +464,28 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
             <Panel className="text-center">
               <p className="mx-auto max-w-md text-ink/60">
                 {data.canRecord
-                  ? `No hay movimientos en ${monthLabel(month, currentMonth)}. Registra tus ventas y gastos para ver la utilidad y cuánto necesitas vender.`
-                  : `No hay movimientos en ${monthLabel(month, currentMonth)}.`}
+                  ? t('No hay movimientos en {month}. Registra tus ventas y gastos para ver la utilidad y cuánto necesitas vender.', { month: monthLabel(month, currentMonth) })
+                  : t('No hay movimientos en {month}.', { month: monthLabel(month, currentMonth) })}
               </p>
             </Panel>
           ) : (
             <>
               <Panel aria-labelledby="resultados-title">
                 <h3 id="resultados-title" className="mb-2 font-semibold">
-                  Cómo te fue
+                  {t('Cómo te fue')}
                 </h3>
                 <dl className="text-sm">
-                  <Line sign="" label="Ventas" value={panel.sale} />
-                  <Line sign="−" label="Costo de venta" value={panel.cost} />
-                  <Line sign="=" label="Utilidad bruta" value={panel.grossProfit} strong />
-                  <Line sign="−" label="Gastos variables" value={panel.variable} />
-                  <Line sign="−" label="Gastos fijos" value={panel.fixed} />
-                  {panel.otherIncome > 0 && <Line sign="+" label="Otros ingresos" value={panel.otherIncome} />}
-                  <Line sign="=" label="Utilidad neta" value={panel.netProfit} strong />
+                  <Line sign="" label={t('Ventas')} value={panel.sale} />
+                  <Line sign="−" label={t('Costo de venta')} value={panel.cost} />
+                  <Line sign="=" label={t('Utilidad bruta')} value={panel.grossProfit} strong />
+                  <Line sign="−" label={t('Gastos variables')} value={panel.variable} />
+                  <Line sign="−" label={t('Gastos fijos')} value={panel.fixed} />
+                  {panel.otherIncome > 0 && <Line sign="+" label={t('Otros ingresos')} value={panel.otherIncome} />}
+                  <Line sign="=" label={t('Utilidad neta')} value={panel.netProfit} strong />
                   {panel.withdrawal > 0 && (
                     <>
-                      <Line sign="−" label="Retiros de socios" value={panel.withdrawal} />
-                      <Line sign="=" label="Quedó en el negocio" value={panel.retained} strong />
+                      <Line sign="−" label={t('Retiros de socios')} value={panel.withdrawal} />
+                      <Line sign="=" label={t('Quedó en el negocio')} value={panel.retained} strong />
                     </>
                   )}
                 </dl>
@@ -501,26 +503,26 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
 
               <Panel aria-labelledby="equilibrio-title">
                 <h3 id="equilibrio-title" className="mb-2 font-semibold">
-                  Punto de equilibrio
+                  {t('Punto de equilibrio')}
                 </h3>
                 <BreakEven panel={panel} />
               </Panel>
 
               <Panel aria-labelledby="flujo-title">
                 <h3 id="flujo-title" className="font-semibold">
-                  Flujo de caja por semana
+                  {t('Flujo de caja por semana')}
                 </h3>
-                <p className="mb-3 text-sm text-ink/60">Verde lo que entró, rojo lo que salió; a la derecha lo que quedó.</p>
+                <p className="mb-3 text-sm text-ink/60">{t('Verde lo que entró, rojo lo que salió; a la derecha lo que quedó.')}</p>
                 <CashFlow weeks={panel.cashFlow} />
               </Panel>
 
               <div>
                 <h3 className="mb-2 text-sm font-medium text-ink/60">
-                  Movimientos ({shown.length === data.movements.length ? data.movements.length : `${shown.length} de ${data.movements.length}`})
+                  {t('Movimientos (')}{shown.length === data.movements.length ? data.movements.length : t('{length} de {length2}', { length: shown.length, length2: data.movements.length })})
                 </h3>
                 <div className="mb-3 space-y-2">
                   <ChipGroup
-                    legend="Tipo de movimiento"
+                    legend={t('Tipo de movimiento')}
                     hideLegend
                     options={KIND_FILTERS.filter((f) => f.value === 'all' || data.movements.some((m) => m.kind === f.value))}
                     value={filter.kind}
@@ -529,11 +531,11 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
                   />
                   {partners.length > 1 && (
                     <ChipGroup
-                      legend="Quién lo registró"
+                      legend={t('Quién lo registró')}
                       hideLegend
                       options={[
-                        { value: 'all', label: 'Todos los socios' },
-                        ...partners.map((p) => ({ value: p.id, label: p.id === myId ? 'Yo' : p.name || 'Socio' })),
+                        { value: 'all', label: t('Todos los socios') },
+                        ...partners.map((p) => ({ value: p.id, label: p.id === myId ? t('Yo') : p.name || t('Socio') })),
                       ]}
                       value={filter.partner}
                       onChange={(partner) => setFilter((f) => ({ ...f, partner }))}
@@ -543,13 +545,13 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
                 </div>
                 {shown.length === 0 ? (
                   <p className="text-sm text-ink/60">
-                    Ningún movimiento con ese filtro.{' '}
+                    {t('Ningún movimiento con ese filtro.')}{' '}
                     <button type="button" className="underline" onClick={() => setFilter(NO_FILTER)}>
-                      Ver todos
+                      {t('Ver todos')}
                     </button>
                   </p>
                 ) : (
-                  <ul aria-label="Movimientos del negocio" className="space-y-2">
+                  <ul aria-label={t('Movimientos del negocio')} className="space-y-2">
                     {shown.map((m) => (
                       <MovementRow key={m.id} movement={m} onOpen={() => setSheet(m)} />
                     ))}
@@ -561,7 +563,7 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
         </>
       )}
 
-      <Sheet open={sheet === 'nuevo'} title="Registrar en el negocio" onClose={() => setSheet(null)}>
+      <Sheet open={sheet === 'nuevo'} title={t('Registrar en el negocio')} onClose={() => setSheet(null)}>
         {sheet === 'nuevo' && (
           <MovementForm
             today={today}
@@ -572,7 +574,7 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
               const created = await createCategory(businessId, name);
               setData((d) => ({
                 ...d,
-                customCategories: [...d.customCategories, created].sort((a, b) => a.name.localeCompare(b.name, 'es')),
+                customCategories: [...d.customCategories, created].sort((a, b) => a.name.localeCompare(b.name, dateLocale())),
               }));
               return created;
             } : undefined}
@@ -584,10 +586,10 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
           />
         )}
       </Sheet>
-      <Sheet open={sheet === 'exportar'} title="Exportar para el contador" onClose={() => setSheet(null)}>
+      <Sheet open={sheet === 'exportar'} title={t('Exportar para el contador')} onClose={() => setSheet(null)}>
         {sheet === 'exportar' && <ExportOptions onExport={handleExport} disabled={!online} month={month} />}
       </Sheet>
-      <Sheet open={Boolean(sheet && 'withdraw' in Object(sheet))} title="Registrar mi retiro" onClose={() => setSheet(null)}>
+      <Sheet open={Boolean(sheet && 'withdraw' in Object(sheet))} title={t('Registrar mi retiro')} onClose={() => setSheet(null)}>
         {sheet && typeof sheet === 'object' && 'withdraw' in sheet && (
           <WithdrawalForm
             suggested={sheet.withdraw}
@@ -603,53 +605,53 @@ export default function BusinessMonth({ businessId, businessName, myRole, myId, 
           <div className="space-y-4">
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-3">
-                <dt className="text-ink/60">Descripción</dt>
+                <dt className="text-ink/60">{t('Descripción')}</dt>
                 <dd className="break-words text-right font-medium">{opened.description}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-ink/60">Monto</dt>
+                <dt className="text-ink/60">{t('Monto')}</dt>
                 <dd className="font-medium tabular-nums">{formatMoney(opened.amount)}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-ink/60">Categoría</dt>
+                <dt className="text-ink/60">{t('Categoría')}</dt>
                 <dd>{categoryLabel(opened)}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-ink/60">Fecha</dt>
+                <dt className="text-ink/60">{t('Fecha')}</dt>
                 <dd>{formatRelativeDay(opened.date)}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-ink/60">Lo registró</dt>
+                <dt className="text-ink/60">{t('Lo registró')}</dt>
                 <dd>
                   {opened.registeredBy
                     ? opened.registeredBy.id === myId
-                      ? 'Tú'
-                      : opened.registeredBy.name || 'Un socio'
-                    : 'Un exsocio'}
+                      ? t('Tú')
+                      : opened.registeredBy.name || t('Un socio')
+                    : t('Un exsocio')}
                 </dd>
               </div>
             </dl>
             {canDelete &&
               (isWithdrawal ? (
                 <ConfirmButton
-                  label="Deshacer retiro"
-                  question="¿Deshacer este retiro? También se quita el ingreso de tus movimientos."
-                  confirmLabel="Sí, deshacer"
+                  label={t('Deshacer retiro')}
+                  question={t('¿Deshacer este retiro? También se quita el ingreso de tus movimientos.')}
+                  confirmLabel={t('Sí, deshacer')}
                   icon={Undo2}
                   disabled={!online}
                   onConfirm={handleDelete}
                 />
               ) : (
                 <ConfirmButton
-                  label="Borrar movimiento"
-                  question="¿Borrar este movimiento del negocio? No se puede deshacer."
-                  confirmLabel="Sí, borrar"
+                  label={t('Borrar movimiento')}
+                  question={t('¿Borrar este movimiento del negocio? No se puede deshacer.')}
+                  confirmLabel={t('Sí, borrar')}
                   icon={Trash2}
                   disabled={!online}
                   onConfirm={handleDelete}
                 />
               ))}
-            {isWithdrawal && !isMine && <p className="text-sm text-ink/60">Solo el socio que hizo el retiro puede deshacerlo.</p>}
+            {isWithdrawal && !isMine && <p className="text-sm text-ink/60">{t('Solo el socio que hizo el retiro puede deshacerlo.')}</p>}
           </div>
         )}
       </Sheet>

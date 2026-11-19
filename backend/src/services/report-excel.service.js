@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import ExcelJS from 'exceljs';
 import { pointLabel } from './report-data.service.js';
 import { addCharts } from './report-excel-charts.js';
+import { categoryText, dateLocale, excelMoneyFormat, t as tr } from '../i18n/index.js';
 
 /*
  * Reporte en Excel (.xlsx) del periodo, con el diseño de Rinde (FT-0012).
@@ -37,26 +38,28 @@ const COLORS = {
 /** Colores de los gráficos (sin el canal alfa): ingresos en verde, gastos en violeta. */
 const CHART = { income: '087A59', expense: '6142FF' };
 
-const MONEY = '"$" #,##0;[Red]-"$" #,##0';
 const PERCENT = '0.0%';
 const DATE = 'dd/mm/yyyy';
-const MOVEMENTS = 'Movimientos';
-const CATEGORIES = 'Categorías';
-const EVOLUTION = 'Evolución';
+/** Nombres de las hojas, en el idioma de quien descarga. */
+const SHEET = {
+  get movements() { return tr('Movimientos'); },
+  get categories() { return tr('Categorías'); },
+  get evolution() { return tr('Evolución'); },
+};
 const FONT = 'Calibri';
 
 /** Logo oficial horizontal (1600 × 512), el mismo del kit de marca. */
 const LOGO = readFileSync(new URL('../assets/rinde-logo.png', import.meta.url));
 const LOGO_SIZE = { width: 106, height: 34 };
 
-const TYPE_LABELS = { gasto: 'Gasto', ingreso: 'Ingreso' };
-const SOURCE_LABELS = { manual: 'Manual', ia: 'IA', sin_clasificar: 'Sin clasificar' };
-const GRANULARITY = { day: 'día', week: 'semana', month: 'mes' };
+const TYPE_LABELS = { get gasto() { return tr('Gasto'); }, get ingreso() { return tr('Ingreso'); } };
+const SOURCE_LABELS = { get manual() { return tr('Manual'); }, get ia() { return tr('IA'); }, get sin_clasificar() { return tr('Sin clasificar'); } };
+const GRANULARITY = { get day() { return tr('día'); }, get week() { return tr('semana'); }, get month() { return tr('mes'); } };
 const LEVEL = {
-  none: { label: 'Bien', color: COLORS.positive, fill: COLORS.positiveSoft },
-  warning_80: { label: 'Cerca del límite', color: COLORS.caution, fill: COLORS.cautionSoft },
-  at_limit: { label: 'En el límite', color: COLORS.caution, fill: COLORS.cautionSoft },
-  exceeded_100: { label: 'Excedido', color: COLORS.negative, fill: COLORS.negativeSoft },
+  none: { get label() { return tr('Bien'); }, color: COLORS.positive, fill: COLORS.positiveSoft },
+  warning_80: { get label() { return tr('Cerca del límite'); }, color: COLORS.caution, fill: COLORS.cautionSoft },
+  at_limit: { get label() { return tr('En el límite'); }, color: COLORS.caution, fill: COLORS.cautionSoft },
+  exceeded_100: { get label() { return tr('Excedido'); }, color: COLORS.negative, fill: COLORS.negativeSoft },
 };
 
 const fill = (argb) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
@@ -86,7 +89,7 @@ const toDate = (iso) => {
  * @returns {string}
  */
 const longDate = (iso) =>
-  toDate(iso).toLocaleDateString('es-CO', {
+  toDate(iso).toLocaleDateString(dateLocale(), {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -99,7 +102,7 @@ const longDate = (iso) =>
  * @returns {string}
  */
 const monthLabel = (month) => {
-  const text = toDate(`${month}-01`).toLocaleDateString('es-CO', {
+  const text = toDate(`${month}-01`).toLocaleDateString(dateLocale(), {
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
@@ -113,7 +116,7 @@ const monthLabel = (month) => {
  * @param {{ first: number, last: number }} rows
  * @returns {string}
  */
-const mov = (col, { first, last }) => `${MOVEMENTS}!$${col}$${first}:$${col}$${last}`;
+const mov = (col, { first, last }) => `'${SHEET.movements}'!$${col}$${first}:$${col}$${last}`;
 
 /**
  * Encabezado de marca de una hoja: logo a la izquierda, título y periodo a la derecha, sobre el
@@ -191,18 +194,18 @@ function tableHeader(ws, row, labels) {
  * @returns {{ first: number, last: number }} Filas de datos, para las fórmulas de las otras hojas.
  */
 function addMovementsSheet(workbook, report) {
-  const ws = workbook.addWorksheet(MOVEMENTS, {
+  const ws = workbook.addWorksheet(SHEET.movements, {
     properties: { tabColor: { argb: COLORS.brand } },
     views: [{ state: 'frozen', ySplit: 1, showGridLines: false }],
     pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
   });
   ws.columns = [
-    { header: 'Fecha', key: 'date', width: 12, style: { numFmt: DATE } },
-    { header: 'Tipo', key: 'type', width: 11 },
-    { header: 'Categoría', key: 'category', width: 22 },
-    { header: 'Descripción', key: 'description', width: 42 },
-    { header: 'Monto', key: 'amount', width: 16, style: { numFmt: MONEY } },
-    { header: 'Origen', key: 'source', width: 14 },
+    { header: tr('Fecha'), key: 'date', width: 12, style: { numFmt: DATE } },
+    { header: tr('Tipo'), key: 'type', width: 11 },
+    { header: tr('Categoría'), key: 'category', width: 22 },
+    { header: tr('Descripción'), key: 'description', width: 42 },
+    { header: tr('Monto'), key: 'amount', width: 16, style: { numFmt: excelMoneyFormat() } },
+    { header: tr('Origen'), key: 'source', width: 14 },
   ];
 
   const header = ws.getRow(1);
@@ -220,7 +223,7 @@ function addMovementsSheet(workbook, report) {
     const added = ws.addRow({
       date: toDate(row.date),
       type: TYPE_LABELS[row.type],
-      category: row.categoryName ?? 'Sin clasificar',
+      category: categoryText(row.categoryName),
       // Texto que empieza por = + - @ se guarda como texto: exceljs no lo interpreta como fórmula.
       description: row.description,
       amount: row.amount,
@@ -246,8 +249,8 @@ function addMovementsSheet(workbook, report) {
   const visible = (label) =>
     `SUMPRODUCT(SUBTOTAL(109,OFFSET(E${first},ROW(E${first}:E${last})-ROW(E${first}),0))*(B${first}:B${last}=${q(label)}))`;
   [
-    ['Ingresos (respeta los filtros)', 'Ingreso', report.totals.income, COLORS.positive],
-    ['Gastos (respeta los filtros)', 'Gasto', report.totals.expense, COLORS.ink],
+    [tr('Ingresos (respeta los filtros)'), tr('Ingreso'), report.totals.income, COLORS.positive],
+    [tr('Gastos (respeta los filtros)'), tr('Gasto'), report.totals.expense, COLORS.ink],
   ].forEach(([label, type, result, color], i) => {
     const row = ws.getRow(last + 1 + i);
     row.getCell(4).value = label;
@@ -274,7 +277,7 @@ function addMovementsSheet(workbook, report) {
  * @returns {{ start: number, end: number }|null} Filas de las categorías de gasto; `null` si no hubo gastos.
  */
 function addCategoriesSheet(workbook, report, rows, header) {
-  const ws = workbook.addWorksheet(CATEGORIES, {
+  const ws = workbook.addWorksheet(SHEET.categories, {
     properties: { tabColor: { argb: COLORS.brand } },
     views: [{ showGridLines: false }],
   });
@@ -286,7 +289,7 @@ function addCategoriesSheet(workbook, report, rows, header) {
     { width: 3 },
     ...Array(9).fill({ width: 11 }),
   ];
-  brandHeader(ws, { ...header, logoCol: 0, titleCol: 'C', lastCol: 'N', title: 'Categorías' });
+  brandHeader(ws, { ...header, logoCol: 0, titleCol: 'C', lastCol: 'N', title: tr('Categorías') });
 
   let row = 4;
   /**
@@ -301,7 +304,7 @@ function addCategoriesSheet(workbook, report, rows, header) {
   const table = (title, groups, typeLabel, amountLabel, color) => {
     if (groups.length === 0) return null;
     sectionTitle(ws, row, title, ['A', 'D']);
-    tableHeader(ws, row + 1, ['Categoría', amountLabel, '% del total', 'Movimientos']);
+    tableHeader(ws, row + 1, [tr('Categoría'), amountLabel, tr('% del total'), tr('Movimientos')]);
     const start = row + 2;
     const end = start + groups.length - 1;
     const totalRow = end + 1;
@@ -327,7 +330,7 @@ function addCategoriesSheet(workbook, report, rows, header) {
       });
     });
     const total = groups.reduce((s, g) => s + g.amount, 0);
-    ws.getCell(`A${totalRow}`).value = 'Total';
+    ws.getCell(`A${totalRow}`).value = tr('Total');
     ws.getCell(`B${totalRow}`).value = { formula: `SUM(B${start}:B${end})`, result: total };
     ws.getCell(`C${totalRow}`).value = {
       formula: `IF(B${totalRow}>0,1,0)`,
@@ -344,7 +347,7 @@ function addCategoriesSheet(workbook, report, rows, header) {
       if (col !== 'A') cell.alignment = { horizontal: 'right' };
     });
     for (let r = start; r <= totalRow; r += 1) {
-      ws.getCell(`B${r}`).numFmt = MONEY;
+      ws.getCell(`B${r}`).numFmt = excelMoneyFormat();
       ws.getCell(`C${r}`).numFmt = PERCENT;
     }
     // Barra proporcional dentro de la celda del monto: se lee de un vistazo qué pesa más.
@@ -365,13 +368,13 @@ function addCategoriesSheet(workbook, report, rows, header) {
   };
 
   const expenseRows = table(
-    'Gastos por categoría',
+    tr('Gastos por categoría'),
     report.expenseByCategory,
-    'Gasto',
-    'Gastado',
+    tr('Gasto'),
+    tr('Gastado'),
     'FFC9BEFF',
   );
-  table('Ingresos por categoría', report.incomeByCategory, 'Ingreso', 'Recibido', 'FF8FD9BE');
+  table(tr('Ingresos por categoría'), report.incomeByCategory, tr('Ingreso'), tr('Recibido'), 'FF8FD9BE');
   return expenseRows;
 }
 
@@ -385,7 +388,7 @@ function addCategoriesSheet(workbook, report, rows, header) {
  * @returns {{ start: number, end: number }|null} Filas de la serie; `null` si no tiene tramos.
  */
 function addEvolutionSheet(workbook, report, rows, header) {
-  const ws = workbook.addWorksheet(EVOLUTION, {
+  const ws = workbook.addWorksheet(SHEET.evolution, {
     properties: { tabColor: { argb: COLORS.positive } },
     views: [{ showGridLines: false }],
   });
@@ -399,25 +402,25 @@ function addEvolutionSheet(workbook, report, rows, header) {
     { width: 3 },
     ...Array(9).fill({ width: 11 }),
   ];
-  brandHeader(ws, { ...header, logoCol: 0, titleCol: 'C', lastCol: 'P', title: 'Evolución' });
+  brandHeader(ws, { ...header, logoCol: 0, titleCol: 'C', lastCol: 'P', title: tr('Evolución') });
 
   const amounts = mov('E', rows);
   const types = mov('B', rows);
   const t = report.totals;
 
   // Totales: de aquí lee el gráfico "Ingresos frente a gastos" del Resumen.
-  sectionTitle(ws, 4, 'Totales del periodo', ['A', 'F']);
-  tableHeader(ws, 5, ['Concepto', 'Monto']);
+  sectionTitle(ws, 4, tr('Totales del periodo'), ['A', 'F']);
+  tableHeader(ws, 5, [tr('Concepto'), tr('Monto')]);
   [
-    ['Ingresos', { formula: `SUMIFS(${amounts},${types},"Ingreso")`, result: t.income }],
-    ['Gastos', { formula: `SUMIFS(${amounts},${types},"Gasto")`, result: t.expense }],
-    ['Balance (ingresos − gastos)', { formula: 'B6-B7', result: t.balance }],
+    [tr('Ingresos'), { formula: `SUMIFS(${amounts},${types},"${tr('Ingreso')}")`, result: t.income }],
+    [tr('Gastos'), { formula: `SUMIFS(${amounts},${types},"${tr('Gasto')}")`, result: t.expense }],
+    [tr('Balance (ingresos − gastos)'), { formula: 'B6-B7', result: t.balance }],
   ].forEach(([label, value], i) => {
     const r = 6 + i;
     ws.getCell(`A${r}`).value = label;
     Object.assign(ws.getCell(`B${r}`), {
       value,
-      numFmt: MONEY,
+      numFmt: excelMoneyFormat(),
       alignment: { horizontal: 'right' },
     });
     ['A', 'B'].forEach((col) => {
@@ -427,13 +430,13 @@ function addEvolutionSheet(workbook, report, rows, header) {
   });
 
   const { granularity, points } = report.series;
-  sectionTitle(ws, 10, `Ingresos y gastos por ${GRANULARITY[granularity]}`, ['A', 'F']);
+  sectionTitle(ws, 10, tr('Ingresos y gastos por {v1}', { v1: GRANULARITY[granularity] }), ['A', 'F']);
   if (points.length === 0) {
-    ws.getCell('A11').value = 'El periodo todavía no empieza: no hay días que mostrar.';
+    ws.getCell('A11').value = tr('El periodo todavía no empieza: no hay días que mostrar.');
     ws.getCell('A11').font = font({ color: { argb: COLORS.muted } });
     return null;
   }
-  tableHeader(ws, 11, ['Periodo', 'Desde', 'Hasta', 'Ingresos', 'Gastos', 'Balance']);
+  tableHeader(ws, 11, [tr('Periodo'), tr('Desde'), tr('Hasta'), tr('Ingresos'), tr('Gastos'), tr('Balance')]);
   const start = 12;
   const dates = mov('A', rows);
   points.forEach((p, i) => {
@@ -443,11 +446,11 @@ function addEvolutionSheet(workbook, report, rows, header) {
     ws.getCell(`B${r}`).value = toDate(p.from);
     ws.getCell(`C${r}`).value = toDate(p.to);
     ws.getCell(`D${r}`).value = {
-      formula: `SUMIFS(${amounts},${types},"Ingreso",${inRange})`,
+      formula: `SUMIFS(${amounts},${types},"${tr('Ingreso')}",${inRange})`,
       result: p.income,
     };
     ws.getCell(`E${r}`).value = {
-      formula: `SUMIFS(${amounts},${types},"Gasto",${inRange})`,
+      formula: `SUMIFS(${amounts},${types},"${tr('Gasto')}",${inRange})`,
       result: p.expense,
     };
     ws.getCell(`F${r}`).value = {
@@ -458,7 +461,7 @@ function addEvolutionSheet(workbook, report, rows, header) {
       const cell = ws.getCell(`${col}${r}`);
       cell.font = font();
       cell.border = bottomLine;
-      cell.numFmt = col === 'B' || col === 'C' ? DATE : MONEY;
+      cell.numFmt = col === 'B' || col === 'C' ? DATE : excelMoneyFormat();
       if (col !== 'A') cell.alignment = { horizontal: 'right' };
       if (i % 2 === 1) cell.fill = fill(COLORS.canvas);
     });
@@ -475,7 +478,7 @@ function addEvolutionSheet(workbook, report, rows, header) {
  * @returns {void}
  */
 function addBudgetsSheet(workbook, report, rows, header) {
-  const ws = workbook.addWorksheet('Presupuestos', {
+  const ws = workbook.addWorksheet(tr('Presupuestos'), {
     properties: { tabColor: { argb: COLORS.caution } },
     views: [{ showGridLines: false }],
   });
@@ -487,27 +490,27 @@ function addBudgetsSheet(workbook, report, rows, header) {
     { width: 12 },
     { width: 18 },
   ];
-  brandHeader(ws, { ...header, logoCol: 0, titleCol: 'C', lastCol: 'F', title: 'Presupuestos' });
+  brandHeader(ws, { ...header, logoCol: 0, titleCol: 'C', lastCol: 'F', title: tr('Presupuestos') });
   sectionTitle(
     ws,
     4,
-    `Presupuestos de ${monthLabel(report.period.from.slice(0, 7)).toLowerCase()}`,
+    tr('Presupuestos de {toLowerCase}', { toLowerCase: monthLabel(report.period.from.slice(0, 7)).toLowerCase() }),
     ['A', 'F'],
   );
-  tableHeader(ws, 5, ['Categoría', 'Límite', 'Gastado', 'Disponible', 'Uso', 'Estado']);
+  tableHeader(ws, 5, [tr('Categoría'), tr('Límite'), tr('Gastado'), tr('Disponible'), tr('Uso'), tr('Estado')]);
   report.budgets.forEach((b, i) => {
     const r = 6 + i;
     const level = LEVEL[b.level] ?? LEVEL.none;
     ws.getCell(`A${r}`).value = b.category;
     ws.getCell(`B${r}`).value = b.limit;
     ws.getCell(`C${r}`).value = {
-      formula: `SUMIFS(${mov('E', rows)},${mov('C', rows)},${q(b.category)},${mov('B', rows)},"Gasto")`,
+      formula: `SUMIFS(${mov('E', rows)},${mov('C', rows)},${q(b.category)},${mov('B', rows)},"${tr('Gasto')}")`,
       result: b.spent,
     };
     ws.getCell(`D${r}`).value = { formula: `B${r}-C${r}`, result: b.available };
     ws.getCell(`E${r}`).value = { formula: `IF(B${r}>0,C${r}/B${r},0)`, result: b.usage };
     ws.getCell(`F${r}`).value = level.label;
-    ['B', 'C', 'D'].forEach((col) => (ws.getCell(`${col}${r}`).numFmt = MONEY));
+    ['B', 'C', 'D'].forEach((col) => (ws.getCell(`${col}${r}`).numFmt = excelMoneyFormat()));
     ws.getCell(`E${r}`).numFmt = PERCENT;
     ['A', 'B', 'C', 'D', 'E', 'F'].forEach((col) => {
       const cell = ws.getCell(`${col}${r}`);
@@ -520,7 +523,7 @@ function addBudgetsSheet(workbook, report, rows, header) {
     ws.getCell(`F${r}`).fill = fill(level.fill);
   });
   const note = ws.getCell(`A${7 + report.budgets.length}`);
-  note.value = 'El estado es el del momento en que se generó el reporte.';
+  note.value = tr('El estado es el del momento en que se generó el reporte.');
   note.font = font({ italic: true, size: 9, color: { argb: COLORS.muted } });
 }
 
@@ -538,7 +541,7 @@ const BOARD_ROWS = { top: [8, 22], evolution: [24, 39] };
  * @returns {void}
  */
 function addSummarySheet(workbook, report, rows, header) {
-  const ws = workbook.addWorksheet('Resumen', {
+  const ws = workbook.addWorksheet(tr('Resumen'), {
     properties: { tabColor: { argb: COLORS.brand } },
     views: [{ showGridLines: false }],
     pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
@@ -549,7 +552,7 @@ function addSummarySheet(workbook, report, rows, header) {
     logoCol: 1,
     titleCol: 'D',
     lastCol: 'N',
-    title: 'Reporte financiero',
+    title: tr('Reporte financiero'),
   });
   ws.getRow(3).height = 8;
 
@@ -592,52 +595,52 @@ function addSummarySheet(workbook, report, rows, header) {
   };
   card(
     ['B', 'D'],
-    'Ingresos',
+    tr('Ingresos'),
     {
-      value: { formula: `SUMIFS(${amounts},${types},"Ingreso")`, result: t.income },
-      numFmt: MONEY,
+      value: { formula: `SUMIFS(${amounts},${types},"${tr('Ingreso')}")`, result: t.income },
+      numFmt: excelMoneyFormat(),
       color: COLORS.positive,
     },
     {
-      formula: `${countOf('Ingreso')}&IF(${countOf('Ingreso')}=1," movimiento"," movimientos")`,
+      formula: `${countOf(tr('Ingreso'))}&IF(${countOf(tr('Ingreso'))}=1," ${tr('movimiento')}"," ${tr('movimientos')}")`,
       result: movementsText(t.incomeCount),
     },
     COLORS.positiveSoft,
   );
   card(
     ['E', 'G'],
-    'Gastos',
+    tr('Gastos'),
     {
-      value: { formula: `SUMIFS(${amounts},${types},"Gasto")`, result: t.expense },
-      numFmt: MONEY,
+      value: { formula: `SUMIFS(${amounts},${types},"${tr('Gasto')}")`, result: t.expense },
+      numFmt: excelMoneyFormat(),
       color: COLORS.brand,
     },
     {
-      formula: `${countOf('Gasto')}&IF(${countOf('Gasto')}=1," movimiento"," movimientos")`,
+      formula: `${countOf(tr('Gasto'))}&IF(${countOf(tr('Gasto'))}=1," ${tr('movimiento')}"," ${tr('movimientos')}")`,
       result: movementsText(t.expenseCount),
     },
     COLORS.brandSoft,
   );
   card(
     ['H', 'J'],
-    'Balance neto',
+    tr('Balance neto'),
     {
       value: { formula: 'B5-E5', result: t.balance },
-      numFmt: MONEY,
+      numFmt: excelMoneyFormat(),
       color: t.balance < 0 ? COLORS.negative : COLORS.ink,
     },
-    'Ingresos − gastos del periodo',
+    tr('Ingresos − gastos del periodo'),
     COLORS.canvas,
   );
   card(
     ['K', 'M'],
-    'Movimientos',
+    tr('Movimientos'),
     {
       value: { formula: `COUNTA(${mov('A', rows)})`, result: t.count },
       numFmt: '0',
       color: COLORS.ink,
     },
-    `Del ${longDate(report.period.from)} al ${longDate(report.period.to)}`,
+    tr('Del {from} al {to}', { from: longDate(report.period.from), to: longDate(report.period.to) }),
     COLORS.canvas,
   );
   ws.getCell('B5').alignment =
@@ -651,20 +654,20 @@ function addSummarySheet(workbook, report, rows, header) {
       };
 
   // Gráficos: aquí van solo los títulos; los dibujos se agregan al final (ver buildWorkbook).
-  sectionTitle(ws, 8, 'Ingresos frente a gastos', ['B', 'E']);
-  sectionTitle(ws, 8, 'Gastos por categoría', ['G', 'M']);
+  sectionTitle(ws, 8, tr('Ingresos frente a gastos'), ['B', 'E']);
+  sectionTitle(ws, 8, tr('Gastos por categoría'), ['G', 'M']);
   if (report.expenseByCategory.length === 0) {
-    ws.getCell('G10').value = 'Sin gastos en el periodo.';
+    ws.getCell('G10').value = tr('Sin gastos en el periodo.');
     ws.getCell('G10').font = font({ color: { argb: COLORS.muted } });
   }
-  sectionTitle(ws, 24, `Ingresos y gastos por ${GRANULARITY[report.series.granularity]}`, [
+  sectionTitle(ws, 24, tr('Ingresos y gastos por {v1}', { v1: GRANULARITY[report.series.granularity] }), [
     BOARD.first,
     BOARD.last,
   ]);
 
   let row = 41;
   if (report.insights.length > 0) {
-    sectionTitle(ws, row, 'Lo que dicen tus números', [BOARD.first, BOARD.last]);
+    sectionTitle(ws, row, tr('Lo que dicen tus números'), [BOARD.first, BOARD.last]);
     report.insights.forEach((insight, i) => {
       const r = row + 1 + i;
       ws.mergeCells(`B${r}:F${r}`);
@@ -682,13 +685,13 @@ function addSummarySheet(workbook, report, rows, header) {
     });
     row += report.insights.length + 2;
     const note = ws.getCell(`B${row - 1}`);
-    note.value = 'Calculados al generar el reporte; no cambian si editas los movimientos.';
+    note.value = tr('Calculados al generar el reporte; no cambian si editas los movimientos.');
     note.font = font({ italic: true, size: 9, color: { argb: COLORS.muted } });
     row += 1;
   }
 
   if (report.topExpenses.length > 0) {
-    sectionTitle(ws, row, `Top ${report.topExpenses.length} gastos más grandes`, [
+    sectionTitle(ws, row, tr('Top {length} gastos más grandes', { length: report.topExpenses.length }), [
       BOARD.first,
       BOARD.last,
     ]);
@@ -698,7 +701,7 @@ function addSummarySheet(workbook, report, rows, header) {
       ws.mergeCells(`G${r}:I${r}`);
       ws.mergeCells(`L${r}:M${r}`);
       ws.getCell(`B${r}`).value = `${i + 1}. ${e.description}`;
-      ws.getCell(`G${r}`).value = e.categoryName ?? 'Sin clasificar';
+      ws.getCell(`G${r}`).value = categoryText(e.categoryName);
       Object.assign(ws.getCell(`J${r}`), { value: toDate(e.date), numFmt: DATE });
       Object.assign(ws.getCell(`K${r}`), {
         value: {
@@ -707,7 +710,7 @@ function addSummarySheet(workbook, report, rows, header) {
         },
         numFmt: PERCENT,
       });
-      Object.assign(ws.getCell(`L${r}`), { value: e.amount, numFmt: MONEY });
+      Object.assign(ws.getCell(`L${r}`), { value: e.amount, numFmt: excelMoneyFormat() });
       for (let col = 2; col <= 13; col += 1) {
         const cell = ws.getRow(r).getCell(col);
         cell.font = font(
@@ -735,16 +738,16 @@ function addSummarySheet(workbook, report, rows, header) {
  */
 export async function buildWorkbook(report) {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Rinde';
+  workbook.creator = tr('Rinde');
   workbook.created = new Date();
-  workbook.title = 'Reporte financiero';
+  workbook.title = tr('Reporte financiero');
   // Al abrir, Excel recalcula todas las fórmulas.
   workbook.calcProperties = { fullCalcOnLoad: true };
 
   const who = report.owner.name || report.owner.email;
   const header = {
     logoId: workbook.addImage({ buffer: LOGO, extension: 'png' }),
-    subtitle: `${who} · Del ${longDate(report.period.from)} al ${longDate(report.period.to)} · Generado el ${longDate(report.generatedOn)}`,
+    subtitle: tr('{who} · Del {from} al {to} · Generado el {generatedOn}', { who, from: longDate(report.period.from), to: longDate(report.period.to), generatedOn: longDate(report.generatedOn) }),
   };
 
   // Se arma primero Movimientos: las fórmulas de las demás hojas necesitan saber en qué filas quedan los datos.
@@ -754,25 +757,25 @@ export async function buildWorkbook(report) {
   if (report.budgets.length > 0) addBudgetsSheet(workbook, report, rows, header);
   addSummarySheet(workbook, report, rows, header);
   // Orden de las pestañas al abrir.
-  const order = ['Resumen', MOVEMENTS, CATEGORIES, EVOLUTION, 'Presupuestos'];
+  const order = [tr('Resumen'), SHEET.movements, SHEET.categories, SHEET.evolution, tr('Presupuestos')];
   workbook.worksheets.forEach((ws) => (ws.orderNo = order.indexOf(ws.name)));
   workbook.views = [{ activeTab: 0, firstSheet: 0 }];
 
-  const numFmt = '"$" #,##0';
+  const numFmt = excelMoneyFormat({ red: false });
   const charts = [
     {
-      sheet: 'Resumen',
+      sheet: tr('Resumen'),
       from: { col: 1, row: BOARD_ROWS.top[0] },
       to: { col: 5, row: BOARD_ROWS.top[1] },
       numFmt,
       series: [
         {
-          name: 'Monto',
+          name: tr('Monto'),
           color: CHART.income,
           pointColors: [CHART.income, CHART.expense],
-          categories: { ref: `'${EVOLUTION}'!$A$6:$A$7`, values: ['Ingresos', 'Gastos'] },
+          categories: { ref: `'${SHEET.evolution}'!$A$6:$A$7`, values: [tr('Ingresos'), tr('Gastos')] },
           values: {
-            ref: `'${EVOLUTION}'!$B$6:$B$7`,
+            ref: `'${SHEET.evolution}'!$B$6:$B$7`,
             values: [report.totals.income, report.totals.expense],
           },
         },
@@ -786,14 +789,14 @@ export async function buildWorkbook(report) {
       numFmt,
       series: [
         {
-          name: 'Gastado',
+          name: tr('Gastado'),
           color: CHART.expense,
           categories: {
-            ref: `'${CATEGORIES}'!$A$${start}:$A$${end}`,
+            ref: `'${SHEET.categories}'!$A$${start}:$A$${end}`,
             values: report.expenseByCategory.map((c) => c.name),
           },
           values: {
-            ref: `'${CATEGORIES}'!$B$${start}:$B$${end}`,
+            ref: `'${SHEET.categories}'!$B$${start}:$B$${end}`,
             values: report.expenseByCategory.map((c) => c.amount),
           },
         },
@@ -802,13 +805,13 @@ export async function buildWorkbook(report) {
     charts.push(
       {
         ...spec,
-        sheet: 'Resumen',
+        sheet: tr('Resumen'),
         from: { col: 6, row: BOARD_ROWS.top[0] },
         to: { col: 13, row: BOARD_ROWS.top[1] },
       },
       {
         ...spec,
-        sheet: CATEGORIES,
+        sheet: SHEET.categories,
         from: { col: 5, row: 3 },
         to: { col: 14, row: Math.max(16, 6 + report.expenseByCategory.length * 2) },
       },
@@ -818,27 +821,27 @@ export async function buildWorkbook(report) {
     const { start, end } = seriesRows;
     const { granularity, points } = report.series;
     const categories = {
-      ref: `'${EVOLUTION}'!$A$${start}:$A$${end}`,
+      ref: `'${SHEET.evolution}'!$A$${start}:$A$${end}`,
       values: points.map((p) => pointLabel(p, granularity)),
     };
     const spec = {
       numFmt,
       series: [
         {
-          name: 'Ingresos',
+          name: tr('Ingresos'),
           color: CHART.income,
           categories,
           values: {
-            ref: `'${EVOLUTION}'!$D$${start}:$D$${end}`,
+            ref: `'${SHEET.evolution}'!$D$${start}:$D$${end}`,
             values: points.map((p) => p.income),
           },
         },
         {
-          name: 'Gastos',
+          name: tr('Gastos'),
           color: CHART.expense,
           categories,
           values: {
-            ref: `'${EVOLUTION}'!$E$${start}:$E$${end}`,
+            ref: `'${SHEET.evolution}'!$E$${start}:$E$${end}`,
             values: points.map((p) => p.expense),
           },
         },
@@ -847,11 +850,11 @@ export async function buildWorkbook(report) {
     charts.push(
       {
         ...spec,
-        sheet: 'Resumen',
+        sheet: tr('Resumen'),
         from: { col: 1, row: BOARD_ROWS.evolution[0] },
         to: { col: 13, row: BOARD_ROWS.evolution[1] },
       },
-      { ...spec, sheet: EVOLUTION, from: { col: 7, row: 3 }, to: { col: 16, row: 22 } },
+      { ...spec, sheet: SHEET.evolution, from: { col: 7, row: 3 }, to: { col: 16, row: 22 } },
     );
   }
 

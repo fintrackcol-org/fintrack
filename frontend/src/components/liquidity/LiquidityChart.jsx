@@ -9,11 +9,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { formatMoney } from '@/components/transactions/format';
+import { formatMoney, formatMoneyCompact } from '@/components/transactions/format';
+import { t } from '@/lib/i18n';
 
 /** Montos cortos para el eje Y: `$ 850 mil`, `$ 1,2 M`. */
-const compact = new Intl.NumberFormat('es-CO', { notation: 'compact', maximumFractionDigits: 1 });
-const formatAxis = (value) => (value === 0 ? '0' : `${value < 0 ? '-' : ''}$ ${compact.format(Math.abs(value))}`);
+const formatAxis = (value) => (value === 0 ? '0' : `${value < 0 ? '-' : ''}${formatMoneyCompact(Math.abs(value))}`);
 
 /** Cuadro al tocar un día: cuánto queda y qué se paga ese día. */
 function DayTooltip({ active, payload, hidden }) {
@@ -23,12 +23,12 @@ function DayTooltip({ active, payload, hidden }) {
     <div className="max-w-56 rounded-xl border border-ink/10 bg-surface px-3 py-2 text-sm shadow-lg">
       <p className="font-medium">{point.label}</p>
       <p className={point.end < 0 ? 'text-negative' : 'text-ink/70'}>
-        {point.end < 0 ? 'Te faltan ' : 'Te quedan '}
+        {point.end < 0 ? t('Te faltan ') : t('Te quedan ')}
         <span className="tabular-nums">{hidden ? '$ •••' : formatMoney(Math.abs(point.end))}</span>
       </p>
       {point.incomes.map((p) => (
         <p key={`in-${p.name}`} className="truncate text-xs text-positive">
-          {p.name} (esperado): +{hidden ? '$ •••' : formatMoney(p.amount)}
+          {p.name} {t('(esperado): +')}{hidden ? '$ •••' : formatMoney(p.amount)}
         </p>
       ))}
       {point.payments.map((p) => (

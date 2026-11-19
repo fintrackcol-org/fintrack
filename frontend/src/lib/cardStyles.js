@@ -1,4 +1,5 @@
-/**
+
+import { t } from '@/lib/i18n';/**
  * Estilos de las tarjetas de crédito dibujadas. Los degradados son originales (no copian el
  * arte de ningún banco ni franquicia); la franquicia se escribe como texto.
  */
@@ -11,14 +12,14 @@ export const TIERS = {
   otra: ['clasica'],
 };
 
-export const NETWORK_LABELS = { visa: 'Visa', mastercard: 'Mastercard', amex: 'Amex', otra: 'Otra' };
+export const NETWORK_LABELS = { visa: t('Visa'), mastercard: t('Mastercard'), amex: t('Amex'), otra: t('Otra') };
 export const TIER_LABELS = {
-  clasica: 'Clásica',
-  gold: 'Gold',
-  platinum: 'Platinum',
-  black: 'Black',
-  green: 'Green',
-  blue: 'Blue',
+  clasica: t('Clásica'),
+  gold: t('Gold'),
+  platinum: t('Platinum'),
+  black: t('Black'),
+  green: t('Green'),
+  blue: t('Blue'),
 };
 
 const LIGHT = '#ffffff';

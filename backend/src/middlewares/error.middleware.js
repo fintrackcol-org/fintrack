@@ -1,4 +1,5 @@
 import { AppError } from '../errors/app-error.js';
+import { t } from '../i18n/index.js';
 
 /**
  * Manejador central de errores: todo error lanzado en la app termina aquí
@@ -24,7 +25,7 @@ export function errorHandler(err, _req, res, _next) {
   // express.json() no pudo leer el body: JSON mal formado.
   if (err.type === 'entity.parse.failed') {
     res.status(400).json({
-      error: { code: 'VALIDATION_ERROR', message: 'El cuerpo de la petición no es un JSON válido' },
+      error: { code: 'VALIDATION_ERROR', message: t('El cuerpo de la petición no es un JSON válido') },
     });
     return;
   }
@@ -34,7 +35,7 @@ export function errorHandler(err, _req, res, _next) {
     res.status(413).json({
       error: {
         code: 'PAYLOAD_TOO_LARGE',
-        message: 'El audio es demasiado largo. Di una frase más corta.',
+        message: t('El audio es demasiado largo. Di una frase más corta.'),
       },
     });
     return;
@@ -44,6 +45,6 @@ export function errorHandler(err, _req, res, _next) {
   // no se le envían detalles internos (stack, SQL, rutas de archivos).
   console.error('Error no controlado:', err);
   res.status(500).json({
-    error: { code: 'INTERNAL_ERROR', message: 'Error interno del servidor' },
+    error: { code: 'INTERNAL_ERROR', message: t('Error interno del servidor') },
   });
 }

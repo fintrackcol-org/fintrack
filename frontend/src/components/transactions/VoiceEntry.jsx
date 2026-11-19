@@ -9,48 +9,50 @@ import { formatMoney, formatRelativeDay } from '@/components/transactions/format
 import { Button } from '@/components/ui/button';
 import useSpeechRecognition from '@/hooks/useSpeechRecognition';
 import { lockScroll } from '@/lib/scrollLock';
+import { getRegion, isAbroad } from '@/lib/region';
 import { cn } from '@/lib/utils';
 import { parseSpokenTransaction } from '@/lib/voiceEntry';
 import { saveNewTransaction } from '@/offline/saveNewTransaction';
+import { t } from '@/lib/i18n';
 
-const EXAMPLES = ['almuerzo 15 mil', 'taxi 12 mil', 'me pagaron 1,2 millones'];
+const EXAMPLES = ['almuerzo 15 mil', 'taxi 12 mil', t('me pagaron 1,2 millones')];
 
 /** Qué decir en cada error del dictado y si tiene sentido volver a intentar. */
 const PROBLEMS = {
   denied: {
     icon: MicOff,
-    title: 'Rinde no puede usar el micrófono',
-    text: 'Permítelo en los ajustes del navegador (el ícono junto a la dirección) y vuelve a intentarlo.',
+    title: t('Rinde no puede usar el micrófono'),
+    text: t('Permítelo en los ajustes del navegador (el ícono junto a la dirección) y vuelve a intentarlo.'),
     retry: true,
   },
   offline: {
     icon: WifiOff,
-    title: 'Dictar necesita internet',
-    text: 'Escribiendo sí funciona sin conexión: se guarda en tu dispositivo y se sincroniza después.',
+    title: t('Dictar necesita internet'),
+    text: t('Escribiendo sí funciona sin conexión: se guarda en tu dispositivo y se sincroniza después.'),
     retry: false,
   },
   'no-speech': {
     icon: Mic,
-    title: 'No te escuchamos',
-    text: 'Acércate al micrófono y di el movimiento, por ejemplo “almuerzo 15 mil”.',
+    title: t('No te escuchamos'),
+    text: t('Acércate al micrófono y di el movimiento, por ejemplo “almuerzo 15 mil”.'),
     retry: true,
   },
   'no-mic': {
     icon: MicOff,
-    title: 'No encontramos un micrófono',
-    text: 'Conecta uno o escribe el movimiento.',
+    title: t('No encontramos un micrófono'),
+    text: t('Conecta uno o escribe el movimiento.'),
     retry: false,
   },
   busy: {
     icon: Mic,
-    title: 'El dictado está muy ocupado',
-    text: 'Se usó mucho en poco tiempo. Espera un momento o escribe el movimiento.',
+    title: t('El dictado está muy ocupado'),
+    text: t('Se usó mucho en poco tiempo. Espera un momento o escribe el movimiento.'),
     retry: true,
   },
   unavailable: {
     icon: MicOff,
-    title: 'No se pudo usar el dictado',
-    text: 'Intenta de nuevo o escribe el movimiento.',
+    title: t('No se pudo usar el dictado'),
+    text: t('Intenta de nuevo o escribe el movimiento.'),
     retry: true,
   },
 };
@@ -177,7 +179,7 @@ function VoiceDialog({ onClose, onEdit, onSaved, names, text, autoStart }) {
         key={typed}
         titleId={titleId}
         transcript={typed}
-        retryLabel="Dictar"
+        retryLabel={t('Dictar')}
         saving={saving}
         error={saveError}
         onRetry={dictateAgain}
@@ -239,7 +241,7 @@ function VoiceDialog({ onClose, onEdit, onSaved, names, text, autoStart }) {
         <button
           type="button"
           onClick={onClose}
-          aria-label="Cerrar"
+          aria-label={t('Cerrar')}
           className="absolute right-3 top-3 grid size-9 place-items-center rounded-full text-ink/50 transition-colors hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-violet"
         >
           <X className="size-5" aria-hidden="true" />
@@ -256,10 +258,10 @@ function Ready({ titleId, onStart }) {
     <>
       <MicOrb />
       <h2 id={titleId} className="mt-5 text-xl font-semibold tracking-tight">
-        Toca y di tu movimiento
+        {t('Toca y di tu movimiento')}
       </h2>
-      <p className="mt-1 text-sm text-ink/60">Como se lo dirías a un amigo.</p>
-      <ul className="mt-4 flex flex-wrap justify-center gap-2" aria-label="Ejemplos">
+      <p className="mt-1 text-sm text-ink/60">{t('Como se lo dirías a un amigo.')}</p>
+      <ul className="mt-4 flex flex-wrap justify-center gap-2" aria-label={t('Ejemplos')}>
         {EXAMPLES.map((example) => (
           <li key={example} className="rounded-full bg-brand-soft px-3 py-1 text-xs text-brand">
             “{example}”
@@ -268,11 +270,11 @@ function Ready({ titleId, onStart }) {
       </ul>
       <Button size="lg" className="mt-6 w-full" onClick={onStart} autoFocus>
         <Mic aria-hidden="true" />
-        Empezar a hablar
+        {t('Empezar a hablar')}
       </Button>
       <p className="mt-4 flex items-start justify-center gap-1.5 text-xs text-ink/50">
         <Lock className="mt-px size-3.5 shrink-0" aria-hidden="true" />
-        Tu voz se convierte en texto y no se guarda.
+        {t('Tu voz se convierte en texto y no se guarda.')}
       </p>
     </>
   );
@@ -285,18 +287,18 @@ function Listening({ titleId, transcript, level, onStop, onCancel }) {
       <MicOrb listening />
       <Wave level={level} />
       <h2 id={titleId} className="sr-only">
-        Escuchando
+        {t('Escuchando')}
       </h2>
       <p className="mt-4 min-h-10 text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">
-        {transcript || <span className="text-ink/35">{level === null ? 'Te escucho…' : 'Habla ahora…'}</span>}
+        {transcript || <span className="text-ink/35">{level === null ? t('Te escucho…') : t('Habla ahora…')}</span>}
       </p>
-      <p className="mt-1 text-sm text-ink/55">Se detiene sola cuando dejas de hablar.</p>
+      <p className="mt-1 text-sm text-ink/55">{t('Se detiene sola cuando dejas de hablar.')}</p>
       <div className="mt-6 grid grid-cols-2 gap-3">
         <Button variant="outline" size="lg" onClick={onCancel}>
-          Cancelar
+          {t('Cancelar')}
         </Button>
         <Button size="lg" onClick={onStop} autoFocus>
-          Listo
+          {t('Listo')}
         </Button>
       </div>
     </>
@@ -304,20 +306,25 @@ function Listening({ titleId, transcript, level, onStop, onCancel }) {
 }
 
 /** Lo que se entendió. Si se dijo una cantidad ("2 almuerzos de 12 mil"), la persona elige el monto. */
-function Result({ titleId, transcript, retryLabel = 'Repetir', saving, error, onRetry, onSave, onEdit }) {
-  const parsed = useMemo(() => parseSpokenTransaction(transcript), [transcript]);
+function Result({ titleId, transcript, retryLabel = t('Repetir'), saving, error, onRetry, onSave, onEdit }) {
+  const parsed = useMemo(
+    () => parseSpokenTransaction(transcript, undefined, { smallMeansThousands: getRegion().currency === 'COP', receivedLabel: t('Pago recibido') }),
+    [transcript],
+  );
   const mustChoose = parsed.options.length > 1;
   const [amount, setAmount] = useState(mustChoose ? null : parsed.amount);
   const [askBig, setAskBig] = useState(null); // monto grande que espera el segundo toque
   const confirming = amount !== null && askBig === amount;
   const income = parsed.type === 'ingreso';
   const draft = { type: parsed.type, amount, description: parsed.description, date: parsed.date };
-  // Sin monto o sin descripción no se puede guardar directo: se completa en el formulario.
+  // Sin monto o sin descripción no se puede guardar directo: se completa en el formulario. De viaje
+  // tampoco: el monto puede ser en la moneda de allá y en Anotar se elige.
   const complete = amount !== null && Boolean(parsed.description);
+  const direct = !isAbroad();
 
-  let shownAmount = <span className="text-ink/35">¿Cuánto?</span>;
+  let shownAmount = <span className="text-ink/35">{t('¿Cuánto?')}</span>;
   if (amount !== null) shownAmount = formatMoney(amount);
-  else if (mustChoose) shownAmount = <span className="text-ink/35">Elige abajo</span>;
+  else if (mustChoose) shownAmount = <span className="text-ink/35">{t('Elige abajo')}</span>;
 
   return (
     <>
@@ -332,22 +339,22 @@ function Result({ titleId, transcript, retryLabel = 'Repetir', saving, error, on
               income ? 'bg-positive/12 text-positive' : 'bg-negative/12 text-negative',
             )}
           >
-            {income ? 'Ingreso' : 'Gasto'}
+            {income ? t('Ingreso') : t('Gasto')}
           </span>
           <span className="text-3xl font-semibold tabular-nums tracking-tight">{shownAmount}</span>
         </div>
         <p className="mt-2 text-[15px]">
-          {parsed.description || <span className="text-ink/45">Sin descripción</span>} · {dayLabel(parsed.date)}
+          {parsed.description || <span className="text-ink/45">{t('Sin descripción')}</span>} · {dayLabel(parsed.date)}
         </p>
         <p className="mt-1 flex items-center gap-1.5 text-xs text-ink/55">
           <Sparkles className="size-3.5 shrink-0 text-brand" aria-hidden="true" />
-          La IA elige la categoría al guardar.
+          {t('La IA elige la categoría al guardar.')}
         </p>
       </div>
 
       {mustChoose && (
         <fieldset className="mt-4">
-          <legend className="mx-auto mb-2 text-sm text-ink/70">Dijiste más de un número. ¿Cuánto fue?</legend>
+          <legend className="mx-auto mb-2 text-sm text-ink/70">{t('Dijiste más de un número. ¿Cuánto fue?')}</legend>
           <div className="grid grid-cols-2 gap-2">
             {parsed.options.map((value, index) => (
               <button
@@ -372,12 +379,12 @@ function Result({ titleId, transcript, retryLabel = 'Repetir', saving, error, on
         </fieldset>
       )}
       {parsed.amount === null && (
-        <p className="mt-3 text-sm text-ink/60">No escuchamos el monto: repítelo o escríbelo en el formulario.</p>
+        <p className="mt-3 text-sm text-ink/60">{t('No escuchamos el monto: repítelo o escríbelo en el formulario.')}</p>
       )}
 
       {error && (
         <p role="alert" className="mt-3 text-sm text-negative">
-          No se pudo guardar: {error}
+          {t('No se pudo guardar:')} {error}
         </p>
       )}
 
@@ -385,10 +392,10 @@ function Result({ titleId, transcript, retryLabel = 'Repetir', saving, error, on
 
       <div className="mt-6 grid grid-cols-[1fr_1.4fr] gap-3">
         <Button variant="outline" size="lg" onClick={onRetry} disabled={saving}>
-          {retryLabel === 'Dictar' ? <Mic aria-hidden="true" /> : <RotateCcw aria-hidden="true" />}
+          {retryLabel === t('Dictar') ? <Mic aria-hidden="true" /> : <RotateCcw aria-hidden="true" />}
           {retryLabel}
         </Button>
-        {mustChoose || complete ? (
+        {(mustChoose || complete) && direct ? (
           <Button
             size="lg"
             autoFocus={!mustChoose}
@@ -396,22 +403,22 @@ function Result({ titleId, transcript, retryLabel = 'Repetir', saving, error, on
             onClick={() => (isBigAmount(amount) && !confirming ? setAskBig(amount) : onSave(draft))}
           >
             {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-            {saving ? 'Guardando…' : confirming ? 'Sí, guardar' : income ? 'Guardar ingreso' : 'Guardar gasto'}
+            {saving ? t('Guardando…') : confirming ? t('Sí, guardar') : income ? t('Guardar ingreso') : t('Guardar gasto')}
           </Button>
         ) : (
           <Button size="lg" autoFocus onClick={() => onEdit(draft)}>
-            Completar
+            {t('Completar')}
           </Button>
         )}
       </div>
-      {(mustChoose || complete) && (
+      {(mustChoose || complete) && direct && (
         <button
           type="button"
           onClick={() => onEdit(draft)}
           disabled={saving}
           className="mt-3 rounded-lg px-2 py-1 text-sm text-ink/60 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-violet disabled:opacity-50"
         >
-          Editar antes de guardar
+          {t('Editar antes de guardar')}
         </button>
       )}
     </>
@@ -423,9 +430,9 @@ function Saved({ titleId, draft, result, names, onAgain, onDone }) {
   const { transaction, alert, offline } = result;
   const categoryName = transaction ? (names[transaction.category] ?? transaction.category) : null;
   let detail;
-  if (offline) detail = 'Sin conexión: se sincroniza y se clasifica cuando vuelva internet.';
-  else if (transaction.source === 'sin_clasificar') detail = 'Sin clasificar: puedes elegir la categoría editándolo.';
-  else detail = `${categoryName}${transaction.source === 'ia' ? ' · sugerida por IA' : ''}`;
+  if (offline) detail = t('Sin conexión: se sincroniza y se clasifica cuando vuelva internet.');
+  else if (transaction.source === 'sin_clasificar') detail = t('Sin clasificar: puedes elegir la categoría editándolo.');
+  else detail = `${categoryName}${transaction.source === 'ia' ? t(' · sugerida por IA') : ''}`;
 
   return (
     <>
@@ -438,7 +445,7 @@ function Saved({ titleId, draft, result, names, onAgain, onDone }) {
         <Check className="size-9" strokeWidth={2.5} aria-hidden="true" />
       </motion.div>
       <h2 id={titleId} className="mt-5 text-lg font-semibold tracking-tight">
-        {offline ? 'Guardado en tu dispositivo' : draft.type === 'ingreso' ? 'Ingreso guardado' : 'Gasto guardado'}
+        {offline ? t('Guardado en tu dispositivo') : draft.type === 'ingreso' ? t('Ingreso guardado') : t('Gasto guardado')}
       </h2>
       <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight">{formatMoney(draft.amount)}</p>
       <p className="mt-1 text-[15px]">
@@ -452,10 +459,10 @@ function Saved({ titleId, draft, result, names, onAgain, onDone }) {
       <div className="mt-6 grid grid-cols-2 gap-3">
         <Button variant="outline" size="lg" onClick={onAgain}>
           <Mic aria-hidden="true" />
-          Dictar otro
+          {t('Dictar otro')}
         </Button>
         <Button size="lg" onClick={onDone} autoFocus>
-          Listo
+          {t('Listo')}
         </Button>
       </div>
     </>
@@ -478,12 +485,12 @@ function Problem({ titleId, code, onRetry, onWrite }) {
         {retry && (
           <Button size="lg" onClick={onRetry} autoFocus>
             <Mic aria-hidden="true" />
-            Intentar de nuevo
+            {t('Intentar de nuevo')}
           </Button>
         )}
         <Button size="lg" variant={retry ? 'outline' : 'default'} onClick={onWrite} autoFocus={!retry}>
           <Keyboard aria-hidden="true" />
-          Escribir en vez de hablar
+          {t('Escribir en vez de hablar')}
         </Button>
       </div>
     </>
@@ -548,7 +555,7 @@ function Transcribing({ titleId }) {
     <div role="status" className="py-6">
       <Loader2 className="mx-auto size-10 animate-spin text-brand" aria-hidden="true" />
       <h2 id={titleId} className="mt-5 text-lg font-semibold tracking-tight">
-        Entendiendo lo que dijiste…
+        {t('Entendiendo lo que dijiste…')}
       </h2>
     </div>
   );
@@ -557,5 +564,5 @@ function Transcribing({ titleId }) {
 /** "hoy", "ayer" o "12 oct", para leerlo dentro de una frase. */
 function dayLabel(iso) {
   const label = formatRelativeDay(iso);
-  return label === 'Hoy' || label === 'Ayer' ? label.toLowerCase() : label;
+  return label === t('Hoy') || label === t('Ayer') ? label.toLowerCase() : label;
 }

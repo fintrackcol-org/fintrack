@@ -6,15 +6,16 @@ import { insertTransaction } from '../repositories/transactions.repository.js';
 import { findUserById } from '../repositories/users.repository.js';
 import { todayIso } from './insights.service.js';
 import { progress } from './debt-schedule.js';
+import { t } from '../i18n/index.js';
 
 // Cuentas personales por cobrar y por pagar (FT-0046). Son una lista para recordar: no tocan
 // Mi plata. Solo al saldarlas, si el usuario quiere, se crea el ingreso o el gasto.
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const notFound = () => new AppError(404, 'NOT_FOUND', 'Cuenta no encontrada');
+const notFound = () => new AppError(404, 'NOT_FOUND', t('Cuenta no encontrada'));
 /** Así se llaman las cuentas personales en el motor de recordatorios (FT-0063). */
 export const DEBT_REMINDER_TYPE = 'cuenta';
-const alreadySettled = () => new AppError(409, 'ALREADY_SETTLED', 'Esta cuenta ya está saldada');
+const alreadySettled = () => new AppError(409, 'ALREADY_SETTLED', t('Esta cuenta ya está saldada'));
 
 /**
  * El movimiento que se crea al saldar: cobrar es un ingreso; pagar, un gasto. Van en "Otros"
@@ -24,8 +25,8 @@ const alreadySettled = () => new AppError(409, 'ALREADY_SETTLED', 'Esta cuenta y
  */
 export function settlementMovement({ kind, person }) {
   return kind === 'receivable'
-    ? { type: 'ingreso', category: 'otros_ingresos', description: `${person} me pagó` }
-    : { type: 'gasto', category: 'otros', description: `Le pagué a ${person}` };
+    ? { type: 'ingreso', category: 'otros_ingresos', description: t('{person} me pagó', { person }) }
+    : { type: 'gasto', category: 'otros', description: t('Le pagué a {person}', { person }) };
 }
 
 /**
@@ -35,8 +36,8 @@ export function settlementMovement({ kind, person }) {
  */
 export function paymentMovement({ kind, person }) {
   return kind === 'receivable'
-    ? { type: 'ingreso', category: 'otros_ingresos', description: `Abono de ${person}` }
-    : { type: 'gasto', category: 'otros', description: `Abono a ${person}` };
+    ? { type: 'ingreso', category: 'otros_ingresos', description: t('Abono de {person}', { person }) }
+    : { type: 'gasto', category: 'otros', description: t('Abono a {person}', { person }) };
 }
 
 /**
@@ -174,8 +175,8 @@ export async function settle(userId, id, input) {
   const user = await findUserById(userId);
   const today = todayIso(new Date(), user?.timezone);
   if (input.date && input.date > today) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'date', problem: 'No puede ser una fecha futura' },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'date', problem: t('No puede ser una fecha futura') },
     ]);
   }
 
@@ -211,7 +212,7 @@ export async function settle(userId, id, input) {
 }
 
 const futureDate = () =>
-  new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [{ field: 'date', problem: 'No puede ser una fecha futura' }]);
+  new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [{ field: 'date', problem: t('No puede ser una fecha futura') }]);
 
 /**
  * Registra un abono (FT-0064). No puede pasar de lo pendiente. Si con él se completa la cuenta,
@@ -228,8 +229,8 @@ export async function addPayment(userId, id, input) {
   if (debt.settledAt) throw alreadySettled();
   const pending = Math.round((debt.amount - debt.paid) * 100) / 100;
   if (input.amount > pending) {
-    throw new AppError(422, 'VALIDATION_ERROR', 'Datos inválidos', [
-      { field: 'amount', problem: `No puede pasar de lo pendiente (${pending})` },
+    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+      { field: 'amount', problem: t('No puede pasar de lo pendiente ({pending})', { pending }) },
     ]);
   }
   const user = await findUserById(userId);
@@ -277,7 +278,7 @@ export async function addPayment(userId, id, input) {
 export async function removePayment(userId, id, paymentId) {
   if (!UUID_RE.test(id) || !UUID_RE.test(paymentId)) throw notFound();
   if (!(await repo.deletePayment({ id: paymentId, debtId: id, userId }))) {
-    throw new AppError(404, 'NOT_FOUND', 'Abono no encontrado');
+    throw new AppError(404, 'NOT_FOUND', t('Abono no encontrado'));
   }
   const debt = await repo.findDebt(id, userId);
   return withReminder(userId, await syncNextDueDate(userId, debt));

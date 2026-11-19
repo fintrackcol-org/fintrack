@@ -13,13 +13,14 @@ import { Input } from '@/components/ui/input';
 import { NETWORK_LABELS } from '@/lib/cardStyles';
 import { cn } from '@/lib/utils';
 import { today, transactionSchema } from '@/lib/validation/transaction';
+import { t } from '@/lib/i18n';
 
 /** Valor del chip "Efectivo o débito" (sin tarjeta). */
 const CASH = 'cash';
 
 const TYPES = [
-  { value: 'gasto', label: 'Gasto' },
-  { value: 'ingreso', label: 'Ingreso' },
+  { value: 'gasto', label: t('Gasto') },
+  { value: 'ingreso', label: t('Ingreso') },
 ];
 
 /**
@@ -126,7 +127,7 @@ export default function TransactionForm({
 
   const card = watch('card');
   const paidWith = [
-    { value: CASH, label: 'Efectivo o débito' },
+    { value: CASH, label: t('Efectivo o débito') },
     ...cards.map((c) => ({ value: c.id, label: `${NETWORK_LABELS[c.network] ?? c.name} ••${c.last4}` })),
   ];
 
@@ -150,8 +151,8 @@ export default function TransactionForm({
   });
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-5" aria-label="Formulario de movimiento">
-      <div role="group" aria-label="Tipo de movimiento" className="grid grid-cols-2 gap-1 rounded-xl bg-ink/5 p-1">
+    <form onSubmit={submit} noValidate className="space-y-5" aria-label={t('Formulario de movimiento')}>
+      <div role="group" aria-label={t('Tipo de movimiento')} className="grid grid-cols-2 gap-1 rounded-xl bg-ink/5 p-1">
         {TYPES.map(({ value, label }) => (
           <button
             key={value}
@@ -173,7 +174,7 @@ export default function TransactionForm({
         control={control}
         name="amount"
         render={({ field }) => (
-          <FormField id="tx-amount" label="Monto (COP)" error={errors.amount?.message}>
+          <FormField id="tx-amount" label={t('Monto (COP)')} error={errors.amount?.message}>
             <MoneyInput
               name={field.name}
               value={field.value}
@@ -190,8 +191,8 @@ export default function TransactionForm({
         )}
       />
 
-      <FormField id="tx-description" label="Descripción" error={errors.description?.message}>
-        <Input maxLength={200} placeholder="Almuerzo en el restaurante" {...register('description')} />
+      <FormField id="tx-description" label={t('Descripción')} error={errors.description?.message}>
+        <Input maxLength={200} placeholder={t('Almuerzo en el restaurante')} {...register('description')} />
       </FormField>
 
       <Controller
@@ -207,7 +208,7 @@ export default function TransactionForm({
         name="category"
         render={({ field }) => (
           <CategoryPicker
-            legend="Categoría"
+            legend={t('Categoría')}
             categories={options}
             value={field.value}
             onChange={field.onChange}
@@ -221,21 +222,21 @@ export default function TransactionForm({
       {watch('category') === AUTO_CATEGORY && (
         <p className="-mt-3 flex items-center gap-1.5 text-sm text-ink/60">
           <Sparkles className="size-4 shrink-0 text-brand" aria-hidden="true" />
-          La clasificamos por ti al guardar.
+          {t('La clasificamos por ti al guardar.')}
         </p>
       )}
 
       {type === 'gasto' && cards.length > 0 && (
         <>
           <ChipGroup
-            legend="Pagado con"
+            legend={t('Pagado con')}
             options={paidWith}
             value={card ?? CASH}
             onChange={(value) => setValue('card', value === CASH ? null : value, { shouldDirty: true })}
             scroll
           />
           {card && (
-            <FormField id="tx-installments" label="Cuotas" error={errors.installments?.message}>
+            <FormField id="tx-installments" label={t('Cuotas')} error={errors.installments?.message}>
               <Input type="number" inputMode="numeric" min={1} max={48} step={1} {...register('installments')} />
             </FormField>
           )}
@@ -255,18 +256,18 @@ export default function TransactionForm({
         <Button type="submit" size="lg" className="flex-1" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
           {isSubmitting
-            ? 'Guardando…'
+            ? t('Guardando…')
             : confirming
-              ? 'Sí, guardar'
+              ? t('Sí, guardar')
               : initial
-                ? 'Guardar cambios'
+                ? t('Guardar cambios')
                 : type === 'ingreso'
-                  ? 'Guardar ingreso'
-                  : 'Guardar gasto'}
+                  ? t('Guardar ingreso')
+                  : t('Guardar gasto')}
         </Button>
         {onCancel && (
           <Button type="button" variant="outline" size="lg" onClick={onCancel} disabled={isSubmitting}>
-            Cancelar
+            {t('Cancelar')}
           </Button>
         )}
       </div>

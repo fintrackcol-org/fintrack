@@ -84,7 +84,7 @@ function setup(options = {}) {
       recipients.push(to);
       sent.push(body);
     },
-    findUser: async () => ({ email: 'ana@ejemplo.co' }),
+    findUser: async () => ({ email: 'ana@ejemplo.co', ...options.user }),
     sendEmail: async (mail) => mails.push(mail),
     monthlyMax: options.monthlyMax ?? 900,
     now: () => new Date('2026-11-02T15:00:00Z'),
@@ -212,7 +212,7 @@ test('registra el movimiento y confirma', async () => {
   assert.equal(saved[0].amount, 15000);
   assert.equal(saved[0].date, '2026-11-02');
   assert.ok(saved[0].localId.length <= 64);
-  assert.match(sent[0], /^Guardé un gasto de \$15\.000 en Alimentación\.$/);
+  assert.match(sent[0], /^Guardé un gasto de \$\s15\.000 en Alimentación\.$/);
 });
 
 test('un mensaje reenviado por Meta no se registra dos veces', async () => {
@@ -228,13 +228,13 @@ test('un monto muy alto pide confirmar con "sí" antes de guardarse', async () =
   await service.handleMessage(message('carro 50 millones', 'big1'));
   assert.equal(saved.length, 0);
   assert.equal(sent[0], REPLIES.bigAmount(50_000_000, 'carro 50 millones'));
-  assert.match(sent[0], /\$50\.000\.000.*"sí carro 50 millones"/);
+  assert.match(sent[0], /\$\s50\.000\.000.*"sí carro 50 millones"/);
 
   await service.handleMessage(message('Sí, carro 50 millones', 'big2'));
   assert.equal(saved.length, 1);
   assert.equal(saved[0].amount, 50_000_000);
   assert.equal(saved[0].description, 'Carro');
-  assert.match(sent[1], /^Guardé un gasto de \$50\.000\.000/);
+  assert.match(sent[1], /^Guardé un gasto de \$\s50\.000\.000/);
 
   // Un "si" dentro de la descripción no confirma nada.
   await service.handleMessage(message('silla 6 millones', 'big3'));
@@ -292,7 +292,7 @@ test('responde el balance del mes con varias formas de preguntarlo', async () =>
     await service.handleMessage(message(text, `m${i}`));
     assert.equal(
       sent[0],
-      'En noviembre llevas:\nIngresos: $1.200.000\nGastos: $450.000\nBalance: $750.000',
+      'En noviembre llevas:\nIngresos: $\u00a01.200.000\nGastos: $\u00a0450.000\nBalance: $\u00a0750.000',
     );
     assert.equal(saved.length, 0);
     assert.deepEqual(queries, [{ period: 'month', date: '2026-11-02' }]);
@@ -304,14 +304,14 @@ test('el balance resta lo apartado en ahorro y lo muestra en su propia línea', 
   await service.handleMessage(message('saldo'));
   assert.equal(
     sent[0],
-    'En noviembre llevas:\nIngresos: $1.200.000\nGastos: $450.000\nAhorro: $200.000\nBalance: $550.000',
+    'En noviembre llevas:\nIngresos: $\u00a01.200.000\nGastos: $\u00a0450.000\nAhorro: $\u00a0200.000\nBalance: $\u00a0550.000',
   );
 });
 
 test('el balance negativo lleva el signo antes del peso', async () => {
   const { service, sent } = setup({ income: 100_000, expense: 150_000 });
   await service.handleMessage(message('balance'));
-  assert.match(sent[0], /Balance: -\$50\.000$/);
+  assert.match(sent[0], /Balance: -\$\s50\.000$/);
 });
 
 test('responde los gastos del mes y la categoría que más pesa', async () => {
@@ -322,7 +322,7 @@ test('responde los gastos del mes y la categoría que más pesa', async () => {
   await service.handleMessage(message('Cuánto he gastado este mes'));
   assert.equal(
     sent[0],
-    'En noviembre has gastado $450.000.\nLo que más pesa: Alimentación, $180.000.',
+    'En noviembre has gastado $\u00a0450.000.\nLo que más pesa: Alimentación, $\u00a0180.000.',
   );
   assert.equal(saved.length, 0);
 });
@@ -333,7 +333,7 @@ test('los gastos sin categoría salen como Sin clasificar', async () => {
     byCategory: [{ category: null, total: 50_000 }],
   });
   await service.handleMessage(message('cuánto gasté'));
-  assert.match(sent[0], /Lo que más pesa: Sin clasificar, \$50\.000\.$/);
+  assert.match(sent[0], /Lo que más pesa: Sin clasificar, \$\s50\.000\.$/);
 });
 
 test('sin movimientos en el mes lo dice en vez de responder ceros', async () => {
@@ -361,7 +361,7 @@ test('un mensaje con monto se registra aunque mencione el saldo', async () => {
   await service.handleMessage(message('saldo de la tarjeta 50 mil'));
   assert.equal(saved.length, 1);
   assert.equal(queries.length, 0);
-  assert.match(sent[0], /^Guardé un gasto de \$50\.000/);
+  assert.match(sent[0], /^Guardé un gasto de \$\s50\.000/);
 });
 
 test('las consultas respetan el límite diario y a quien no está vinculado', async () => {
@@ -408,7 +408,7 @@ const GOAL_PLAN = {
   shortfall: 0,
 };
 const GOAL_TEXT =
-  'Hoy llevas $38.000 (sueles hacer $42.000).\nPara cubrir todo necesitas hacer $45.000 al día hasta Arriendo (7 días).';
+  'Hoy llevas $\u00a038.000 (sueles hacer $\u00a042.000).\nPara cubrir todo necesitas hacer $\u00a045.000 al día hasta Arriendo (7 días).';
 
 test('Mi plata en el bot (FT-0038): avance del día según cómo le entra la plata', () => {
   assert.equal(planProgress({ ready: false }), null);
@@ -425,25 +425,25 @@ test('Mi plata en el bot (FT-0038): avance del día según cómo le entra la pla
   };
   assert.equal(
     planProgress({ ...daily, dayStatus: 'ok' }),
-    'Hoy puedes gastar $12.000 más; faltan 5 días para tu pago.',
+    'Hoy puedes gastar $\u00a012.000 más; faltan 5 días para tu pago.',
   );
   assert.equal(
     planProgress({ ...daily, dayStatus: 'near', leftToday: 4000 }),
-    'Ya casi llegas: hoy puedes gastar $4.000 más.',
+    'Ya casi llegas: hoy puedes gastar $\u00a04.000 más.',
   );
   assert.equal(
     planProgress({ ...daily, dayStatus: 'over', leftToday: 0, overBy: 8000 }),
-    'Hoy te pasaste $8.000 de tu límite de $30.000.',
+    'Hoy te pasaste $\u00a08.000 de tu límite de $\u00a030.000.',
   );
   assert.equal(
     planProgress({ ...daily, shortfall: 150000, nextPay: '2026-11-15' }),
-    'Te faltan $150.000 para tus pagos antes del 15 de noviembre.',
+    'Te faltan $\u00a0150.000 para tus pagos antes del 15 de noviembre.',
   );
 
   assert.equal(planProgress(GOAL_PLAN), GOAL_TEXT);
   assert.equal(
     planProgress({ ...GOAL_PLAN, usualIncome: null, days: 1 }),
-    'Hoy llevas $38.000.\nPara cubrir todo necesitas hacer $45.000 al día hasta Arriendo (1 día).',
+    'Hoy llevas $\u00a038.000.\nPara cubrir todo necesitas hacer $\u00a045.000 al día hasta Arriendo (1 día).',
   );
 
   const runway = { ready: true, mode: 'runway', shortfall: 0, free: 200000 };
@@ -453,11 +453,11 @@ test('Mi plata en el bot (FT-0038): avance del día según cómo le entra la pla
   );
   assert.equal(
     planProgress({ ...runway, runwayDays: null }),
-    'Ya cubres tus pagos. Tienes libres $200.000.',
+    'Ya cubres tus pagos. Tienes libres $\u00a0200.000.',
   );
   assert.match(
     planProgress({ ...runway, shortfall: 5000, runwayDays: 0 }),
-    /^Te faltan \$5\.000\./,
+    /^Te faltan \$\s5\.000\./,
   );
 });
 
@@ -467,13 +467,13 @@ test('"hice 38 mil" se guarda como ingreso y responde el avance del día', async
 
   assert.equal(saved[0].type, 'ingreso');
   assert.equal(saved[0].amount, 38000);
-  assert.equal(sent[0], `Guardé un ingreso de $38.000 en Alimentación.\n${GOAL_TEXT}`);
+  assert.equal(sent[0], `Guardé un ingreso de $\u00a038.000 en Alimentación.\n${GOAL_TEXT}`);
 });
 
 test('sin Mi plata, o si el avance falla, solo confirma lo guardado', async () => {
   const plain = setup();
   await plain.service.handleMessage(message('almuerzo 15 mil'));
-  assert.equal(plain.sent[0], 'Guardé un gasto de $15.000 en Alimentación.');
+  assert.equal(plain.sent[0], 'Guardé un gasto de $\u00a015.000 en Alimentación.');
 
   const broken = setup({
     plan: async () => {
@@ -489,7 +489,7 @@ test('sin Mi plata, o si el avance falla, solo confirma lo guardado', async () =
     console.error = original;
   }
   assert.equal(broken.saved.length, 1);
-  assert.equal(broken.sent[0], 'Guardé un gasto de $15.000 en Alimentación.');
+  assert.equal(broken.sent[0], 'Guardé un gasto de $\u00a015.000 en Alimentación.');
   assert.match(errors[0], /Mi plata/);
 });
 
@@ -516,7 +516,7 @@ test('"¿me alcanza?" agrega la línea del motor de liquidez (FT-0059)', async (
   };
   const { service, sent } = setup({ plan: GOAL_PLAN, liquidity });
   await service.handleMessage(message('¿Me alcanza?'));
-  assert.equal(sent[0], `${GOAL_TEXT}\nOjo: el 20 de noviembre te faltan $300.000.`);
+  assert.equal(sent[0], `${GOAL_TEXT}\nOjo: el 20 de noviembre te faltan $\u00a0300.000.`);
 });
 
 test('el analizador: "hice" + monto es lo que ganó; "hice mercado" sigue siendo gasto', () => {
@@ -590,4 +590,13 @@ test('las cantidades con cifra que describen la compra tampoco hacen ambiguo el 
   // Una sola cantidad antes del monto, o sola al final, sigue ofreciendo el total.
   assert.equal(parseSpokenTransaction('2 almuerzos de 12 mil').ambiguous, true);
   assert.equal(parseSpokenTransaction('almuerzo 12 mil x 2').ambiguous, true);
+});
+
+test('a quien usa la app en inglés con dólares le responde en inglés y no inventa miles', async () => {
+  const { service, sent, saved } = setup({ user: { language: 'en', currency: 'USD', country: 'US' } });
+  await service.handleMessage(message('coffee 4.50'));
+  assert.equal(saved[0].amount, 4.5);
+  assert.equal(sent[0], 'I saved an expense of $4.50 in Food.');
+  await service.handleMessage({ ...message('how much have I spent?'), id: 'm-en-2' });
+  assert.equal(sent[1], 'You have no expenses in November yet.');
 });

@@ -9,9 +9,10 @@ import { Input } from '@/components/ui/input';
 import { dayLabel } from '@/lib/calendar';
 import { cn } from '@/lib/utils';
 import { createTaxDate, deleteTaxDate, listTaxDates } from '@/services/negocioService';
+import { t as tr } from '@/lib/i18n';
 
 /** Los impuestos más comunes de un negocio pequeño en Colombia; "Otro" deja escribir el nombre. */
-const TAX_OPTIONS = ['IVA', 'Retención en la fuente', 'ICA', 'Renta', 'Otro'].map((v) => ({ value: v, label: v }));
+const TAX_OPTIONS = ['IVA', tr('Retención en la fuente'), 'ICA', tr('Renta'), tr('Otro')].map((v) => ({ value: v, label: v }));
 
 /**
  * "Hoy", "Mañana", "En 5 días" o "Pasó".
@@ -21,10 +22,10 @@ const TAX_OPTIONS = ['IVA', 'Retención en la fuente', 'ICA', 'Renta', 'Otro'].m
  */
 export function taxWhen(date, today) {
   const days = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
-  if (days < 0) return 'Pasó';
-  if (days === 0) return 'Hoy';
-  if (days === 1) return 'Mañana';
-  return `En ${days} días`;
+  if (days < 0) return tr('Pasó');
+  if (days === 0) return tr('Hoy');
+  if (days === 1) return tr('Mañana');
+  return tr('En {days} días', { days });
 }
 
 /**
@@ -54,9 +55,9 @@ export default function BusinessTaxDates({ businessId, online }) {
 
   const add = async (event) => {
     event.preventDefault();
-    const name = kind === 'Otro' ? other.trim() : kind;
-    if (!name) return setError('Escribe el nombre del impuesto');
-    if (!date) return setError('Elige la fecha');
+    const name = kind === tr('Otro') ? other.trim() : kind;
+    if (!name) return setError(tr('Escribe el nombre del impuesto'));
+    if (!date) return setError(tr('Elige la fecha'));
     setBusy(true);
     setError('');
     try {
@@ -81,35 +82,35 @@ export default function BusinessTaxDates({ businessId, online }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 id="impuestos-title" className="font-semibold">
-            Fechas de impuestos
+            {tr('Fechas de impuestos')}
           </h3>
-          <p className="text-sm text-ink/60">Te avisamos 3 días antes.</p>
+          <p className="text-sm text-ink/60">{tr('Te avisamos 3 días antes.')}</p>
         </div>
         {data?.canEdit && !adding && (
           <Button variant="soft" onClick={() => setAdding(true)} disabled={!online}>
-            <Plus aria-hidden="true" /> Agregar
+            <Plus aria-hidden="true" /> {tr('Agregar')}
           </Button>
         )}
       </div>
 
       {adding && (
-        <form onSubmit={add} noValidate className="mt-4 space-y-4 rounded-2xl bg-ink/5 p-4" aria-label="Agregar fecha de impuestos">
-          <ChipGroup legend="Impuesto" options={TAX_OPTIONS} value={kind} onChange={setKind} disabled={busy} scroll />
-          {kind === 'Otro' && (
-            <FormField id="tax-name" label="Nombre">
+        <form onSubmit={add} noValidate className="mt-4 space-y-4 rounded-2xl bg-ink/5 p-4" aria-label={tr('Agregar fecha de impuestos')}>
+          <ChipGroup legend={tr('Impuesto')} options={TAX_OPTIONS} value={kind} onChange={setKind} disabled={busy} scroll />
+          {kind === tr('Otro') && (
+            <FormField id="tax-name" label={tr('Nombre')}>
               <Input maxLength={40} value={other} onChange={(e) => setOther(e.target.value)} disabled={busy} />
             </FormField>
           )}
-          <FormField id="tax-date" label="Fecha límite">
+          <FormField id="tax-date" label={tr('Fecha límite')}>
             <Input type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} disabled={busy} />
           </FormField>
           <div className="flex gap-2">
             <Button type="submit" disabled={busy || !online}>
               {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
-              Guardar
+              {tr('Guardar')}
             </Button>
             <Button type="button" variant="ghost" onClick={() => (setAdding(false), setError(''))} disabled={busy}>
-              Cancelar
+              {tr('Cancelar')}
             </Button>
           </div>
         </form>
@@ -122,21 +123,22 @@ export default function BusinessTaxDates({ businessId, online }) {
       )}
       {!data && !error && (
         <p className="flex items-center gap-2 py-4 text-ink/60">
-          <Loader2 className="animate-spin" aria-hidden="true" /> Cargando…
+          <Loader2 className="animate-spin" aria-hidden="true" /> {tr('Cargando…')}
         </p>
       )}
       {data && data.items.length === 0 && !adding && (
         <p className="mt-3 text-sm text-ink/60">
-          Agrega las fechas de IVA, retención o ICA de tu negocio para que no se te pasen.
+          {tr('Agrega las fechas de IVA, retención o ICA de tu negocio para que no se te pasen.')}
         </p>
       )}
       {(upcoming.length > 0 || past.length > 0) && (
-        <ul className="mt-3 divide-y divide-ink/10" aria-label="Fechas de impuestos">
+        <ul className="mt-3 divide-y divide-ink/10" aria-label={tr('Fechas de impuestos')}>
           {[...upcoming, ...past].map((t) => {
             const when = taxWhen(t.date, today);
-            const soon = when === 'Hoy' || when === 'Mañana' || /^En [23] días$/.test(when);
+            // Se compara con el texto ya traducido: "when" sale de taxWhen en el idioma de la persona.
+            const soon = [tr('Hoy'), tr('Mañana'), tr('En {days} días', { days: 2 }), tr('En {days} días', { days: 3 })].includes(when);
             return (
-              <li key={t.id} className={cn('flex items-center gap-3 py-2.5', when === 'Pasó' && 'text-ink/40')}>
+              <li key={t.id} className={cn('flex items-center gap-3 py-2.5', when === tr('Pasó') && 'text-ink/40')}>
                 <CalendarClock className={cn('size-4 shrink-0', soon ? 'text-caution' : 'text-ink/40')} aria-hidden="true" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{t.name}</span>
@@ -147,7 +149,7 @@ export default function BusinessTaxDates({ businessId, online }) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label={`Borrar ${t.name} del ${dayLabel(t.date)}`}
+                    aria-label={tr('Borrar {name} del {date}', { name: t.name, date: dayLabel(t.date) })}
                     disabled={!online}
                     onClick={async () => {
                       try {

@@ -16,6 +16,7 @@ import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { confirmPendingPayment, discardPendingPayment, listPendingPayments } from '@/services/pendingPaymentService';
 import { getCategories } from '@/services/transactionService';
+import { t } from '@/lib/i18n';
 
 /**
  * Hoja "Confirmar pago": se puede cambiar la descripción y elegir la categoría (o dejar que la IA la elija).
@@ -31,7 +32,7 @@ export function ConfirmForm({ payment, money, disabled, onConfirm }) {
     event.preventDefault();
     const text = description.trim();
     if (!text) {
-      setError('Escribe una descripción');
+      setError(t('Escribe una descripción'));
       return;
     }
     setBusy(true);
@@ -46,16 +47,16 @@ export function ConfirmForm({ payment, money, disabled, onConfirm }) {
   return (
     <form className="space-y-5" onSubmit={submit} noValidate>
       <p>
-        Se anota un gasto de <span className="font-semibold tabular-nums">{money(payment.amount)}</span> con fecha{' '}
+        {t('Se anota un gasto de')} <span className="font-semibold tabular-nums">{money(payment.amount)}</span> {t('con fecha')}{' '}
         {formatDate(payment.date)}.
       </p>
-      <FormField id="pp-description" label="Descripción">
+      <FormField id="pp-description" label={t('Descripción')}>
         <Input maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} disabled={busy} />
       </FormField>
       {categories.data ? (
         <>
           <CategoryPicker
-            legend="Categoría"
+            legend={t('Categoría')}
             categories={categories.data.expense}
             value={category}
             onChange={setCategory}
@@ -65,14 +66,14 @@ export function ConfirmForm({ payment, money, disabled, onConfirm }) {
           {category === AUTO_CATEGORY && (
             <p className="-mt-3 flex items-center gap-1.5 text-sm text-ink/60">
               <Sparkles className="size-4 shrink-0 text-brand" aria-hidden="true" />
-              La clasificamos por ti al guardar.
+              {t('La clasificamos por ti al guardar.')}
             </p>
           )}
         </>
       ) : (
         !categories.error && (
           <p className="flex items-center gap-2 text-sm text-ink/60">
-            <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Cargando categorías…
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" /> {t('Cargando categorías…')}
           </p>
         )
       )}
@@ -83,7 +84,7 @@ export function ConfirmForm({ payment, money, disabled, onConfirm }) {
       )}
       <Button type="submit" size="lg" className="w-full" disabled={disabled || busy}>
         {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
-        Anotar el gasto
+        {t('Anotar el gasto')}
       </Button>
     </form>
   );
@@ -108,13 +109,13 @@ export function PaymentRow({ payment, money, online, busy, onConfirm, onDiscard 
         {payment.possibleDuplicate && (
           <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-amber-600 dark:text-amber-400">
             <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
-            Puede que ya lo hayas anotado: hay un gasto igual por esos días.
+            {t('Puede que ya lo hayas anotado: hay un gasto igual por esos días.')}
           </p>
         )}
       </div>
       <div className="flex w-full gap-2 sm:w-auto">
         <Button size="sm" className="flex-1 sm:flex-none" onClick={onConfirm} disabled={!online || busy}>
-          <Check aria-hidden="true" /> Confirmar
+          <Check aria-hidden="true" /> {t('Confirmar')}
         </Button>
         <Button
           size="sm"
@@ -122,9 +123,9 @@ export function PaymentRow({ payment, money, online, busy, onConfirm, onDiscard 
           className="flex-1 sm:flex-none"
           onClick={onDiscard}
           disabled={!online || busy}
-          aria-label={`Descartar el pago en ${payment.merchant}`}
+          aria-label={t('Descartar el pago en {merchant}', { merchant: payment.merchant })}
         >
-          {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <X aria-hidden="true" />} Descartar
+          {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <X aria-hidden="true" />} {t('Descartar')}
         </Button>
       </div>
     </li>
@@ -133,7 +134,7 @@ export function PaymentRow({ payment, money, online, busy, onConfirm, onDiscard 
 
 /** Página privada `/app/por-confirmar`: pagos con Apple Pay que esperan aprobación (FT-0047). */
 export default function PendingPayments() {
-  usePageTitle('Por confirmar');
+  usePageTitle(t('Por confirmar'));
   const online = useOnlineStatus();
   const [hidden] = useHiddenAmounts();
   const money = (n) => (hidden ? MASK : formatMoney(n));
@@ -157,7 +158,7 @@ export default function PendingPayments() {
 
   const handleConfirm = async (values) => {
     const { transaction } = await confirmPendingPayment(sheet.id, values);
-    setNotice(`Anotado: ${transaction.description}, ${money(transaction.amount)}.`);
+    setNotice(t('Anotado: {description}, {amount}.', { description: transaction.description, amount: money(transaction.amount) }));
     setSheet(null);
     reload();
   };
@@ -166,7 +167,7 @@ export default function PendingPayments() {
     setNotice('');
     try {
       await discardPendingPayment(payment.id);
-      setNotice(`Descartado: ${payment.merchant}. No se anotó nada.`);
+      setNotice(t('Descartado: {merchant}. No se anotó nada.', { merchant: payment.merchant }));
       reload();
     } catch (err) {
       setError(err.message);
@@ -179,19 +180,19 @@ export default function PendingPayments() {
 
   return (
     <>
-      <PageHeader title="Por confirmar" description="Pagos con Apple Pay que llegaron desde tu iPhone." />
-      {!online && <p className="mb-3 text-sm text-ink/60">Necesitas conexión para ver o confirmar tus pagos.</p>}
+      <PageHeader title={t('Por confirmar')} description={t('Pagos con Apple Pay que llegaron desde tu iPhone.')} />
+      {!online && <p className="mb-3 text-sm text-ink/60">{t('Necesitas conexión para ver o confirmar tus pagos.')}</p>}
       {error && (
         <p role="alert" className="mb-3 text-sm text-negative">
           {error}{' '}
           <button type="button" className="underline" onClick={reload}>
-            Reintentar
+            {t('Reintentar')}
           </button>
         </p>
       )}
       {data === null && !error && (
         <p className="flex items-center gap-2 py-10 text-ink/60">
-          <Loader2 className="animate-spin" aria-hidden="true" /> Cargando…
+          <Loader2 className="animate-spin" aria-hidden="true" /> {t('Cargando…')}
         </p>
       )}
       {data && (
@@ -200,28 +201,28 @@ export default function PendingPayments() {
             <p role="status" className="rounded-xl bg-brand-soft p-3 text-sm text-brand">
               {notice}{' '}
               <Link to="/app/mi-plata" className="underline">
-                Ver movimientos
+                {t('Ver movimientos')}
               </Link>
             </p>
           )}
           {data.items.length === 0 ? (
             <Panel className="text-center">
               <p className="mx-auto max-w-md text-ink/60">
-                No hay pagos por revisar. Cuando pagues con Apple Pay, el pago llega aquí y tú decides si se anota.
+                {t('No hay pagos por revisar. Cuando pagues con Apple Pay, el pago llega aquí y tú decides si se anota.')}
               </p>
               <Button asChild variant="soft" className="mt-4">
-                <Link to="/app/cuenta">Conectar mi iPhone</Link>
+                <Link to="/app/cuenta">{t('Conectar mi iPhone')}</Link>
               </Button>
             </Panel>
           ) : (
             <>
               <Panel>
                 <p className="text-sm text-ink/60">
-                  {data.items.length === 1 ? '1 pago sin revisar' : `${data.items.length} pagos sin revisar`}
+                  {data.items.length === 1 ? t('1 pago sin revisar') : t('{length} pagos sin revisar', { length: data.items.length })}
                 </p>
                 <p className="mt-1 text-xl font-semibold tabular-nums md:text-2xl">{money(total)}</p>
               </Panel>
-              <ul aria-label="Pagos por confirmar" className="space-y-2">
+              <ul aria-label={t('Pagos por confirmar')} className="space-y-2">
                 {data.items.map((p) => (
                   <PaymentRow
                     key={p.id}
@@ -238,7 +239,7 @@ export default function PendingPayments() {
           )}
         </div>
       )}
-      <Sheet open={sheet !== null} title="Confirmar pago" onClose={() => setSheet(null)}>
+      <Sheet open={sheet !== null} title={t('Confirmar pago')} onClose={() => setSheet(null)}>
         {sheet && <ConfirmForm key={sheet.id} payment={sheet} money={money} disabled={!online} onConfirm={handleConfirm} />}
       </Sheet>
     </>

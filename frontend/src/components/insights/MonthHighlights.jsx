@@ -8,6 +8,7 @@ import { listBudgets } from '@/services/budgetService';
 import { getSummary } from '@/services/summaryService';
 import { getCategories } from '@/services/transactionService';
 import { buildMonthHighlights } from './highlights';
+import { t } from '@/lib/i18n';
 
 const TONES = {
   positive: 'bg-positive/15 text-positive',
@@ -49,7 +50,7 @@ export default function MonthHighlights({ message }) {
   if (loading && !highlights) {
     return (
       <p className="flex items-center gap-2 py-6 text-ink/60">
-        <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Revisando tu mes…
+        <Loader2 className="size-4 animate-spin" aria-hidden="true" /> {t('Revisando tu mes…')}
       </p>
     );
   }
@@ -57,10 +58,10 @@ export default function MonthHighlights({ message }) {
   if (error || !highlights?.length) {
     return (
       <div className="py-6 text-center">
-        <p className="font-medium">Todavía no hay suficiente historial</p>
+        <p className="font-medium">{t('Todavía no hay suficiente historial')}</p>
         <p className="mx-auto mt-1 max-w-md text-sm text-ink/70">{message}</p>
         <Button asChild className="mt-4">
-          <Link to="/app/anotar">Registrar un movimiento</Link>
+          <Link to="/app/anotar">{t('Registrar un movimiento')}</Link>
         </Button>
       </div>
     );
@@ -88,7 +89,7 @@ export default function MonthHighlights({ message }) {
         })}
       </ul>
       <p className="mt-4 text-sm text-ink/60">
-        Los consejos con IA llegan cuando tengas una semana de movimientos. Mientras tanto, pregúntale al asistente.
+        {t('Los consejos con IA llegan cuando tengas una semana de movimientos. Mientras tanto, pregúntale al asistente.')}
       </p>
     </>
   );

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { contributionSchema } from '@/lib/validation/vaca';
 import { formatPesos, todayIso } from './vacaFormat';
+import { t } from '@/lib/i18n';
 
 /** Categoría del gasto que deja el aporte si no se elige otra (la misma que usa el servidor). */
 export const DEFAULT_CATEGORY = 'ahorro_inversion';
@@ -58,15 +59,15 @@ export default function ContributionForm({ categories, myRemaining, onSubmit }) 
   // Si la lista aún no carga (o no incluye la categoría por defecto), igual se puede aportar.
   const options = categories.some((c) => c.key === DEFAULT_CATEGORY)
     ? categories
-    : [{ key: DEFAULT_CATEGORY, name: 'Ahorro/Inversión' }, ...categories];
+    : [{ key: DEFAULT_CATEGORY, name: t('Ahorro/Inversión') }, ...categories];
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-4" aria-label="Registrar aporte">
+    <form onSubmit={submit} noValidate className="space-y-4" aria-label={t('Registrar aporte')}>
       <Controller
         control={control}
         name="amount"
         render={({ field }) => (
-          <FormField id="contribution-amount" label="Monto del aporte (COP)" error={errors.amount?.message}>
+          <FormField id="contribution-amount" label={t('Monto del aporte (COP)')} error={errors.amount?.message}>
             <MoneyInput
               name={field.name}
               value={field.value}
@@ -84,15 +85,15 @@ export default function ContributionForm({ categories, myRemaining, onSubmit }) 
           className="-mt-2 text-sm font-medium text-brand underline-offset-4 hover:underline"
           onClick={() => setValue('amount', String(Math.round(myRemaining)), { shouldValidate: true })}
         >
-          Poner lo que me falta ({formatPesos(myRemaining)})
+          {t('Poner lo que me falta (')}{formatPesos(myRemaining)})
         </button>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField id="contribution-date" label="Fecha" error={errors.date?.message}>
+        <FormField id="contribution-date" label={t('Fecha')} error={errors.date?.message}>
           <Input type="date" max={todayIso()} {...register('date')} />
         </FormField>
-        <FormField id="contribution-category" label="Queda en mis gastos como" error={errors.category?.message}>
+        <FormField id="contribution-category" label={t('Queda en mis gastos como')} error={errors.category?.message}>
           <Select {...register('category')}>
             {options.map((c) => (
               <option key={c.key} value={c.key}>
@@ -103,8 +104,8 @@ export default function ContributionForm({ categories, myRemaining, onSubmit }) 
         </FormField>
       </div>
 
-      <FormField id="contribution-note" label="Nota (opcional)" error={errors.note?.message}>
-        <Input placeholder="Ej. Mi parte de octubre" maxLength={120} {...register('note')} />
+      <FormField id="contribution-note" label={t('Nota (opcional)')} error={errors.note?.message}>
+        <Input placeholder={t('Ej. Mi parte de octubre')} maxLength={120} {...register('note')} />
       </FormField>
 
       {serverError && (
@@ -115,7 +116,7 @@ export default function ContributionForm({ categories, myRemaining, onSubmit }) 
 
       <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
         {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {isSubmitting ? 'Guardando…' : 'Aportar'}
+        {isSubmitting ? t('Guardando…') : t('Aportar')}
       </Button>
     </form>
   );

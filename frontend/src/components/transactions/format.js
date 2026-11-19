@@ -1,16 +1,21 @@
-const money = new Intl.NumberFormat('es-CO', {
-  style: 'currency',
-  currency: 'COP',
-  minimumFractionDigits: 0, // algunos celulares ponen ",00" a todo si no se indica
-  maximumFractionDigits: 2,
-});
+import { dateLocale, regionFormats } from '@/lib/region';
+import { t } from '@/lib/i18n';
 
 /**
  * @param {number} amount
- * @returns {string} Monto en pesos colombianos, p. ej. `$ 12.500`.
+ * @returns {string} Monto en la moneda principal de la persona, p. ej. `$ 12.500` o `US$ 12,50`.
  */
 export function formatMoney(amount) {
-  return money.format(amount);
+  return regionFormats().money(amount);
+}
+
+/**
+ * Monto corto para ejes y centros de gráficos, p. ej. `$ 850 mil` o `$ 1,2 M`.
+ * @param {number} amount
+ * @returns {string}
+ */
+export function formatMoneyCompact(amount) {
+  return regionFormats().compactMoney(amount);
 }
 
 /**
@@ -20,7 +25,7 @@ export function formatMoney(amount) {
  */
 export function formatDate(iso) {
   const [year, month, day] = iso.split('-').map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString('es-CO', {
+  return new Date(year, month - 1, day).toLocaleDateString(dateLocale(), {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -38,9 +43,9 @@ export function formatRelativeDay(iso, now = new Date()) {
   const date = new Date(year, month - 1, day);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const days = Math.round((today - date) / 86_400_000);
-  if (days === 0) return 'Hoy';
-  if (days === 1) return 'Ayer';
-  return date.toLocaleDateString('es-CO', {
+  if (days === 0) return t('Hoy');
+  if (days === 1) return t('Ayer');
+  return date.toLocaleDateString(dateLocale(), {
     day: 'numeric',
     month: 'short',
     ...(year !== now.getFullYear() && { year: 'numeric' }),

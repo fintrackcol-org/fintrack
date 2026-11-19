@@ -56,7 +56,7 @@ test('una tarjeta a 3 días del pago envía un solo push aunque el tick corra do
     'u1',
     {
       title: 'Pago de tarjeta',
-      body: 'Tu Amex Blue ••1234 se paga el 15 nov. Debes $616.000.',
+      body: 'Tu Amex Blue ••1234 se paga el 15 nov. Debes $\u00a0616.000.',
       url: '/app/tarjetas/c1',
     },
   ]);
@@ -65,7 +65,7 @@ test('una tarjeta a 3 días del pago envía un solo push aunque el tick corra do
 test('sin extracto el monto es lo usado', async () => {
   const { scheduler, sent } = setup({ statementTotal: null });
   await scheduler.tick();
-  assert.match(sent[0][1].body, /Debes \$500\.000\.$/);
+  assert.match(sent[0][1].body, /Debes \$\s500\.000\.$/);
 });
 
 test('con la tarjeta pagada o a otra distancia no envía nada', async () => {
@@ -162,11 +162,11 @@ test('una cuenta personal que vence mañana avisa una vez, a la hora del usuario
   await scheduler.tick();
   await scheduler.tick();
   assert.deepEqual(sent, [
-    ['u1', { title: 'Te deben', body: 'Mañana Juan te debe pagar $50.000.', url: '/app/cuentas' }],
+    ['u1', { title: 'Te deben', body: 'Mañana Juan te debe pagar $\u00a050.000.', url: '/app/cuentas' }],
   ]);
   assert.deepEqual(debtReminderPayload(due[1]), {
     title: 'Tienes que pagar',
-    body: 'Mañana vence lo que le debes a Ana: $12.500.',
+    body: 'Mañana vence lo que le debes a Ana: $\u00a012.500.',
     url: '/app/cuentas',
   });
 });
@@ -209,12 +209,21 @@ test('el motor entrega por el canal elegido y no pierde el aviso si WhatsApp fal
   const { sent } = await scheduler.tick();
   assert.equal(sent, 4, 'la de las 20:00 no sale a las 09:00');
   assert.deepEqual(pushed, [
-    ['solo-push', 'En 3 días vence lo que le debes a Ana: $12.500.'],
-    ['ambos', 'Hoy vence lo que le debes a Ana: $12.500.'],
-    ['sin-bot', 'Mañana vence lo que le debes a Ana: $12.500.'],
+    ['solo-push', 'En 3 días vence lo que le debes a Ana: $\u00a012.500.'],
+    ['ambos', 'Hoy vence lo que le debes a Ana: $\u00a012.500.'],
+    ['sin-bot', 'Mañana vence lo que le debes a Ana: $\u00a012.500.'],
   ]);
   assert.deepEqual(texted, [
-    ['ambos', 'Tienes que pagar: Hoy vence lo que le debes a Ana: $12.500.'],
-    ['solo-whatsapp', 'Tienes que pagar: En 7 días vence lo que le debes a Ana: $12.500.'],
+    ['ambos', 'Tienes que pagar: Hoy vence lo que le debes a Ana: $\u00a012.500.'],
+    ['solo-whatsapp', 'Tienes que pagar: En 7 días vence lo que le debes a Ana: $\u00a012.500.'],
   ]);
+});
+
+test('el aviso de una cuota dice lo que falta de esa cuota, no el total (FT-0064)', () => {
+  // 750.000 en 3 cuotas mensuales, con 300.000 abonados: la cuota 2 vence con 200.000 por pagar.
+  const debt = { kind: 'payable', person: 'Ana', amount: 750000, dueDate: '2026-12-15', daysBefore: 1, paid: 300000, installments: 3, frequency: 'monthly', firstDueDate: '2026-11-15' };
+  assert.equal(debtReminderPayload(debt).body, 'Mañana vence lo que le debes a Ana: $ 200.000.');
+  // A fecha fija, lo pendiente.
+  const fixed = { kind: 'receivable', person: 'Juan', amount: 50000, dueDate: '2026-11-13', daysBefore: 1, paid: 20000 };
+  assert.equal(debtReminderPayload(fixed).body, 'Mañana Juan te debe pagar $ 30.000.');
 });

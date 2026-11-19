@@ -1,12 +1,13 @@
 import { Lightbulb, PiggyBank, TrendingUp, TriangleAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 /** Ícono y color por tipo de insight; un tipo desconocido se muestra como consejo general. */
 const TYPES = {
-  saving_opportunity: { Icon: PiggyBank, label: 'Oportunidad de ahorro', style: 'bg-positive/15 text-positive' },
-  overspending_alert: { Icon: TriangleAlert, label: 'Ojo con este gasto', style: 'bg-caution/15 text-caution' },
-  positive_trend: { Icon: TrendingUp, label: 'Buena tendencia', style: 'bg-positive/15 text-positive' },
-  general_tip: { Icon: Lightbulb, label: 'Consejo', style: 'bg-brand-soft text-brand' },
+  saving_opportunity: { Icon: PiggyBank, label: t('Oportunidad de ahorro'), style: 'bg-positive/15 text-positive' },
+  overspending_alert: { Icon: TriangleAlert, label: t('Ojo con este gasto'), style: 'bg-caution/15 text-caution' },
+  positive_trend: { Icon: TrendingUp, label: t('Buena tendencia'), style: 'bg-positive/15 text-positive' },
+  general_tip: { Icon: Lightbulb, label: t('Consejo'), style: 'bg-brand-soft text-brand' },
 };
 
 /**

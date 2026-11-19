@@ -1,4 +1,5 @@
 import { API_V1 } from "@/lib/api";
+import { t } from '@/lib/i18n';
 
 /**
  * Carga de Google Identity Services (GIS), la librería de Google que muestra el botón
@@ -37,7 +38,7 @@ export function loadGoogleIdentity() {
       script.onerror = () => {
         loading = null; // permite reintentar
         script.remove();
-        reject(new Error("No pudimos cargar Google. Revisa tu conexión."));
+        reject(new Error(t('No pudimos cargar Google. Revisa tu conexión.')));
       };
       document.head.appendChild(script);
     });
