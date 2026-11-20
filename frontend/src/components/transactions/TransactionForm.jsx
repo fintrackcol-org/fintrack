@@ -8,10 +8,11 @@ import BigAmountWarning, { isBigAmount } from '@/components/transactions/BigAmou
 import DateQuickPick from '@/components/transactions/DateQuickPick';
 import { Button } from '@/components/ui/button';
 import ChipGroup from '@/components/common/ChipGroup';
+import Segmented from '@/components/common/Segmented';
+import { getRegion } from '@/lib/region';
 import MoneyInput from '@/components/common/MoneyInput';
 import { Input } from '@/components/ui/input';
 import { NETWORK_LABELS } from '@/lib/cardStyles';
-import { cn } from '@/lib/utils';
 import { today, transactionSchema } from '@/lib/validation/transaction';
 import { t } from '@/lib/i18n';
 
@@ -152,29 +153,14 @@ export default function TransactionForm({
 
   return (
     <form onSubmit={submit} noValidate className="space-y-5" aria-label={t('Formulario de movimiento')}>
-      <div role="group" aria-label={t('Tipo de movimiento')} className="grid grid-cols-2 gap-1 rounded-xl bg-ink/5 p-1">
-        {TYPES.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={type === value}
-            onClick={() => pickType(value)}
-            className={cn(
-              'h-10 rounded-lg text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet',
-              type === value ? 'bg-surface text-ink shadow-sm ring-1 ring-ink/10' : 'text-ink/60 hover:text-ink',
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Segmented label={t('Tipo de movimiento')} options={TYPES} value={type} onChange={pickType} />
       <input type="hidden" {...register('type')} />
 
       <Controller
         control={control}
         name="amount"
         render={({ field }) => (
-          <FormField id="tx-amount" label={t('Monto (COP)')} error={errors.amount?.message}>
+          <FormField id="tx-amount" label={`${t('Monto')} (${getRegion().currency})`} error={errors.amount?.message}>
             <MoneyInput
               name={field.name}
               value={field.value}

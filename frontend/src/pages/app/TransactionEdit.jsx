@@ -163,7 +163,7 @@ export default function TransactionEdit() {
 
   return (
     <div className="mx-auto max-w-xl">
-      <h1 className="mb-5 text-[28px] font-semibold tracking-tight">{id ? t('Editar movimiento') : t('Nuevo movimiento')}</h1>
+      <h1 className="mb-5 text-2xl font-bold tracking-tight">{id ? t('Editar movimiento') : t('Nuevo movimiento')}</h1>
       {done ? (
         <div className="flex flex-col gap-4">
           <p role="status" className="rounded-xl bg-brand-soft px-3 py-2.5 text-[15px]">
@@ -184,7 +184,8 @@ export default function TransactionEdit() {
           </Button>
         </div>
       ) : (
-        <Panel>
+        // En el celular va sin tarjeta, como Anotar: el formulario ocupa todo el ancho.
+        <Panel className="max-md:border-0 max-md:bg-transparent max-md:p-0">
           {draft && (
             <p role="status" className="mb-4 rounded-xl bg-brand-soft px-3 py-2 text-sm text-brand">
               {t('Revisa lo que anotaste y toca Guardar.')}

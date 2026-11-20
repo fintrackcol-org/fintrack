@@ -16,6 +16,8 @@ const Input = forwardRef(({ className, type = 'text', ...props }, ref) => (
       'focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
       'aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive/40',
       'disabled:cursor-not-allowed disabled:opacity-50',
+      // iPhone: la fecha nativa ignora el ancho y se sale de la tarjeta, y centra el texto.
+      type === 'date' && 'block appearance-none [&::-webkit-date-and-time-value]:text-left',
       className,
     )}
     {...props}
