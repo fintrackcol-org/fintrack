@@ -40,7 +40,7 @@ export function hasTabBar(pathname) {
 }
 
 /** Pestañas que el tutorial resalta (FT-0071). */
-const TOUR_ANCHORS = { '/app/planear': 'planear' };
+const TOUR_ANCHORS = { '/app/planear': 'planear', '/app/cuenta': 'cuenta' };
 
 const tabClass = (on) =>
   cn(
