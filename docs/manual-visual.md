@@ -93,6 +93,7 @@ Tokens en `@theme` (`--animate-*`). Curvas: salida `cubic-bezier(0.22, 1, 0.36, 
 | `rise` | 420 ms | bloques de una pantalla de primera vez que llegan en cascada (50 ms entre uno y otro, con `animationDelay` en línea) |
 | `swap-in` | 220 ms | un dato que cambia en su sitio (la moneda al elegir país): llega con un desenfoque leve |
 | `fade-up`, `float` | 600 ms / 6 s | solo páginas públicas |
+| velo del recorrido con voz | 200 ms entra + 350 ms sale | cambio de sección en la landing durante el recorrido: un velo del color de la sección que llega tapa, la página cambia debajo y el velo se retira; los bloques de la sección entran con `rise` (80 ms entre uno y otro). Hero → «Qué es» → «Cómo funciona» bajan de corrido (1,1 s) porque comparten el logo |
 
 Reglas: respetar `prefers-reduced-motion` (`motion-safe:`, `MotionConfig reducedMotion="user"`); animar `transform` y `opacity`; nada de movimiento en acciones repetidas de teclado.
 
