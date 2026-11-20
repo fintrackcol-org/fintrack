@@ -50,7 +50,8 @@ export function LogoArt({ animateIn = true, className }) {
 /**
  * El logo que baja con el scroll, sin 3D. Hace el mismo recorrido que hacía la escena:
  *   1. empieza en el hueco del hero (`data-logo-hero`);
- *   2. al bajar a "Qué es" viaja a la derecha (en celular, arriba a la derecha);
+ *   2. al bajar a "Qué es" viaja a la derecha (en celular y tablet, a su hueco `data-logo-about`
+ *      sobre el título);
  *   3. en "Cómo funciona" aterriza en el hueco del celular (`data-logo-slot`) y lo sigue.
  *
  * Vive dentro de la capa pegada (sticky) del escenario. Cada cuadro de scroll mide las tres
@@ -76,6 +77,7 @@ export default function FlyingLogo() {
       const how = stage.querySelector('[data-stage="how"]');
       const heroSlot = stage.querySelector('[data-logo-hero]');
       const phoneSlot = stage.querySelector('[data-logo-slot]');
+      const aboutSlot = stage.querySelector('[data-logo-about]');
       if (!hero || !how || !heroSlot || !phoneSlot) return;
 
       const vw = window.innerWidth;
@@ -83,16 +85,20 @@ export default function FlyingLogo() {
       const stageTop = stage.getBoundingClientRect().top;
       const scrolled = -stageTop;
       const howTop = how.getBoundingClientRect().top - stageTop;
+      // La barra de navegación tapa el borde de arriba: "Qué es" ya llegó cuando su borde la alcanza.
+      const nav = document.querySelector('header')?.offsetHeight ?? 0;
+      const travelEnd = Math.max(1, hero.offsetHeight - nav);
 
-      // Avance de cada tramo (0 → 1): del hero a "Qué es", y de ahí al celular.
-      const travel = easeInOut(clamp01(scrolled / hero.offsetHeight));
-      const dock = easeInOut(clamp01((scrolled - (howTop - vh * 0.95)) / (vh * 0.75)));
+      // Avance de cada tramo (0 → 1): del hero a "Qué es", y de ahí al celular (nunca antes de llegar a "Qué es").
+      const travel = easeInOut(clamp01(scrolled / travelEnd));
+      const dock = easeInOut(clamp01((scrolled - Math.max(travelEnd, howTop - vh * 0.95)) / (vh * 0.75)));
 
       const start = box(heroSlot);
-      const wide = vw > vh * 1.1;
-      const about = wide
-        ? { x: vw * 0.72, y: vh * 0.5, size: Math.min(vw * 0.3, vh * 0.5, 420) }
-        : { x: vw * 0.78, y: vh * 0.17, size: Math.min(vw * 0.26, 120) };
+      // El hueco de "Qué es" solo se ve en celular y tablet (`lg:hidden`); en pantallas anchas va a la derecha.
+      const about =
+        aboutSlot && aboutSlot.offsetWidth > 0
+          ? box(aboutSlot)
+          : { x: vw * 0.72, y: vh * 0.5, size: Math.min(vw * 0.3, vh * 0.5, 420) };
       const end = box(phoneSlot);
 
       let x = lerp(start.x, about.x, travel);

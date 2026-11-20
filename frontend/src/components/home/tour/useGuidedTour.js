@@ -7,8 +7,6 @@ export const TOUR_SEGMENTS = script.segments;
 export const TOUR_DURATION = script.duration;
 
 const AUDIO_SRC = '/audio/recorrido.mp3';
-/** Espacio para la barra de navegación fija al bajar a cada sección. */
-const NAV_OFFSET = 72;
 /** Aire entre la barra de navegación y el contenido de la sección. */
 const CONTENT_GAP = 24;
 /** Teclas con las que la persona se mueve por su cuenta (y que pausan el recorrido). */
@@ -20,17 +18,22 @@ const MOVED = 8;
 function measure() {
   const max = document.documentElement.scrollHeight - window.innerHeight;
   const els = TOUR_SEGMENTS.map(({ id }) => document.getElementById(id));
+  // Lo que tapan la barra de navegación (arriba) y el reproductor (abajo): el espacio útil está entre los dos.
+  const nav = document.querySelector('header')?.offsetHeight ?? 0;
+  const player = document.querySelector('[aria-label="Recorrido con voz"]')?.getBoundingClientRect();
+  const reserve = player ? window.innerHeight - player.top : 0;
   return {
     els,
     tops: els.map((el, i) => {
       if (i === 0 || !el) return 0;
-      // Una sección que no cabe entera en pantalla se muestra desde su contenido, no desde su
-      // margen de arriba: así cabe más de ella sobre el reproductor (sobre todo en celular).
-      // "Qué es" no: su espacio de arriba es del logo que viaja.
-      const fits = el.offsetHeight <= window.innerHeight - NAV_OFFSET;
-      const anchor = (!fits && el.dataset.stage !== 'about' && el.querySelector('.container-page')) || el;
+      // Una sección que no cabe entera entre la barra y el reproductor se muestra desde su
+      // contenido, no desde su margen de arriba. En escritorio "Qué es" no: su espacio de arriba
+      // es del logo que viaja a la derecha.
+      const fits = el.offsetHeight <= window.innerHeight - nav - reserve;
+      const keepTop = el.dataset.stage === 'about' && window.innerWidth >= 1024;
+      const anchor = (!fits && !keepTop && el.querySelector('.container-page')) || el;
       const gap = anchor === el ? 0 : CONTENT_GAP;
-      return Math.min(max, Math.max(0, anchor.getBoundingClientRect().top + window.scrollY - NAV_OFFSET - gap));
+      return Math.min(max, Math.max(0, anchor.getBoundingClientRect().top + window.scrollY - nav - gap));
     }),
     bgs: els.map((el) => (el ? getComputedStyle(el).backgroundColor : '#000')),
   };
@@ -48,7 +51,8 @@ function measure() {
  *
  * @returns {{ status: 'idle'|'playing'|'paused'|'done', index: number, text: string, progress: number,
  *   muted: boolean, loading: boolean, veil: React.RefObject<HTMLDivElement>,
- *   start: () => void, pause: () => void, resume: () => void, stop: () => void, goTo: (index: number) => void }}
+ *   start: () => void, pause: () => void, resume: () => void, stop: () => void, goTo: (index: number) => void,
+ *   remeasure: () => void }}
  */
 export default function useGuidedTour() {
   const reduced = useReducedMotion() ?? false;
@@ -82,6 +86,15 @@ export default function useGuidedTour() {
   const introUntil = useRef(0);
   // Sección pedida a mano: su nombre y su frase se muestran ya, sin esperar a que llegue la voz.
   const asked = useRef(-1);
+
+  // De dónde parte la transición en curso cuando se saltó desde otra altura de la página.
+  const origin = useRef(null);
+
+  /** Vuelve a medir (al arrancar, al cambiar el tamaño de la ventana o del reproductor). */
+  const remeasure = useCallback(() => {
+    measured.current = measure();
+    if (origin.current) measured.current.tops[origin.current.index - 1] = origin.current.y;
+  }, []);
 
   const now = useCallback(() => {
     if (silent.current) return silent.current.from + (performance.now() - silent.current.at) / 1000;
@@ -169,8 +182,8 @@ export default function useGuidedTour() {
   const playFrom = useCallback(
     (from, comingFrom) => {
       clearEffects();
-      measured.current = measure();
-      if (comingFrom) measured.current.tops[comingFrom.index - 1] = comingFrom.y;
+      origin.current = comingFrom;
+      remeasure();
       lastY.current = window.scrollY;
       paused.current = null;
       asked.current = -1;
@@ -209,7 +222,7 @@ export default function useGuidedTour() {
       stopLoop();
       raf.current = requestAnimationFrame(loop);
     },
-    [loop],
+    [loop, remeasure],
   );
 
   /** Va a la sección `index` desde donde esté la página, con su transición antes de la frase. */
@@ -287,9 +300,7 @@ export default function useGuidedTour() {
     const onHide = () => {
       if (document.hidden) pause();
     };
-    const onResize = () => {
-      measured.current = measure();
-    };
+    const onResize = () => remeasure();
     window.addEventListener('wheel', onUser, { passive: true });
     window.addEventListener('touchmove', onUser, { passive: true });
     window.addEventListener('keydown', onUser);
@@ -302,7 +313,7 @@ export default function useGuidedTour() {
       window.removeEventListener('resize', onResize);
       document.removeEventListener('visibilitychange', onHide);
     };
-  }, [status, pause]);
+  }, [status, pause, remeasure]);
 
   // Al salir de la página: se detiene el audio y el bucle, y se libera la copia local.
   useEffect(
@@ -314,5 +325,5 @@ export default function useGuidedTour() {
     [],
   );
 
-  return { status, index, text, progress, muted, loading, veil, start, pause, resume, stop, goTo };
+  return { status, index, text, progress, muted, loading, veil, start, pause, resume, stop, goTo, remeasure };
 }

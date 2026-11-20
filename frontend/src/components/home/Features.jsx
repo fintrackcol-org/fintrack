@@ -238,7 +238,7 @@ export default function Features() {
   const tab = TABS[active];
 
   return (
-    <section ref={ref} id="funcionalidades" className="scroll-mt-20 bg-white py-24 md:py-32">
+    <section ref={ref} id="funcionalidades" className="scroll-mt-20 bg-white py-16 sm:py-24 md:py-32">
       <div className="container-page">
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-end">
           <div>

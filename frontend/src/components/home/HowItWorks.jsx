@@ -140,7 +140,7 @@ export default function HowItWorks() {
       id="como-funciona"
       data-stage="how"
       // Fondo lavanda sólido y sin `position`: se pinta debajo del logo que aterriza en el celular.
-      className="scroll-mt-20 bg-pink py-24 text-obsidian md:py-32"
+      className="scroll-mt-20 bg-pink py-16 text-obsidian sm:py-24 md:py-32"
     >
       <div className="container-page relative z-10 grid items-center gap-14 lg:grid-cols-2">
         <div>

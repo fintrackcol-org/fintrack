@@ -391,3 +391,14 @@
     animation-delay: 160ms;
   }
 }
+
+/*
+ * Celular en horizontal (menos de 500 px de alto): pasa del ancho de tablet y heredaba los
+ * títulos de escritorio (72 px), que no cabían entre la barra y el reproductor. Se limitan
+ * según el alto. Sin capa a propósito: así gana a las utilidades de tamaño.
+ */
+@media (max-height: 500px) and (orientation: landscape) {
+  #contenido :is(h1, h2) {
+    font-size: clamp(2rem, 11vh, 3rem);
+  }
+}

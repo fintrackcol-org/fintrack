@@ -94,6 +94,7 @@ Tokens en `@theme` (`--animate-*`). Curvas: salida `cubic-bezier(0.22, 1, 0.36, 
 | `swap-in` | 220 ms | un dato que cambia en su sitio (la moneda al elegir país): llega con un desenfoque leve |
 | `fade-up`, `float` | 600 ms / 6 s | solo páginas públicas |
 | velo del recorrido con voz | 200 ms entra + 350 ms sale | cambio de sección en la landing durante el recorrido: un velo del color de la sección que llega tapa, la página cambia debajo y el velo se retira; los bloques de la sección entran con `rise` (80 ms entre uno y otro). Hero → «Qué es» → «Cómo funciona» bajan de corrido (1,1 s) porque comparten el logo |
+| reproductor del recorrido | 240 ms | en celular (menos de 640 px de ancho o 500 px de alto) arranca minimizado: barra de 56 px con pausa, sección, avance, ampliar y cerrar; ampliado muestra subtítulos, anterior/siguiente y tramos. El recorrido ubica cada sección entre la barra de arriba (64 px en celular, 80 en escritorio) y el reproductor, midiendo los dos |
 
 Reglas: respetar `prefers-reduced-motion` (`motion-safe:`, `MotionConfig reducedMotion="user"`); animar `transform` y `opacity`; nada de movimiento en acciones repetidas de teclado.
 
