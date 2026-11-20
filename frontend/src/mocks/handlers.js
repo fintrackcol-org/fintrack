@@ -1132,6 +1132,8 @@ export const handlers = [
       mode: 'runway',
       money: profile.money,
       free: profile.money,
+      // Igual que el backend: sin pagos pendientes no hay nada apartado (sin esto, Inicio mostraba "$ NaN").
+      pendingTotal: 0,
       shortfall: 0,
       pace,
       runwayDays: pace > 0 ? Math.floor(profile.money / pace) : null,
