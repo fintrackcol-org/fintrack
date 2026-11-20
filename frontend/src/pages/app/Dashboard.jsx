@@ -17,6 +17,7 @@ import { todayIso } from '@/lib/period';
 import { listBudgets } from '@/services/budgetService';
 import { listCards } from '@/services/cardService';
 import { getMoneyPlan, getMoneyProfile, getPaymentCalendar } from '@/services/moneyProfileService';
+import { listPendingPayments } from '@/services/pendingPaymentService';
 import { getSummary } from '@/services/summaryService';
 import { getCategories, listTransactions } from '@/services/transactionService';
 import { t } from '@/lib/i18n';
@@ -76,6 +77,8 @@ export default function Dashboard() {
   const { touring, closeTour } = useFirstTimeTour({ profile: moneyProfile.data, online, onSaved: moneyProfile.reload });
   // Si falla la carga no hay datos y el resumen simplemente no aparece.
   const cards = useAsync(listCards, [online]);
+  // Pagos que llegaron solos (FT-0047). Si falla o no hay, el Inicio simplemente no muestra la fila.
+  const toConfirm = useAsync(() => listPendingPayments().then((res) => res.items.length).catch(() => 0), [online]);
 
   const names = useMemo(() => {
     const all = categories.data ? [...categories.data.expense, ...categories.data.income] : [];
@@ -160,12 +163,10 @@ export default function Dashboard() {
           balance={balance}
           balanceSet={typeof moneyProfile.data?.balance === 'number'}
           totals={totals}
-          expense={summary.error ? null : current?.expense}
           budgets={budgets.data}
           cards={cards.data}
-          recent={recent.data?.data}
-          pending={plan?.pending}
-          recentError={recent.error}
+          plan={plan}
+          toConfirm={toConfirm.data ?? 0}
           names={names}
           monthLabel={label}
           empty={empty}
