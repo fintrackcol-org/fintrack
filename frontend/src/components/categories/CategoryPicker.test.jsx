@@ -27,6 +27,14 @@ describe('CategoryPicker', () => {
     expect(render({ createType: 'gasto' })).toContain('Nueva');
   });
 
+  it('con chips son pastillas de texto como en Anotar, y conservan el lápiz de las propias', () => {
+    const html = render({ chips: true, allowAuto: true, createType: 'gasto' });
+    expect(html).toContain('Que la elija la IA');
+    expect(html).not.toContain('Sugerir con IA');
+    expect(html).not.toContain('min-h-[84px]');
+    expect(html).toContain('aria-label="Editar Mascotas"');
+  });
+
   it('mientras cargan las categorías no ofrece crear una', () => {
     expect(render({ createType: 'gasto', categories: [] })).not.toContain('Nueva');
   });

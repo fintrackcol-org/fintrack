@@ -200,6 +200,7 @@ export default function TransactionForm({
             onChange={field.onChange}
             inputRef={field.ref}
             allowAuto
+            chips
             createType={type}
             error={errors.category?.message}
           />
