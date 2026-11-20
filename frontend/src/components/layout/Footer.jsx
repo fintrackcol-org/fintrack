@@ -64,7 +64,8 @@ export default function Footer() {
           <p className="mt-4 text-white/65">
             {t('Registra tus gastos, controla tu presupuesto y sincroniza tus datos, incluso sin conexión.')}
           </p>
-          <p className="mt-6 text-sm text-white/40">{t('Proyecto académico · Universidad Surcolombiana')}</p>
+          {/* /60 y no /40: sobre negro, /40 daba contraste 3,65:1 (WCAG pide 4,5:1 para texto de 14 px). */}
+          <p className="mt-6 text-sm text-white/60">{t('Proyecto académico · Universidad Surcolombiana')}</p>
         </div>
 
         {COLUMNS.map((col) => (
