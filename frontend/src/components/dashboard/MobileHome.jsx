@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { Bell, ChevronRight, Eye, EyeOff, Inbox } from 'lucide-react';
-import { useAuth } from '@/auth/AuthContext';
 import { MASK } from '@/components/dashboard/BalanceCard';
 import { totalLinkLabel } from '@/lib/totalLink';
 import { Wordmark } from '@/components/common/Logo';
@@ -11,7 +10,6 @@ import NegativeBalanceNote from '@/components/money/NegativeBalanceNote';
 import MoneySetupLink from '@/components/money/MoneySetupLink';
 import { formatMoney } from '@/components/transactions/format';
 import { daysLabel, runway, untilText } from '@/lib/runway';
-import { getDisplayName, getInitial } from '@/lib/displayName';
 import { pickHomeNotice } from '@/lib/homeNotice';
 import { cn } from '@/lib/utils';
 import RindeLine from '@/components/common/RindeLine';
@@ -30,6 +28,7 @@ const Skeleton = ({ className }) => (
  * tocar (FT-0068).
  */
 export function Total({ label, value, money, to, positive = false, period }) {
+  const text = value === undefined ? '' : `${positive ? '+ ' : ''}${money(value)}`;
   return (
     <Link
       to={to}
@@ -39,8 +38,15 @@ export function Total({ label, value, money, to, positive = false, period }) {
         {label}
         <ChevronRight className="size-4" aria-hidden="true" />
       </span>
-      <span className={cn('truncate text-[22px] font-extrabold leading-7 tracking-tight tabular-nums', positive && 'text-positive')}>
-        {value === undefined ? <Skeleton className="h-[1em] w-24" /> : `${positive ? '+ ' : ''}${money(value)}`}
+      {/* La cifra se achica para caber entera: un monto cortado no sirve. */}
+      <span
+        className={cn(
+          'truncate font-extrabold leading-7 tracking-tight tabular-nums',
+          text.length > 14 ? 'text-[15px]' : text.length > 11 ? 'text-lg' : 'text-[22px]',
+          positive && 'text-positive',
+        )}
+      >
+        {value === undefined ? <Skeleton className="h-[1em] w-24" /> : text}
       </span>
       <span className="sr-only">, {totalLinkLabel(label.toLowerCase(), period).toLowerCase()}</span>
     </Link>
@@ -102,6 +108,8 @@ export function MoneyCard({ balance, monthExpense, money, monthLabel, className 
  */
 function FreeCard({ plan, money }) {
   const short = plan.free < 0;
+  // En negativo no «faltan para pagos»: la plata misma está bajo cero, y casi siempre es un dato mal anotado.
+  const negative = plan.money < 0;
   return (
     <Link
       to="/app/mi-plata"
@@ -113,11 +121,11 @@ function FreeCard({ plan, money }) {
     >
       {!short && <span aria-hidden="true" className="absolute -right-16 -top-16 size-40 rounded-full border-[32px] border-white/15" />}
       <span className="relative flex items-center justify-between text-xs font-semibold uppercase tracking-[0.08em] opacity-85">
-        {short ? t('Te faltan · estimado') : t('Libre para gastar · estimado')}
+        {negative ? t('Estás en negativo · estimado') : short ? t('Te faltan · estimado') : t('Libre para gastar · estimado')}
         <ChevronRight className="size-5" aria-hidden="true" />
       </span>
       <span className={cn('relative truncate text-[40px] font-extrabold leading-[44px] tracking-[-0.02em] tabular-nums', short && 'text-negative')}>
-        {money(short ? plan.shortfall : plan.free)}
+        {money(negative ? plan.money : short ? plan.shortfall : plan.free)}
       </span>
       {plan.mode === 'daily' && !short && (
         <span className="relative text-[15px] font-semibold">
@@ -125,7 +133,9 @@ function FreeCard({ plan, money }) {
         </span>
       )}
       <span className="relative text-[13px] leading-[18px] opacity-85">
-        {short
+        {negative
+          ? t('Tus gastos superan lo que tienes. ¿Anotaste algo mal?')
+          : short
           ? t('para tus pagos. Tienes {money} y vencen {pending}.', { money: money(plan.money), pending: money(plan.pendingTotal) })
           : t('De {money} que tienes, {pending} ya están apartados para pagos.', { money: money(plan.money), pending: money(plan.pendingTotal) })}
       </span>
@@ -200,13 +210,13 @@ export default function MobileHome({
   hidden,
   onToggleHidden,
 }) {
-  const { user } = useAuth();
   const { unread } = useNotifications();
   const money = (value) => (hidden ? MASK : formatMoney(value));
-  const name = getDisplayName(user);
   const pending = plan?.pending ?? [];
   // Los pagos que vienen ya están en «Lo próximo»: el aviso no los repite.
   const notice = pickHomeNotice({ cards, budgets, names, money });
+  const negative = Boolean(plan) && plan.money < 0;
+  const linkClass = 'inline-flex min-h-11 items-center underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-violet';
 
   return (
     <div className="flex flex-col gap-4 pt-[max(0.5rem,env(safe-area-inset-top))]">
@@ -240,14 +250,6 @@ export default function MobileHome({
           >
             {hidden ? <EyeOff className="size-[22px]" aria-hidden="true" /> : <Eye className="size-[22px]" aria-hidden="true" />}
           </button>
-          <Link
-            to="/app/cuenta"
-            data-tour="cuenta"
-            aria-label={name ? t('Tu cuenta, {name}', { name }) : t('Tu cuenta')}
-            className="ml-1 grid size-11 place-items-center rounded-full bg-orchid font-bold text-obsidian focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet"
-          >
-            <span aria-hidden="true">{getInitial(user)}</span>
-          </Link>
         </div>
       </header>
 
@@ -257,15 +259,20 @@ export default function MobileHome({
         ) : (
           <MoneyCard balance={balance} monthExpense={totals?.expense} money={money} monthLabel={monthLabel} />
         )}
-        <NegativeBalanceNote money={balance} className="rounded-xl bg-negative/10 px-3 py-2.5 text-negative" />
+        {/* Con el plan en negativo la tarjeta ya lo dice: aquí solo quedan las dos salidas, sin repetir el aviso. */}
+        {!negative && <NegativeBalanceNote money={balance} className="rounded-xl bg-negative/10 px-3 py-2.5 text-negative" />}
         {/* FT-0057: quien no anotó la plata que ya tenía ve un saldo que no es el real. */}
         {balance !== undefined && (
-          <Link
-            to="/app/mi-plata/corregir"
-            className="inline-flex min-h-11 items-center self-start text-[13px] font-medium text-ink/70 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-violet"
-          >
-            {balanceSet ? t('¿No es tu plata real? Corrígela') : t('¿Ya tenías plata cuando empezaste? Dinos cuánta tienes hoy')}
-          </Link>
+          <div className="flex flex-wrap gap-x-5 text-[13px] font-medium text-ink/70">
+            {negative && (
+              <Link to="/app/gastos" className={linkClass}>
+                {t('Revisa tus gastos')}
+              </Link>
+            )}
+            <Link to="/app/mi-plata/corregir" className={linkClass}>
+              {balanceSet ? t('¿No es tu plata real? Corrígela') : t('¿Ya tenías plata cuando empezaste? Dinos cuánta tienes hoy')}
+            </Link>
+          </div>
         )}
       </div>
 

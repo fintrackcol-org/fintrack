@@ -62,6 +62,18 @@ describe('MobileHome (Rinde v5)', () => {
     expect(html).not.toContain('Libre para gastar');
   });
 
+  it('en negativo: un solo aviso en la tarjeta, sin «te faltan para tus pagos» ni la nota repetida', () => {
+    const html = render({ balance: -500000, plan: { ...plan, money: -500000, pendingTotal: 0, free: -500000, shortfall: 500000 } });
+    expect(html).toContain('Estás en negativo · estimado');
+    expect(html).not.toContain('Te faltan');
+    expect(html.split('Tus gastos superan lo que tienes').length - 1).toBe(1);
+    expect(html).toContain('Revisa tus gastos');
+  });
+
+  it('un monto largo en «Este mes» se achica en vez de cortarse', () => {
+    expect(render({ plan, totals: { income: 7529000, expense: 1 } })).toMatch(/text-lg[^>]*>\+ \$/);
+  });
+
   it('sin plan (sin conexión o sin configurar) vuelve a la tarjeta de Mi plata', () => {
     const html = render({ plan: null });
     expect(html).not.toContain('Libre para gastar');

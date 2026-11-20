@@ -391,10 +391,10 @@ export default function Anotar() {
     );
   }
 
-  const kakeiboHint = KAKEIBO.find((k) => k.key === form.kakeibo)?.hint;
+  const kakeibo = KAKEIBO.find((k) => k.key === form.kakeibo);
 
   return (
-    <div className="mx-auto flex min-h-[70dvh] max-w-md flex-col gap-4 max-md:overflow-x-hidden max-md:motion-safe:animate-screen-up max-md:bg-surface max-md:fixed max-md:inset-0 max-md:z-50 max-md:max-w-none max-md:overflow-y-auto max-md:px-4 max-md:pb-[max(1rem,env(safe-area-inset-bottom))] max-md:pt-[max(1rem,env(safe-area-inset-top))]">
+    <div className="mx-auto flex min-h-[70dvh] max-w-md flex-col gap-4 max-md:overflow-x-hidden max-md:motion-safe:animate-screen-up max-md:bg-surface max-md:fixed max-md:inset-0 max-md:z-50 max-md:max-w-none max-md:overflow-y-auto max-md:px-4 max-md:pt-[max(1rem,env(safe-area-inset-top))]">
       <div className="flex items-center gap-3">
         <h1 className="flex-1 text-2xl font-bold tracking-tight">{expense ? t('Anotar un gasto') : t('Anotar un ingreso')}</h1>
         <button
@@ -651,33 +651,6 @@ export default function Anotar() {
             }}
           />
         </div>
-
-        {expense && (
-          <div className="flex flex-col gap-1.5">
-            <p id="anotar-kakeibo" className="text-xs font-semibold uppercase tracking-[0.08em] text-ink/60">
-              {t('¿Podías evitarlo?')} <span className="font-normal normal-case tracking-normal">{t('(opcional)')}</span>
-            </p>
-            <div role="group" aria-labelledby="anotar-kakeibo" className="grid grid-cols-4 gap-1.5">
-              {KAKEIBO.map(({ key, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  aria-pressed={form.kakeibo === key}
-                  onClick={() => set({ kakeibo: toggle(form.kakeibo, key) })}
-                  className={cn(
-                    'min-h-11 rounded-lg px-1 text-[12px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-violet',
-                    form.kakeibo === key ? 'bg-brand text-white' : 'bg-surface text-ink ring-1 ring-ink/10',
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <p className="text-[12px] text-ink/60" aria-live="polite">
-              {kakeiboHint ?? t('Necesidad, deseo, cultura o imprevisto: te ayuda a ver en qué podrías ahorrar.')}
-            </p>
-          </div>
-        )}
       </section>
 
       {/* Lo que casi nunca cambia queda plegado: fecha, tarjeta, cuotas y soportes. */}
@@ -695,6 +668,7 @@ export default function Anotar() {
               {' '}
               · {form.date === today() ? t('Hoy') : form.date}
               {expense && ` · ${form.card === CASH || !cardOk ? t('Efectivo o débito') : t('Tarjeta')}`}
+              {expense && kakeibo && ` · ${kakeibo.label}`}
               {(form.files?.length ?? 0) > 0 && t(' · {length} soporte{v2}', { length: form.files.length, v2: form.files.length === 1 ? '' : 's' })}
             </span>
           </span>
@@ -734,23 +708,52 @@ export default function Anotar() {
                 </p>
               </div>
             )}
+            {expense && (
+              <div className="flex flex-col gap-1.5">
+                <p id="anotar-kakeibo" className="text-xs font-semibold uppercase tracking-[0.08em] text-ink/60">
+                  {t('¿Podías evitarlo?')} <span className="font-normal normal-case tracking-normal">{t('(opcional)')}</span>
+                </p>
+                <div role="group" aria-labelledby="anotar-kakeibo" className="grid grid-cols-4 gap-1.5">
+                  {KAKEIBO.map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={form.kakeibo === key}
+                      onClick={() => set({ kakeibo: toggle(form.kakeibo, key) })}
+                      className={cn(
+                        'min-h-11 rounded-lg px-1 text-[12px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-violet',
+                        form.kakeibo === key ? 'bg-brand text-white' : 'bg-surface text-ink ring-1 ring-ink/10',
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[12px] text-ink/60" aria-live="polite">
+                  {kakeibo?.hint ?? t('Necesidad, deseo, cultura o imprevisto: te ayuda a ver en qué podrías ahorrar.')}
+                </p>
+              </div>
+            )}
             <AttachmentPicker files={form.files ?? []} onChange={(files) => set({ files })} limits={attachmentLimits} />
           </div>
         )}
       </div>
 
-      {error && (
-        <p role="alert" className="text-sm text-negative">
-          {error}
-        </p>
-      )}
-      {askBig === converted && <BigAmountWarning amount={converted} />}
-      <Button size="lg" className="mt-auto" disabled={saving} onClick={save}>
-        {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {askBig === converted
-          ? t('Sí, guardar {converted}', { converted: formatMoney(converted) })
-          : `${expense ? t('Guardar gasto') : t('Guardar ingreso')}${converted ? ` · ${formatMoney(converted)}` : ''}`}
-      </Button>
+      {/* En el celular guardar queda fijo abajo, con sus avisos: siempre a la vista sin bajar. shrink-0: si no, se aplasta. */}
+      <div className="mt-auto flex shrink-0 flex-col gap-3 max-md:sticky max-md:bottom-0 max-md:-mx-4 max-md:bg-surface max-md:px-4 max-md:pb-[max(1rem,env(safe-area-inset-bottom))] max-md:pt-3">
+        {error && (
+          <p role="alert" className="text-sm text-negative">
+            {error}
+          </p>
+        )}
+        {askBig === converted && <BigAmountWarning amount={converted} />}
+        <Button size="lg" disabled={saving} onClick={save}>
+          {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
+          {askBig === converted
+            ? t('Sí, guardar {converted}', { converted: formatMoney(converted) })
+            : `${expense ? t('Guardar gasto') : t('Guardar ingreso')}${converted ? ` · ${formatMoney(converted)}` : ''}`}
+        </Button>
+      </div>
 
       <VoiceEntry
         open={voice}
