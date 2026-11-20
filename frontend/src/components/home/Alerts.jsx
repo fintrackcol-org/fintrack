@@ -23,7 +23,7 @@ export default function Alerts() {
   const inView = useInView(ref, { once: true, amount: 0.45 });
 
   return (
-    <section ref={ref} id="alertas" className="scroll-mt-20 overflow-hidden bg-obsidian py-24 text-white md:py-32">
+    <section ref={ref} id="alertas" className="scroll-mt-20 overflow-hidden bg-obsidian py-16 text-white sm:py-24 md:py-32">
       <div className="container-page grid items-center gap-14 lg:grid-cols-2">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-orchid">Alertas</p>

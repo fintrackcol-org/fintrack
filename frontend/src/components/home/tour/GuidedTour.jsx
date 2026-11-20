@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronDown, ChevronUp, Loader2, Pause, Play, RotateCcw, SkipBack, SkipForward, VolumeX, X } from 'lucide-react';
@@ -23,6 +23,16 @@ const ICON_BUTTON =
 const SHELL =
   'fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 bg-obsidian/95 text-white shadow-[0_20px_50px_-15px_rgba(0,0,0,0.6)] ring-1 ring-white/10 backdrop-blur-md';
 
+/**
+ * Pantallas donde el reproductor arranca minimizado: celulares en vertical (menos de 640 px de
+ * ancho) y en horizontal (menos de 500 px de alto). Ahí el completo tapaba media sección.
+ */
+const COMPACT = '(max-width: 639px), (max-height: 500px)';
+
+/** Cuánto va de cada tramo (0 a 1), un tramo por frase. */
+const fills = (progress, done) =>
+  TOUR_SEGMENTS.map((s) => (done ? 1 : Math.min(Math.max((progress * TOUR_DURATION - s.start) / (s.end - s.start), 0), 1)));
+
 const TourContext = createContext({ status: 'idle', start: () => {} });
 
 /** `start` y `status` del recorrido, para el botón "Comenzar" del hero. */
@@ -31,16 +41,26 @@ export const useTour = () => useContext(TourContext);
 /**
  * Reproductor flotante. Completo: anterior, pausa/seguir, siguiente, la sección y la frase que
  * suenan (subtítulos), minimizar, cerrar y el avance por secciones (cada tramo lleva a la suya).
- * Minimizado: una pastilla en la esquina con pausa/seguir, la sección, ampliar y cerrar.
+ * Minimizado (por defecto en celular): una barra de 56 px con pausa/seguir, la sección, el avance,
+ * ampliar y cerrar; los subtítulos siguen ahí para lectores de pantalla y se ven al ampliar.
  * Escape cierra el recorrido. Al terminar invita a crear la cuenta.
  */
 function TourPlayer({ tour }) {
-  const { status, index, text, progress, muted, loading, pause, resume, start, stop, goTo } = tour;
-  const [mini, setMini] = useState(false);
+  const { status, index, text, progress, muted, loading, pause, resume, start, stop, goTo, remeasure } = tour;
+  const [mini, setMini] = useState(() => window.matchMedia(COMPACT).matches);
   const playing = status === 'playing';
   const done = status === 'done';
   const segment = TOUR_SEGMENTS[index];
   const label = done ? 'Fin del recorrido' : LABELS[segment.id];
+
+  // El recorrido ubica cada sección entre la barra de arriba y este reproductor: si cambia de
+  // alto (al aparecer, minimizar o ampliar), se vuelve a medir.
+  const ref = useRef(null);
+  useEffect(() => {
+    const ro = new ResizeObserver(() => remeasure());
+    ro.observe(ref.current);
+    return () => ro.disconnect();
+  }, [mini, remeasure]);
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && stop();
@@ -89,9 +109,37 @@ function TourPlayer({ tour }) {
 
   if (mini) {
     return (
-      <motion.div key="mini" {...motionProps} className={cn(SHELL, 'right-3 flex items-center gap-1 rounded-full p-1.5')}>
+      <motion.div
+        key="mini"
+        ref={ref}
+        {...motionProps}
+        className={cn(SHELL, 'inset-x-0 mx-auto flex w-[calc(100%-1.5rem)] max-w-sm items-center gap-1 rounded-full p-1.5')}
+      >
         {main}
-        <p className="max-w-32 truncate px-2 text-sm font-medium">{label}</p>
+        {done ? (
+          <Link to="/registro" className="flex min-h-11 min-w-0 flex-1 items-center gap-1.5 px-2 text-sm font-semibold">
+            Crear cuenta gratis <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+          </Link>
+        ) : (
+          <div className="min-w-0 flex-1 px-2">
+            <p className="truncate text-sm font-medium">
+              {label}
+              {loading && <span className="font-normal text-white/50"> · cargando…</span>}
+              {status === 'paused' && <span className="font-normal text-white/50"> · en pausa</span>}
+              {muted && <span className="font-normal text-white/50"> · sin audio</span>}
+            </p>
+            <div className="mt-1.5 flex gap-0.5" aria-hidden="true">
+              {fills(progress, done).map((fill, i) => (
+                <span key={TOUR_SEGMENTS[i].id} className="h-[3px] overflow-hidden rounded-full bg-white/15" style={{ flex: `${TOUR_SEGMENTS[i].end - TOUR_SEGMENTS[i].start} 1 0%` }}>
+                  <span className="block h-full origin-left rounded-full bg-violet-light" style={{ transform: `scaleX(${fill})` }} />
+                </span>
+              ))}
+            </div>
+            <p aria-live={muted ? 'polite' : 'off'} className="sr-only">
+              {text}
+            </p>
+          </div>
+        )}
         <button type="button" onClick={() => setMini(false)} aria-label="Ampliar el reproductor" className={ICON_BUTTON}>
           <ChevronUp className="size-5" aria-hidden="true" />
         </button>
@@ -103,6 +151,7 @@ function TourPlayer({ tour }) {
   return (
     <motion.div
       key="full"
+      ref={ref}
       {...motionProps}
       className={cn(SHELL, 'inset-x-0 mx-auto w-[calc(100%-1.5rem)] max-w-3xl rounded-[1.75rem] p-2 pb-3')}
     >
@@ -169,9 +218,8 @@ function TourPlayer({ tour }) {
 
       {/* Avance por secciones: un tramo por frase, proporcional a lo que dura; tocarlo lleva a esa sección. */}
       <div className="mt-1 flex gap-1 px-2">
-        {TOUR_SEGMENTS.map((s, i) => {
-          const t = progress * TOUR_DURATION;
-          const fill = done ? 1 : Math.min(Math.max((t - s.start) / (s.end - s.start), 0), 1);
+        {fills(progress, done).map((fill, i) => {
+          const s = TOUR_SEGMENTS[i];
           return (
             <button
               key={s.id}

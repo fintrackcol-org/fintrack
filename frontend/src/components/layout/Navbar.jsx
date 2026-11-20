@@ -18,13 +18,21 @@ const NAV_LINKS = [
 /**
  * Barra de navegación fija y oscura. Se vuelve translúcida al hacer scroll
  * y en móvil abre un panel desplegable (hamburguesa), como en la plantilla.
+ * En celular mide 64 px y su botón cambia según dónde va la persona: arriba, "Iniciar sesión"
+ * (quien vuelve; el hero ya tiene "Crear cuenta"); pasado el hero, "Crear cuenta". Los dos
+ * ocupan la misma casilla, así la barra nunca cambia de alto ni de ancho.
  */
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [pastHero, setPastHero] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 12);
+      const hero = document.getElementById('inicio');
+      setPastHero(!!hero && window.scrollY > hero.offsetHeight - 80);
+    };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -47,7 +55,7 @@ export default function Navbar() {
       )}
     >
       <nav
-        className="container-page flex h-20 items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr]"
+        className="container-page flex h-16 items-center justify-between lg:grid lg:h-20 lg:grid-cols-[1fr_auto_1fr]"
         aria-label={t('Principal')}
       >
         <Logo />
@@ -74,20 +82,32 @@ export default function Navbar() {
           </Button>
         </div>
 
-        {/* En móvil, "Iniciar sesión" queda siempre a la vista junto al menú. */}
+        {/* En móvil, una acción siempre a la vista junto al menú (ver arriba). */}
         <div className="flex items-center gap-1 lg:hidden">
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="rounded-full border border-white/15 px-3.5 text-white hover:bg-white/10 hover:text-white motion-safe:transition-[color,background-color,transform] motion-safe:active:scale-[0.97]"
-          >
-            <Link to="/login">{t('Iniciar sesión')}</Link>
-          </Button>
+          <div className="grid [&>*]:[grid-area:1/1]">
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className={cn(
+                'h-10 rounded-full border border-white/15 px-3.5 text-white transition-[opacity,visibility,color,background-color] duration-200 hover:bg-white/10 hover:text-white',
+                pastHero && 'invisible opacity-0',
+              )}
+            >
+              <Link to="/login">{t('Iniciar sesión')}</Link>
+            </Button>
+            <Button
+              asChild
+              size="sm"
+              className={cn('h-10 rounded-full px-3.5 transition-[opacity,visibility,background-color] duration-200', !pastHero && 'invisible opacity-0')}
+            >
+              <Link to="/registro">{t('Crear cuenta')}</Link>
+            </Button>
+          </div>
           <Button
             variant="ghost"
             size="icon"
-            className="[&_svg]:size-6"
+            className="size-11 [&_svg]:size-6"
             aria-label={open ? t('Cerrar menú') : t('Abrir menú')}
             aria-expanded={open}
             aria-controls="mobile-menu"
@@ -102,7 +122,7 @@ export default function Navbar() {
         {open && (
           <motion.div
             id="mobile-menu"
-            className="h-[calc(100dvh-5rem-env(safe-area-inset-top))] overflow-y-auto border-t border-white/10 bg-black lg:hidden"
+            className="h-[calc(100dvh-4rem-env(safe-area-inset-top))] overflow-y-auto border-t border-white/10 bg-black lg:hidden"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
