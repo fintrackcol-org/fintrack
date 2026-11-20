@@ -66,7 +66,15 @@ if (isOldHost(window.location.hostname)) {
     );
 } else {
   ready
-    .then(() => Promise.all([import('./App.jsx'), import('./auth/AuthContext.jsx')]))
+    .then(() =>
+      Promise.all([
+        import('./App.jsx'),
+        import('./auth/AuthContext.jsx'),
+        // Dentro de /app el marco se pide a la vez que la app, no un salto después (App lo carga con
+        // lazy para que la landing y el login no lo bajen).
+        window.location.pathname.startsWith('/app') && import('./components/layout/AppShell.jsx'),
+      ]),
+    )
     .then(([{ default: App }, { AuthProvider }]) =>
       createRoot(document.getElementById('root')).render(
         <StrictMode>

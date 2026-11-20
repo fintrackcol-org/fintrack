@@ -147,7 +147,7 @@ export default function TransactionDetail() {
       {/* Rinde v2: el tipo y la categoría arriba en pequeño, la descripción como título y el monto grande. */}
       <div className="flex flex-col gap-2">
         <p className="text-[13px] text-ink/60">
-          {income ? tr('Ingreso') : tr('Gasto')} · {categoryName}
+          {income ? tr('Ingreso') : t.category === 'ahorro_inversion' ? tr('Ahorro') : tr('Gasto')} · {categoryName}
         </p>
         <h1 className="text-2xl font-bold tracking-tight">{t.description}</h1>
         <p className={cn('text-[40px] font-extrabold leading-[44px] tracking-[-0.02em] tabular-nums', income && 'text-positive')}>

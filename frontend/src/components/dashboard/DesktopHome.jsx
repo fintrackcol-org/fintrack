@@ -155,7 +155,7 @@ function RecentTable({ recent, error, names, money }) {
                     </Link>
                   </td>
                   <td className="py-3 pr-3 max-xl:hidden">{t.category ? (names[t.category] ?? t.category) : tr('Sin clasificar')}</td>
-                  <td className="py-3 pr-3 text-ink/60">{income ? tr('Ingreso') : (kakeiboOf(t.kakeibo)?.label ?? tr('Gasto'))}</td>
+                  <td className="py-3 pr-3 text-ink/60">{income ? tr('Ingreso') : t.category === 'ahorro_inversion' ? tr('Ahorro') : (kakeiboOf(t.kakeibo)?.label ?? tr('Gasto'))}</td>
                   <td className={cn('py-3 text-right font-semibold tabular-nums', income && 'text-positive')}>
                     {income ? '+ ' : '− '}
                     {money(t.amount)}
@@ -172,7 +172,8 @@ function RecentTable({ recent, error, names, money }) {
 
 /** Lo que viene: pagos fijos, cobros y cuentas desde hoy, del calendario de Mi plata. */
 function UpcomingCard({ events, money, today }) {
-  const next = events?.filter((e) => e.date >= today && e.status !== 'pagado').slice(0, UPCOMING);
+  // Los atrasados van primero (vienen por fecha): siguen pendientes aunque el día ya pasó.
+  const next = events?.filter((e) => (e.date >= today || e.status === 'atrasado') && e.status !== 'pagado').slice(0, UPCOMING);
   return (
     <Card title={tr('Próximos pagos fijos')} to="/app/calendario" linkLabel={tr('Calendario')}>
       {next === undefined ? (
@@ -191,6 +192,7 @@ function UpcomingCard({ events, money, today }) {
               <li key={`${e.kind}-${e.id}-${e.date}`} className="flex items-center justify-between gap-3 py-3 text-sm">
                 <span className="min-w-0 text-ink/70">
                   {shortDay(e.date)} · {incoming ? tr('Te paga {name}', { name: e.name }) : e.name}
+                  {e.status === 'atrasado' && <span className="ml-2 font-medium text-negative">{tr('Atrasado')}</span>}
                 </span>
                 <span className={cn('shrink-0 font-semibold tabular-nums', incoming && 'text-positive')}>
                   {incoming ? '+ ' : ''}

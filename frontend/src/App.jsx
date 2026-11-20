@@ -4,9 +4,11 @@ import ErrorBoundary, { hasChunkFailed } from '@/components/common/ErrorBoundary
 import ScrollMemory from '@/components/common/ScrollMemory';
 import UpdatePrompt from '@/components/common/UpdatePrompt';
 import ProtectedRoute from '@/auth/ProtectedRoute';
-import AppShell from '@/components/layout/AppShell';
 
 // Code splitting por ruta: cada página (también la landing, con framer-motion) se descarga solo al visitarla.
+// El marco de la app (menú, barra rápida, cola offline con Dexie) solo hace falta con sesión:
+// la landing y el login no lo bajan (auditoría H4).
+const AppShell = lazy(() => import('@/components/layout/AppShell'));
 const Home = lazy(() => import('@/pages/Home'));
 const Login = lazy(() => import('@/pages/auth/Login'));
 const Register = lazy(() => import('@/pages/auth/Register'));

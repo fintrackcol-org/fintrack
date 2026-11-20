@@ -98,6 +98,10 @@ cd backend && DATABASE_URL="postgresql://rinde:<clave>@localhost:5435/rinde" AUT
 `./infra/aws/aws.sh up` crea la API con `CORS_ORIGIN=http://localhost:5173`. Corre el frontend con
 `VITE_API_URL=https://<ip>.sslip.io npm run dev`.
 
+> **Vistas previas de Vercel (auditoría H10).** QA solo acepta los orígenes de `CORS_ORIGIN`: el alias
+> estable de `develop` y `localhost:5173`. La URL única de cada vista previa de un PR queda bloqueada
+> a propósito (es lo seguro): para probar un PR contra QA usa el alias de `develop` o el frontend local.
+
 ## Costo esperado (us-east-1, precios de lista)
 
 | Recurso | Al mes |

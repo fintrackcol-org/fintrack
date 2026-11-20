@@ -5,7 +5,8 @@ const money = (value) => `$${value}`;
 const names = { vivienda: 'Vivienda' };
 const card = (daysToPayment, extra = {}) => ({ id: 7, network: 'visa', name: 'Mi Visa', last4: '4242', used: 320000, daysToPayment, paidThisCycle: false, ...extra });
 const budget = (level, percentage = level === 'exceeded_100' ? 120 : 89) => ({ category: 'vivienda', amount: 450000, consumed: 400000, percentage, alert: { level, percentage } });
-const pending = [{ name: 'Internet', amount: 90000, date: '2026-11-08' }];
+// Fecha lejana: el aviso dice «vence» solo si el día no ha pasado.
+const pending = [{ name: 'Internet', amount: 90000, date: '2999-11-08' }];
 const pick = (data) => pickHomeNotice({ names, money, ...data });
 
 describe('pickHomeNotice', () => {
@@ -31,6 +32,11 @@ describe('pickHomeNotice', () => {
 
   it('el pago pendiente va antes que el presupuesto cerca del límite y una tarjeta lejana', () => {
     expect(pick({ cards: [card(12)], budgets: [budget('warning_80')], pending }).title).toContain('Internet vence');
+  });
+
+  it('un pago con la fecha ya pasada dice «venció», no «vence» (auditoría H3)', () => {
+    const late = [{ name: 'Arriendo', amount: 500000, date: '2020-11-05' }];
+    expect(pick({ pending: late }).title).toBe('Arriendo venció el 5 de noviembre');
   });
 
   it('el presupuesto cerca del límite va antes que una tarjeta lejana', () => {

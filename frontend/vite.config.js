@@ -99,8 +99,9 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   build: {
-    // Junta los chunks diminutos (cada ícono de lucide salía en su propio archivo de ~1 KB):
-    // menos peticiones antes del primer pintado. Valor en bytes sin comprimir.
-    rollupOptions: { output: { experimentalMinChunkSize: 20_000 } },
+    // Cada ícono de lucide salía en su propio archivo de ~1 KB: van juntos en uno. Antes se usaba
+    // `experimentalMinChunkSize`, pero pegaba módulos compartidos a páginas enteras y el login
+    // terminaba bajando Notificaciones y Dexie (266 KB gzip de JS; auditoría H4).
+    rollupOptions: { output: { manualChunks: (id) => (id.includes('lucide-react') ? 'icons' : undefined) } },
   },
 })

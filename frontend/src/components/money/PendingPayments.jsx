@@ -75,7 +75,7 @@ export default function PendingPayments({ pending, notice = false }) {
                       <p className="min-w-0 flex-1 text-[15px]">
                         {visible.length > 1 && <span className="block text-xs font-medium text-ink/70">{t('1 de')} {visible.length}</span>}
                         <strong className="block font-semibold">
-                          {payment.name} {t('vence el')} {dayAndMonth(payment.date)}
+                          {payment.name} {payment.date < todayIso() ? t('venció el') : t('vence el')} {dayAndMonth(payment.date)}
                         </strong>
                         {formatMoney(payment.amount)}
                       </p>
