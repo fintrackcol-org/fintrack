@@ -373,3 +373,21 @@
   background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
   backdrop-filter: blur(12px);
 }
+
+/*
+ * Recorrido con voz: al llegar a una sección (ya en su sitio, bajo el velo del fundido) sus
+ * bloques entran en cascada, primero el título y luego el resto. `backwards`: al terminar, cada
+ * bloque vuelve a sus propios estilos.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  [data-tour-enter] .container-page > * {
+    animation: var(--animate-rise);
+    animation-fill-mode: backwards;
+  }
+  [data-tour-enter] .container-page > :nth-child(2) {
+    animation-delay: 80ms;
+  }
+  [data-tour-enter] .container-page > :nth-child(n + 3) {
+    animation-delay: 160ms;
+  }
+}

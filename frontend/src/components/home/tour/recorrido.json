@@ -1,53 +1,115 @@
 {
-  "duration": 56.87,
+  "duration": 65.8,
   "segments": [
     {
       "id": "inicio",
-      "text": "Hola. Esto es Rinde: todos tus ingresos y gastos en un solo lugar. Te lo muestro en un minuto.",
-      "start": 0.0,
-      "end": 7.99
+      "start": 0.12,
+      "end": 12.04,
+      "lines": [
+        {
+          "start": 0.12,
+          "text": "A ver, ¿no te ha pasado que te entra plata y, cuando menos lo esperas, ya no sabes en qué se fue?"
+        },
+        {
+          "start": 6.38,
+          "text": "Porque una cosa es tener plata, y otra muy distinta es saber qué está pasando con ella."
+        }
+      ]
     },
     {
       "id": "que-es",
-      "text": "Tus gastos, tus ingresos, tus presupuestos, y hasta las cuentas de tu negocio, en una sola app que funciona incluso sin internet.",
-      "start": 8.34,
-      "end": 17.34
+      "move": "glide",
+      "start": 12.44,
+      "end": 28.94,
+      "lines": [
+        {
+          "start": 12.44,
+          "text": "Ahí entra Rinde: una app que no solo te ayuda a anotar tus gastos, sino a entender tu dinero y tomar mejores decisiones."
+        },
+        {
+          "start": 20.14,
+          "text": "Aquí tienes tus ingresos, gastos, presupuestos y hasta las cuentas de tu negocio. Todo en un mismo lugar."
+        },
+        {
+          "start": 26.78,
+          "text": "Y sí, también funciona sin internet."
+        }
+      ]
     },
     {
       "id": "como-funciona",
-      "text": "Registrar es así de fácil: escribes o dices «almuerzo dieciocho mil», y la inteligencia artificial le pone la categoría por ti.",
-      "start": 17.69,
-      "end": 26.47
+      "move": "glide",
+      "start": 29.5,
+      "end": 37.28,
+      "lines": [
+        {
+          "start": 29.5,
+          "text": "¿Anotar un gasto? Facilísimo. Solo escribes o dices «almuerzo, dieciocho mil»."
+        },
+        {
+          "start": 34.64,
+          "text": "Y Rinde te ayuda a organizarlo automáticamente."
+        }
+      ]
     },
     {
       "id": "funcionalidades",
-      "text": "Ves en qué se te va la plata, le pones un límite a cada categoría, y llevas lo que debes y lo que te deben.",
-      "start": 26.82,
-      "end": 33.73
+      "start": 37.82,
+      "end": 43.94,
+      "lines": [
+        {
+          "start": 37.82,
+          "text": "¿Quieres saber en qué se te está yendo la plata? Puedes descubrirlo, establecer límites y tener más claras tus cuentas."
+        }
+      ]
     },
     {
       "id": "alertas",
-      "text": "Y antes de que te pases del presupuesto, Rinde te avisa.",
-      "start": 34.08,
-      "end": 38.33
+      "start": 44.24,
+      "end": 48.38,
+      "lines": [
+        {
+          "start": 44.24,
+          "text": "Y si te acercas a un límite, Rinde te avisa para que puedas decidir con tiempo."
+        }
+      ]
     },
     {
       "id": "app",
-      "text": "La instalas desde el navegador, en tu celular o en tu computador.",
-      "start": 38.68,
-      "end": 43.34
+      "start": 48.76,
+      "end": 53.34,
+      "lines": [
+        {
+          "start": 48.76,
+          "text": "Además, puedes instalarla desde tu navegador, tanto en el celular como en el computador."
+        }
+      ]
     },
     {
       "id": "seguridad",
-      "text": "Tus datos están protegidos: la inteligencia artificial nunca ve tu nombre ni tu correo.",
-      "start": 43.69,
-      "end": 49.57
+      "start": 53.78,
+      "end": 59.08,
+      "lines": [
+        {
+          "start": 53.78,
+          "text": "Y como tu información financiera es personal, proteger tus datos es parte fundamental de Rinde."
+        }
+      ]
     },
     {
       "id": "empieza",
-      "text": "Crea tu cuenta gratis en menos de un minuto. Rinde: tu plata, bajo control.",
-      "start": 49.92,
-      "end": 56.52
+      "start": 59.5,
+      "end": 65.62,
+      "lines": [
+        {
+          "start": 59.5,
+          "text": "¿Lo mejor? Puedes empezar gratis y descubrirlo a tu ritmo."
+        },
+        {
+          "start": 63.48,
+          "text": "Rinde: tu plata, bajo control."
+        }
+      ]
     }
   ]
 }
