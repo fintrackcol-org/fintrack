@@ -1,16 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Download } from 'lucide-react';
+import { Check, Download, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import useInstallPrompt from '@/hooks/useInstallPrompt';
+import { chromeIntentUrl } from '@/lib/google';
 import { cn } from '@/lib/utils';
+import { INSTALL_GUIDES, installPlatform } from './installGuide';
 import { handleTabKeys } from './tabKeys';
-
-const STEPS = [
-  'Abre Rinde en el navegador',
-  'Agrégala a tu pantalla de inicio',
-  'Ábrela como cualquier otra app, incluso sin internet',
-];
 
 /**
  * Pantallas reales de la app (390 × 844, tema claro) con la cuenta de ejemplo de la vista
@@ -88,12 +84,16 @@ function Phone({ active }) {
 
 /**
  * "Tus finanzas, en el bolsillo": la app instalable (PWA), mostrada con pantallas reales en un
- * celular. La persona elige cuál ver (no cambian solas). Si el navegador permite instalarla
- * muestra "Instalar app"; si no, invita a crear la cuenta.
+ * celular. La persona elige cuál ver (no cambian solas).
+ * Los pasos para instalarla son los de su dispositivo (`installGuide`): con botón si el navegador
+ * lo permite, desde Compartir en iPhone, desde el menú en Android, o abriendo Safari/Chrome si
+ * está en el navegador interno de otra app. Nada aparece solo ni en ventanas emergentes.
  */
 export default function AppDevices() {
   const { canInstall, isInstalled, install } = useInstallPrompt();
   const [active, setActive] = useState(0);
+  const [platform] = useState(() => installPlatform());
+  const guide = INSTALL_GUIDES[canInstall ? 'prompt' : platform];
 
   return (
     <section id="app" className="scroll-mt-20 bg-white py-16 sm:py-24 md:py-32">
@@ -106,28 +106,52 @@ export default function AppDevices() {
           <p className="mt-6 max-w-md text-lg text-muted-foreground md:text-xl">
             Rinde es una aplicación web progresiva: rápida, liviana y lista para usarse sin conexión.
           </p>
-          <ol className="mt-9 space-y-4">
-            {STEPS.map((step) => (
-              <li key={step} className="flex items-center gap-3 text-lg">
-                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-violet text-white">
-                  <Check className="size-4" aria-hidden="true" />
-                </span>
-                {step}
-              </li>
-            ))}
-          </ol>
-          <div className="mt-10">
-            {isInstalled ? (
-              <p className="font-medium text-emerald-700">Ya tienes Rinde instalada en este dispositivo.</p>
-            ) : canInstall ? (
+          {isInstalled ? (
+            <p className="mt-9 flex items-center gap-3 text-lg font-medium text-emerald-700">
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-mint text-emerald-800">
+                <Check className="size-4" aria-hidden="true" />
+              </span>
+              Ya tienes Rinde instalada en este dispositivo.
+            </p>
+          ) : (
+            <>
+              <h3 className="mt-9 text-sm font-semibold uppercase tracking-[0.12em] text-obsidian/60">
+                Cómo instalarla · {guide.title}
+              </h3>
+              <ol className="mt-4 space-y-4">
+                {guide.steps.map((step, i) => (
+                  <li key={step} className="flex items-start gap-3 text-lg">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-violet text-sm font-semibold text-white">
+                      {i + 1}
+                    </span>
+                    <span className="pt-0.5">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+          <div className="mt-10 flex flex-wrap gap-3">
+            {!isInstalled && canInstall && (
               <Button size="lg" className="rounded-full px-7" onClick={install}>
                 <Download /> Instalar app
               </Button>
-            ) : (
+            )}
+            {!isInstalled && !canInstall && platform === 'android-inapp' && (
               <Button asChild size="lg" className="rounded-full px-7">
-                <Link to="/registro">Empieza gratis</Link>
+                <a href={chromeIntentUrl()}>
+                  <ExternalLink /> Abrir en Chrome
+                </a>
               </Button>
             )}
+            {/* Crear la cuenta siempre está; es la acción principal cuando no hay otra. */}
+            <Button
+              asChild
+              size="lg"
+              variant={canInstall || platform === 'android-inapp' ? 'outline-light' : 'default'}
+              className="rounded-full px-7"
+            >
+              <Link to="/registro">Empieza gratis</Link>
+            </Button>
           </div>
         </div>
 
