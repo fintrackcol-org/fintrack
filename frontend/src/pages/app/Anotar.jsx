@@ -26,7 +26,7 @@ import { attachedText } from '@/lib/attachedText';
 import { cn } from '@/lib/utils';
 import { currencySymbol, formatIn, getRegion, isAbroad, localCurrency } from '@/lib/region';
 import { parseSpokenTransaction } from '@/lib/voiceEntry';
-import { today, transactionSchema } from '@/lib/validation/transaction';
+import { today } from '@/lib/validation/dates';
 import { saveNewTransaction } from '@/offline/saveNewTransaction';
 import { uploadPending } from '@/services/attachmentService';
 import { listBudgets } from '@/services/budgetService';
@@ -68,10 +68,13 @@ export function pressKey(amount, key) {
 
 /**
  * Lo anotado, listo para guardar como lo haría el formulario de Movimientos (mismas reglas).
+ * @param {object} form Lo anotado.
+ * @param {import('zod').ZodType} schema `transactionSchema`: quien llama lo importa al guardar, así zod
+ *   no se descarga con la página (auditoría H4).
  * @returns {{ values?: object, error?: string }}
  */
-export function toTransaction({ type, amount, description, category, date, card, installments = '1', kakeibo = null }) {
-  const parsed = transactionSchema.safeParse({
+export function toTransaction({ type, amount, description, category, date, card, installments = '1', kakeibo = null }, schema) {
+  const parsed = schema.safeParse({
     type,
     amount,
     description: description.trim(),
@@ -271,7 +274,8 @@ export default function Anotar() {
       const field = { amount: amountField, description: descriptionField, rate: rateField }[missing];
       return setTimeout(() => field.current?.focus(), 0);
     }
-    const checked = toTransaction({ ...form, amount: String(converted), description, card: cardOk ? form.card : CASH });
+    const { transactionSchema } = await import('@/lib/validation/transaction');
+    const checked = toTransaction({ ...form, amount: String(converted), description, card: cardOk ? form.card : CASH }, transactionSchema);
     if (checked.error) return setError(checked.error);
     // El servidor vuelve a calcular el monto con lo pagado allá y la tasa.
     const values = foreign ? { ...checked.values, original: { currency, amount, rate: effectiveRate } } : checked.values;

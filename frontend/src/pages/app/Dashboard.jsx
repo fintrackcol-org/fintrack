@@ -11,7 +11,7 @@ import useHiddenAmounts from '@/hooks/useHiddenAmounts';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
-import { SYNC_EVENT, listCached, listPending } from '@/offline/sync';
+import { SYNC_EVENT, listCached, listPending } from '@/offline/lazySync';
 import { TRANSACTION_SAVED_EVENT } from '@/offline/saveNewTransaction';
 import { todayIso } from '@/lib/period';
 import { listBudgets } from '@/services/budgetService';

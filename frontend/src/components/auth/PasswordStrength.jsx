@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { passwordStrength } from '@/lib/validation/auth';
+import { passwordStrength } from '@/lib/validation/passwordStrength';
 import { t } from '@/lib/i18n';
 
 const TONE = { 1: 'bg-negative', 2: 'bg-violet-light', 3: 'bg-success' };

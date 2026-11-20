@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import AuthLayout from '@/components/auth/AuthLayout';
 import CheckInbox from '@/components/auth/CheckInbox';
@@ -15,9 +14,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getReturnTo, invitationKind } from '@/auth/returnTo';
 import usePageTitle from '@/hooks/usePageTitle';
-import { registerSchema } from '@/lib/validation/auth';
+import { lazyResolver } from '@/lib/validation/lazyResolver';
 import { register as registerUser, resendVerification } from '@/services/authService';
 import { t } from '@/lib/i18n';
+
+// zod baja al validar por primera vez, no con la página.
+const resolver = lazyResolver(() => import('@/lib/validation/auth').then((m) => m.registerSchema));
 
 /**
  * Pantalla de registro (Rinde v2): nombre, correo y una contraseña con su fuerza en vivo. Valida en el
@@ -37,7 +39,7 @@ export default function Register() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(registerSchema),
+    resolver,
     defaultValues: {
       name: '',
       email: '',

@@ -18,7 +18,7 @@ import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { DEBT_WORDS, dueText, initials, progressText, shortDate } from '@/lib/debts';
 import { cn } from '@/lib/utils';
-import { uncacheTransaction } from '@/offline/sync';
+import { uncacheTransaction } from '@/offline/lazySync';
 import {
   addDebtPayment,
   createDebt,

@@ -1,6 +1,7 @@
 /** Tarjetas de crédito: llama a `/api/v1/cards`. */
 import { apiRequest } from '@/lib/apiRequest';
-import { cacheCardList, getCachedCardList } from '@/offline/cardCache';
+// La copia local trae Dexie: se carga al usarla, no con la página (auditoría H4).
+const loadCache = () => import('@/offline/cardCache');
 
 /**
  * Tarjetas del usuario. Guarda copia local; sin red devuelve la última copia.
@@ -9,11 +10,11 @@ import { cacheCardList, getCachedCardList } from '@/offline/cardCache';
 export async function listCards() {
   try {
     const cards = await apiRequest('/cards');
-    await cacheCardList(cards);
+    await loadCache().then((m) => m.cacheCardList(cards));
     return cards;
   } catch (err) {
     if (err.code !== 'NETWORK_ERROR') throw err;
-    const cached = await getCachedCardList();
+    const cached = await loadCache().then((m) => m.getCachedCardList());
     if (cached) return cached;
     throw err;
   }

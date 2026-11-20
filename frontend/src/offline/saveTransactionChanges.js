@@ -1,4 +1,4 @@
-import { cacheTransaction, queueUpdate } from './sync';
+import { cacheTransaction, queueUpdate } from './lazySync';
 import { updateTransaction } from '@/services/transactionService';
 
 /**

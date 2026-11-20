@@ -1,7 +1,7 @@
 import { CloudUpload, WifiOff } from 'lucide-react';
 import { formatDate, formatMoney } from '@/components/transactions/format';
 import { Button } from '@/components/ui/button';
-import { discardPending } from '@/offline/sync';
+import { discardPending } from '@/offline/lazySync';
 import { t as tr } from '@/lib/i18n';
 import { dateLocale } from '@/lib/region';
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import ChipGroup from '@/components/common/ChipGroup';
 import { Input } from '@/components/ui/input';
-import { FUTURE_DATE_MESSAGE, today } from '@/lib/validation/transaction';
+import { FUTURE_DATE_MESSAGE, today } from '@/lib/validation/dates';
 import { t } from '@/lib/i18n';
 
 /** Ayer en la zona del dispositivo, como AAAA-MM-DD. */
