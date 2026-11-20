@@ -61,7 +61,8 @@ function Panel({ title, description, onClose, children }) {
       ),
     ];
     // El primer campo editable del contenido (no la X de cerrar ni un enlace de solo lectura).
-    (focusable().find((el) => !el.dataset.sheetClose && !el.readOnly && el.tagName !== 'BUTTON') ?? panelRef.current).focus();
+    // Tampoco una lista: en el iPhone, una lista que ya tiene el foco a veces no abre su rueda al tocarla.
+    (focusable().find((el) => !el.dataset.sheetClose && !el.readOnly && !['BUTTON', 'SELECT'].includes(el.tagName)) ?? panelRef.current).focus();
     const unlockScroll = lockScroll();
     const onKeyDown = (event) => {
       if (event.key === 'Escape') onCloseRef.current();

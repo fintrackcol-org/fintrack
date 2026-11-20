@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupByDay, withAdjustments } from '@/components/money/MovementList';
+import { groupByDay, summaryLine, withAdjustments } from '@/components/money/MovementList';
 import { formatRelativeDay } from '@/components/transactions/format';
 
 describe('groupByDay', () => {
@@ -36,5 +36,30 @@ describe('withAdjustments (FT-0062)', () => {
 
   it('un mes sin movimientos igual muestra sus ajustes', () => {
     expect(withAdjustments([], adjustments, true).map((r) => [r.id, r.adjustment])).toEqual([['x', true], ['y', true]]);
+  });
+});
+
+describe('summaryLine', () => {
+  const rows = [
+    { type: 'gasto', amount: 100 },
+    { type: 'ingreso', amount: 40 },
+    { adjustment: true },
+  ];
+
+  it('con todo cargado suma lo que hay en la lista', () => {
+    const line = summaryLine(rows, false, 2);
+    expect(line).toContain('2 movimientos');
+    expect(line).toMatch(/gastos \S*\s?100\b/);
+  });
+
+  it('con páginas por cargar usa el total y las sumas del periodo, no lo visible', () => {
+    const line = summaryLine(rows, false, 57, { gasto: 9000, ingreso: 7000 });
+    expect(line).toContain('57 movimientos');
+    expect(line).toMatch(/9[.,]?000/);
+    expect(line).not.toMatch(/gastos \S*\s?100\b/);
+  });
+
+  it('sin sumas del periodo (filtro o sin conexión) dice solo cuántos hay', () => {
+    expect(summaryLine(rows, false, 57)).toBe('57 movimientos');
   });
 });

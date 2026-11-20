@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react';
-import { currentMonth, formatMonth, shiftMonth } from '@/components/budgets/month';
+import { ChevronDown, Loader2, Search } from 'lucide-react';
+import PeriodSelector from '@/components/dashboard/PeriodSelector';
+import { periodLabel, periodRange, todayIso } from '@/lib/period';
 import CategoryIcon from '@/components/categories/CategoryIcon';
 import Sheet from '@/components/common/Sheet';
 import useFreshIds from '@/hooks/useFreshIds';
 import { cn } from '@/lib/utils';
 import useCategoryNames from '@/hooks/useCategoryNames';
-import { monthRange } from '@/services/summaryService';
+import { getSummary } from '@/services/summaryService';
 import AdjustmentRow from '@/components/money/AdjustmentRow';
 import MovementRow from '@/components/transactions/MovementRow';
 import SwipeRow from '@/components/transactions/SwipeRow';
@@ -67,15 +68,21 @@ const CHIP = 'flex h-11 shrink-0 items-center gap-1 rounded-full border px-3 tex
 const chipTone = (selected) => (selected ? 'border-2 border-brand bg-brand-soft font-semibold text-brand' : 'border-ink/15 bg-surface');
 
 /**
- * "7 movimientos · gastos $ 144.600 · ingresos $ 700.000", de lo que muestra la lista.
+ * "7 movimientos · gastos $ 144.600 · ingresos $ 700.000", de todo el periodo y no solo de lo cargado.
  * @param {Array<{ type?: string, amount?: number, adjustment?: boolean }>} rows
  * @param {boolean} hidden
+ * @param {number|null} [total] Cuántos movimientos hay en total (con las páginas sin cargar).
+ * @param {{ gasto: number, ingreso: number }|null} [sums] Totales del periodo, si se conocen.
  */
-export function summaryLine(rows, hidden) {
+export function summaryLine(rows, hidden, total = null, sums = null) {
   const list = rows.filter((r) => !r.adjustment);
-  const sum = (type) => list.filter((r) => r.type === type).reduce((a, r) => a + r.amount, 0);
+  // Con páginas por cargar, sumar lo visible daría un total falso: se usan los del periodo o solo la cuenta.
+  const all = total === null || list.length >= total;
+  const length = all ? list.length : total;
+  const sum = (type) => (all ? list.filter((r) => r.type === type).reduce((a, r) => a + r.amount, 0) : sums[type]);
   const money = (v) => (hidden ? '••••' : formatMoney(v));
-  const count = list.length === 1 ? t('1 movimiento') : t('{length} movimientos', { length: list.length });
+  const count = length === 1 ? t('1 movimiento') : t('{length} movimientos', { length });
+  if (!all && !sums) return count;
   return t('{count} · gastos {money} · ingresos {money2}', { count, money: money(sum('gasto')), money2: money(sum('ingreso')) });
 }
 
@@ -87,7 +94,10 @@ export function summaryLine(rows, hidden) {
  */
 export default function MovementList({ names, hidden = false, standalone = false }) {
   const [text, setText] = useState('');
-  const [month, setMonth] = useState(currentMonth);
+  const [view, setView] = useState(() => ({ period: 'month', date: todayIso() }));
+  const { from, to } = periodRange(view.period, view.date);
+  const label = periodLabel(view.period, view.date);
+  const [sums, setSums] = useState(null); // gastos e ingresos de todo el periodo
   const [type, setType] = useState('');
   const [category, setCategory] = useState('');
   const [picking, setPicking] = useState(false);
@@ -151,7 +161,7 @@ export default function MovementList({ names, hidden = false, standalone = false
   useEffect(() => {
     let cancelled = false;
     setBusy(true);
-    const query = { q, type, category, ...monthRange(month), page, pageSize: PAGE_SIZE };
+    const query = { q, type, category, from, to, page, pageSize: PAGE_SIZE };
     listTransactions(query)
       .catch(async (err) => {
         if (err.code !== 'NETWORK_ERROR') throw err;
@@ -175,18 +185,30 @@ export default function MovementList({ names, hidden = false, standalone = false
     return () => {
       cancelled = true;
     };
-  }, [q, type, category, month, page, version]);
+  }, [q, type, category, from, to, page, version]);
 
-  // Correcciones de saldo del mes. Sin conexión (o si fallan) el historial se ve igual, sin ellas.
+  // Correcciones de saldo del periodo. Sin conexión (o si fallan) el historial se ve igual, sin ellas.
   useEffect(() => {
     let cancelled = false;
-    listBalanceAdjustments(monthRange(month))
+    listBalanceAdjustments({ from, to })
       .then((list) => !cancelled && setAdjustments(list))
       .catch(() => !cancelled && setAdjustments([]));
     return () => {
       cancelled = true;
     };
-  }, [month, version]);
+  }, [from, to, version]);
+
+  // Totales del periodo para la línea de resumen. Si fallan, la línea dice solo cuántos hay.
+  useEffect(() => {
+    let cancelled = false;
+    setSums(null);
+    getSummary(view.period, view.date)
+      .then((s) => !cancelled && setSums({ gasto: s.expense.total, ingreso: s.income.total }))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [view.period, view.date, version]);
 
   const filtered = Boolean(q || type || category);
   // Un ajuste no tiene tipo, categoría ni descripción: con un filtro puesto no aparece.
@@ -198,16 +220,10 @@ export default function MovementList({ names, hidden = false, standalone = false
   const fresh = useFreshIds(result?.data);
   // Cambios en la cola de cada movimiento; un `create` aún no tiene fila propia en la lista.
   const syncStatus = useMemo(() => new Map(pending.filter((o) => o.serverId).map((o) => [o.serverId, o.rejected ? 'rejected' : 'pending'])), [pending]);
-  const monthName = formatMonth(month).replace(new RegExp(` de ${currentMonth().slice(0, 4)}$`), '');
   const expense = categories?.expense ?? [];
   const income = categories?.income ?? [];
   const categoryOptions = type === 'ingreso' ? income : type === 'gasto' ? expense : [...expense, ...income];
   const categoryName = [...expense, ...income].find((c) => c.key === category)?.name;
-
-  const changeMonth = (delta) => {
-    setMonth((m) => shiftMonth(m, delta));
-    setPage(1);
-  };
 
   const pickType = (value) => {
     setType(value);
@@ -217,26 +233,17 @@ export default function MovementList({ names, hidden = false, standalone = false
 
   return (
     <section id="movimientos" ref={sectionRef} aria-labelledby="movimientos-title" className="scroll-mt-4">
-      <div className={cn('flex items-center gap-2', standalone ? 'justify-end' : 'justify-between')}>
-        <h2 id="movimientos-title" className={cn('text-lg font-semibold tracking-tight', standalone && 'sr-only')}>
-          {t('Movimientos')}
-        </h2>
-        <div className="-mr-2 flex items-center text-sm font-medium text-brand">
-          <button type="button" aria-label={t('Mes anterior')} className="grid size-11 place-items-center" onClick={() => changeMonth(-1)}>
-            <ChevronLeft className="size-4" aria-hidden="true" />
-          </button>
-          <span aria-live="polite" className="first-letter:uppercase">{monthName}</span>
-          <button
-            type="button"
-            aria-label={t('Mes siguiente')}
-            className="grid size-11 place-items-center disabled:opacity-40"
-            disabled={month >= currentMonth()}
-            onClick={() => changeMonth(1)}
-          >
-            <ChevronRight className="size-4" aria-hidden="true" />
-          </button>
-        </div>
-      </div>
+      <h2 id="movimientos-title" className={cn('text-lg font-semibold tracking-tight', standalone && 'sr-only')}>
+        {t('Movimientos')}
+      </h2>
+      {/* El mismo selector del resumen: semana, mes o año, flechas y salto directo a otro periodo. */}
+      <PeriodSelector
+        stacked
+        period={view.period}
+        date={view.date}
+        onChange={(next) => (setView(next), setPage(1))}
+        className={standalone ? undefined : 'mt-3'}
+      />
 
       <label className="mt-2 flex h-12 items-center gap-2.5 rounded-full bg-ink/5 px-4 text-ink/60 focus-within:ring-2 focus-within:ring-brand/40">
         <Search className="size-[18px] shrink-0" aria-hidden="true" />
@@ -310,12 +317,12 @@ export default function MovementList({ names, hidden = false, standalone = false
         </p>
       ) : result && rows.length === 0 ? (
         <p className="py-8 text-center text-ink/60">
-          {filtered ? t('Ningún movimiento coincide con la búsqueda.') : t('No hay movimientos en {toLowerCase}.', { toLowerCase: monthName.toLowerCase() })}
+          {filtered ? t('Ningún movimiento coincide con la búsqueda.') : t('No hay movimientos en {toLowerCase}.', { toLowerCase: label.toLowerCase() })}
         </p>
       ) : (
         <div aria-busy={busy} className={cn('transition-opacity duration-150', busy && 'opacity-50')}>
           {/* Rinde v2: cuántos movimientos y cuánto suman, antes de la lista. */}
-          {standalone && rows.length > 0 && <p className="mt-3 text-[13px] text-ink/60">{summaryLine(rows, hidden)}</p>}
+          {standalone && rows.length > 0 && <p className="mt-3 text-[13px] text-ink/60">{summaryLine(rows, hidden, result.total, filtered ? null : sums)}</p>}
           {groups.map(({ date, day, items }) => (
           <div key={date}>
             <h3 className={cn('mb-1 mt-4 text-sm font-medium text-ink/60', standalone && 'text-xs font-semibold uppercase tracking-[0.08em]')}>{day}</h3>

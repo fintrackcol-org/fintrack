@@ -58,6 +58,10 @@ export default function CountrySettings({ onSaved }) {
       <p role="status" className="min-h-0 text-sm text-ink/60 empty:hidden">
         {notice}
       </p>
+      {/* El botón apagado sin explicación parecía un error: se dice por qué. */}
+      {country === current.country && !notice && (
+        <p className="text-sm text-ink/60">{t('Ya estás en {country}. Elige otro país para cambiarlo.', { country: countryName(country) })}</p>
+      )}
       <Button size="lg" disabled={saving || country === current.country} onClick={save}>
         {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
         {t('Guardar país')}
