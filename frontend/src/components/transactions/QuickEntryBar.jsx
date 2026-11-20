@@ -1,7 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUp, Mic, Zap } from 'lucide-react';
-import VoiceEntry from '@/components/transactions/VoiceEntry';
 import useAsync from '@/hooks/useAsync';
 import { canDictate as browserCanDictate } from '@/hooks/useSpeechRecognition';
 import { isAbroad } from '@/lib/region';
@@ -9,6 +8,9 @@ import { cn } from '@/lib/utils';
 import { getCategories } from '@/services/transactionService';
 import useKeyboardInset from '@/hooks/useKeyboardInset';
 import { t } from '@/lib/i18n';
+
+// La ventana de voz (con framer-motion) se descarga al abrirla la primera vez (auditoría H4).
+const VoiceEntry = lazy(() => import('@/components/transactions/VoiceEntry'));
 
 /**
  * Barra rápida para anotar un movimiento (FT-0013), fija abajo en Inicio y Movimientos. Se
@@ -22,6 +24,9 @@ export default function QuickEntryBar() {
   const [text, setText] = useState('');
   // Qué abre la ventana: la frase escrita, o el micrófono escuchando de una vez.
   const [entry, setEntry] = useState(null);
+  // Una vez abierta se queda montada: así conserva su animación de cierre.
+  const opened = useRef(false);
+  if (entry !== null) opened.current = true;
   // "Escribir en vez de hablar": el cursor va a la barra cuando la ventana termina de cerrarse.
   const focusOnClose = useRef(false);
   const keyboard = useKeyboardInset();
@@ -95,20 +100,24 @@ export default function QuickEntryBar() {
           </button>
         )}
       </form>
-      <VoiceEntry
-        open={entry !== null}
-        onClose={() => setEntry(null)}
-        onEdit={edit}
-        onSaved={() => setText('')}
-        names={names}
-        text={entry?.text}
-        autoStart={entry?.autoStart}
-        onClosed={() => {
-          if (!focusOnClose.current) return;
-          focusOnClose.current = false;
-          inputRef.current?.focus();
-        }}
-      />
+      {opened.current && (
+        <Suspense fallback={null}>
+          <VoiceEntry
+            open={entry !== null}
+            onClose={() => setEntry(null)}
+            onEdit={edit}
+            onSaved={() => setText('')}
+            names={names}
+            text={entry?.text}
+            autoStart={entry?.autoStart}
+            onClosed={() => {
+              if (!focusOnClose.current) return;
+              focusOnClose.current = false;
+              inputRef.current?.focus();
+            }}
+          />
+        </Suspense>
+      )}
     </>
   );
 }
