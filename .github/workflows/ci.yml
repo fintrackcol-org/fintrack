@@ -88,6 +88,8 @@ jobs:
         run: |
           npm audit --audit-level=high >/dev/null 2>&1 && exit 0
           echo "::warning title=npm audit (${PWD##*/})::Hay vulnerabilidades altas o críticas en herramientas de desarrollo (no llegan al despliegue). Revisa 'npm audit' en ${PWD##*/}."
+      - name: Traducciones completas (falla si falta alguna en inglés o portugués)
+        run: npm run i18n -- --check
       - run: npm test
       - run: npm run build
 

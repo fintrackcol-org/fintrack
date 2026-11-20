@@ -109,7 +109,12 @@ export async function authFetch(path, { method = 'GET', body, headers = {} } = {
   };
 
   const before = getSession();
-  const res = await send(before?.accessToken);
+  // Sesión cerrada: lo que quedó montado no sale a la red a recibir un 401 seguro.
+  if (!before) {
+    expire();
+    return new Response(JSON.stringify({ error: { code: 'UNAUTHORIZED' } }), { status: 401 });
+  }
+  const res = await send(before.accessToken);
   if (res.status !== 401) return res;
   // Sin sesión guardada (se cerró o venció en otra ventana): al login, no 401 en silencio.
   // `authFetch` solo se usa con rutas que piden sesión, así que no hay 401 "esperados" aquí.
