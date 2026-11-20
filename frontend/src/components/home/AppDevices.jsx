@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Download, Flag, Home, List, Wallet, WifiOff } from 'lucide-react';
+import { Check, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { LogoMark } from '@/components/common/Logo';
 import useInstallPrompt from '@/hooks/useInstallPrompt';
 import { cn } from '@/lib/utils';
+import { handleTabKeys } from './tabKeys';
 
 const STEPS = [
   'Abre Rinde en el navegador',
@@ -11,114 +12,74 @@ const STEPS = [
   'Ábrela como cualquier otra app, incluso sin internet',
 ];
 
-/** Gastos del mes por categoría (los mismos datos de ejemplo de la app). */
-const CATEGORIES = [
-  { name: 'Alimentación', amount: '$412.000', pct: 38, tone: 'bg-violet' },
-  { name: 'Transporte', amount: '$238.000', pct: 22, tone: 'bg-violet-light' },
-  { name: 'Vivienda', amount: '$216.000', pct: 20, tone: 'bg-orchid' },
-];
-
-/** Pestañas de la app: las mismas cuatro de la barra inferior. */
-const TABS = [
-  { icon: Home, label: 'Inicio', on: true },
-  { icon: List, label: 'Movimientos' },
-  { icon: Wallet, label: 'Mi plata' },
-  { icon: Flag, label: 'Metas' },
+/**
+ * Pantallas reales de la app (390 × 844, tema claro) con la cuenta de ejemplo de la vista
+ * simulada. Se rehacen cuando cambie la app; `bg` es el fondo de cada una, para la barra de estado.
+ */
+const SCREENS = [
+  {
+    id: 'inicio',
+    label: 'Inicio',
+    caption: 'Lo que tienes libre para gastar, de un vistazo.',
+    alt: 'Pantalla de Inicio de Rinde: 412.300 pesos libres para gastar, ingresos y gastos del mes y el próximo pago de la tarjeta.',
+    bg: '#f5f4f9',
+  },
+  {
+    id: 'anotar',
+    label: 'Anotar',
+    caption: 'Escribes o dices el gasto, y la IA le pone la categoría.',
+    alt: 'Pantalla para anotar un gasto en Rinde: monto, descripción con micrófono y la categoría que elige la IA.',
+    bg: '#ffffff',
+  },
+  {
+    id: 'movimientos',
+    label: 'Movimientos',
+    caption: 'Todo lo que entra y sale, por semana, mes o año.',
+    alt: 'Pantalla de Movimientos de Rinde: los gastos de noviembre por día, con su categoría y su monto.',
+    bg: '#f5f4f9',
+  },
 ];
 
 /**
- * Pantalla de Inicio de la app, en tema oscuro: saldo, hasta cuándo alcanza, gastos por
- * categoría y la barra de pestañas. Es una ilustración: nada aquí es interactivo.
+ * Celular: marco con botones laterales e isla, en la proporción de un celular real (9:19,5).
+ * Adentro, una barra de estado de 24 px y la captura, que a cualquier ancho llena lo que queda.
+ * Las tres capturas están apiladas y se cruzan con un fundido al cambiar de pantalla.
  */
-function AppScreen() {
+function Phone({ active }) {
+  const screen = SCREENS[active];
   return (
-    <div className="flex h-full flex-col bg-obsidian text-white">
-      {/* Barra de estado del celular */}
-      <div className="flex items-center justify-between px-6 pt-3 text-[11px] font-semibold">
-        <span>9:41</span>
-        <span className="flex items-center gap-1">
-          <span className="h-2 w-3.5 rounded-[2px] border border-white/80" />
-        </span>
-      </div>
-
-      <div className="flex flex-1 flex-col gap-3 overflow-hidden px-4 pt-6">
-        <div className="flex items-center gap-2">
-          <LogoMark className="size-7" />
-          <span className="text-sm font-semibold">Hola, Ana</span>
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/70">
-            <WifiOff className="size-3" aria-hidden="true" />
-            Sin conexión
-          </span>
-        </div>
-
-        <div className="relative overflow-hidden rounded-3xl bg-violet p-4">
-          <span className="absolute -right-10 -top-10 size-28 rounded-full border-[18px] border-white/15" />
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/80">Mi plata · noviembre</p>
-          <p className="mt-1 text-[28px] font-extrabold leading-tight tracking-[-0.02em]">$412.300</p>
-          <div className="relative mt-3 h-1 rounded-full bg-white/30">
-            <div className="h-full w-[64%] rounded-full bg-white" />
-            <span className="absolute left-[64%] top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-mint" />
-          </div>
-          <p className="mt-2 text-[11px] text-white/85">Te alcanza 14 días más</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-2xl bg-white/[0.06] p-3">
-            <p className="text-[10px] uppercase tracking-[0.08em] text-white/55">Ingresos</p>
-            <p className="mt-0.5 text-sm font-bold text-mint">+$700.000</p>
-          </div>
-          <div className="rounded-2xl bg-white/[0.06] p-3">
-            <p className="text-[10px] uppercase tracking-[0.08em] text-white/55">Gastos</p>
-            <p className="mt-0.5 text-sm font-bold">$287.700</p>
-          </div>
-        </div>
-
-        <div className="rounded-2xl bg-white/[0.06] p-3">
-          <p className="text-xs font-semibold">En qué gastas</p>
-          <ul className="mt-2 space-y-2.5">
-            {CATEGORIES.map(({ name, amount, pct, tone }) => (
-              <li key={name}>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-white/75">{name}</span>
-                  <span className="font-semibold">{amount}</span>
-                </div>
-                <div className="mt-1 h-1 rounded-full bg-white/10">
-                  <div className={cn('h-full rounded-full', tone)} style={{ width: `${pct * 2}%` }} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      {/* Barra de pestañas */}
-      <div className="grid grid-cols-4 border-t border-white/10 bg-[#1f1f23] px-2 pb-5 pt-2">
-        {TABS.map(({ icon: Icon, label, on }) => (
-          <span key={label} className={cn('flex flex-col items-center gap-0.5 text-[9px] font-semibold', on ? 'text-violet-light' : 'text-white/45')}>
-            <Icon className="size-4" aria-hidden="true" />
-            {label}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Celular: marco con borde, botones laterales e isla. Mantiene la proporción de un celular
- * real (9:19,5), así la pantalla nunca se ve aplastada ni estirada.
- */
-function Phone() {
-  return (
-    <div role="img" aria-label="La pantalla de Inicio de Rinde en un celular: te quedan 412.300 pesos y te alcanza 14 días más" className="relative w-[min(300px,78vw)]">
-      {/* Botones laterales */}
+    <div className="relative w-[min(300px,78vw)]">
       <span className="absolute -left-[3px] top-[22%] h-10 w-[3px] rounded-l bg-obsidian/80" aria-hidden="true" />
       <span className="absolute -left-[3px] top-[32%] h-14 w-[3px] rounded-l bg-obsidian/80" aria-hidden="true" />
       <span className="absolute -right-[3px] top-[28%] h-16 w-[3px] rounded-r bg-obsidian/80" aria-hidden="true" />
       <div className="aspect-[9/19.5] rounded-[3rem] bg-obsidian p-2.5 shadow-[0_40px_80px_-30px_rgba(20,20,20,0.6),inset_0_0_0_1px_rgba(255,255,255,0.08)]">
-        <div className="relative size-full overflow-hidden rounded-[2.5rem]">
-          <span className="absolute left-1/2 top-2.5 z-10 h-6 w-24 -translate-x-1/2 rounded-full bg-black" aria-hidden="true" />
-          <AppScreen />
+        <div
+          className="relative flex size-full flex-col overflow-hidden rounded-[2.5rem] transition-colors duration-200"
+          style={{ backgroundColor: screen.bg }}
+        >
+          <div className="flex h-6 shrink-0 items-center justify-between px-7 text-[11px] font-semibold text-obsidian" aria-hidden="true">
+            <span>9:41</span>
+            <span className="h-2 w-3.5 rounded-[2px] border border-obsidian/70" />
+          </div>
+          <span className="absolute left-1/2 top-1 z-10 h-5 w-20 -translate-x-1/2 rounded-full bg-black" aria-hidden="true" />
+          <div className="relative flex-1">
+            {SCREENS.map((s, i) => (
+              <img
+                key={s.id}
+                src={`/screenshots/landing/${s.id}.webp`}
+                alt={i === active ? s.alt : ''}
+                aria-hidden={i !== active}
+                width={390}
+                height={844}
+                loading="lazy"
+                decoding="async"
+                className={cn(
+                  'absolute inset-x-0 top-0 h-auto w-full motion-safe:transition-opacity motion-safe:duration-200',
+                  i === active ? 'opacity-100' : 'opacity-0',
+                )}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -126,11 +87,13 @@ function Phone() {
 }
 
 /**
- * "Tus finanzas, en el bolsillo": la app instalable (PWA), mostrada en un celular.
- * Si el navegador permite instalarla muestra "Instalar app"; si no, invita a crear la cuenta.
+ * "Tus finanzas, en el bolsillo": la app instalable (PWA), mostrada con pantallas reales en un
+ * celular. La persona elige cuál ver (no cambian solas). Si el navegador permite instalarla
+ * muestra "Instalar app"; si no, invita a crear la cuenta.
  */
 export default function AppDevices() {
   const { canInstall, isInstalled, install } = useInstallPrompt();
+  const [active, setActive] = useState(0);
 
   return (
     <section id="app" className="scroll-mt-20 bg-white py-16 sm:py-24 md:py-32">
@@ -168,14 +131,43 @@ export default function AppDevices() {
           </div>
         </div>
 
-        {/* El celular, sobre un fondo suave; la etiqueta recuerda que funciona sin internet. */}
-        <div className="relative flex justify-center rounded-[2rem] bg-pink/60 px-6 py-10 sm:py-12">
+        {/* El celular sobre un fondo suave, las pestañas para elegir la pantalla y qué muestra cada una. */}
+        <div className="flex flex-col items-center gap-6 rounded-[2rem] bg-pink/60 px-4 py-8 sm:px-6 sm:py-12">
           <div className="relative">
-            <Phone />
+            <Phone active={active} />
             <p className="absolute -left-6 bottom-24 hidden items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-obsidian shadow-[0_18px_40px_-16px_rgba(20,20,20,0.35)] sm:flex">
               <span className="size-2.5 rounded-full bg-mint ring-4 ring-mint/40" aria-hidden="true" />
               Se guarda aunque no tengas señal
             </p>
+          </div>
+          <div
+            role="tablist"
+            aria-label="Pantallas de la app"
+            onKeyDown={(e) => handleTabKeys(e, active, SCREENS.length, setActive)}
+            className="flex flex-wrap justify-center gap-2"
+          >
+            {SCREENS.map(({ id, label }, i) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                id={`pantalla-${id}`}
+                aria-selected={i === active}
+                aria-controls="pantalla-app"
+                tabIndex={i === active ? 0 : -1}
+                onClick={() => setActive(i)}
+                className={cn(
+                  'h-11 rounded-full px-5 font-medium transition-colors',
+                  i === active ? 'bg-obsidian text-white' : 'bg-white text-obsidian hover:bg-white/70',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div id="pantalla-app" role="tabpanel" aria-labelledby={`pantalla-${SCREENS[active].id}`} className="-mt-2 text-center">
+            <p className="text-base font-medium text-obsidian">{SCREENS[active].caption}</p>
+            <p className="mt-1 text-sm text-obsidian/60">Pantallas reales de Rinde, con datos de ejemplo.</p>
           </div>
         </div>
       </div>
