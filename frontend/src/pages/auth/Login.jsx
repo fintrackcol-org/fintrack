@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import AuthLayout from '@/components/auth/AuthLayout';
 import FormField from '@/components/auth/FormField';
@@ -12,11 +11,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import usePageTitle from '@/hooks/usePageTitle';
-import { loginSchema } from '@/lib/validation/auth';
+import { lazyResolver } from '@/lib/validation/lazyResolver';
 import { ACCOUNT_DELETED_KEY, useAuth } from '@/auth/AuthContext';
 import { getReturnTo, invitationKind } from '@/auth/returnTo';
 import { resendVerification } from '@/services/authService';
 import { t } from '@/lib/i18n';
+
+// zod baja al validar por primera vez, no con la página.
+const resolver = lazyResolver(() => import('@/lib/validation/auth').then((m) => m.loginSchema));
 
 /**
  * Pantalla de inicio de sesión. Valida en el cliente (zod), inicia la sesión con `signIn`
@@ -46,7 +48,7 @@ export default function Login() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(loginSchema),
+    resolver,
     defaultValues: { email: location.state?.email ?? '', password: '', remember: false },
   });
   // El correo escrito pasa a "¿Olvidaste tu contraseña?" para no tener que escribirlo otra vez.

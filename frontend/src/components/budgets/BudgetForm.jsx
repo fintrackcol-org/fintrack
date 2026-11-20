@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import FormField from '@/components/auth/FormField';
 import CategoryIcon from '@/components/categories/CategoryIcon';
 import CategoryPicker from '@/components/categories/CategoryPicker';
 import { Button } from '@/components/ui/button';
 import MoneyInput from '@/components/common/MoneyInput';
-import { budgetSchema } from '@/lib/validation/budget';
+import { lazyResolver } from '@/lib/validation/lazyResolver';
 import { t } from '@/lib/i18n';
 
 /**
@@ -21,6 +20,9 @@ function toDefaults(initial) {
     amount: initial ? String(initial.amount) : '',
   };
 }
+
+// zod baja al validar por primera vez, no con la página.
+const resolver = lazyResolver(() => import('@/lib/validation/budget').then((m) => m.budgetSchema));
 
 /**
  * Formulario para crear un presupuesto del mes que se está viendo, o cambiar el límite de uno
@@ -53,7 +55,7 @@ export default function BudgetForm({
     reset,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm({ resolver: zodResolver(budgetSchema), defaultValues: toDefaults(initial) });
+  } = useForm({ resolver, defaultValues: toDefaults(initial) });
 
   // Al elegir otro presupuesto para editar (o volver a "nuevo") se recargan los valores.
   useEffect(() => {

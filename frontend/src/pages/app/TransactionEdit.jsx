@@ -14,7 +14,7 @@ import usePageTitle from '@/hooks/usePageTitle';
 import { canGoBack } from '@/lib/backPath';
 import { getRegion } from '@/lib/region';
 import { saveNewTransaction } from '@/offline/saveNewTransaction';
-import { cacheTransaction, queueUpdate } from '@/offline/sync';
+import { cacheTransaction, queueUpdate } from '@/offline/lazySync';
 import { uploadPending } from '@/services/attachmentService';
 import { listCards } from '@/services/cardService';
 import {

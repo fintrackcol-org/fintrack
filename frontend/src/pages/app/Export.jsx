@@ -12,7 +12,7 @@ import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { downloadFile } from '@/lib/downloadFile';
 import { cn } from '@/lib/utils';
-import { today } from '@/lib/validation/transaction';
+import { today } from '@/lib/validation/dates';
 import { exportTransactions, previewReport } from '@/services/reportService';
 import { monthRange } from '@/services/summaryService';
 import { t } from '@/lib/i18n';

@@ -16,7 +16,7 @@ import ConflictList from '@/components/transactions/ConflictList';
 import { CachedNotice, PendingList } from '@/components/transactions/SyncNotices';
 import { formatDate, formatMoney, formatRelativeDay } from '@/components/transactions/format';
 import { Button } from '@/components/ui/button';
-import { SYNC_EVENT, dismissConflicts, listCached, listConflicts, listPending } from '@/offline/sync';
+import { SYNC_EVENT, dismissConflicts, listCached, listConflicts, listPending } from '@/offline/lazySync';
 import { TRANSACTION_SAVED_EVENT } from '@/offline/saveNewTransaction';
 import { listBalanceAdjustments } from '@/services/moneyProfileService';
 import { listTransactions } from '@/services/transactionService';

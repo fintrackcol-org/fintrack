@@ -4,7 +4,7 @@ import Panel from '@/components/layout/Panel';
 import MovementRow from '@/components/transactions/MovementRow';
 import useAsync from '@/hooks/useAsync';
 import useFreshIds from '@/hooks/useFreshIds';
-import { listCached } from '@/offline/sync';
+import { listCached } from '@/offline/lazySync';
 import { TRANSACTION_SAVED_EVENT } from '@/offline/saveNewTransaction';
 import { listTransactions } from '@/services/transactionService';
 import { t } from '@/lib/i18n';

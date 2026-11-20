@@ -19,14 +19,12 @@ import { plainText } from '@/lib/plainText';
 import { getSession } from '@/auth/tokenStorage';
 import { t } from '@/lib/i18n';
 
-/**
- * Evento en `window`: `detail` es `{ pending, syncing, synced?, rejected?, conflicts?, notices? }`.
- * `conflicts` trae lo que resolvió el servidor (`server_wins`/`client_wins`, con `serverVersion`).
- */
-export const SYNC_EVENT = 'fintrack:sync';
+import { SYNC_EVENT, SYNC_TAG } from './syncEvents';
 
-/** Etiqueta de Background Sync; el service worker la recibe en `public/push-sw.js`. */
-export const SYNC_TAG = 'fintrack-sync';
+// `SYNC_EVENT` en `window`: `detail` es `{ pending, syncing, synced?, rejected?, conflicts?, notices? }`.
+// `conflicts` trae lo que resolvió el servidor (`server_wins`/`client_wins`, con `serverVersion`).
+// `SYNC_TAG`: el service worker la recibe en `public/push-sw.js`.
+export { SYNC_EVENT, SYNC_TAG };
 
 /** Nombre legible de los campos que puede señalar un 422, para el motivo del rechazo. */
 const FIELD_LABELS = {
