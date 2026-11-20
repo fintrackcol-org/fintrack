@@ -7,7 +7,8 @@
  */
 import { authFetch } from '@/lib/authFetch';
 import { registerCategories } from '@/lib/categoryStyles';
-import { db } from '@/offline/db';
+// Dexie pesa ~31 KB gzip: se carga al usarlo, no con el marco de la app (auditoría H4).
+const loadDb = () => import('@/offline/db').then((m) => m.db);
 import { t } from '@/lib/i18n';
 
 /**
@@ -89,10 +90,10 @@ async function request(path, { method = 'GET', body } = {}) {
 export async function getCategories() {
   try {
     const categories = await request('/categories');
-    await db.meta.put({ key: 'categories', value: categories }).catch(() => {});
+    await loadDb().then((db) => db.meta.put({ key: 'categories', value: categories })).catch(() => {});
     return withStyles(categories);
   } catch (err) {
-    const cached = err.code === 'NETWORK_ERROR' && (await db.meta.get('categories').catch(() => null));
+    const cached = err.code === 'NETWORK_ERROR' && (await loadDb().then((db) => db.meta.get('categories')).catch(() => null));
     if (cached) return withStyles(cached.value);
     throw err;
   }
