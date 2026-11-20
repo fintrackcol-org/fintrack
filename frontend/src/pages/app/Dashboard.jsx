@@ -92,6 +92,9 @@ export default function Dashboard() {
   const { reload: reloadBudgets } = budgets;
   const { reload: reloadPlan } = moneyPlan;
   const { reload: reloadCards } = cards;
+  // El saldo de la tarjeta grande sale del perfil y «Próximos pagos» del calendario: también cambian.
+  const { reload: reloadProfile } = moneyProfile;
+  const { reload: reloadCalendar } = calendar;
 
   // Un movimiento nuevo desde la barra rápida (FT-0013): se recargan balance, últimos y presupuestos.
   useEffect(() => {
@@ -101,10 +104,12 @@ export default function Dashboard() {
       reloadBudgets();
       reloadPlan();
       reloadCards();
+      reloadProfile();
+      reloadCalendar();
     };
     window.addEventListener(TRANSACTION_SAVED_EVENT, onSaved);
     return () => window.removeEventListener(TRANSACTION_SAVED_EVENT, onSaved);
-  }, [reloadRecent, reloadSummary, reloadBudgets, reloadPlan, reloadCards]);
+  }, [reloadRecent, reloadSummary, reloadBudgets, reloadPlan, reloadCards, reloadProfile, reloadCalendar]);
 
   useEffect(() => {
     const onSync = ({ detail }) => {
@@ -115,12 +120,14 @@ export default function Dashboard() {
         reloadSummary();
         reloadPlan();
         reloadCards();
+        reloadProfile();
+        reloadCalendar();
       }
     };
     listPending().then((ops) => setPending(ops.length));
     window.addEventListener(SYNC_EVENT, onSync);
     return () => window.removeEventListener(SYNC_EVENT, onSync);
-  }, [reloadRecent, reloadSummary, reloadPlan, reloadCards]);
+  }, [reloadRecent, reloadSummary, reloadPlan, reloadCards, reloadProfile, reloadCalendar]);
 
   // `total` cuenta todos los movimientos del usuario, no solo los de la página pedida.
   // Si hay pendientes offline el usuario ya registró algo: no se le dice que no tiene movimientos.

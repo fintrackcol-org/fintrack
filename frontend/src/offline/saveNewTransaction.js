@@ -1,4 +1,6 @@
-import { cacheTransaction, queueCreate } from './sync';
+// `./sync` trae Dexie (~31 KB gzip): se importa al guardar, no al cargar quien solo escucha el
+// evento (auditoría H4). `useOfflineSync` ya lo deja cargado al abrir la app, también sin conexión.
+const loadSync = () => import('./sync');
 import { createTransaction } from '@/services/transactionService';
 
 /**
@@ -28,11 +30,12 @@ export async function saveNewTransaction(values) {
     created = await createTransaction({ ...values, localId });
   } catch (err) {
     if (err.code !== 'NETWORK_ERROR') throw err;
-    await queueCreate(values, localId);
+    await (await loadSync()).queueCreate(values, localId);
     return announce({ transaction: null, alert: null, offline: true });
   }
   // La copia local es un respaldo: si falla, se corrige en la próxima sincronización.
-  cacheTransaction(created.transaction).catch(() => {});
+  const sync = await loadSync().catch(() => null);
+  sync?.cacheTransaction(created.transaction).catch(() => {});
   return announce({ transaction: created.transaction, alert: created.alert, offline: false });
 }
 

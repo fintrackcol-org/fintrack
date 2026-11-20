@@ -1,6 +1,7 @@
 import { displayLevel } from '@/lib/budgetLevel';
 import { NETWORK_LABELS } from '@/lib/cardStyles';
 import { dayAndMonth } from '@/lib/moneyPlan';
+import { todayIso } from '@/lib/period';
 import { t } from '@/lib/i18n';
 
 /** Días antes del pago en los que la tarjeta pasa por encima de un pago pendiente. */
@@ -44,7 +45,10 @@ export function pickHomeNotice({ cards = [], budgets = [], pending = [], names, 
   if (pending[0]) {
     return {
       to: '/app/mi-plata',
-      title: t('{name} vence el {date}', { name: pending[0].name, date: dayAndMonth(pending[0].date) }),
+      // El plan también trae los atrasados: decir «vence» de una fecha pasada confunde.
+      title: pending[0].date < todayIso()
+        ? t('{name} venció el {date}', { name: pending[0].name, date: dayAndMonth(pending[0].date) })
+        : t('{name} vence el {date}', { name: pending[0].name, date: dayAndMonth(pending[0].date) }),
       detail: money(pending[0].amount),
     };
   }

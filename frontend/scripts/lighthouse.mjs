@@ -58,7 +58,8 @@ async function newUser() {
     email: `lighthouse.${Date.now()}@fintrack.test`,
     password: 'prueba1234',
   });
-  const date = new Date().toISOString().slice(0, 10);
+  // Fecha local (en-CA da AAAA-MM-DD): con UTC, de noche en Colombia ya es «mañana» y la API lo rechaza.
+  const date = new Date().toLocaleDateString('en-CA');
   for (const [type, amount, description] of [
     ['ingreso', 2500000, 'Salario'],
     ['gasto', 85000, 'Mercado'],

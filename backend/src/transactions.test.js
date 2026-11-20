@@ -350,6 +350,17 @@ test('GET /summary sin transacciones responde ceros y listas vacías', options, 
   });
 });
 
+test('doble envío simultáneo con el mismo localId crea un solo movimiento (auditoría H5)', options, async () => {
+  await withApi(async ({ api, alice }) => {
+    const body = { ...GASTO, description: `Doble ${randomUUID()}`, localId: `loc-${randomUUID()}` };
+    const send = () => api('/transactions', { method: 'POST', token: alice, body });
+    const [a, b] = await Promise.all([send(), send()]);
+    assert.equal(a.body.transaction.id, b.body.transaction.id);
+    const list = await api(`/transactions?q=${encodeURIComponent(body.description)}`, { token: alice });
+    assert.equal(list.body.total, 1);
+  });
+});
+
 test('POST con el mismo localId no duplica: devuelve la transacción ya guardada', options, async () => {
   await withApi(async ({ api, alice }) => {
     const body = { ...GASTO, category: 'alimentacion', localId: `loc-${randomUUID()}` };

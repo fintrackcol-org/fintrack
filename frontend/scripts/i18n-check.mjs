@@ -1,6 +1,7 @@
 // Textos de la app y traducciones que faltan. Uso (desde frontend/): npm run i18n
 //   npm run i18n               → cuántos textos hay y cuántos faltan por idioma
 //   npm run i18n -- --missing en   → lista en JSON los que faltan en inglés (para traducirlos)
+//   npm run i18n -- --check        → igual que sin opciones, pero falla si falta alguno (CI)
 // El texto en español es la clave (ver src/lib/i18n.js). Lee los t('…') y tr('…') del código.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -49,6 +50,7 @@ if (wanted > -1) {
     const done = translations(language);
     const missing = [...keys].filter((k) => !done[k]).length;
     const unused = Object.keys(done).filter((k) => !keys.has(k)).length;
-    console.log(`  ${language}: faltan ${missing}${unused ? ` · sobran ${unused} (ya no se usan)` : ''}`);
+    console.log(`  ${language}: faltan ${missing}${unused ? ` · sobran ${unused} (sin t('…') literal; ojo: las categorías fijas se traducen con t(c.name), no las borres)` : ''}`);
+    if (missing && process.argv.includes('--check')) process.exitCode = 1;
   }
 }

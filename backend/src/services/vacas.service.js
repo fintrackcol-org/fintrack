@@ -817,7 +817,7 @@ export async function contribute(userId, id, input) {
   // Primero el gasto (también idempotente por localId) y después el aporte que lo enlaza.
   const transaction = await transactions.create(userId, {
     amount: input.amount,
-    description: `Aporte a la vaca "${vaca.name}"`.slice(0, 200),
+    description: (vaca.personal ? `Aporte a la meta "${vaca.name}"` : `Aporte a la vaca "${vaca.name}"`).slice(0, 200),
     type: 'gasto',
     date: input.date,
     category: input.category ?? DEFAULT_CATEGORY,
