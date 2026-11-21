@@ -10,7 +10,9 @@ desde la landing en el celular se pueda instalar Rinde como app sin bajar hasta 
    un pago de la tarjeta (no debe nada). Sin monto ni saldo. Van aparte de `events` porque Inicio,
    Planear y Mi plata leen `events` como "próximos pagos"; solo la pantalla Calendario los mezcla.
 2. **Hero.** Botón "Instalar app" solo en celular (`md:hidden`). Android: el instalador del navegador
-   (`useInstallPrompt`). iPhone/iPad: una hoja con los pasos de Safari. Oculto si ya está instalada.
+   (`useInstallPrompt`). Si el navegador no lo ofrece (iPhone, navegador de otra app), baja a
+   "App instalable", donde `installGuide` (#235) ya da los pasos de cada dispositivo: una sola guía.
+   Oculto si ya está instalada.
 
 ## Enfoques considerados
 - Corte dentro de `events`: menos código, pero se colaría en "próximos pagos" de varias pantallas. Descartado.

@@ -4,6 +4,7 @@ import { ArrowDown, ArrowRight, BarChart3, Play, Sparkles, WifiOff } from 'lucid
 import { Button } from '@/components/ui/button';
 import FlyingLogo, { LogoArt } from './FlyingLogo';
 import HowItWorks from './HowItWorks';
+import InstallAppButton from './InstallAppButton';
 import Reveal from '@/components/common/Reveal';
 import { useTour } from './tour/GuidedTour';
 
@@ -93,6 +94,7 @@ export default function HeroStage() {
               </Link>
             </Button>
           </div>
+          <InstallAppButton />
           <a href="#que-es" className="inline-flex items-center gap-1.5 text-white/60 transition-colors hover:text-white">
             o baja a tu ritmo <ArrowDown className="size-4 motion-safe:animate-bounce" aria-hidden="true" />
           </a>
