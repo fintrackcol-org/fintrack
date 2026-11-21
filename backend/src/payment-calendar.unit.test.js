@@ -187,6 +187,23 @@ test('una tarjeta sin deuda no sale como pendiente de $0', () => {
   assert.equal(buildPaymentCalendar({ ...base, cards: [zero] }).totals.pending, 1062900);
 });
 
+test('el corte y la fecha límite de la tarjeta salen aparte, sin monto ni cambiar los totales', () => {
+  const dates = (card) =>
+    buildPaymentCalendar({ ...base, cards: [card] }).cardDates.map((d) => [d.kind, d.date, d.amount]);
+  // Con deuda: el pago ya marca la fecha límite, solo se agrega el corte.
+  assert.deepEqual(dates({ ...CARD, cutoffDay: 5, paymentDay: 20 }), [['corte', '2026-11-05', null]]);
+  // Sin deuda: no hay pago, así que sale la fecha límite.
+  assert.deepEqual(dates({ ...CARD, amount: 0, cutoffDay: 5, paymentDay: 20 }), [
+    ['corte', '2026-11-05', null],
+    ['limite', '2026-11-20', null],
+  ]);
+  // Sin día de corte, no se inventa uno.
+  assert.deepEqual(dates({ ...CARD, amount: 0, cutoffDay: null, paymentDay: 31 }), [['limite', '2026-11-30', null]]);
+  const cal = buildPaymentCalendar({ ...base, cards: [{ ...CARD, amount: 0, cutoffDay: 5, paymentDay: 20 }] });
+  assert.equal(cal.events.some((e) => e.kind === 'corte' || e.kind === 'limite'), false);
+  assert.equal(cal.totals.pending, 1062900);
+});
+
 test('el pago de tarjeta pendiente se descuenta antes de los pagos que vienen después', () => {
   const card = { ...CARD, nextPaymentDate: '2026-11-07' };
   const events = byName(buildPaymentCalendar({ ...base, cards: [card] }));

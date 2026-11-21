@@ -36,10 +36,13 @@ export function shortMoney(amount) {
 }
 
 /** Lo más grave de un día manda en su color. */
-const TONE_ORDER = ['negativo', 'riesgo', 'ok', 'pago', 'ingreso'];
+const TONE_ORDER = ['negativo', 'riesgo', 'ok', 'pago', 'ingreso', 'tarjeta'];
 
 /** Lo que entra (día de pago o plata que le deben): no es un pago del usuario. */
 const isInflow = (event) => event.kind === 'ingreso' || event.kind === 'cobro';
+
+/** Corte o fecha límite de una tarjeta: solo informa, no es un pago. */
+export const isCardDate = (event) => event.kind === 'corte' || event.kind === 'limite';
 
 /**
  * Semáforo del calendario (FT-0069), siempre con su texto: el color nunca va solo.
@@ -55,10 +58,11 @@ export const LEGEND = [
  * Tono de un evento: rojo si no alcanza o está atrasado, amarillo si queda poco, verde si alcanza.
  * `pago` es un pago sin saldo calculado (falta Mi plata, o es después del próximo ingreso).
  * @param {{ kind: string, status: string|null, risk: string|null }} event
- * @returns {'negativo'|'riesgo'|'ok'|'pago'|'ingreso'|null} `null` si ya está pagado.
+ * @returns {'negativo'|'riesgo'|'ok'|'pago'|'ingreso'|'tarjeta'|null} `null` si ya está pagado.
  */
 export function toneOf(event) {
   if (isInflow(event)) return 'ingreso';
+  if (isCardDate(event)) return 'tarjeta';
   if (event.status === 'pagado') return null;
   if (event.risk === 'negativo' || event.status === 'atrasado') return 'negativo';
   if (event.risk === 'riesgo' || event.risk === 'ok') return event.risk;
@@ -72,7 +76,7 @@ export function toneOf(event) {
  */
 export function eventLink({ kind, id }) {
   if (kind === 'vaca') return `/app/vacas/${id}`;
-  if (kind === 'card') return `/app/tarjetas/${id}`;
+  if (kind === 'card' || kind === 'corte' || kind === 'limite') return `/app/tarjetas/${id}`;
   if (kind === 'cuenta' || kind === 'cobro') return '/app/cuentas';
   return kind === 'ingreso' ? '/app/mi-plata' : '/app/mi-plata/pagos';
 }
@@ -94,7 +98,7 @@ export function calendarCells(month, events, today) {
       ...cell,
       count: ofDay.length,
       total: ofDay
-        .filter((e) => !isInflow(e) && e.status !== 'pagado')
+        .filter((e) => !isInflow(e) && !isCardDate(e) && e.status !== 'pagado')
         .reduce((acc, e) => acc + e.amount, 0),
       tone: TONE_ORDER.find((t) => tones.includes(t)) ?? null,
     };
