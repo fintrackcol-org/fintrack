@@ -48,5 +48,8 @@
   "para tus pagos. Tienes {money} y vencen {pending}.": "para seus pagamentos. Você tem {money} e vencem {pending}.",
   "{count} pagos que llegaron solos": "{count} pagamentos que chegaram sozinhos",
   "¿De dónde sale?": "De onde sai?",
-  "“gasolina 40”": "“gasolina 40”"
+  "“gasolina 40”": "“gasolina 40”",
+  "corte o pago de tarjeta": "fechamento ou pagamento do cartão",
+  "Corte de la tarjeta · lo que compres después va al siguiente extracto": "Fechamento do cartão · o que você comprar depois vai para a próxima fatura",
+  "Último día para pagar la tarjeta · hoy no le debes nada": "Último dia para pagar o cartão · hoje você não deve nada nele"
 }

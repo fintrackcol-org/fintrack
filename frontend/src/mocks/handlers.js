@@ -1222,7 +1222,16 @@ export const handlers = [
       e.risk = counts ? (balance < 0 ? 'negativo' : balance < 100000 ? 'riesgo' : 'ok') : null;
     }
     const pending = events.filter((e) => e.kind !== 'cobro').reduce((acc, e) => acc + e.amount, 0);
-    return HttpResponse.json({ month, today, money: profile.money, projectedUntil: null, events, totals: { pending, paid: 0 } });
+    // Como el servidor: corte de cada tarjeta y fecha límite (aquí el pago de tarjeta no sale como evento).
+    const day = (d) => `${month}-${String(Math.min(d, new Date(Number(month.slice(0, 4)), Number(month.slice(5)), 0).getDate())).padStart(2, '0')}`;
+    const info = { amount: null, status: null, balanceAfter: null, risk: null };
+    const cardDates = (cardsByUser.get(user.id) ?? [])
+      .flatMap((c) => [
+        ...(c.cutoffDay ? [{ date: day(c.cutoffDay), kind: 'corte', id: c.id, name: c.name, ...info }] : []),
+        { date: day(c.paymentDay), kind: 'limite', id: c.id, name: c.name, ...info },
+      ])
+      .sort((a, b) => a.date.localeCompare(b.date));
+    return HttpResponse.json({ month, today, money: profile.money, projectedUntil: null, events, cardDates, totals: { pending, paid: 0 } });
   }),
 
   http.post(`${API_V1}/money-profile/commitments`, async ({ request }) => {

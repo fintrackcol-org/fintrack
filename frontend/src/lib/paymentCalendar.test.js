@@ -80,6 +80,15 @@ describe('semáforo y cuentas en el calendario (FT-0069)', () => {
     expect(toneOf(event('2026-11-12', 'cobro', 500000, { risk: null }))).toBe('ingreso');
   });
 
+  it('el corte y la fecha límite de una tarjeta marcan el día sin sumar ni ponerlo en rojo', () => {
+    const corte = event('2026-11-05', 'corte', null, { status: null, risk: null });
+    const cells = calendarCells('2026-11', [corte, event('2026-11-05', 'compromiso', 89000)], '2026-11-03');
+    expect(cells.find((c) => c?.day === 5)).toMatchObject({ total: 89000, tone: 'ok', count: 2 });
+    expect(toneOf(corte)).toBe('tarjeta');
+    expect(calendarCells('2026-11', [corte], '2026-11-03').find((c) => c?.day === 5)).toMatchObject({ total: 0, tone: 'tarjeta' });
+    expect(eventLink({ kind: 'limite', id: 'c1' })).toBe('/app/tarjetas/c1');
+  });
+
   it('cada elemento lleva a su detalle', () => {
     expect(eventLink({ kind: 'vaca', id: 'v1' })).toBe('/app/vacas/v1');
     expect(eventLink({ kind: 'card', id: 'c1' })).toBe('/app/tarjetas/c1');
