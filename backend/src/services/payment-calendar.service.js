@@ -71,13 +71,13 @@ export function riskOf(balanceAfter, pace) {
  * @param {Array<{ description: string }>} data.currentExpenses Gastos (no ingresos) del mes actual.
  * @param {Array<{ description: string }>} data.monthExpenses Gastos (no ingresos) del mes que se muestra.
  * @param {Array<{ id: string, name: string, deadline: string|null, myRemaining: number }>} data.vacas
- * @param {Array<{ id: string, name: string, nextPaymentDate: string, amount: number, paidDueDate: string|null, paidAmount: number }>} [data.cards]
+ * @param {Array<{ id: string, name: string, nextPaymentDate: string, amount: number, paidDueDate: string|null, paidAmount: number, paymentDay?: number, cutoffDay?: number|null }>} [data.cards]
  *   Tarjetas con su primer pago sin hacer (`nextPaymentDate`, puede estar atrasado) y el último
  *   ciclo pagado con lo que se pagó en él.
  * @param {Array<{ id: string, kind: 'receivable'|'payable', person: string, amount: number, dueDate: string|null, settledAt: Date|null, paid?: number, installments?: number|null }>} [data.debts]
  *   Cuentas personales (FT-0069). Solo cuentan las pendientes con fecha; con cuotas, cada una (FT-0064).
  * @param {{ ready: boolean, money?: number, pace?: number|null, nextPay?: string }} data.plan Lo de `getPlan`.
- * @returns {{ month: string, today: string, money: number|null, projectedUntil: string|null, events: CalendarEvent[], totals: { pending: number, paid: number } }}
+ * @returns {{ month: string, today: string, money: number|null, projectedUntil: string|null, events: CalendarEvent[], cardDates: CalendarEvent[], totals: { pending: number, paid: number } }}
  */
 export function buildPaymentCalendar({
   month,
@@ -185,6 +185,19 @@ export function buildPaymentCalendar({
       });
     }
   }
+  // Corte y fecha límite de cada tarjeta: solo informan, van aparte de los pagos.
+  const cardDates = [];
+  const info = { amount: null, status: null, balanceAfter: null, risk: null };
+  for (const c of cards) {
+    if (c.cutoffDay) cardDates.push({ date: dateInMonth(month, c.cutoffDay), kind: 'corte', id: c.id, name: c.name, ...info });
+    // La fecha límite ya sale como pago cuando la tarjeta debe algo ese mes.
+    const hasPayment = events.some((e) => e.kind === 'card' && e.id === c.id);
+    if (c.paymentDay && !hasPayment) {
+      cardDates.push({ date: dateInMonth(month, c.paymentDay), kind: 'limite', id: c.id, name: c.name, ...info });
+    }
+  }
+  cardDates.sort((a, b) => a.date.localeCompare(b.date));
+
   for (const d of openDebts) {
     if (!d.dueDate.startsWith(month)) continue;
     const payable = d.kind === 'payable';
@@ -224,6 +237,7 @@ export function buildPaymentCalendar({
     money: plan.ready ? plan.money : null,
     projectedUntil: plan.ready ? end : null,
     events,
+    cardDates,
     totals: {
       pending: Math.round(events.filter(owes).reduce((acc, e) => acc + e.amount, 0)),
       paid: Math.round(
@@ -284,6 +298,8 @@ export function createPaymentCalendarService(deps = {}) {
         amount: c.statementTotal ?? c.used,
         paidDueDate: c.paidDueDate,
         paidAmount: c.paidAmount,
+        paymentDay: c.paymentDay,
+        cutoffDay: c.cutoffDay,
       })),
       debts,
       plan,

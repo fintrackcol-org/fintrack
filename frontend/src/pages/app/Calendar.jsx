@@ -12,7 +12,7 @@ import useAsync from '@/hooks/useAsync';
 import useOnlineStatus from '@/hooks/useOnlineStatus';
 import usePageTitle from '@/hooks/usePageTitle';
 import { dayLabel, monthLabel, shiftMonth } from '@/lib/calendar';
-import { FILTERS, LEGEND, STATUS_TEXT, calendarCells, eventLink, filterEvents, groupByDate, shortMoney } from '@/lib/paymentCalendar';
+import { FILTERS, LEGEND, STATUS_TEXT, calendarCells, eventLink, filterEvents, groupByDate, isCardDate, shortMoney } from '@/lib/paymentCalendar';
 import { cn } from '@/lib/utils';
 import { CommitmentDialog, EMPTY_COMMITMENT } from '@/pages/app/MiPlata';
 import { createDebt } from '@/services/debtService';
@@ -26,6 +26,7 @@ const TONE_CLASS = {
   ok: 'text-positive',
   pago: 'text-ink/60',
   ingreso: 'text-brand',
+  tarjeta: 'text-ink/60',
 };
 
 /** El punto de la leyenda, del mismo color que la cifra del día. */
@@ -43,6 +44,7 @@ const TONE_SPOKEN = {
   ok: 'te alcanza',
   pago: 'por pagar',
   ingreso: 'te entra plata',
+  tarjeta: t('corte o pago de tarjeta'),
 };
 
 /**
@@ -97,6 +99,8 @@ function EventRow({ event }) {
   if (event.kind === 'cuenta') detail = t('{detail} · le debes', { detail });
   if (event.subscription) detail = t('{detail} · suscripción', { detail }); // FT-0067
   if (receivable) detail = event.status === 'atrasado' ? t('Atrasado · te debe') : t('Te debe · no se suma a tu plata');
+  if (event.kind === 'corte') detail = t('Corte de la tarjeta · lo que compres después va al siguiente extracto');
+  if (event.kind === 'limite') detail = t('Último día para pagar la tarjeta · hoy no le debes nada');
   return (
     <li>
       <Link
@@ -178,10 +182,12 @@ export default function Calendar() {
   const shortfall = liquidity.data?.ready ? liquidity.data.firstShortfall : null;
   const shortfallHere = shortfall && shown && shortfall.date.startsWith(shown) ? shortfall : null;
 
-  const events = data ? filterEvents(data.events, filter) : [];
-  const unknownAfter = data?.projectedUntil && events.some((e) => e.kind !== 'ingreso' && e.date >= data.projectedUntil);
+  // El corte y la fecha límite de las tarjetas solo se mezclan aquí: los demás no los leen como pagos.
+  const all = data ? [...data.events, ...(data.cardDates ?? [])].sort((a, b) => a.date.localeCompare(b.date)) : [];
+  const events = filterEvents(all, filter);
+  const unknownAfter = data?.projectedUntil && events.some((e) => e.kind !== 'ingreso' && !isCardDate(e) && e.date >= data.projectedUntil);
   // En la ventana del día va todo, sin el filtro: es "todo lo de ese día".
-  const dayEvents = day && data ? data.events.filter((e) => e.date === day) : [];
+  const dayEvents = day ? all.filter((e) => e.date === day) : [];
   const dayName = day ? (day === data?.today ? t('Hoy') : dayLabel(day)) : '';
   const closeDay = () => {
     setDay(null);
