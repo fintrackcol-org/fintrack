@@ -46,5 +46,8 @@
   "para tus pagos. Tienes {money} y vencen {pending}.": "for your payments. You have {money} and {pending} is due.",
   "{count} pagos que llegaron solos": "{count} payments that came in on their own",
   "¿De dónde sale?": "Where does it come from?",
-  "“gasolina 40”": "“gas 40”"
+  "“gasolina 40”": "“gas 40”",
+  "corte o pago de tarjeta": "card closing or payment date",
+  "Corte de la tarjeta · lo que compres después va al siguiente extracto": "Card closing date · what you buy after goes on the next statement",
+  "Último día para pagar la tarjeta · hoy no le debes nada": "Last day to pay the card · you owe nothing on it today"
 }
