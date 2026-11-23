@@ -180,17 +180,57 @@ export async function listAdjustments(userId, { from = null, to = null } = {}) {
   return rows;
 }
 
+/** Días que se guarda una llave de idempotencia: más que cualquier reintento real de un cliente. */
+const KEY_RETENTION_DAYS = 30;
+
+/**
+ * Reclama una llave dentro de la transacción de `client`. Si otra petición con la misma llave está
+ * en curso, el INSERT espera a que termine (bloqueo de la llave primaria) y luego ve su fila.
+ * @param {import('pg').PoolClient} client
+ * @param {string} userId
+ * @param {{ scope: string, key: string, fingerprint: string }} claim
+ * @returns {Promise<'applied'|'replayed'|'reused'>} `'applied'`: la llave es nueva y hay que aplicar.
+ */
+async function claimKey(client, userId, { scope, key, fingerprint }) {
+  await client.query(
+    `DELETE FROM idempotency_keys WHERE usuario_id = $1 AND created_at < now() - make_interval(days => ${KEY_RETENTION_DAYS})`,
+    [userId],
+  );
+  const inserted = await client.query(
+    `INSERT INTO idempotency_keys (usuario_id, scope, clave, huella) VALUES ($1, $2, $3, $4)
+     ON CONFLICT DO NOTHING RETURNING 1`,
+    [userId, scope, key, fingerprint],
+  );
+  if (inserted.rowCount > 0) return 'applied';
+  const { rows } = await client.query(
+    'SELECT huella FROM idempotency_keys WHERE usuario_id = $1 AND scope = $2 AND clave = $3',
+    [userId, scope, key],
+  );
+  return rows[0]?.huella === fingerprint ? 'replayed' : 'reused';
+}
+
 /**
  * Guarda de una vez lo respondido en la bienvenida y la marca como vista. Reintentar no repite
  * compromisos ni pisa los que ya existían.
  * @param {string} userId
+ *
+ * Con `claim` (cabecera `Idempotency-Key`) la llave se reclama en la misma transacción: si ya se
+ * usó con la misma huella no se aplica nada otra vez; si falla algo, la llave tampoco queda.
  * @param {import('../validators/money-profile.validator.js').ProfileData & { commitments: import('../validators/money-profile.validator.js').NewCommitment[] }} data
- * @returns {Promise<void>}
+ * @param {{ scope: string, key: string, fingerprint: string }|null} [claim]
+ * @returns {Promise<'applied'|'replayed'|'reused'>} `'reused'`: la llave ya se usó con otros datos (nada se aplicó).
  */
-export async function saveWelcome(userId, { incomeType, payDays, balance, balanceCorrected, commitments }) {
+export async function saveWelcome(userId, { incomeType, payDays, balance, balanceCorrected, commitments }, claim = null) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    if (claim) {
+      const outcome = await claimKey(client, userId, claim);
+      if (outcome !== 'applied') {
+        await client.query('ROLLBACK');
+        return outcome;
+      }
+    }
     await client.query(SAVE_PROFILE, [userId, incomeType, payDays, balance, true, false, balanceCorrected ?? balance !== null]);
     for (const { name, amount, dayOfMonth } of commitments) {
       await client.query(
@@ -200,6 +240,7 @@ export async function saveWelcome(userId, { incomeType, payDays, balance, balanc
       );
     }
     await client.query('COMMIT');
+    return 'applied';
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

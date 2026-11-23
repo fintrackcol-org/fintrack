@@ -172,6 +172,22 @@ export function parseWelcome(body) {
   return { ...profile, commitments: clean };
 }
 
+const IDEMPOTENCY_KEY_RE = /^[A-Za-z0-9._:-]{8,128}$/;
+
+/**
+ * Valida la cabecera `Idempotency-Key` (opcional).
+ * @param {string|undefined} value
+ * @returns {string|null} `null` si no vino.
+ * @throws {AppError} 400 `VALIDATION_ERROR` si vino mal formada.
+ */
+export function parseIdempotencyKey(value) {
+  if (value === undefined) return null;
+  if (IDEMPOTENCY_KEY_RE.test(value)) return value;
+  throw new AppError(400, 'VALIDATION_ERROR', t('Datos inválidos'), [
+    { field: 'Idempotency-Key', problem: t('Debe tener de 8 a 128 letras, números o . _ : -') },
+  ]);
+}
+
 /**
  * Valida el cuerpo de `POST /money-profile/commitments` y de `PUT .../:id`.
  * @param {unknown} body

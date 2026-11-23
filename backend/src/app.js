@@ -62,7 +62,7 @@ export function createApp() {
     cors({
       origin: env.corsOrigins.length ? env.corsOrigins : true,
       // El frontend lee el nombre del archivo de las descargas (GET /reports/export).
-      exposedHeaders: ['Content-Disposition'],
+      exposedHeaders: ['Content-Disposition', 'Idempotent-Replayed'],
     }),
   );
   // Idioma, moneda y país de la persona para todo lo que responda esta petición (errores incluidos).

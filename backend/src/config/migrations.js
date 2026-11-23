@@ -713,6 +713,19 @@ export const MIGRATIONS = [
        )`,
     ],
   },
+  {
+    id: '038_idempotencia',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS idempotency_keys (
+         usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+         scope VARCHAR(64) NOT NULL,
+         clave VARCHAR(128) NOT NULL,
+         huella CHAR(64) NOT NULL,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+         PRIMARY KEY (usuario_id, scope, clave)
+       )`,
+    ],
+  },
 ];
 
 /**

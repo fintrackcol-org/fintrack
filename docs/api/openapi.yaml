@@ -1481,7 +1481,19 @@ paths:
     post:
       tags: [MoneyProfile]
       summary: Guarda la bienvenida de una vez; sin datos, la marca como omitida
-      description: Reintentar no repite compromisos. Omitir no borra lo que ya estaba guardado.
+      description: >-
+        Reintentar no repite compromisos. Omitir no borra lo que ya estaba guardado.
+        Con `Idempotency-Key` (opcional) la misma llave con los mismos datos se aplica una sola vez:
+        las repeticiones responden 200 con el perfil ACTUAL (no una copia guardada de la primera
+        respuesta) y la cabecera `Idempotent-Replayed: true`. Las llaves son por usuario y valen
+        30 días; las vencidas se borran cuando ese usuario reclama otra (no hay limpieza periódica).
+        Ver docs/idempotencia-bienvenida.md.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Llave única por intento lógico, generada por el cliente. Sin ella, el comportamiento de siempre.
+          schema: { type: string, pattern: "^[A-Za-z0-9._:-]{8,128}$" }
       requestBody:
         content:
           application/json:
@@ -1496,12 +1508,25 @@ paths:
                       items: { $ref: "#/components/schemas/CommitmentInput" }
       responses:
         "200":
-          description: Perfil actualizado
+          description: Perfil actualizado (o repetición de una llave ya aplicada)
+          headers:
+            Idempotent-Replayed:
+              description: "`true` si la llave ya se había aplicado y no se volvió a aplicar nada."
+              schema: { type: string, enum: ["true"] }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/MoneyProfile" }
-        "400": { $ref: "#/components/responses/BadRequest" }
+        "400":
+          description: "VALIDATION_ERROR — cuerpo inválido o `Idempotency-Key` mal formada (detalle en el campo `Idempotency-Key`)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "409":
+          description: "IDEMPOTENCY_KEY_REUSED — esa llave ya se usó con otros datos; no se aplicó nada"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
   /money-profile/commitments:
