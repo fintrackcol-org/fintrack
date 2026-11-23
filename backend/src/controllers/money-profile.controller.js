@@ -5,7 +5,7 @@ import { parseMonthQuery } from '../validators/budgets.validator.js';
 import * as income from '../services/income.service.js';
 import { AppError } from '../errors/app-error.js';
 import { isValidDate } from '../validators/transactions.validator.js';
-import { parseCommitment, parseProfile, parseSources, parseSplitQuery, parseWelcome } from '../validators/money-profile.validator.js';
+import { parseCommitment, parseIdempotencyKey, parseProfile, parseSources, parseSplitQuery, parseWelcome } from '../validators/money-profile.validator.js';
 import { t } from '../i18n/index.js';
 
 /**
@@ -66,12 +66,17 @@ export async function getAdjustments(req, res) {
 
 /**
  * `POST /api/v1/money-profile/welcome`: guarda la bienvenida; sin datos, la marca como omitida.
+ * Con `Idempotency-Key`, repetirla no aplica nada otra vez y responde el perfil actual con
+ * `Idempotent-Replayed: true` (ver docs/idempotencia-bienvenida.md).
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @returns {Promise<void>}
  */
 export async function postWelcome(req, res) {
-  res.json(await moneyProfile.finishWelcome(req.userId, parseWelcome(req.body)));
+  const key = parseIdempotencyKey(req.get('Idempotency-Key'));
+  const { profile, replayed } = await moneyProfile.finishWelcome(req.userId, parseWelcome(req.body), key);
+  if (replayed) res.set('Idempotent-Replayed', 'true');
+  res.json(profile);
 }
 
 /**

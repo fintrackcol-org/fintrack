@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { AppError } from '../errors/app-error.js';
 import * as repo from '../repositories/money-profile.repository.js';
 import * as reminders from '../repositories/reminder-configs.repository.js';
@@ -85,14 +86,23 @@ export function listAdjustments(userId, range) {
  * Guarda lo respondido en la bienvenida, o solo que se omitió.
  * @param {string} userId
  * @param {import('../validators/money-profile.validator.js').ProfileData & { commitments: import('../validators/money-profile.validator.js').NewCommitment[] }} data
- * @returns {Promise<object>} El perfil actualizado.
+ * @param {string|null} [idempotencyKey] Cabecera `Idempotency-Key`; sin ella, como siempre.
+ * @returns {Promise<{ profile: object, replayed: boolean }>} El perfil actual; `replayed` si la llave ya se había aplicado.
+ * @throws {AppError} 409 `IDEMPOTENCY_KEY_REUSED` si la llave ya se usó con otros datos.
  */
-export async function finishWelcome(userId, data) {
+export async function finishWelcome(userId, data, idempotencyKey = null) {
   const current = await repo.findProfile(userId);
   // Omitir no borra lo que ya estaba: quien ya respondió pudo cambiarlo en Cuenta.
   const answered = data.incomeType !== null || data.balance !== null;
-  await repo.saveWelcome(userId, answered || !current ? data : { ...current, commitments: data.commitments });
-  return get(userId);
+  // La huella es de lo pedido (ya validado), no de lo que se termine guardando.
+  const claim = idempotencyKey && {
+    scope: 'money-profile.welcome',
+    key: idempotencyKey,
+    fingerprint: createHash('sha256').update(JSON.stringify(data)).digest('hex'),
+  };
+  const outcome = await repo.saveWelcome(userId, answered || !current ? data : { ...current, commitments: data.commitments }, claim);
+  if (outcome === 'reused') throw new AppError(409, 'IDEMPOTENCY_KEY_REUSED', t('Esa llave ya se usó con otros datos.'));
+  return { profile: await get(userId), replayed: outcome === 'replayed' };
 }
 
 /**

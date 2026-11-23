@@ -1,4 +1,6 @@
 {
   "un gasto": "an expense",
-  "un ingreso": "income"
+  "un ingreso": "income",
+  "Esa llave ya se usó con otros datos.": "That key was already used with different data.",
+  "Debe tener de 8 a 128 letras, números o . _ : -": "Must have 8 to 128 letters, numbers or . _ : -"
 }

@@ -664,3 +664,14 @@ CREATE TABLE IF NOT EXISTS tasas_cambio (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (fecha, base, moneda)
 );
+
+-- Llaves de idempotencia (cabecera Idempotency-Key) de POST /money-profile/welcome (parche 038).
+-- huella = sha256 (hex) del cuerpo validado; se borran a los 30 días.
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+  usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  scope VARCHAR(64) NOT NULL,
+  clave VARCHAR(128) NOT NULL,
+  huella CHAR(64) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (usuario_id, scope, clave)
+);
