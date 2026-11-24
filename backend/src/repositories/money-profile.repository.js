@@ -1,4 +1,5 @@
 import { pool } from '../config/db.js';
+import { claimKey } from './idempotency.repository.js';
 
 /**
  * @typedef {object} CommitmentRecord
@@ -20,6 +21,7 @@ import { pool } from '../config/db.js';
  * @property {boolean} balanceCorrected `true` si el usuario fijó ese saldo a propósito.
  * @property {Date|null} welcomeAt Cuándo respondió u omitió la bienvenida.
  * @property {Date|null} tutorialAt Cuándo terminó u omitió el tutorial (FT-0071).
+ * @property {number} version Sube con cada escritura del perfil (saldo, tipo, días, fuentes).
  */
 
 const COMMITMENT_COLUMNS = `id, nombre AS name, monto::float8 AS amount, dia_mes::int AS "dayOfMonth",
@@ -32,7 +34,8 @@ const FREQUENCY_DB = { monthly: 'mensual', yearly: 'anual' };
 
 /**
  * Guarda el perfil. La hora del saldo solo cambia si cambió el saldo o si el usuario lo corrigió
- * ($6): si no, lo registrado desde entonces dejaría de contar.
+ * ($6): si no, lo registrado desde entonces dejaría de contar. Con $8 (`expectedVersion`) solo
+ * actualiza si la versión guardada es esa; si no, no devuelve fila y no cambia nada.
  */
 const SAVE_PROFILE = `INSERT INTO perfiles_financieros AS p
     (usuario_id, tipo_ingreso, dias_pago, saldo_inicial, saldo_at, bienvenida_at, saldo_corregido)
@@ -45,7 +48,10 @@ const SAVE_PROFILE = `INSERT INTO perfiles_financieros AS p
                     THEN p.saldo_at ELSE EXCLUDED.saldo_at END,
     bienvenida_at = COALESCE(p.bienvenida_at, EXCLUDED.bienvenida_at),
     saldo_corregido = p.saldo_corregido OR EXCLUDED.saldo_corregido,
-    updated_at = now()`;
+    version = p.version + 1,
+    updated_at = now()
+  WHERE $8::int IS NULL OR p.version = $8::int
+  RETURNING version`;
 
 const UNIQUE_VIOLATION = '23505';
 
@@ -59,7 +65,7 @@ export async function findProfile(userId) {
     `SELECT tipo_ingreso AS "incomeType", dias_pago::int[] AS "payDays",
             saldo_inicial::float8 AS balance, saldo_at AS "balanceAt",
             saldo_corregido AS "balanceCorrected", bienvenida_at AS "welcomeAt",
-            tutorial_at AS "tutorialAt"
+            tutorial_at AS "tutorialAt", version
      FROM perfiles_financieros WHERE usuario_id = $1`,
     [userId],
   );
@@ -130,24 +136,26 @@ export async function expensesOfDay(userId, date) {
  * @param {string} userId
  * @param {import('../validators/money-profile.validator.js').ProfileData} data
  * @param {{ before: number, after: number }|null} [adjustment] Rastro de la corrección de saldo (FT-0062).
- * @returns {Promise<void>}
+ * @param {number|null} [expectedVersion] Solo guarda si la versión guardada es esta.
+ * @returns {Promise<boolean>} `false` si la versión no coincidía: no se guardó nada.
  */
-export async function saveProfile(userId, { incomeType, payDays, balance, resetBalance = false }, adjustment = null) {
-  const values = [userId, incomeType, payDays, balance, false, resetBalance, resetBalance];
-  if (!adjustment) {
-    await pool.query(SAVE_PROFILE, values);
-    return;
-  }
+export async function saveProfile(userId, { incomeType, payDays, balance, resetBalance = false }, adjustment = null, expectedVersion = null) {
+  const values = [userId, incomeType, payDays, balance, false, resetBalance, resetBalance, expectedVersion];
+  if (!adjustment) return (await pool.query(SAVE_PROFILE, values)).rowCount > 0;
   // El saldo y su rastro se guardan juntos o no se guarda ninguno.
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query(SAVE_PROFILE, values);
+    if ((await client.query(SAVE_PROFILE, values)).rowCount === 0) {
+      await client.query('ROLLBACK');
+      return false;
+    }
     await client.query(
       'INSERT INTO ajustes_saldo (usuario_id, saldo_antes, saldo_despues) VALUES ($1, $2, $3)',
       [userId, adjustment.before, adjustment.after],
     );
     await client.query('COMMIT');
+    return true;
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
@@ -180,35 +188,6 @@ export async function listAdjustments(userId, { from = null, to = null } = {}) {
   return rows;
 }
 
-/** Días que se guarda una llave de idempotencia: más que cualquier reintento real de un cliente. */
-const KEY_RETENTION_DAYS = 30;
-
-/**
- * Reclama una llave dentro de la transacción de `client`. Si otra petición con la misma llave está
- * en curso, el INSERT espera a que termine (bloqueo de la llave primaria) y luego ve su fila.
- * @param {import('pg').PoolClient} client
- * @param {string} userId
- * @param {{ scope: string, key: string, fingerprint: string }} claim
- * @returns {Promise<'applied'|'replayed'|'reused'>} `'applied'`: la llave es nueva y hay que aplicar.
- */
-async function claimKey(client, userId, { scope, key, fingerprint }) {
-  await client.query(
-    `DELETE FROM idempotency_keys WHERE usuario_id = $1 AND created_at < now() - make_interval(days => ${KEY_RETENTION_DAYS})`,
-    [userId],
-  );
-  const inserted = await client.query(
-    `INSERT INTO idempotency_keys (usuario_id, scope, clave, huella) VALUES ($1, $2, $3, $4)
-     ON CONFLICT DO NOTHING RETURNING 1`,
-    [userId, scope, key, fingerprint],
-  );
-  if (inserted.rowCount > 0) return 'applied';
-  const { rows } = await client.query(
-    'SELECT huella FROM idempotency_keys WHERE usuario_id = $1 AND scope = $2 AND clave = $3',
-    [userId, scope, key],
-  );
-  return rows[0]?.huella === fingerprint ? 'replayed' : 'reused';
-}
-
 /**
  * Guarda de una vez lo respondido en la bienvenida y la marca como vista. Reintentar no repite
  * compromisos ni pisa los que ya existían.
@@ -218,9 +197,11 @@ async function claimKey(client, userId, { scope, key, fingerprint }) {
  * usó con la misma huella no se aplica nada otra vez; si falla algo, la llave tampoco queda.
  * @param {import('../validators/money-profile.validator.js').ProfileData & { commitments: import('../validators/money-profile.validator.js').NewCommitment[] }} data
  * @param {{ scope: string, key: string, fingerprint: string }|null} [claim]
- * @returns {Promise<'applied'|'replayed'|'reused'>} `'reused'`: la llave ya se usó con otros datos (nada se aplicó).
+ * @param {number|null} [expectedVersion] Se revisa después de la llave: una repetición no choca.
+ * @returns {Promise<'applied'|'replayed'|'reused'|'conflict'>} `'reused'`: la llave ya se usó con otros
+ * datos; `'conflict'`: la versión no coincidía (en ninguno de los dos se aplicó nada ni queda la llave).
  */
-export async function saveWelcome(userId, { incomeType, payDays, balance, balanceCorrected, commitments }, claim = null) {
+export async function saveWelcome(userId, { incomeType, payDays, balance, balanceCorrected, commitments }, claim = null, expectedVersion = null) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -231,7 +212,11 @@ export async function saveWelcome(userId, { incomeType, payDays, balance, balanc
         return outcome;
       }
     }
-    await client.query(SAVE_PROFILE, [userId, incomeType, payDays, balance, true, false, balanceCorrected ?? balance !== null]);
+    const saved = await client.query(SAVE_PROFILE, [userId, incomeType, payDays, balance, true, false, balanceCorrected ?? balance !== null, expectedVersion]);
+    if (saved.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return 'conflict';
+    }
     for (const { name, amount, dayOfMonth } of commitments) {
       await client.query(
         `INSERT INTO compromisos (usuario_id, nombre, monto, dia_mes) VALUES ($1, $2, $3, $4)

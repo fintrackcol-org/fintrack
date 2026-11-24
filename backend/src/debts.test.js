@@ -28,23 +28,24 @@ after(async () => {
 
 /**
  * Levanta la app, ejecuta `fn` con un cliente JSON y cierra el servidor.
- * @param {(api: (url: string, init?: { method?: string, token?: string, body?: unknown }) => Promise<{ status: number, body: object|null }>) => Promise<void>} fn
+ * @param {(api: (url: string, init?: { method?: string, token?: string, body?: unknown, key?: string }) => Promise<{ status: number, body: object|null, replayed: string|null }>) => Promise<void>} fn
  * @returns {Promise<void>}
  */
 async function withApi(fn) {
   const server = createApp().listen(0);
   const base = `http://127.0.0.1:${server.address().port}/api/v1`;
-  const api = async (url, { method = 'GET', token, body } = {}) => {
+  const api = async (url, { method = 'GET', token, body, key } = {}) => {
     const res = await fetch(`${base}${url}`, {
       method,
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(key ? { 'Idempotency-Key': key } : {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const text = await res.text();
-    return { status: res.status, body: text ? JSON.parse(text) : null };
+    return { status: res.status, body: text ? JSON.parse(text) : null, replayed: res.headers.get('idempotent-replayed') };
   };
   try {
     await fn(api);
@@ -431,4 +432,78 @@ test('valida cuotas y abonos', () => {
     () => parseNewDebt({ kind: 'receivable', person: 'A', amount: 100, loanDate: '2026-12-01', dueDate: '2026-11-01' }),
     (err) => err.details.some((d) => d.field === 'loanDate'),
   );
+});
+
+test('editar el monto: no puede quedar en lo ya abonado o menos (422 en amount)', options, async () => {
+  await withApi(async (api) => {
+    const me = await newUser();
+    const created = await api('/debts', {
+      method: 'POST',
+      token: me.token,
+      body: { kind: 'payable', person: 'Lina', amount: 100000 },
+    });
+    const id = created.body.id;
+    await api(`/debts/${id}/payments`, { method: 'POST', token: me.token, body: { amount: 40000 } });
+    for (const amount of [40000, 30000]) {
+      const res = await api(`/debts/${id}`, { method: 'PUT', token: me.token, body: { amount } });
+      assert.equal(res.status, 422);
+      assert.deepEqual(res.body.error.details, [
+        { field: 'amount', problem: 'Tiene que ser mayor que lo que ya se abonó (40000)' },
+      ]);
+    }
+    const ok = await api(`/debts/${id}`, { method: 'PUT', token: me.token, body: { amount: 40001 } });
+    assert.equal(ok.status, 200);
+    assert.equal(ok.body.pending, 1);
+    // Sin abonos, cualquier monto mayor que 0 sirve, como siempre.
+    const fresh = await api('/debts', { method: 'POST', token: me.token, body: { kind: 'payable', person: 'Ana', amount: 5000 } });
+    assert.equal((await api(`/debts/${fresh.body.id}`, { method: 'PUT', token: me.token, body: { amount: 1 } })).status, 200);
+  });
+});
+
+test('abono con Idempotency-Key: repetirlo no abona ni anota otra vez; sin llave, como siempre', options, async () => {
+  await withApi(async (api) => {
+    const me = await newUser();
+    const created = await api('/debts', {
+      method: 'POST',
+      token: me.token,
+      body: { kind: 'receivable', person: 'Sara', amount: 50000 },
+    });
+    const id = created.body.id;
+    const key = `abono-${randomUUID()}`;
+    const body = { amount: 50000, date: TODAY };
+    const first = await api(`/debts/${id}/payments`, { method: 'POST', token: me.token, key, body });
+    assert.equal(first.status, 201);
+    assert.equal(first.replayed, null);
+    assert.ok(first.body.debt.settledAt, 'el abono completo la salda');
+    // La respuesta "se perdió": el reintento con la misma llave no choca con "ya saldada".
+    const again = await api(`/debts/${id}/payments`, { method: 'POST', token: me.token, key, body });
+    assert.equal(again.status, 201);
+    assert.equal(again.replayed, 'true');
+    assert.equal(again.body.payment, null);
+    assert.equal(again.body.debt.payments.length, 1);
+    const { rows: tx } = await pool.query(
+      "SELECT count(*)::int AS n FROM transacciones WHERE usuario_id = $1 AND deleted_at IS NULL",
+      [me.id],
+    );
+    assert.equal(tx[0].n, 1, 'un solo movimiento del abono');
+    // La misma llave con otro cuerpo no aplica nada.
+    const other = await api(`/debts/${id}/payments`, { method: 'POST', token: me.token, key, body: { amount: 1 } });
+    assert.equal(other.status, 409);
+    assert.equal(other.body.error.code, 'IDEMPOTENCY_KEY_REUSED');
+
+    // Dos a la vez con la misma llave: uno solo se aplica.
+    const open = await api('/debts', { method: 'POST', token: me.token, body: { kind: 'payable', person: 'Leo', amount: 90000 } });
+    const twin = `abono-${randomUUID()}`;
+    const both = await Promise.all(
+      [1, 2].map(() => api(`/debts/${open.body.id}/payments`, { method: 'POST', token: me.token, key: twin, body: { amount: 10000 } })),
+    );
+    assert.deepEqual(both.map((r) => r.status), [201, 201]);
+    assert.equal(both.filter((r) => r.replayed === 'true').length, 1);
+    // Sin llave, dos envíos iguales son dos abonos (como hoy).
+    for (let i = 0; i < 2; i++) {
+      await api(`/debts/${open.body.id}/payments`, { method: 'POST', token: me.token, body: { amount: 10000 } });
+    }
+    const listed = await api('/debts', { token: me.token });
+    assert.equal(listed.body.items.find((d) => d.id === open.body.id).payments.length, 3);
+  });
 });

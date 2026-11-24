@@ -23,9 +23,10 @@ export async function listSources(userId) {
  * @param {string} userId
  * @param {import('../services/income.logic.js').IncomeSource[]} sources
  * @param {{ incomeType: string|null, payDays: number[] }} legacy
- * @returns {Promise<void>}
+ * @param {number|null} [expectedVersion] Solo guarda si el perfil sigue en esa versión.
+ * @returns {Promise<boolean>} `false` si la versión no coincidía: no se guardó nada.
  */
-export async function replaceSources(userId, sources, legacy) {
+export async function replaceSources(userId, sources, legacy, expectedVersion = null) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -51,14 +52,21 @@ export async function replaceSources(userId, sources, legacy) {
         ],
       );
     }
-    // El perfil existe desde la bienvenida; si no, se crea sin saldo.
-    await client.query(
-      `INSERT INTO perfiles_financieros (usuario_id, tipo_ingreso, dias_pago) VALUES ($1, $2, $3)
+    // El perfil existe desde la bienvenida; si no, se crea sin saldo. Cambiar las fuentes sube la versión.
+    const saved = await client.query(
+      `INSERT INTO perfiles_financieros AS p (usuario_id, tipo_ingreso, dias_pago) VALUES ($1, $2, $3)
        ON CONFLICT (usuario_id) DO UPDATE SET tipo_ingreso = EXCLUDED.tipo_ingreso,
-         dias_pago = EXCLUDED.dias_pago, updated_at = now()`,
-      [userId, legacy.incomeType, legacy.payDays],
+         dias_pago = EXCLUDED.dias_pago, version = p.version + 1, updated_at = now()
+       WHERE $4::int IS NULL OR p.version = $4::int
+       RETURNING version`,
+      [userId, legacy.incomeType, legacy.payDays, expectedVersion],
     );
+    if (saved.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return false;
+    }
     await client.query('COMMIT');
+    return true;
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

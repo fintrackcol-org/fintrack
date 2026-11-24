@@ -1,5 +1,6 @@
 import * as debts from '../services/debts.service.js';
 import { parseDebtChanges, parseNewDebt, parsePayment, parseSettle } from '../validators/debts.validator.js';
+import { parseIdempotencyKey } from '../validators/money-profile.validator.js';
 
 /**
  * `GET /api/v1/debts`: cuentas del usuario y lo pendiente de cada lado.
@@ -53,13 +54,18 @@ export async function postSettle(req, res) {
 }
 
 /**
- * `POST /api/v1/debts/:id/payments`: registra un abono (FT-0064) y responde 201.
+ * `POST /api/v1/debts/:id/payments`: registra un abono (FT-0064) y responde 201. Con
+ * `Idempotency-Key`, repetirla no abona otra vez y responde la cuenta actual con
+ * `Idempotent-Replayed: true`.
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @returns {Promise<void>}
  */
 export async function postPayment(req, res) {
-  res.status(201).json(await debts.addPayment(req.userId, req.params.id, parsePayment(req.body)));
+  const key = parseIdempotencyKey(req.get('Idempotency-Key'));
+  const { replayed, ...result } = await debts.addPayment(req.userId, req.params.id, parsePayment(req.body), key);
+  if (replayed) res.set('Idempotent-Replayed', 'true');
+  res.status(201).json(result);
 }
 
 /**

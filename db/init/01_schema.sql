@@ -334,6 +334,8 @@ CREATE TABLE perfiles_financieros (
   aviso_liquidez_fecha DATE NULL,
   aviso_liquidez_dias SMALLINT NULL,
   aviso_liquidez_monto NUMERIC(12,2) NULL,
+  -- Sube con cada escritura del perfil; los clientes la mandan como expectedVersion (parche 039).
+  version INTEGER NOT NULL DEFAULT 1,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

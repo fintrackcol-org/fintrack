@@ -35,7 +35,7 @@ after(async () => {
 });
 /**
  * Cliente de prueba: hace una petición a la API y devuelve el código y el cuerpo.
- * @typedef {(path: string, init?: { method?: string, body?: unknown, token?: string }) => Promise<{ status: number, body: object }>} Api
+ * @typedef {(path: string, init?: { method?: string, body?: unknown, token?: string, key?: string }) => Promise<{ status: number, body: object, replayed: string|null }>} Api
  */
 
 /**
@@ -46,17 +46,22 @@ after(async () => {
 async function withApi(fn) {
   const server = createApp().listen(0);
   const base = `http://127.0.0.1:${server.address().port}/api/v1`;
-  const api = async (path, { method = 'GET', body, token } = {}) => {
+  const api = async (path, { method = 'GET', body, token, key } = {}) => {
     const res = await fetch(base + path, {
       method,
       headers: {
         ...(body !== undefined && { 'Content-Type': 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
+        ...(key && { 'Idempotency-Key': key }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const text = await res.text();
-    return { status: res.status, body: text ? JSON.parse(text) : null };
+    return {
+      status: res.status,
+      body: text ? JSON.parse(text) : null,
+      replayed: res.headers.get('idempotent-replayed'),
+    };
   };
   try {
     await fn(api);
@@ -417,3 +422,39 @@ test(
     });
   },
 );
+
+test('pago con Idempotency-Key: repetirlo no paga otra vez; sin llave, como siempre', options, async () => {
+  await withApi(async (api) => {
+    const { token: t, id: userId } = await newUser();
+    const { body: c } = await card(api, t);
+    const key = `pago-${randomUUID()}`;
+    const pay = (init) => api(`/cards/${c.id}/payments`, { method: 'POST', token: t, ...init });
+    const first = await pay({ key, body: { amount: 100000 } });
+    assert.equal(first.status, 201);
+    assert.equal(first.replayed, null);
+    assert.equal(first.body.card.used, 300000);
+    const again = await pay({ key, body: { amount: 100000 } });
+    assert.equal(again.status, 201);
+    assert.equal(again.replayed, 'true');
+    assert.equal(again.body.payment, null);
+    assert.equal(again.body.card.used, 300000, 'no bajó otra vez');
+    const reused = await pay({ key, body: { amount: 5000 } });
+    assert.equal(reused.status, 409);
+    assert.equal(reused.body.error.code, 'IDEMPOTENCY_KEY_REUSED');
+    assert.equal((await pay({ key: 'corta', body: { amount: 1 } })).status, 400);
+
+    // Dos a la vez con la misma llave: un solo pago.
+    const twin = `pago-${randomUUID()}`;
+    const both = await Promise.all([1, 2].map(() => pay({ key: twin, body: { amount: 1000 } })));
+    assert.deepEqual(both.map((r) => r.status), [201, 201]);
+    assert.equal(both.filter((r) => r.replayed === 'true').length, 1);
+    // Sin llave, dos envíos iguales son dos pagos (como hoy).
+    await pay({ body: { amount: 1000 } });
+    await pay({ body: { amount: 1000 } });
+    const { rows: found } = await pool.query(
+      'SELECT count(*)::int AS n FROM pagos_tarjeta WHERE usuario_id = $1 AND deleted_at IS NULL',
+      [userId],
+    );
+    assert.equal(found[0].n, 4);
+  });
+});

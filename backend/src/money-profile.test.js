@@ -74,6 +74,7 @@ test('un usuario nuevo tiene un perfil vacío y la bienvenida pendiente', option
       balanceAt: null,
       money: null,
       totals: { income: 0, expense: 0 },
+      version: 0,
       welcomeDone: false,
       tutorialDone: false,
       commitments: [],

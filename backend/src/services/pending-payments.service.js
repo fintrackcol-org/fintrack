@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { pool } from '../config/db.js';
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
+import { findCard } from '../repositories/cards.repository.js';
 import { listCategories } from '../repositories/categories.repository.js';
 import * as defaultRepo from '../repositories/pending-payments.repository.js';
 import { insertTransaction } from '../repositories/transactions.repository.js';
@@ -200,10 +201,11 @@ export function createPendingPaymentsService(deps = {}) {
 
     /**
      * Confirma el pago: crea el gasto y lo deja enlazado, todo en una transacción SQL. Sin
-     * categoría, la elige la IA con la descripción (si falla, queda sin clasificar).
+     * categoría, la elige la IA con la descripción (si falla, queda sin clasificar). Con `card` el
+     * gasto va a esa tarjeta (una cuota) y no resta de Mi plata hasta que se pague la tarjeta.
      * @param {string} userId
      * @param {string} id
-     * @param {{ category?: string, description?: string }} input
+     * @param {{ category?: string, description?: string, card?: string }} input
      * @returns {Promise<{ payment: object, transaction: object }>}
      */
     async confirm(userId, id, input) {
@@ -216,6 +218,12 @@ export function createPendingPaymentsService(deps = {}) {
             { field: 'category', problem: t('No es una categoría de gasto del catálogo') },
           ]);
         }
+      }
+      // Lo mismo que al anotar un gasto con tarjeta: propia y sin borrar.
+      if (input.card && !(await findCard(input.card, userId))) {
+        throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+          { field: 'card', problem: t('No es una de tus tarjetas') },
+        ]);
       }
       const { category, source } = await resolveCategory({
         category: input.category,
@@ -236,6 +244,7 @@ export function createPendingPaymentsService(deps = {}) {
             date: payment.date,
             category,
             source,
+            card: input.card ?? null,
           },
           client,
         );

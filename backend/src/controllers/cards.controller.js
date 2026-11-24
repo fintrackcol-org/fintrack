@@ -5,6 +5,7 @@ import {
   parsePayment,
   parseSync,
 } from '../validators/cards.validator.js';
+import { parseIdempotencyKey } from '../validators/money-profile.validator.js';
 
 /** `GET /api/v1/cards`: tarjetas del usuario con su estado. */
 export async function getCards(req, res) {
@@ -32,9 +33,15 @@ export async function deleteCard(req, res) {
   res.status(204).end();
 }
 
-/** `POST /api/v1/cards/:id/payments`: registra un pago y responde 201. */
+/**
+ * `POST /api/v1/cards/:id/payments`: registra un pago y responde 201. Con `Idempotency-Key`,
+ * repetirla no paga otra vez y responde la tarjeta actual con `Idempotent-Replayed: true`.
+ */
 export async function postPayment(req, res) {
-  res.status(201).json(await cards.pay(req.userId, req.params.id, parsePayment(req.body)));
+  const key = parseIdempotencyKey(req.get('Idempotency-Key'));
+  const { replayed, ...result } = await cards.pay(req.userId, req.params.id, parsePayment(req.body), key);
+  if (replayed) res.set('Idempotent-Replayed', 'true');
+  res.status(201).json(result);
 }
 
 /** `DELETE /api/v1/cards/:id/payments/:paymentId`. */
