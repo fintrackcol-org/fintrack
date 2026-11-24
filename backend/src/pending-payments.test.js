@@ -74,6 +74,13 @@ test('parseConfirm deja todo opcional', () => {
     () => parseConfirm({ description: '' }),
     (err) => err.statusCode === 422,
   );
+  const card = randomUUID();
+  assert.deepEqual(parseConfirm({ card }), { card });
+  assert.deepEqual(parseConfirm({ card: null }), {});
+  assert.throws(
+    () => parseConfirm({ card: 'Visa 1234' }),
+    (err) => err.statusCode === 422 && err.details[0].field === 'card',
+  );
 });
 
 test('paymentKey: el mismo pago da la misma llave; el id del Atajo manda', () => {
@@ -356,5 +363,51 @@ test('descartar, categoría inválida y aviso de posible duplicado', options, as
       left.map((p) => p.merchant),
       ['Rappi'],
     );
+  });
+});
+
+test('confirmar con tarjeta: el gasto va a la tarjeta y no resta de Mi plata', options, async () => {
+  await withApi(async (api) => {
+    const me = await newUser();
+    const other = await newUser();
+    const newCard = (token, last4) =>
+      api('/cards', {
+        method: 'POST',
+        token,
+        body: { network: 'visa', tier: 'clasica', last4, limit: 1000000, available: 1000000, paymentDay: 10 },
+      });
+    const mine = (await newCard(me.token, '4321')).body;
+    const foreign = (await newCard(other.token, '4321')).body;
+    const gone = (await newCard(me.token, '9999')).body;
+    await api(`/cards/${gone.id}`, { method: 'DELETE', token: me.token });
+
+    const { body } = await api('/pending-payments/token', { method: 'POST', token: me.token });
+    const sent = await api('/shortcuts/payments', {
+      method: 'POST',
+      token: body.token,
+      // Hoy: lo de antes de crear la tarjeta ya estaba en su deuda.
+      body: { merchant: 'Rappi', amount: 30000, date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' }), card: 'Visa 4321' },
+    });
+    const id = sent.body.payment.id;
+    const confirm = (extra) =>
+      api(`/pending-payments/${id}/confirm`, { method: 'POST', token: me.token, body: { category: 'alimentacion', ...extra } });
+
+    for (const card of [foreign.id, gone.id]) {
+      const bad = await confirm({ card });
+      assert.equal(bad.status, 422);
+      assert.deepEqual(bad.body.error.details, [{ field: 'card', problem: 'No es una de tus tarjetas' }]);
+    }
+    const ok = await confirm({ card: mine.id });
+    assert.equal(ok.status, 200);
+    assert.equal(ok.body.payment.status, 'confirmed');
+    const { rows: tx } = await pool.query('SELECT tarjeta_id, cuotas FROM transacciones WHERE id = $1', [
+      ok.body.transaction.id,
+    ]);
+    assert.deepEqual(tx[0], { tarjeta_id: mine.id, cuotas: 1 });
+    // Antes se contaba dos veces: restaba de Mi plata y luego otra vez al pagar la tarjeta.
+    const profile = await api('/money-profile', { token: me.token });
+    assert.equal(profile.body.totals.expense, 0);
+    const card = await api(`/cards/${mine.id}`, { token: me.token });
+    assert.equal(card.body.used, 30000);
   });
 });

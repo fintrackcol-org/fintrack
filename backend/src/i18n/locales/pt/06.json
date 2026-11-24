@@ -2,5 +2,8 @@
   "un gasto": "um gasto",
   "un ingreso": "uma receita",
   "Esa llave ya se usó con otros datos.": "Essa chave já foi usada com outros dados.",
-  "Debe tener de 8 a 128 letras, números o . _ : -": "Deve ter de 8 a 128 letras, números ou . _ : -"
+  "Debe tener de 8 a 128 letras, números o . _ : -": "Deve ter de 8 a 128 letras, números ou . _ : -",
+  "Tiene que ser mayor que lo que ya se abonó ({paid})": "Tem que ser maior do que o que já foi abonado ({paid})",
+  "Debe ser un entero desde 0": "Deve ser um número inteiro a partir de 0",
+  "Tu plata cambió en otro dispositivo. Revisa y vuelve a guardar.": "Seu dinheiro mudou em outro dispositivo. Confira e salve de novo."
 }

@@ -5,7 +5,15 @@ import { parseMonthQuery } from '../validators/budgets.validator.js';
 import * as income from '../services/income.service.js';
 import { AppError } from '../errors/app-error.js';
 import { isValidDate } from '../validators/transactions.validator.js';
-import { parseCommitment, parseIdempotencyKey, parseProfile, parseSources, parseSplitQuery, parseWelcome } from '../validators/money-profile.validator.js';
+import {
+  parseCommitment,
+  parseExpectedVersion,
+  parseIdempotencyKey,
+  parseProfile,
+  parseSources,
+  parseSplitQuery,
+  parseWelcome,
+} from '../validators/money-profile.validator.js';
 import { t } from '../i18n/index.js';
 
 /**
@@ -46,7 +54,7 @@ export async function getCalendar(req, res) {
  * @returns {Promise<void>}
  */
 export async function putProfile(req, res) {
-  res.json(await moneyProfile.update(req.userId, parseProfile(req.body)));
+  res.json(await moneyProfile.update(req.userId, parseProfile(req.body), parseExpectedVersion(req.body)));
 }
 
 /**
@@ -74,7 +82,8 @@ export async function getAdjustments(req, res) {
  */
 export async function postWelcome(req, res) {
   const key = parseIdempotencyKey(req.get('Idempotency-Key'));
-  const { profile, replayed } = await moneyProfile.finishWelcome(req.userId, parseWelcome(req.body), key);
+  const data = parseWelcome(req.body);
+  const { profile, replayed } = await moneyProfile.finishWelcome(req.userId, data, key, parseExpectedVersion(req.body));
   if (replayed) res.set('Idempotent-Replayed', 'true');
   res.json(profile);
 }
@@ -147,5 +156,5 @@ export async function getSplit(req, res) {
  * @returns {Promise<void>}
  */
 export async function putSources(req, res) {
-  res.json(await income.saveSources(req.userId, parseSources(req.body)));
+  res.json(await income.saveSources(req.userId, parseSources(req.body), parseExpectedVersion(req.body)));
 }

@@ -726,6 +726,10 @@ export const MIGRATIONS = [
        )`,
     ],
   },
+  {
+    id: '039_perfil_version',
+    statements: ['ALTER TABLE perfiles_financieros ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 1'],
+  },
 ];
 
 /**

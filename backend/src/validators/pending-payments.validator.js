@@ -1,6 +1,8 @@
 import { AppError } from '../errors/app-error.js';
 import { t } from '../i18n/index.js';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** Lo máximo que cabe en `numeric(12,2)`. */
 const MAX_AMOUNT = 9_999_999_999.99;
 const cents = (n) => Math.round(n * 100) / 100;
@@ -107,10 +109,11 @@ export function parseIncomingPayment(body) {
 }
 
 /**
- * Valida `POST /pending-payments/:id/confirm`. Todo es opcional: sin categoría la elige la IA y
- * sin descripción se usa el comercio.
+ * Valida `POST /pending-payments/:id/confirm`. Todo es opcional: sin categoría la elige la IA,
+ * sin descripción se usa el comercio y sin tarjeta (`card`, id de una tarjeta propia) el gasto
+ * sale de Mi plata.
  * @param {unknown} body Puede venir vacío.
- * @returns {{ category?: string, description?: string }}
+ * @returns {{ category?: string, description?: string, card?: string }}
  */
 export function parseConfirm(body) {
   const input = body ?? {};
@@ -125,6 +128,10 @@ export function parseConfirm(body) {
     const d = typeof input.description === 'string' ? input.description.trim() : '';
     if (d.length >= 1 && d.length <= 200) out.description = d;
     else details.push({ field: 'description', problem: t('Debe tener entre 1 y 200 caracteres') });
+  }
+  if (input.card !== undefined && input.card !== null) {
+    if (typeof input.card === 'string' && UUID_RE.test(input.card)) out.card = input.card;
+    else details.push({ field: 'card', problem: t('Debe ser el id de una tarjeta') });
   }
   throwIfInvalid(details);
   return out;

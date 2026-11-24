@@ -2,6 +2,7 @@ import { expiryStatus } from './card-expiry.js';
 import { pool } from '../config/db.js';
 import { AppError } from '../errors/app-error.js';
 import * as repo from '../repositories/cards.repository.js';
+import { buildClaim, claimKey, keyReused } from '../repositories/idempotency.repository.js';
 import { insertTransaction } from '../repositories/transactions.repository.js';
 import { findUserById } from '../repositories/users.repository.js';
 import { checkTier } from '../validators/cards.validator.js';
@@ -197,13 +198,17 @@ export async function remove(userId, id) {
 }
 
 /**
- * Registra un pago (hoy por defecto) y devuelve la tarjeta recalculada.
+ * Registra un pago (hoy por defecto) y devuelve la tarjeta recalculada. Con `Idempotency-Key` la
+ * llave se reclama en la misma transacción que el pago: repetirla no paga otra vez y responde la
+ * tarjeta como está, con `payment: null` y `replayed: true`.
  * @param {string} userId
  * @param {string} id
  * @param {{ amount: number, date?: string }} input
- * @returns {Promise<{ payment: object, card: object }>}
+ * @param {string|null} [idempotencyKey]
+ * @returns {Promise<{ payment: object|null, card: object, replayed: boolean }>}
+ * @throws {AppError} 409 `IDEMPOTENCY_KEY_REUSED` si la llave ya se usó con otros datos.
  */
-export async function pay(userId, id, input) {
+export async function pay(userId, id, input, idempotencyKey = null) {
   const card = await owned(id, userId);
   const today = await todayOf(userId);
   if (input.date > today) {
@@ -211,13 +216,27 @@ export async function pay(userId, id, input) {
       { field: 'date', problem: t('No puede ser una fecha futura') },
     ]);
   }
-  const payment = await repo.insertPayment({
-    userId,
-    cardId: id,
-    amount: input.amount,
-    date: input.date ?? today,
-  });
-  return { payment, card: await present(card, today) };
+  const claim = buildClaim('cards.payment', idempotencyKey, { card: id, ...input });
+  const client = await pool.connect();
+  let payment = null;
+  try {
+    await client.query('BEGIN');
+    const outcome = claim ? await claimKey(client, userId, claim) : 'applied';
+    if (outcome === 'reused') throw keyReused();
+    if (outcome === 'applied') {
+      payment = await repo.insertPayment(
+        { userId, cardId: id, amount: input.amount, date: input.date ?? today },
+        client,
+      );
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+  return { payment, card: await present(card, today), replayed: payment === null };
 }
 
 /**

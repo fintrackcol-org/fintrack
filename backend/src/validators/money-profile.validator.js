@@ -172,6 +172,22 @@ export function parseWelcome(body) {
   return { ...profile, commitments: clean };
 }
 
+/**
+ * Lee `expectedVersion` (opcional) de un cuerpo de escritura del perfil: la `version` que el cliente
+ * leyó en `GET /money-profile`. Sin el campo (o `null`), se guarda como siempre.
+ * @param {unknown} body
+ * @returns {number|null}
+ * @throws {AppError} 422 `VALIDATION_ERROR` si no es un entero desde 0.
+ */
+export function parseExpectedVersion(body) {
+  const value = isObject(body) ? body.expectedVersion : undefined;
+  if (value === undefined || value === null) return null;
+  if (Number.isInteger(value) && value >= 0 && value <= 2_147_483_647) return value;
+  throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+    { field: 'expectedVersion', problem: t('Debe ser un entero desde 0') },
+  ]);
+}
+
 const IDEMPOTENCY_KEY_RE = /^[A-Za-z0-9._:-]{8,128}$/;
 
 /**

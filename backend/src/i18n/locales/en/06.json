@@ -2,5 +2,8 @@
   "un gasto": "an expense",
   "un ingreso": "income",
   "Esa llave ya se usó con otros datos.": "That key was already used with different data.",
-  "Debe tener de 8 a 128 letras, números o . _ : -": "Must have 8 to 128 letters, numbers or . _ : -"
+  "Debe tener de 8 a 128 letras, números o . _ : -": "Must have 8 to 128 letters, numbers or . _ : -",
+  "Tiene que ser mayor que lo que ya se abonó ({paid})": "It has to be more than what was already paid ({paid})",
+  "Debe ser un entero desde 0": "It must be a whole number from 0",
+  "Tu plata cambió en otro dispositivo. Revisa y vuelve a guardar.": "Your money changed on another device. Check it and save again."
 }

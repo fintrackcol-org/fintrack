@@ -85,7 +85,9 @@ CREATE TABLE IF NOT EXISTS idempotency_keys (
 El cambio es aditivo. Para revertir:
 
 1. Quitar el camino de código: `parseIdempotencyKey` (validador), el tercer parámetro de
-   `finishWelcome`/`saveWelcome` y `claimKey`, y la cabecera en `postWelcome`.
+   `finishWelcome`/`saveWelcome` y `claimKey`, y la cabecera en `postWelcome`. `claimKey` vive en
+   `backend/src/repositories/idempotency.repository.js` y también la usan `POST /cards/:id/payments`
+   y `POST /debts/:id/payments`: si se revierte, quitarla también de ahí.
 2. Quitar la migración `038_idempotencia` de `migrations.js` y del esquema, y `DROP TABLE idempotency_keys;`
 3. Devolver el conteo del CI a 44.
 

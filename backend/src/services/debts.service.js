@@ -1,6 +1,7 @@
 import { pool } from '../config/db.js';
 import { AppError } from '../errors/app-error.js';
 import * as repo from '../repositories/debts.repository.js';
+import { buildClaim, claimKey, keyReused } from '../repositories/idempotency.repository.js';
 import * as reminders from '../repositories/reminder-configs.repository.js';
 import { insertTransaction } from '../repositories/transactions.repository.js';
 import { findUserById } from '../repositories/users.repository.js';
@@ -145,6 +146,15 @@ export async function create(userId, { reminder, ...input }) {
  */
 export async function update(userId, id, { reminder, ...changes }) {
   if (!UUID_RE.test(id)) throw notFound();
+  // Un monto que no pasa de lo abonado deja la cuenta sin nada pendiente y sin poder saldarse.
+  if (changes.amount !== undefined) {
+    const paid = (await repo.findDebt(id, userId))?.paid ?? 0;
+    if (paid > 0 && changes.amount <= paid) {
+      throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+        { field: 'amount', problem: t('Tiene que ser mayor que lo que ya se abonó ({paid})', { paid }) },
+      ]);
+    }
+  }
   const updated = await repo.updateDebt(id, userId, withFirstDueDate(changes));
   if (updated) return withReminder(userId, await syncNextDueDate(userId, updated), reminder);
   throw (await repo.findDebt(id, userId)) ? alreadySettled() : notFound();
@@ -218,31 +228,48 @@ const futureDate = () =>
  * Registra un abono (FT-0064). No puede pasar de lo pendiente. Si con él se completa la cuenta,
  * queda saldada; si no, la fecha límite pasa a la próxima cuota. Todo en una transacción SQL, junto
  * con el ingreso o el gasto del abono si se pide.
+ *
+ * Con `Idempotency-Key` la llave se reclama primero, en la misma transacción: repetirla no abona ni
+ * anota el movimiento otra vez (aunque la cuenta ya haya quedado saldada) y responde la cuenta como
+ * está, con `payment` y `transaction` en `null` y `replayed: true`.
  * @param {string} userId
  * @param {string} id
  * @param {{ amount: number, date?: string, createTransaction: boolean }} input
- * @returns {Promise<{ debt: object, payment: object, transaction: object|null }>}
+ * @param {string|null} [idempotencyKey]
+ * @returns {Promise<{ debt: object, payment: object|null, transaction: object|null, replayed: boolean }>}
+ * @throws {AppError} 409 `IDEMPOTENCY_KEY_REUSED` si la llave ya se usó con otros datos.
  */
-export async function addPayment(userId, id, input) {
-  const debt = UUID_RE.test(id) && (await repo.findDebt(id, userId));
-  if (!debt) throw notFound();
-  if (debt.settledAt) throw alreadySettled();
-  const pending = Math.round((debt.amount - debt.paid) * 100) / 100;
-  if (input.amount > pending) {
-    throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
-      { field: 'amount', problem: t('No puede pasar de lo pendiente ({pending})', { pending }) },
-    ]);
-  }
+export async function addPayment(userId, id, input, idempotencyKey = null) {
+  const found = UUID_RE.test(id) && (await repo.findDebt(id, userId));
+  if (!found) throw notFound();
   const user = await findUserById(userId);
   const today = todayIso(new Date(), user?.timezone);
-  if (input.date && input.date > today) throw futureDate();
-  const date = input.date ?? today;
+  const claim = buildClaim('debts.payment', idempotencyKey, { debt: id, ...input });
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const outcome = claim ? await claimKey(client, userId, claim) : 'applied';
+    if (outcome === 'reused') throw keyReused();
+    if (outcome === 'replayed') {
+      await client.query('ROLLBACK');
+      const current = await repo.findDebt(id, userId);
+      if (!current) throw notFound();
+      return { debt: await withReminder(userId, current), payment: null, transaction: null, replayed: true };
+    }
     // Bloquea la cuenta: dos abonos al tiempo no pueden pasarse de lo pendiente.
     await client.query('SELECT 1 FROM cuentas_personales WHERE id = $1 FOR UPDATE', [id]);
+    const debt = await repo.findDebt(id, userId, client);
+    if (!debt) throw notFound();
+    if (debt.settledAt) throw alreadySettled();
+    const pending = Math.round((debt.amount - debt.paid) * 100) / 100;
+    if (input.amount > pending) {
+      throw new AppError(422, 'VALIDATION_ERROR', t('Datos inválidos'), [
+        { field: 'amount', problem: t('No puede pasar de lo pendiente ({pending})', { pending }) },
+      ]);
+    }
+    if (input.date && input.date > today) throw futureDate();
+    const date = input.date ?? today;
     const transaction = input.createTransaction
       ? await insertTransaction({ userId, amount: input.amount, date, source: 'manual', ...paymentMovement(debt) }, client)
       : null;
@@ -258,7 +285,7 @@ export async function addPayment(userId, id, input) {
         : await syncNextDueDate(userId, current, client);
     if (!current) throw alreadySettled();
     await client.query('COMMIT');
-    return { debt: await withReminder(userId, current), payment, transaction };
+    return { debt: await withReminder(userId, current), payment, transaction, replayed: false };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

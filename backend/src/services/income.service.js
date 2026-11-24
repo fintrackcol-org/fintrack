@@ -18,6 +18,7 @@ import {
 } from './income.logic.js';
 import { todayIso } from './insights.service.js';
 import { getPlan, pendingCommitments } from './money-plan.service.js';
+import { profileChanged } from './money-profile.service.js';
 import { list as listVacas } from './vacas.service.js';
 
 /** El colchón es una meta personal con este nombre: así reutiliza la barra, los aportes y el saldo. */
@@ -30,7 +31,7 @@ const sum = (values) => values.reduce((acc, v) => acc + v, 0);
 /**
  * @param {object} [deps] Dependencias reemplazables en las pruebas.
  * @param {() => Date} [deps.now]
- * @returns {{ getIncome: (userId: string) => Promise<object>, split: (userId: string, amount: number) => Promise<object>, expectedIncome: (userId: string, from: string, to: string) => Promise<object[]>, saveSources: (userId: string, sources: object[]) => Promise<object> }}
+ * @returns {{ getIncome: (userId: string) => Promise<object>, split: (userId: string, amount: number) => Promise<object>, expectedIncome: (userId: string, from: string, to: string) => Promise<object[]>, saveSources: (userId: string, sources: object[], expectedVersion?: number|null) => Promise<object> }}
  */
 export function createIncomeService(deps = {}) {
   const now = deps.now ?? (() => new Date());
@@ -156,10 +157,14 @@ export function createIncomeService(deps = {}) {
    * `PUT /money-profile/sources`: reemplaza las fuentes y mantiene `tipo_ingreso` al día.
    * @param {string} userId
    * @param {import('./income.logic.js').IncomeSource[]} sources
+   * @param {number|null} [expectedVersion] Solo guarda si el perfil sigue en esa versión.
    * @returns {Promise<object>} El resumen nuevo.
+   * @throws {import('../errors/app-error.js').AppError} 409 `PROFILE_CHANGED` si la versión no coincide.
    */
-  async function saveSources(userId, sources) {
-    await sourcesRepo.replaceSources(userId, sources, legacyIncomeType(sources));
+  async function saveSources(userId, sources, expectedVersion = null) {
+    if (!(await sourcesRepo.replaceSources(userId, sources, legacyIncomeType(sources), expectedVersion))) {
+      throw profileChanged();
+    }
     return getIncome(userId);
   }
 

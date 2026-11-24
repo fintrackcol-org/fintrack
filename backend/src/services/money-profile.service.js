@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto';
 import { AppError } from '../errors/app-error.js';
+import { buildClaim, keyReused } from '../repositories/idempotency.repository.js';
 import * as repo from '../repositories/money-profile.repository.js';
 import * as reminders from '../repositories/reminder-configs.repository.js';
 import { currentMoney } from './money-plan.service.js';
@@ -11,6 +11,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 /** @returns {AppError} 404 sin revelar si el compromiso existe pero es de otro (RN-01). */
 function notFound() {
   return new AppError(404, 'NOT_FOUND', t('Compromiso no encontrado'));
+}
+
+/** @returns {AppError} 409: otro dispositivo cambió el perfil después de que este lo leyó. */
+export function profileChanged() {
+  return new AppError(409, 'PROFILE_CHANGED', t('Tu plata cambió en otro dispositivo. Revisa y vuelve a guardar.'));
 }
 
 /** @returns {AppError} 409: el nombre identifica el pago en los movimientos del mes. */
@@ -39,6 +44,8 @@ export async function get(userId) {
     balanceAt: profile?.balanceAt ?? null,
     money: currentMoney({ profile, changes, totals }),
     totals,
+    // Para `expectedVersion` en las escrituras: 0 si todavía no hay perfil.
+    version: profile?.version ?? 0,
     welcomeDone: Boolean(profile?.welcomeAt),
     tutorialDone: Boolean(profile?.tutorialAt),
     commitments: commitments.map((c) => ({ ...c, reminder: configs.get(c.id) ?? null })),
@@ -61,14 +68,17 @@ export function subscriptionsSummary(commitments) {
  * Cambia cómo le entra la plata al usuario y cuánta tiene.
  * @param {string} userId
  * @param {import('../validators/money-profile.validator.js').ProfileData} data
+ * @param {number|null} [expectedVersion] Solo guarda si el perfil sigue en esa versión.
  * @returns {Promise<object>} El perfil actualizado.
+ * @throws {AppError} 409 `PROFILE_CHANGED` si la versión no coincide (no se guarda nada).
  */
-export async function update(userId, data) {
+export async function update(userId, data, expectedVersion = null) {
   // Corregir el saldo deja rastro en el historial si de verdad cambió (FT-0062).
   const correcting = data.resetBalance && typeof data.balance === 'number';
   const before = correcting ? (await get(userId)).money : null;
   const changed = typeof before === 'number' && Math.round(before) !== Math.round(data.balance);
-  await repo.saveProfile(userId, data, changed ? { before, after: data.balance } : null);
+  const saved = await repo.saveProfile(userId, data, changed ? { before, after: data.balance } : null, expectedVersion);
+  if (!saved) throw profileChanged();
   return get(userId);
 }
 
@@ -87,21 +97,24 @@ export function listAdjustments(userId, range) {
  * @param {string} userId
  * @param {import('../validators/money-profile.validator.js').ProfileData & { commitments: import('../validators/money-profile.validator.js').NewCommitment[] }} data
  * @param {string|null} [idempotencyKey] Cabecera `Idempotency-Key`; sin ella, como siempre.
+ * @param {number|null} [expectedVersion] Se revisa después de la llave (una repetición responde 200).
  * @returns {Promise<{ profile: object, replayed: boolean }>} El perfil actual; `replayed` si la llave ya se había aplicado.
- * @throws {AppError} 409 `IDEMPOTENCY_KEY_REUSED` si la llave ya se usó con otros datos.
+ * @throws {AppError} 409 `IDEMPOTENCY_KEY_REUSED` si la llave ya se usó con otros datos, o
+ * `PROFILE_CHANGED` si la versión no coincide (la llave queda libre).
  */
-export async function finishWelcome(userId, data, idempotencyKey = null) {
+export async function finishWelcome(userId, data, idempotencyKey = null, expectedVersion = null) {
   const current = await repo.findProfile(userId);
   // Omitir no borra lo que ya estaba: quien ya respondió pudo cambiarlo en Cuenta.
   const answered = data.incomeType !== null || data.balance !== null;
-  // La huella es de lo pedido (ya validado), no de lo que se termine guardando.
-  const claim = idempotencyKey && {
-    scope: 'money-profile.welcome',
-    key: idempotencyKey,
-    fingerprint: createHash('sha256').update(JSON.stringify(data)).digest('hex'),
-  };
-  const outcome = await repo.saveWelcome(userId, answered || !current ? data : { ...current, commitments: data.commitments }, claim);
-  if (outcome === 'reused') throw new AppError(409, 'IDEMPOTENCY_KEY_REUSED', t('Esa llave ya se usó con otros datos.'));
+  const claim = buildClaim('money-profile.welcome', idempotencyKey, data);
+  const outcome = await repo.saveWelcome(
+    userId,
+    answered || !current ? data : { ...current, commitments: data.commitments },
+    claim,
+    expectedVersion,
+  );
+  if (outcome === 'reused') throw keyReused();
+  if (outcome === 'conflict') throw profileChanged();
   return { profile: await get(userId), replayed: outcome === 'replayed' };
 }
 
